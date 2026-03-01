@@ -1,0 +1,224 @@
+import React, { useState } from 'react';
+import { motion } from 'motion/react';
+import { Filter, Search, ChevronDown, Grid, List as ListIcon } from 'lucide-react';
+import { CATEGORIES, PRODUCTS } from '../constants';
+import { ProductCard } from '../components/ProductCard';
+import { Product } from '../types';
+
+interface ShopViewProps {
+  onAddToCart: (p: Product) => void;
+  onAddToWishlist: (p: Product) => void;
+  onQuickView: (p: Product) => void;
+  onProductClick: (p: Product) => void;
+}
+
+export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist, onQuickView, onProductClick }) => {
+  const [selectedCategory, setSelectedCategory] = useState('Tous');
+  const [selectedMaterial, setSelectedMaterial] = useState('Tous');
+  const [selectedColor, setSelectedColor] = useState('Tous');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('Nouveautés');
+  const [priceRange, setPriceRange] = useState(100000);
+
+  const materials = Array.from(new Set(PRODUCTS.map(p => p.material).filter(Boolean)));
+  const colors = [
+    { name: 'Blanc', hex: '#FFFFFF' },
+    { name: 'Beige', hex: '#F5F5DC' },
+    { name: 'Marron', hex: '#8B4513' },
+    { name: 'Gris', hex: '#808080' },
+    { name: 'Noir', hex: '#000000' },
+  ];
+
+  const filteredProducts = PRODUCTS.filter(p => {
+    const matchesCategory = selectedCategory === 'Tous' || p.category === selectedCategory;
+    const matchesMaterial = selectedMaterial === 'Tous' || p.material === selectedMaterial;
+    const matchesColor = selectedColor === 'Tous' || (p.colors && p.colors.includes(selectedColor));
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          p.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesPrice = p.price <= priceRange;
+    return matchesCategory && matchesMaterial && matchesColor && matchesSearch && matchesPrice;
+  }).sort((a, b) => {
+    if (sortBy === 'Prix croissant') return a.price - b.price;
+    if (sortBy === 'Prix décroissant') return b.price - a.price;
+    if (sortBy === 'Mieux notés') return b.rating - a.rating;
+    if (sortBy === 'Nouveautés') return (a.isNew ? -1 : 1) - (b.isNew ? -1 : 1);
+    return 0;
+  });
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
+        <div>
+          <h1 className="text-4xl font-serif mb-2">Boutique</h1>
+          <p className="text-primary/60">{filteredProducts.length} produits trouvés</p>
+        </div>
+        
+          <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
+            <div className="relative flex-grow md:flex-grow-0">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/40" size={18} />
+              <input
+                type="text"
+                placeholder="Rechercher par nom, matière..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-12 pr-4 py-2 bg-white border border-primary/10 rounded-full focus:outline-none focus:border-accent w-full md:w-80 shadow-sm"
+              />
+            </div>
+            <div className="relative">
+              <select 
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="appearance-none pl-4 pr-10 py-2 bg-white border border-primary/10 rounded-full focus:outline-none focus:border-accent cursor-pointer shadow-sm"
+              >
+                <option value="Nouveautés">Nouveautés</option>
+                <option value="Prix croissant">Prix croissant</option>
+                <option value="Prix décroissant">Prix décroissant</option>
+                <option value="Mieux notés">Mieux notés</option>
+              </select>
+              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-primary/40 pointer-events-none" size={16} />
+            </div>
+          </div>
+      </div>
+
+      <div className="flex flex-col lg:flex-row gap-12">
+        {/* Sidebar Filters */}
+        <aside className="w-full lg:w-72 space-y-10">
+          <div>
+            <h3 className="font-bold uppercase tracking-widest text-xs mb-6 flex items-center">
+              <Filter size={14} className="mr-2" /> Catégories
+            </h3>
+            <div className="space-y-3">
+              <button
+                onClick={() => setSelectedCategory('Tous')}
+                className={`block w-full text-left text-sm transition-colors ${selectedCategory === 'Tous' ? 'text-accent font-bold' : 'text-primary/70 hover:text-primary'}`}
+              >
+                Tous les produits
+              </button>
+              {CATEGORIES.map(cat => (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.name)}
+                  className={`block w-full text-left text-sm transition-colors ${selectedCategory === cat.name ? 'text-accent font-bold' : 'text-primary/70 hover:text-primary'}`}
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="font-bold uppercase tracking-widest text-xs mb-6">Matières</h3>
+            <div className="space-y-3">
+              <button
+                onClick={() => setSelectedMaterial('Tous')}
+                className={`block w-full text-left text-sm transition-colors ${selectedMaterial === 'Tous' ? 'text-accent font-bold' : 'text-primary/70 hover:text-primary'}`}
+              >
+                Toutes les matières
+              </button>
+              {materials.map(mat => (
+                <button
+                  key={mat}
+                  onClick={() => setSelectedMaterial(mat!)}
+                  className={`block w-full text-left text-sm transition-colors ${selectedMaterial === mat ? 'text-accent font-bold' : 'text-primary/70 hover:text-primary'}`}
+                >
+                  {mat}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="font-bold uppercase tracking-widest text-xs mb-6">Prix Maximum</h3>
+            <div className="space-y-4">
+              <input 
+                type="range" 
+                className="w-full accent-accent" 
+                min="0" 
+                max="100000" 
+                step="1000"
+                value={priceRange}
+                onChange={(e) => setPriceRange(parseInt(e.target.value))}
+              />
+              <div className="flex justify-between text-xs text-primary/60 font-bold">
+                <span>0 FCFA</span>
+                <span className="text-accent">{priceRange.toLocaleString()} FCFA</span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="font-bold uppercase tracking-widest text-xs mb-6">Couleurs</h3>
+            <div className="flex flex-wrap gap-3">
+              <button 
+                onClick={() => setSelectedColor('Tous')}
+                className={`w-8 h-8 rounded-full border border-primary/10 flex items-center justify-center text-[10px] font-bold ${selectedColor === 'Tous' ? 'bg-primary text-white' : 'bg-white text-primary'}`}
+              >
+                All
+              </button>
+              {colors.map((color, i) => (
+                <button 
+                  key={i} 
+                  onClick={() => setSelectedColor(color.hex)}
+                  title={color.name}
+                  className={`w-8 h-8 rounded-full border border-primary/10 cursor-pointer hover:ring-2 ring-accent ring-offset-2 transition-all ${selectedColor === color.hex ? 'ring-2' : ''}`}
+                  style={{ backgroundColor: color.hex }}
+                />
+              ))}
+            </div>
+          </div>
+
+          <button 
+            onClick={() => {
+              setSelectedCategory('Tous');
+              setSelectedMaterial('Tous');
+              setSelectedColor('Tous');
+              setSearchQuery('');
+              setPriceRange(100000);
+            }}
+            className="w-full py-3 border border-primary/10 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-primary hover:text-white transition-all"
+          >
+            Réinitialiser les filtres
+          </button>
+        </aside>
+
+        {/* Product Grid */}
+        <main className="flex-grow">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
+            {filteredProducts.map((product) => (
+              <ProductCard 
+                key={product.id} 
+                product={product} 
+                onAddToCart={onAddToCart}
+                onAddToWishlist={onAddToWishlist}
+                onQuickView={onQuickView}
+                onClick={onProductClick}
+              />
+            ))}
+          </div>
+          
+          {filteredProducts.length === 0 && (
+            <div className="text-center py-24">
+              <p className="text-xl text-primary/40 font-serif italic">Aucun produit ne correspond à votre recherche.</p>
+              <button 
+                onClick={() => { setSelectedCategory('Tous'); setSearchQuery(''); }}
+                className="mt-4 text-accent font-bold underline"
+              >
+                Réinitialiser les filtres
+              </button>
+            </div>
+          )}
+
+          {filteredProducts.length > 0 && (
+            <div className="mt-16 flex justify-center space-x-2">
+              {[1, 2, 3].map(n => (
+                <button key={n} className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${n === 1 ? 'bg-primary text-white' : 'bg-white border border-primary/10 hover:border-accent hover:text-accent'}`}>
+                  {n}
+                </button>
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
+    </div>
+  );
+};

@@ -1,0 +1,5 @@
+{
+  "name": "Laine & Déco - E-commerce Template",
+  "description": "Un template complet d'e-commerce pour la vente de laine et d'articles de décoration intérieure, incluant une interface client élégante et un tableau de bord administrateur robuste.",
+  "requestFramePermissions": ["geolocation"]
+}
