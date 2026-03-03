@@ -16,6 +16,7 @@ interface HomeViewProps {
 }
 
 export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onAddToWishlist, onQuickView, onProductClick, siteConfig }) => {
+  const [showOnlyPromos, setShowOnlyPromos] = React.useState(false);
   const featuredProducts = PRODUCTS.filter(p => siteConfig.homeFeaturedProducts.includes(p.id));
   const featuredCategories = CATEGORIES.filter(c => siteConfig.homeFeaturedCategories.includes(c.id));
 
@@ -176,14 +177,28 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
       {/* Featured Products */}
       <section className="bg-primary/5 py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <span className="text-xs font-bold uppercase tracking-widest text-accent mb-2 block">Sélection</span>
-            <h2 className="text-4xl font-serif mb-4">Les Incontournables</h2>
-            <p className="text-primary/60 max-w-xl mx-auto">Nos meilleures ventes et coups de cœur du moment, choisis avec soin pour vous.</p>
+          <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
+            <div className="text-left">
+              <span className="text-xs font-bold uppercase tracking-widest text-accent mb-2 block">Sélection</span>
+              <h2 className="text-4xl font-serif mb-4">Les Incontournables</h2>
+              <p className="text-primary/60 max-w-xl">Nos meilleures ventes et coups de cœur du moment, choisis avec soin pour vous.</p>
+            </div>
+            <div className="flex items-center gap-4 bg-white p-2 rounded-2xl shadow-sm border border-primary/5">
+              <span className="text-xs font-bold uppercase tracking-widest text-primary/40 ml-4">Filtre:</span>
+              <button 
+                onClick={() => setShowOnlyPromos(!showOnlyPromos)}
+                className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${showOnlyPromos ? 'bg-accent text-white shadow-md' : 'bg-slate-50 text-primary/60 hover:bg-slate-100'}`}
+              >
+                {showOnlyPromos ? 'Toutes les promos' : 'En promotion'}
+              </button>
+            </div>
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {(featuredProducts.length > 0 ? featuredProducts : PRODUCTS.slice(0, 4)).map((product) => (
+            {(showOnlyPromos 
+              ? PRODUCTS.filter(p => p.oldPrice)
+              : (featuredProducts.length > 0 ? featuredProducts : PRODUCTS.slice(0, 4))
+            ).map((product) => (
               <ProductCard 
                 key={product.id} 
                 product={product} 
@@ -194,6 +209,32 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
               />
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Coussins & Plaids Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-end mb-12">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-widest text-accent mb-2 block">Confort</span>
+            <h2 className="text-4xl font-serif">Coussins & Plaids</h2>
+          </div>
+          <button onClick={() => onNavigate('shop')} className="text-primary font-bold border-b-2 border-primary/20 hover:border-accent hover:text-accent transition-all pb-1">
+            Voir la collection
+          </button>
+        </div>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          {PRODUCTS.filter(p => p.category === 'Coussins & Plaids').slice(0, 4).map((product) => (
+            <ProductCard 
+              key={product.id} 
+              product={product} 
+              onAddToCart={onAddToCart}
+              onAddToWishlist={onAddToWishlist}
+              onQuickView={onQuickView}
+              onClick={onProductClick}
+            />
+          ))}
         </div>
       </section>
 

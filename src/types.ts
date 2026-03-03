@@ -4,6 +4,7 @@ export interface Review {
   rating: number;
   comment: string;
   date: string;
+  image?: string; // Added for review photos
 }
 
 export interface BlogPost {
@@ -46,6 +47,7 @@ export interface Product {
   id: string;
   name: string;
   price: number;
+  oldPrice?: number;
   category: string;
   image: string;
   description: string;
@@ -56,6 +58,9 @@ export interface Product {
   material?: string;
   colors?: string[];
   reviews?: Review[];
+  views?: number; // Added for analytics
+  salesCount?: number; // Added for analytics
+  brand?: string; // Added for filtering
 }
 
 export interface Category {
@@ -74,6 +79,7 @@ export interface Order {
   items: number;
   paymentMethod?: string;
   orderDetails?: { productId: string; quantity: number; price: number; name: string }[];
+  trackingSteps?: { status: string; date: string; description: string; completed: boolean }[]; // Added for tracking
 }
 
 export interface User {
@@ -119,6 +125,16 @@ export interface ChatMessage {
   isAdmin: boolean;
 }
 
+export interface Conversation {
+  id: string;
+  userId: string;
+  userName: string;
+  lastMessage: string;
+  timestamp: string;
+  unreadCount: number;
+  messages: ChatMessage[];
+}
+
 export interface HomeSection {
   id: string;
   title: string;
@@ -134,4 +150,32 @@ export interface SiteConfig {
   showSlider: boolean;
   sliderItems: { id: string; image: string; title: string; subtitle: string }[];
   customSections: HomeSection[];
+}
+
+export interface Coupon {
+  id: string;
+  code: string;
+  discount: number;
+  type: 'percentage' | 'fixed';
+  expiryDate: string;
+  usageLimit: number;
+  usageCount: number;
+  status: 'active' | 'expired';
+}
+
+export interface AdminRole {
+  id: string;
+  name: string;
+  permissions: string[]; // e.g., ['products.view', 'products.edit', 'orders.view']
+}
+
+export interface Language {
+  code: string;
+  name: string;
+  flag: string;
+}
+
+export interface WishlistItem {
+  productId: string;
+  addedAt: string;
 }

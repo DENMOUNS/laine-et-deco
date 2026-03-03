@@ -1,20 +1,34 @@
 import React, { useState } from 'react';
 import { ShoppingBag, Search, User, Heart, Menu, X, ChevronRight, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { CURRENCIES } from '../constants';
+import { CURRENCIES, LANGUAGES } from '../constants';
+import { Language, Currency } from '../types';
 
 interface NavbarProps {
   onNavigate: (view: string) => void;
   currentView: string;
   cartCount: number;
   wishlistCount: number;
+  language: Language;
+  setLanguage: (l: Language) => void;
+  currency: Currency;
+  setCurrency: (c: Currency) => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentView, cartCount, wishlistCount }) => {
+export const Navbar: React.FC<NavbarProps> = ({ 
+  onNavigate, 
+  currentView, 
+  cartCount, 
+  wishlistCount,
+  language,
+  setLanguage,
+  currency,
+  setCurrency
+}) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [selectedCurrency, setSelectedCurrency] = useState(CURRENCIES[0]);
   const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
+  const [isLanguageOpen, setIsLanguageOpen] = useState(false);
 
   const navLinks = [
     { name: 'Accueil', view: 'home' },
@@ -47,17 +61,57 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentView, cartCou
               <button
                 key={link.name}
                 onClick={() => onNavigate(link.view)}
-                className={`text-sm font-medium transition-colors hover:text-accent ${
-                  currentView === link.view ? 'text-accent border-b-2 border-accent' : 'text-primary/70'
+                className={`text-sm font-bold uppercase tracking-widest transition-all hover:text-accent relative py-2 ${
+                  currentView === link.view ? 'text-accent' : 'text-primary/70'
                 }`}
               >
                 {link.name}
+                {currentView === link.view && (
+                  <motion.div 
+                    layoutId="nav-underline"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"
+                  />
+                )}
               </button>
             ))}
           </div>
 
           {/* Icons */}
           <div className="flex items-center space-x-4">
+            {/* Language Selector */}
+            <div className="relative hidden lg:block">
+              <button 
+                onClick={() => setIsLanguageOpen(!isLanguageOpen)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-primary/5 transition-colors text-xs font-bold text-primary/60"
+              >
+                <span>{language.flag}</span>
+                {language.code.toUpperCase()}
+              </button>
+              <AnimatePresence>
+                {isLanguageOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="absolute top-full right-0 mt-2 bg-white shadow-2xl rounded-2xl border border-primary/5 p-2 min-w-[120px] z-50"
+                  >
+                    {LANGUAGES.map(lang => (
+                      <button
+                        key={lang.code}
+                        onClick={() => { setLanguage(lang); setIsLanguageOpen(false); }}
+                        className={`w-full text-left px-4 py-2 rounded-xl text-xs font-medium transition-colors flex items-center gap-3 ${
+                          language.code === lang.code ? 'bg-primary text-white' : 'hover:bg-primary/5 text-primary/70'
+                        }`}
+                      >
+                        <span>{lang.flag}</span>
+                        {lang.name}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
             {/* Currency Selector */}
             <div className="relative hidden lg:block">
               <button 
@@ -65,7 +119,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentView, cartCou
                 className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-primary/5 transition-colors text-xs font-bold text-primary/60"
               >
                 <Globe size={14} />
-                {selectedCurrency.code}
+                {currency.code}
               </button>
               <AnimatePresence>
                 {isCurrencyOpen && (
@@ -78,9 +132,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentView, cartCou
                     {CURRENCIES.map(curr => (
                       <button
                         key={curr.code}
-                        onClick={() => { setSelectedCurrency(curr); setIsCurrencyOpen(false); }}
+                        onClick={() => { setCurrency(curr); setIsCurrencyOpen(false); }}
                         className={`w-full text-left px-4 py-2 rounded-xl text-xs font-medium transition-colors ${
-                          selectedCurrency.code === curr.code ? 'bg-primary text-white' : 'hover:bg-primary/5 text-primary/70'
+                          currency.code === curr.code ? 'bg-primary text-white' : 'hover:bg-primary/5 text-primary/70'
                         }`}
                       >
                         {curr.name} ({curr.symbol})
@@ -110,7 +164,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentView, cartCou
                 </span>
               )}
             </button>
-            <button onClick={() => onNavigate('login')} className="p-2 text-primary hover:text-accent transition-colors">
+            <button 
+              onClick={() => onNavigate('customer-dashboard')} 
+              className={`p-2 transition-colors ${currentView === 'customer-dashboard' ? 'text-accent' : 'text-primary hover:text-accent'}`}
+            >
               <User size={20} />
             </button>
           </div>
@@ -172,6 +229,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentView, cartCou
               ))}
               <hr className="border-primary/10" />
               <button onClick={() => onNavigate('login')} className="text-xl font-serif text-left">Mon Compte</button>
+              <button onClick={() => onNavigate('order-tracking')} className="text-xl font-serif text-left">Suivre ma commande</button>
               <button onClick={() => onNavigate('admin-dashboard')} className="text-xl font-serif text-left text-primary/50">Admin Panel</button>
             </div>
           </motion.div>
@@ -205,15 +263,15 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               <li><a href="#" className="hover:text-white transition-colors">Promotions</a></li>
             </ul>
           </div>
-          <div>
-            <h3 className="font-bold mb-6 uppercase tracking-widest text-xs">Aide</h3>
-            <ul className="space-y-3 text-sm text-white/70">
-              <li><a href="#" className="hover:text-white transition-colors">Livraison</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Retours</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">FAQ</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Contact</a></li>
-            </ul>
-          </div>
+            <div>
+              <h3 className="font-bold mb-6 uppercase tracking-widest text-xs">Aide</h3>
+              <ul className="space-y-3 text-sm text-white/70">
+                <li><button onClick={() => onNavigate('order-tracking')} className="hover:text-white transition-colors">Suivi de commande</button></li>
+                <li><a href="#" className="hover:text-white transition-colors">Livraison</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Retours</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">FAQ</a></li>
+              </ul>
+            </div>
           <div>
             <h3 className="font-bold mb-6 uppercase tracking-widest text-xs">Newsletter</h3>
             <p className="text-white/70 text-sm mb-4">Inscrivez-vous pour recevoir nos inspirations déco et offres exclusives.</p>

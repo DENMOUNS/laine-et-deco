@@ -43,12 +43,20 @@ import {
   Palette,
   Download,
   FileText,
-  Table as TableIcon
+  Table as TableIcon,
+  Ticket,
+  Lock,
+  Eye,
+  MousePointer2
 } from 'lucide-react';
-import { ORDERS, PRODUCTS, USERS, CATEGORIES, LOGIN_LOGS, REQUEST_LOGS, CURRENCIES, NOTIFICATIONS, SALES_DATA, SITE_CONFIG, CHAT_MESSAGES } from '../constants';
+import { ORDERS, PRODUCTS, USERS, CATEGORIES, LOGIN_LOGS, REQUEST_LOGS, CURRENCIES, NOTIFICATIONS, SALES_DATA, SITE_CONFIG, CHAT_MESSAGES, CONVERSATIONS, COUPONS, ADMIN_ROLES } from '../constants';
 import { Modal } from '../components/Modal';
 import { DataTable } from '../components/DataTable';
-import { Notification, Product, Category, SiteConfig, ChatMessage, HomeSection } from '../types';
+import { TabFilter } from '../components/TabFilter';
+import { Notification, Product, Category, SiteConfig, ChatMessage, HomeSection, Conversation, Coupon, AdminRole } from '../types';
+
+import { toast } from 'sonner';
+import { Loader } from '../components/Loader';
 
 interface AdminDashboardProps {
   onNavigate: (view: string) => void;
@@ -61,7 +69,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'product' | 'category' | 'currency' | 'site'>('product');
   const [editingItem, setEditingItem] = useState<any>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [siteConfig, setSiteConfig] = useState<SiteConfig>(SITE_CONFIG);
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+
+  // Filter states
+  const [orderFilter, setOrderFilter] = useState('all');
+  const [productFilter, setProductFilter] = useState('all');
+  const [customerFilter, setCustomerFilter] = useState('all');
+  const [notificationFilter, setNotificationFilter] = useState('all');
+  const [reviewFilter, setReviewFilter] = useState('all');
+  const [logFilter, setLogFilter] = useState('all');
+  const [requestLogFilter, setRequestLogFilter] = useState('all');
+  const [overviewOrderFilter, setOverviewOrderFilter] = useState('all');
 
   const stats = [
     { label: 'Ventes Totales', value: '12,450,000 FCFA', change: '+12.5%', isUp: true, icon: <TrendingUp size={20} /> },
@@ -79,6 +99,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     { id: 'logs', label: 'Historique & Logs', icon: <History size={20} /> },
     { id: 'currencies', label: 'Devises', icon: <Coins size={20} /> },
     { id: 'stats', label: 'Statistiques', icon: <BarChart3 size={20} /> },
+    { id: 'analytics', label: 'Analytique Avancée', icon: <TrendingUp size={20} /> },
+    { id: 'coupons', label: 'Coupons & Promos', icon: <Ticket size={20} /> },
+    { id: 'roles', label: 'Rôles & Permissions', icon: <Lock size={20} /> },
     { id: 'notifications', label: 'Notifications', icon: <Bell size={20} /> },
     { id: 'reviews', label: 'Avis Clients', icon: <Star size={20} /> },
     { id: 'messages', label: 'Messages', icon: <MessageSquare size={20} /> },
@@ -97,10 +120,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
       {/* Sidebar */}
       <aside className={`
-        fixed inset-y-0 left-0 z-40 w-64 bg-primary text-white flex flex-col transition-transform duration-300 lg:relative lg:translate-x-0
+        fixed inset-y-0 left-0 z-40 w-64 bg-primary text-white flex flex-col transition-transform duration-300 lg:relative lg:translate-x-0 overflow-y-auto custom-scrollbar
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
-        <div className="p-8 hidden lg:block">
+        <div className="p-8 hidden lg:block flex-shrink-0">
           <h1 className="text-2xl font-serif font-bold">Admin Panel</h1>
           <p className="text-white/40 text-[10px] uppercase tracking-widest font-bold mt-1">Laine & Déco</p>
         </div>
@@ -357,8 +380,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">
               {/* Recent Orders */}
               <div className="xl:col-span-2">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-serif">Commandes Récentes</h3>
+                  <TabFilter 
+                    options={[
+                      { id: 'all', label: 'Toutes' },
+                      { id: 'today', label: 'Aujourd\'hui' },
+                      { id: 'yesterday', label: 'Hier' },
+                    ]}
+                    active={overviewOrderFilter}
+                    onChange={setOverviewOrderFilter}
+                    className="mb-0"
+                  />
+                </div>
                 <DataTable
-                  data={ORDERS.slice(0, 5)}
+                  data={ORDERS.slice(0, 10).filter(o => {
+                    if (overviewOrderFilter === 'all') return true;
+                    if (overviewOrderFilter === 'today') return o.date.includes('2024'); // Mock today
+                    if (overviewOrderFilter === 'yesterday') return o.date.includes('2023'); // Mock yesterday
+                    return true;
+                  })}
                   columns={[
                     { header: 'ID', accessor: 'id', className: 'font-mono text-xs' },
                     { header: 'Client', accessor: 'customer', className: 'font-medium' },
@@ -384,22 +425,50 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
               </div>
 
               {/* Best Sellers */}
-              <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 p-8">
-                <h3 className="text-xl font-serif mb-8">Meilleures Ventes</h3>
-                <div className="space-y-6">
-                  {PRODUCTS.slice(0, 4).map((product) => (
-                    <div key={product.id} className="flex items-center gap-4">
-                      <img src={product.image} alt={product.name} className="w-12 h-16 object-cover rounded-lg" referrerPolicy="no-referrer" />
-                      <div className="flex-grow">
-                        <h4 className="font-medium text-sm line-clamp-1">{product.name}</h4>
-                        <p className="text-slate-400 text-xs">{product.category}</p>
+              <div className="space-y-10">
+                <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 p-8">
+                  <h3 className="text-xl font-serif mb-8">Meilleures Ventes</h3>
+                  <div className="space-y-6">
+                    {PRODUCTS.slice(0, 4).map((product) => (
+                      <div key={product.id} className="flex items-center gap-4">
+                        <img src={product.image} alt={product.name} className="w-12 h-16 object-cover rounded-lg" referrerPolicy="no-referrer" />
+                        <div className="flex-grow">
+                          <h4 className="font-medium text-sm line-clamp-1">{product.name}</h4>
+                          <p className="text-slate-400 text-xs">{product.category}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-sm">{product.price.toLocaleString()} FCFA</p>
+                          <p className="text-[10px] text-green-500 font-bold">+12%</p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold text-sm">{product.price.toLocaleString()} FCFA</p>
-                        <p className="text-[10px] text-green-500 font-bold">+12%</p>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-[2.5rem] shadow-sm border border-red-100 p-8 bg-red-50/30">
+                  <div className="flex justify-between items-center mb-8">
+                    <h3 className="text-xl font-serif text-red-900">Alertes Stock</h3>
+                    <AlertCircle className="text-red-500" size={20} />
+                  </div>
+                  <div className="space-y-4">
+                    {PRODUCTS.filter(p => p.stock < 15).map((product) => (
+                      <div key={product.id} className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-red-50 shadow-sm">
+                        <img src={product.image} alt={product.name} className="w-10 h-10 object-cover rounded-lg" referrerPolicy="no-referrer" />
+                        <div className="flex-grow">
+                          <h4 className="font-bold text-xs line-clamp-1">{product.name}</h4>
+                          <div className="flex items-center gap-2 mt-1">
+                            <div className="flex-grow h-1 bg-slate-100 rounded-full overflow-hidden">
+                              <div className="h-full bg-red-500" style={{ width: `${(product.stock / 50) * 100}%` }} />
+                            </div>
+                            <span className="text-[10px] font-bold text-red-600">{product.stock} restants</span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                  <button className="w-full mt-6 py-3 bg-red-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-200">
+                    Commander du stock
+                  </button>
                 </div>
               </div>
             </div>
@@ -407,9 +476,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         )}
 
         {activeTab === 'orders' && (
-          <DataTable
-            data={ORDERS}
-            columns={[
+          <div className="space-y-6">
+            <TabFilter 
+              options={[
+                { id: 'all', label: 'Tous' },
+                { id: 'pending', label: 'En attente' },
+                { id: 'processing', label: 'Traitement' },
+                { id: 'shipped', label: 'Expédié' },
+                { id: 'delivered', label: 'Livré' },
+                { id: 'cancelled', label: 'Annulé' },
+              ]}
+              active={orderFilter}
+              onChange={setOrderFilter}
+            />
+            <DataTable
+              data={orderFilter === 'all' ? ORDERS : ORDERS.filter(o => o.status === orderFilter)}
+              columns={[
               { header: 'ID', accessor: 'id', className: 'font-mono text-xs' },
               { header: 'Client', accessor: 'customer', className: 'font-medium' },
               { header: 'Date', accessor: 'date', className: 'text-slate-400 text-sm' },
@@ -437,7 +519,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
               }
             ]}
           />
-        )}
+        </div>
+      )}
 
         {activeTab === 'logs' && (
           <div className="space-y-10">
@@ -449,8 +532,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     <Shield className="text-accent" size={24} /> Connexions
                   </h3>
                 </div>
+                <div className="px-8 pt-6">
+                  <TabFilter 
+                    options={[
+                      { id: 'all', label: 'Tous' },
+                      { id: 'iPhone', label: 'Mobile' },
+                      { id: 'Mac', label: 'Desktop' },
+                    ]}
+                    active={logFilter}
+                    onChange={setLogFilter}
+                  />
+                </div>
                 <div className="p-4 space-y-4">
-                  {LOGIN_LOGS.map(log => (
+                  {LOGIN_LOGS.filter(l => logFilter === 'all' || l.device.includes(logFilter)).map(log => (
                     <div key={log.id} className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl">
                       <div className="p-3 bg-white rounded-xl text-primary shadow-sm">
                         {log.device.includes('iPhone') ? <Smartphone size={20} /> : <Monitor size={20} />}
@@ -474,6 +568,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     <Activity className="text-primary" size={24} /> Requêtes API
                   </h3>
                 </div>
+                <div className="px-8 pt-6">
+                  <TabFilter 
+                    options={[
+                      { id: 'all', label: 'Toutes' },
+                      { id: 'success', label: 'Succès' },
+                      { id: 'error', label: 'Erreurs' },
+                    ]}
+                    active={requestLogFilter}
+                    onChange={setRequestLogFilter}
+                  />
+                </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left">
                     <thead className="bg-slate-50 text-slate-400 text-[10px] uppercase tracking-widest font-bold">
@@ -485,7 +590,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
-                      {REQUEST_LOGS.map(req => (
+                      {REQUEST_LOGS.filter(req => {
+                        if (requestLogFilter === 'all') return true;
+                        if (requestLogFilter === 'success') return req.status < 400;
+                        if (requestLogFilter === 'error') return req.status >= 400;
+                        return true;
+                      }).map(req => (
                         <tr key={req.id} className="text-xs">
                           <td className="px-6 py-4 font-bold text-primary">{req.method}</td>
                           <td className="px-6 py-4 font-mono text-slate-500">{req.path}</td>
@@ -617,9 +727,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         )}
 
         {activeTab === 'customers' && (
-          <DataTable
-            data={USERS.filter(u => u.role === 'customer')}
-            columns={[
+          <div className="space-y-6">
+            <TabFilter 
+              options={[
+                { id: 'all', label: 'Tous' },
+                { id: 'active', label: 'Actifs' },
+                { id: 'new', label: 'Nouveaux' },
+              ]}
+              active={customerFilter}
+              onChange={setCustomerFilter}
+            />
+            <DataTable
+              data={USERS.filter(u => u.role === 'customer').filter(u => {
+                if (customerFilter === 'all') return true;
+                if (customerFilter === 'active') return u.orders > 5;
+                if (customerFilter === 'new') return u.joinDate.includes('2024');
+                return true;
+              })}
+              columns={[
               {
                 header: 'Client',
                 accessor: (user) => (
@@ -650,11 +775,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
               }
             ]}
           />
-        )}
+        </div>
+      )}
 
         {activeTab === 'products' && (
           <div className="space-y-6">
-            <div className="flex justify-end">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <TabFilter 
+                options={[
+                  { id: 'all', label: 'Tous' },
+                  ...CATEGORIES.map(c => ({ id: c.name, label: c.name }))
+                ]}
+                active={productFilter}
+                onChange={setProductFilter}
+              />
               <button 
                 onClick={() => { setModalType('product'); setIsAddModalOpen(true); }}
                 className="bg-primary text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-accent transition-all shadow-lg"
@@ -663,7 +797,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
               </button>
             </div>
             <DataTable
-              data={PRODUCTS}
+              data={productFilter === 'all' ? PRODUCTS : PRODUCTS.filter(p => p.category === productFilter)}
               onRowClick={(p) => { setEditingItem(p); setModalType('product'); }}
               columns={[
                 {
@@ -756,8 +890,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 </h3>
                 <button className="text-xs font-bold text-primary hover:underline">Tout marquer comme lu</button>
               </div>
+              <div className="px-8 pt-6">
+                <TabFilter 
+                  options={[
+                    { id: 'all', label: 'Toutes' },
+                    { id: 'order', label: 'Commandes' },
+                    { id: 'stock', label: 'Stock' },
+                    { id: 'inquiry', label: 'Demandes' },
+                  ]}
+                  active={notificationFilter}
+                  onChange={setNotificationFilter}
+                />
+              </div>
               <div className="divide-y divide-slate-50">
-                {NOTIFICATIONS.map((notif) => (
+                {NOTIFICATIONS.filter(n => notificationFilter === 'all' || n.type === notificationFilter).map((notif) => (
                   <div key={notif.id} className={`p-8 flex gap-6 hover:bg-slate-50 transition-colors cursor-pointer ${!notif.read ? 'bg-primary/5' : ''}`}>
                     <div className={`p-4 rounded-2xl flex-shrink-0 ${
                       notif.type === 'order' ? 'bg-green-100 text-green-600' :
@@ -785,8 +931,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         )}
         {activeTab === 'reviews' && (
           <div className="space-y-6">
+            <TabFilter 
+              options={[
+                { id: 'all', label: 'Tous' },
+                { id: '5', label: '5 Étoiles' },
+                { id: '4', label: '4 Étoiles' },
+                { id: '3', label: '3 Étoiles' },
+                { id: 'low', label: 'Basses notes' },
+              ]}
+              active={reviewFilter}
+              onChange={setReviewFilter}
+            />
             <DataTable
-              data={PRODUCTS.flatMap(p => (p.reviews || []).map(r => ({ ...r, productName: p.name, productId: p.id })))}
+              data={PRODUCTS.flatMap(p => (p.reviews || []).map(r => ({ ...r, productName: p.name, productId: p.id }))).filter(r => {
+                if (reviewFilter === 'all') return true;
+                if (reviewFilter === 'low') return r.rating <= 2;
+                return r.rating === parseInt(reviewFilter);
+              })}
               columns={[
                 { header: 'Produit', accessor: 'productName', className: 'font-medium' },
                 { header: 'Client', accessor: 'userName', className: 'font-medium' },
@@ -816,45 +977,279 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         )}
         {activeTab === 'messages' && (
           <div className="space-y-8">
-            <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 overflow-hidden flex flex-col h-[70vh]">
-              <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
-                <h3 className="text-xl font-serif flex items-center gap-3">
-                  <MessageSquare className="text-primary" size={24} /> Centre de Messagerie
-                </h3>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-accent bg-accent/10 px-3 py-1 rounded-full">En ligne</span>
-              </div>
-              <div className="flex-grow overflow-y-auto p-8 space-y-6">
-                {CHAT_MESSAGES.map((msg) => (
-                  <div key={msg.id} className={`flex ${msg.isAdmin ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[70%] p-6 rounded-[2rem] shadow-sm ${
-                      msg.isAdmin 
-                        ? 'bg-primary text-white rounded-tr-none' 
-                        : 'bg-white border border-slate-100 text-slate-900 rounded-tl-none'
-                    }`}>
-                      <div className="flex justify-between items-center mb-2 gap-4">
-                        <span className="text-xs font-bold">{msg.senderName}</span>
-                        <span className={`text-[10px] ${msg.isAdmin ? 'text-white/60' : 'text-slate-400'}`}>{msg.timestamp}</span>
-                      </div>
-                      <p className="text-sm leading-relaxed">{msg.message}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="p-6 bg-slate-50 border-t border-slate-100">
-                <div className="flex gap-4">
-                  <input 
-                    type="text" 
-                    placeholder="Tapez votre réponse..." 
-                    className="flex-grow px-6 py-4 bg-white border border-slate-200 rounded-2xl focus:outline-none focus:border-primary"
-                  />
-                  <button className="bg-primary text-white px-8 py-4 rounded-2xl font-bold hover:bg-accent transition-all shadow-lg">
-                    Envoyer
-                  </button>
+            <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 overflow-hidden flex flex-col h-[75vh] lg:flex-row">
+              {/* Conversations List */}
+              <div className={`w-full lg:w-80 border-r border-slate-100 flex flex-col ${selectedConversation ? 'hidden lg:flex' : 'flex'}`}>
+                <div className="p-6 border-b border-slate-50 bg-slate-50/50">
+                  <h3 className="font-serif font-bold text-slate-900 flex items-center gap-2">
+                    <MessageSquare size={18} className="text-primary" /> Discussions
+                  </h3>
                 </div>
+                <div className="flex-grow overflow-y-auto">
+                  {CONVERSATIONS.map((conv) => (
+                    <button
+                      key={conv.id}
+                      onClick={() => setSelectedConversation(conv)}
+                      className={`w-full p-6 text-left border-b border-slate-50 transition-all hover:bg-slate-50 flex gap-4 items-start ${
+                        selectedConversation?.id === conv.id ? 'bg-primary/5 border-l-4 border-l-primary' : ''
+                      }`}
+                    >
+                      <div className="w-12 h-12 rounded-full bg-slate-100 flex-shrink-0 flex items-center justify-center font-bold text-primary">
+                        {conv.userName.charAt(0)}
+                      </div>
+                      <div className="flex-grow min-w-0">
+                        <div className="flex justify-between items-center mb-1">
+                          <h4 className="font-bold text-sm text-slate-900 truncate">{conv.userName}</h4>
+                          <span className="text-[10px] text-slate-400">{conv.timestamp}</span>
+                        </div>
+                        <p className="text-xs text-slate-500 truncate">{conv.lastMessage}</p>
+                      </div>
+                      {conv.unreadCount > 0 && (
+                        <span className="w-5 h-5 bg-accent text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                          {conv.unreadCount}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Chat View */}
+              <div className={`flex-grow flex flex-col ${!selectedConversation ? 'hidden lg:flex items-center justify-center bg-slate-50/30' : 'flex'}`}>
+                {selectedConversation ? (
+                  <>
+                    <div className="p-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+                      <div className="flex items-center gap-4">
+                        <button 
+                          onClick={() => setSelectedConversation(null)}
+                          className="lg:hidden p-2 text-slate-400 hover:text-primary"
+                        >
+                          <X size={20} />
+                        </button>
+                        <div>
+                          <h3 className="font-serif font-bold text-slate-900">{selectedConversation.userName}</h3>
+                          <p className="text-[10px] text-green-500 font-bold uppercase tracking-widest">En ligne</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button className="p-2 text-slate-400 hover:text-primary transition-colors">
+                          <Search size={18} />
+                        </button>
+                        <button className="p-2 text-slate-400 hover:text-primary transition-colors">
+                          <Settings size={18} />
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="flex-grow overflow-y-auto p-8 space-y-6 bg-slate-50/20">
+                      {selectedConversation.messages.map((msg) => (
+                        <div key={msg.id} className={`flex ${msg.isAdmin ? 'justify-end' : 'justify-start'}`}>
+                          <div className={`max-w-[80%] p-6 rounded-[2rem] shadow-sm ${
+                            msg.isAdmin 
+                              ? 'bg-primary text-white rounded-tr-none' 
+                              : 'bg-white border border-slate-100 text-slate-900 rounded-tl-none'
+                          }`}>
+                            <div className="flex justify-between items-center mb-2 gap-4">
+                              <span className="text-xs font-bold">{msg.senderName}</span>
+                              <span className={`text-[10px] ${msg.isAdmin ? 'text-white/60' : 'text-slate-400'}`}>{msg.timestamp}</span>
+                            </div>
+                            <p className="text-sm leading-relaxed">{msg.message}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="p-6 bg-white border-t border-slate-100">
+                      <div className="flex gap-4">
+                        <input 
+                          type="text" 
+                          placeholder="Tapez votre réponse..." 
+                          className="flex-grow px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:border-primary"
+                        />
+                        <button className="bg-primary text-white px-8 py-4 rounded-2xl font-bold hover:bg-accent transition-all shadow-lg">
+                          Envoyer
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center p-12">
+                    <div className="w-20 h-20 bg-primary/5 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <MessageSquare size={32} className="text-primary/20" />
+                    </div>
+                    <h3 className="text-xl font-serif text-slate-400">Sélectionnez une conversation</h3>
+                    <p className="text-sm text-slate-300 mt-2">Choisissez un client dans la liste pour commencer à discuter.</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         )}
+        {activeTab === 'analytics' && (
+          <div className="space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100">
+                <h3 className="text-xl font-serif mb-6 flex items-center gap-3">
+                  <Eye className="text-blue-500" size={24} /> Produits les plus consultés
+                </h3>
+                <div className="space-y-4">
+                  {PRODUCTS.sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5).map((p, i) => (
+                    <div key={p.id} className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl">
+                      <span className="text-lg font-serif font-bold text-slate-300">0{i+1}</span>
+                      <img src={p.image} className="w-12 h-12 rounded-xl object-cover" referrerPolicy="no-referrer" />
+                      <div className="flex-grow">
+                        <h4 className="font-bold text-sm">{p.name}</h4>
+                        <p className="text-xs text-slate-400">{p.category}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-primary">{p.views?.toLocaleString()}</p>
+                        <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Vues</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100">
+                <h3 className="text-xl font-serif mb-6 flex items-center gap-3">
+                  <MousePointer2 className="text-green-500" size={24} /> Produits les plus vendus
+                </h3>
+                <div className="space-y-4">
+                  {PRODUCTS.sort((a, b) => (b.salesCount || 0) - (a.salesCount || 0)).slice(0, 5).map((p, i) => (
+                    <div key={p.id} className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl">
+                      <span className="text-lg font-serif font-bold text-slate-300">0{i+1}</span>
+                      <img src={p.image} className="w-12 h-12 rounded-xl object-cover" referrerPolicy="no-referrer" />
+                      <div className="flex-grow">
+                        <h4 className="font-bold text-sm">{p.name}</h4>
+                        <p className="text-xs text-slate-400">{p.category}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-accent">{p.salesCount?.toLocaleString()}</p>
+                        <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Ventes</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100">
+              <h3 className="text-xl font-serif mb-8">Performance des Ventes</h3>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={SALES_DATA}>
+                    <defs>
+                      <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.1}/>
+                        <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8'}} />
+                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8'}} />
+                    <Tooltip 
+                      contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
+                    />
+                    <Area type="monotone" dataKey="sales" stroke="var(--color-primary)" fillOpacity={1} fill="url(#colorSales)" strokeWidth={3} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'coupons' && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-serif">Gestion des Coupons</h2>
+              <button className="bg-primary text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-accent transition-all shadow-lg">
+                <Plus size={18} /> Nouveau Coupon
+              </button>
+            </div>
+            <DataTable 
+              data={COUPONS}
+              columns={[
+                { header: 'Code', accessor: 'code', className: 'font-mono font-bold text-primary' },
+                { 
+                  header: 'Réduction', 
+                  accessor: (c) => `${c.discount}${c.type === 'percentage' ? '%' : ' FCFA'}` 
+                },
+                { header: 'Expiration', accessor: 'expiryDate' },
+                { 
+                  header: 'Utilisation', 
+                  accessor: (c) => (
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                        <span>{c.usageCount} / {c.usageLimit}</span>
+                        <span>{Math.round((c.usageCount / c.usageLimit) * 100)}%</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-primary transition-all" 
+                          style={{ width: `${(c.usageCount / c.usageLimit) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  )
+                },
+                { 
+                  header: 'Statut', 
+                  accessor: (c) => (
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
+                      c.status === 'active' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                    }`}>
+                      {c.status}
+                    </span>
+                  )
+                },
+                {
+                  header: 'Actions',
+                  accessor: () => (
+                    <div className="flex gap-2">
+                      <button className="text-primary font-bold text-sm hover:underline">Editer</button>
+                      <button className="text-red-500 font-bold text-sm hover:underline">Supprimer</button>
+                    </div>
+                  )
+                }
+              ]}
+            />
+          </div>
+        )}
+
+        {activeTab === 'roles' && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-serif">Rôles & Permissions</h2>
+              <button className="bg-primary text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-accent transition-all shadow-lg">
+                <Plus size={18} /> Nouveau Rôle
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {ADMIN_ROLES.map(role => (
+                <div key={role.id} className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm hover:border-primary transition-all group">
+                  <div className="flex justify-between items-start mb-6">
+                    <div className="p-3 bg-primary/5 rounded-2xl text-primary">
+                      <Shield size={24} />
+                    </div>
+                    <button className="text-slate-300 group-hover:text-primary transition-colors">
+                      <Settings size={18} />
+                    </button>
+                  </div>
+                  <h3 className="text-xl font-serif font-bold mb-2">{role.name}</h3>
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-6">{role.permissions.length} Permissions</p>
+                  <div className="flex flex-wrap gap-2">
+                    {role.permissions.map(p => (
+                      <span key={p} className="px-3 py-1 bg-slate-50 text-slate-500 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-slate-100">
+                        {p}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {activeTab === 'site' && (
           <div className="space-y-10">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
@@ -1075,8 +1470,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             </div>
 
             <div className="flex justify-end">
+              {isSaving && <Loader fullScreen text="Enregistrement de la configuration..." />}
               <button 
-                onClick={() => alert('Configuration enregistrée avec succès !')}
+                onClick={() => {
+                  setIsSaving(true);
+                  setTimeout(() => {
+                    setIsSaving(false);
+                    toast.success('Configuration enregistrée avec succès !', {
+                      description: 'Les modifications sont maintenant en ligne.',
+                    });
+                  }, 2000);
+                }}
                 className="bg-primary text-white px-10 py-4 rounded-2xl font-bold hover:bg-accent transition-all shadow-xl flex items-center gap-3"
               >
                 <CheckCircle2 size={20} /> Enregistrer la Configuration

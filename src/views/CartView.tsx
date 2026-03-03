@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Trash2, Plus, Minus, ArrowRight, ShoppingBag } from 'lucide-react';
 import { Product } from '../types';
 
@@ -40,49 +40,55 @@ export const CartView: React.FC<CartViewProps> = ({ cart, onUpdateQuantity, onRe
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
         {/* Cart Items */}
         <div className="lg:col-span-2 space-y-6">
-          {cart.map((item) => (
-            <motion.div
-              layout
-              key={item.product.id}
-              className="flex items-center gap-6 bg-white p-6 rounded-3xl shadow-sm border border-primary/5"
-            >
-              <img
-                src={item.product.image}
-                alt={item.product.name}
-                className="w-24 h-32 object-cover rounded-2xl"
-                referrerPolicy="no-referrer"
-              />
-              <div className="flex-grow">
-                <p className="text-[10px] uppercase tracking-widest text-primary/50 font-bold">{item.product.category}</p>
-                <h3 className="font-serif text-lg text-primary">{item.product.name}</h3>
-                <p className="text-primary font-bold mt-1">{item.product.price.toLocaleString()} FCFA</p>
-              </div>
-              <div className="flex items-center bg-secondary rounded-full px-2 py-1">
-                <button
-                  onClick={() => onUpdateQuantity(item.product.id, -1)}
-                  className="p-2 hover:text-accent transition-colors"
-                >
-                  <Minus size={16} />
-                </button>
-                <span className="w-8 text-center font-bold">{item.quantity}</span>
-                <button
-                  onClick={() => onUpdateQuantity(item.product.id, 1)}
-                  className="p-2 hover:text-accent transition-colors"
-                >
-                  <Plus size={16} />
-                </button>
-              </div>
-              <div className="text-right min-w-[80px]">
-                <p className="font-bold text-lg">{(item.product.price * item.quantity).toLocaleString()} FCFA</p>
-                <button
-                  onClick={() => onRemove(item.product.id)}
-                  className="text-primary/30 hover:text-red-500 transition-colors mt-2"
-                >
-                  <Trash2 size={18} />
-                </button>
-              </div>
-            </motion.div>
-          ))}
+          <AnimatePresence mode="popLayout">
+            {cart.map((item) => (
+              <motion.div
+                layout
+                key={item.product.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20, scale: 0.95 }}
+                transition={{ duration: 0.3 }}
+                className="flex items-center gap-6 bg-white p-6 rounded-3xl shadow-sm border border-primary/5"
+              >
+                <img
+                  src={item.product.image}
+                  alt={item.product.name}
+                  className="w-24 h-32 object-cover rounded-2xl"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="flex-grow">
+                  <p className="text-[10px] uppercase tracking-widest text-primary/50 font-bold">{item.product.category}</p>
+                  <h3 className="font-serif text-lg text-primary">{item.product.name}</h3>
+                  <p className="text-primary font-bold mt-1">{item.product.price.toLocaleString()} FCFA</p>
+                </div>
+                <div className="flex items-center bg-secondary rounded-full px-2 py-1">
+                  <button
+                    onClick={() => onUpdateQuantity(item.product.id, -1)}
+                    className="p-2 hover:text-accent transition-colors"
+                  >
+                    <Minus size={16} />
+                  </button>
+                  <span className="w-8 text-center font-bold">{item.quantity}</span>
+                  <button
+                    onClick={() => onUpdateQuantity(item.product.id, 1)}
+                    className="p-2 hover:text-accent transition-colors"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+                <div className="text-right min-w-[80px]">
+                  <p className="font-bold text-lg">{(item.product.price * item.quantity).toLocaleString()} FCFA</p>
+                  <button
+                    onClick={() => onRemove(item.product.id)}
+                    className="text-primary/30 hover:text-red-500 transition-colors mt-2"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
 
         {/* Summary */}

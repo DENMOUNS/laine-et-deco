@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Mail, Lock, ArrowRight, Github, Chrome, Eye, EyeOff, Phone } from 'lucide-react';
+import { toast } from 'sonner';
+import { Loader } from '../components/Loader';
 
 interface AuthViewProps {
   onNavigate: (view: string) => void;
@@ -10,9 +12,27 @@ interface AuthViewProps {
 export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'login' }) => {
   const [mode, setMode] = useState(initialMode);
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      setIsSubmitting(false);
+      const message = mode === 'login' ? 'Connexion réussie !' : 
+                     mode === 'signup' ? 'Compte créé avec succès !' : 
+                     'Lien de réinitialisation envoyé !';
+      
+      toast.success(message);
+      onNavigate('home');
+    }, 1500);
+  };
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      {isSubmitting && <Loader fullScreen text="Patientez un instant..." />}
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -56,7 +76,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
           </div>
         </div>
 
-        <form className="mt-4 space-y-6" onSubmit={(e) => { e.preventDefault(); onNavigate('home'); }}>
+        <form className="mt-4 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
             {mode === 'signup' && (
               <div className="relative">

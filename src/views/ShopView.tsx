@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { motion } from 'motion/react';
-import { Filter, Search, ChevronDown, Grid, List as ListIcon } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Filter, Search, ChevronDown, Grid, List as ListIcon, Loader2 } from 'lucide-react';
 import { CATEGORIES, PRODUCTS } from '../constants';
 import { ProductCard } from '../components/ProductCard';
 import { Product } from '../types';
@@ -16,11 +16,21 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
   const [selectedCategory, setSelectedCategory] = useState('Tous');
   const [selectedMaterial, setSelectedMaterial] = useState('Tous');
   const [selectedColor, setSelectedColor] = useState('Tous');
+  const [selectedBrand, setSelectedBrand] = useState('Tous');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('Nouveautés');
   const [priceRange, setPriceRange] = useState(100000);
+  const [isFiltering, setIsFiltering] = useState(false);
+
+  // Simulate loading when filters change
+  useEffect(() => {
+    setIsFiltering(true);
+    const timer = setTimeout(() => setIsFiltering(false), 400);
+    return () => clearTimeout(timer);
+  }, [selectedCategory, selectedMaterial, selectedColor, selectedBrand, searchQuery, sortBy, priceRange]);
 
   const materials = Array.from(new Set(PRODUCTS.map(p => p.material).filter(Boolean)));
+  const brands = Array.from(new Set(PRODUCTS.map(p => p.brand).filter(Boolean)));
   const colors = [
     { name: 'Blanc', hex: '#FFFFFF' },
     { name: 'Beige', hex: '#F5F5DC' },
@@ -33,10 +43,11 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
     const matchesCategory = selectedCategory === 'Tous' || p.category === selectedCategory;
     const matchesMaterial = selectedMaterial === 'Tous' || p.material === selectedMaterial;
     const matchesColor = selectedColor === 'Tous' || (p.colors && p.colors.includes(selectedColor));
+    const matchesBrand = selectedBrand === 'Tous' || p.brand === selectedBrand;
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           p.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesPrice = p.price <= priceRange;
-    return matchesCategory && matchesMaterial && matchesColor && matchesSearch && matchesPrice;
+    return matchesCategory && matchesMaterial && matchesColor && matchesBrand && matchesSearch && matchesPrice;
   }).sort((a, b) => {
     if (sortBy === 'Prix croissant') return a.price - b.price;
     if (sortBy === 'Prix décroissant') return b.price - a.price;
@@ -119,29 +130,68 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
                 <button
                   key={mat}
                   onClick={() => setSelectedMaterial(mat!)}
-                  className={`block w-full text-left text-sm transition-colors ${selectedMaterial === mat ? 'text-accent font-bold' : 'text-primary/70 hover:text-primary'}`}
+                  className={`flex justify-between items-center w-full text-sm transition-colors ${selectedMaterial === mat ? 'text-accent font-bold' : 'text-primary/70 hover:text-primary'}`}
                 >
-                  {mat}
+                  <span>{mat}</span>
+                  <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full text-primary/40">
+                    {PRODUCTS.filter(p => p.material === mat).length}
+                  </span>
                 </button>
               ))}
             </div>
           </div>
 
           <div>
-            <h3 className="font-bold uppercase tracking-widest text-xs mb-6">Prix Maximum</h3>
-            <div className="space-y-4">
+            <h3 className="font-bold uppercase tracking-widest text-xs mb-6">Marques</h3>
+            <div className="space-y-3">
+              <button
+                onClick={() => setSelectedBrand('Tous')}
+                className={`block w-full text-left text-sm transition-colors ${selectedBrand === 'Tous' ? 'text-accent font-bold' : 'text-primary/70 hover:text-primary'}`}
+              >
+                Toutes les marques
+              </button>
+              {brands.map(brand => (
+                <button
+                  key={brand}
+                  onClick={() => setSelectedBrand(brand!)}
+                  className={`flex justify-between items-center w-full text-sm transition-colors ${selectedBrand === brand ? 'text-accent font-bold' : 'text-primary/70 hover:text-primary'}`}
+                >
+                  <span>{brand}</span>
+                  <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full text-primary/40">
+                    {PRODUCTS.filter(p => p.brand === brand).length}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="font-bold uppercase tracking-widest text-xs mb-6">Budget</h3>
+            <div className="space-y-6 bg-slate-50 p-6 rounded-2xl border border-primary/5">
+              <div className="flex justify-between items-end">
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase tracking-widest text-primary/40 font-bold">Max</p>
+                  <p className="text-lg font-serif font-bold text-primary">{priceRange.toLocaleString()} <span className="text-xs">FCFA</span></p>
+                </div>
+                <button 
+                  onClick={() => setPriceRange(100000)}
+                  className="text-[10px] font-bold uppercase tracking-widest text-accent hover:underline"
+                >
+                  Reset
+                </button>
+              </div>
               <input 
                 type="range" 
-                className="w-full accent-accent" 
+                className="w-full h-1.5 bg-primary/10 rounded-lg appearance-none cursor-pointer accent-accent" 
                 min="0" 
                 max="100000" 
                 step="1000"
                 value={priceRange}
                 onChange={(e) => setPriceRange(parseInt(e.target.value))}
               />
-              <div className="flex justify-between text-xs text-primary/60 font-bold">
+              <div className="flex justify-between text-[10px] text-primary/40 font-bold uppercase tracking-widest">
                 <span>0 FCFA</span>
-                <span className="text-accent">{priceRange.toLocaleString()} FCFA</span>
+                <span>100k FCFA</span>
               </div>
             </div>
           </div>
@@ -182,21 +232,41 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
         </aside>
 
         {/* Product Grid */}
-        <main className="flex-grow">
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
-            {filteredProducts.map((product) => (
-              <ProductCard 
-                key={product.id} 
-                product={product} 
-                onAddToCart={onAddToCart}
-                onAddToWishlist={onAddToWishlist}
-                onQuickView={onQuickView}
-                onClick={onProductClick}
-              />
-            ))}
-          </div>
+        <main className="flex-grow relative min-h-[400px]">
+          <AnimatePresence mode="wait">
+            {isFiltering ? (
+              <motion.div 
+                key="loader"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 flex flex-col items-center justify-center bg-white/50 backdrop-blur-[2px] z-10 rounded-[3rem]"
+              >
+                <Loader2 size={40} className="text-accent animate-spin mb-4" />
+                <p className="text-sm font-serif italic text-primary/60">Mise à jour des produits...</p>
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="grid"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8"
+              >
+                {filteredProducts.map((product) => (
+                  <ProductCard 
+                    key={product.id} 
+                    product={product} 
+                    onAddToCart={onAddToCart}
+                    onAddToWishlist={onAddToWishlist}
+                    onQuickView={onQuickView}
+                    onClick={onProductClick}
+                  />
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
           
-          {filteredProducts.length === 0 && (
+          {!isFiltering && filteredProducts.length === 0 && (
             <div className="text-center py-24">
               <p className="text-xl text-primary/40 font-serif italic">Aucun produit ne correspond à votre recherche.</p>
               <button 

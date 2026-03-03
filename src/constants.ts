@@ -1,7 +1,7 @@
-import { Product, Category, Order, User, Review, BlogPost, Currency, LoginLog, RequestLog, Notification, SalesStat, Invoice, SiteConfig, ChatMessage, HomeSection } from './types';
+import { Product, Category, Order, User, Review, BlogPost, Currency, LoginLog, RequestLog, Notification, SalesStat, Invoice, SiteConfig, ChatMessage, HomeSection, Conversation, Coupon, AdminRole, Language } from './types';
 
 export const REVIEWS: Review[] = [
-  { id: 'r1', userName: 'Sophie L.', rating: 5, comment: 'La laine est incroyablement douce ! J\'ai hâte de commencer mon projet.', date: '2024-02-15' },
+  { id: 'r1', userName: 'Sophie L.', rating: 5, comment: 'La laine est incroyablement douce ! J\'ai hâte de commencer mon projet.', date: '2024-02-15', image: 'https://picsum.photos/seed/review1/400/400' },
   { id: 'r2', userName: 'Marc D.', rating: 4, comment: 'Très beau vase, bien emballé. Un peu plus petit que ce que j\'imaginais.', date: '2024-02-20' },
 ];
 
@@ -83,9 +83,12 @@ export const PRODUCTS: Product[] = [
     stock: 50,
     rating: 4.8,
     isNew: true,
-    material: 'Mérinos',
+    material: 'Laine Mérinos',
     colors: ['#FFFFFF', '#F5F5DC', '#8B4513'],
-    reviews: REVIEWS
+    reviews: REVIEWS,
+    views: 1250,
+    salesCount: 85,
+    brand: 'EcoWool'
   },
   {
     id: 'p2',
@@ -97,35 +100,95 @@ export const PRODUCTS: Product[] = [
     stock: 12,
     rating: 4.9,
     material: 'Céramique',
-    colors: ['#D2B48C', '#BC8F8F'],
-    reviews: []
+    colors: ['#D2B48C', '#BC8F8F', '#808080'],
+    reviews: [],
+    views: 850,
+    salesCount: 32,
+    brand: 'TerraCotta'
   },
   {
     id: 'p3',
     name: 'Kit de Macramé Débutant',
     price: 19600,
+    oldPrice: 24500,
     category: 'Matériel de Tricot',
     image: 'https://picsum.photos/seed/macrame/600/800',
     description: 'Tout ce dont vous avez besoin pour créer votre première suspension murale.',
     stock: 25,
     rating: 4.5,
     isSale: true,
-    material: 'Coton',
-    colors: ['#F5F5DC'],
-    reviews: []
+    material: 'Coton Bio',
+    colors: ['#F5F5DC', '#FFFFFF'],
+    reviews: [],
+    views: 2100,
+    salesCount: 145,
+    brand: 'KnotArt'
   },
   {
     id: 'p4',
     name: 'Plaid en Grosse Maille',
     price: 58000,
+    oldPrice: 75000,
     category: 'Coussins & Plaids',
     image: 'https://picsum.photos/seed/plaid/600/800',
     description: 'Chaleureux et décoratif, parfait pour vos soirées d\'hiver.',
     stock: 8,
     rating: 4.7,
-    material: 'Laine acrylique',
-    colors: ['#808080', '#2F4F4F'],
-    reviews: []
+    material: 'Laine Acrylique',
+    colors: ['#808080', '#2F4F4F', '#000000'],
+    reviews: [],
+    views: 3400,
+    salesCount: 56,
+    brand: 'CozyHome'
+  },
+  {
+    id: 'p7',
+    name: 'Coussin Velours Ocre',
+    price: 14500,
+    category: 'Coussins & Plaids',
+    image: 'https://picsum.photos/seed/cushion1/600/800',
+    description: 'Un toucher soyeux pour une touche d\'élégance dans votre salon.',
+    stock: 20,
+    rating: 4.5,
+    material: 'Velours',
+    colors: ['#DAA520', '#8B4513'],
+    reviews: [],
+    views: 1100,
+    salesCount: 42,
+    brand: 'SoftTouch'
+  },
+  {
+    id: 'p8',
+    name: 'Plaid en Lin Lavé',
+    price: 42000,
+    oldPrice: 49000,
+    category: 'Coussins & Plaids',
+    image: 'https://picsum.photos/seed/plaid2/600/800',
+    description: 'Léger et respirant, idéal pour les mi-saisons.',
+    stock: 15,
+    rating: 4.8,
+    material: 'Lin',
+    colors: ['#F5F5DC', '#D2B48C'],
+    reviews: [],
+    views: 950,
+    salesCount: 28,
+    brand: 'NaturePure'
+  },
+  {
+    id: 'p9',
+    name: 'Coussin en Laine Bouclée',
+    price: 18900,
+    category: 'Coussins & Plaids',
+    image: 'https://picsum.photos/seed/cushion2/600/800',
+    description: 'Texture tendance et confort absolu.',
+    stock: 10,
+    rating: 4.6,
+    material: 'Laine',
+    colors: ['#FFFFFF', '#808080'],
+    reviews: [],
+    views: 1500,
+    salesCount: 64,
+    brand: 'EcoWool'
   },
   {
     id: 'p5',
@@ -136,9 +199,12 @@ export const PRODUCTS: Product[] = [
     description: 'Légères et durables pour un tricotage fluide.',
     stock: 100,
     rating: 4.3,
-    material: 'Bambou',
+    material: 'Bambou Naturel',
     colors: ['#DEB887'],
-    reviews: []
+    reviews: [],
+    views: 600,
+    salesCount: 210,
+    brand: 'KnitPro'
   },
   {
     id: 'p6',
@@ -149,9 +215,12 @@ export const PRODUCTS: Product[] = [
     description: 'Une odeur boisée qui transporte votre intérieur en pleine nature.',
     stock: 40,
     rating: 4.6,
-    material: 'Cire de soja',
-    colors: ['#FFFFFF'],
-    reviews: []
+    material: 'Cire de Soja',
+    colors: ['#FFFFFF', '#F5F5DC'],
+    reviews: [],
+    views: 1800,
+    salesCount: 120,
+    brand: 'ScentedLife'
   }
 ];
 
@@ -167,11 +236,65 @@ export const ORDERS: Order[] = [
     orderDetails: [
       { productId: 'p1', name: 'Laine Mérinos Extra Fine', quantity: 2, price: 8200 },
       { productId: 'p4', name: 'Plaid en Grosse Maille', quantity: 1, price: 58000 }
+    ],
+    trackingSteps: [
+      { status: 'Confirmée', date: '2024-03-01 10:00', description: 'Votre commande a été confirmée.', completed: true },
+      { status: 'En préparation', date: '2024-03-01 14:00', description: 'Nous préparons vos articles.', completed: true },
+      { status: 'Expédiée', date: '2024-03-02 09:00', description: 'Votre colis est en route.', completed: true },
+      { status: 'Livrée', date: '2024-03-03 15:00', description: 'Colis livré à domicile.', completed: true }
     ]
   },
-  { id: 'ORD-002', customer: 'Marie Curie', date: '2024-03-02', total: 29500, status: 'processing', items: 1 },
-  { id: 'ORD-003', customer: 'Paul Martin', date: '2024-03-02', total: 19600, status: 'pending', items: 2 },
-  { id: 'ORD-004', customer: 'Alice Wong', date: '2024-03-03', total: 11800, status: 'shipped', items: 5 },
+  { 
+    id: 'ORD-002', 
+    customer: 'Marie Curie', 
+    date: '2024-03-02', 
+    total: 29500, 
+    status: 'processing', 
+    items: 1,
+    paymentMethod: 'Paiement à la livraison',
+    orderDetails: [
+      { productId: 'p2', name: 'Vase en Céramique Artisanale', quantity: 1, price: 29500 }
+    ],
+    trackingSteps: [
+      { status: 'Confirmée', date: '2024-03-02 11:00', description: 'Votre commande a été confirmée.', completed: true },
+      { status: 'En préparation', date: '2024-03-02 16:00', description: 'Nous préparons vos articles.', completed: true },
+      { status: 'Expédiée', date: '', description: 'En attente d\'expédition.', completed: false },
+      { status: 'Livrée', date: '', description: 'En attente de livraison.', completed: false }
+    ]
+  },
+  { 
+    id: 'ORD-003', 
+    customer: 'Paul Martin', 
+    date: '2024-03-02', 
+    total: 19600, 
+    status: 'pending', 
+    items: 2,
+    paymentMethod: 'Paiement à la livraison',
+    orderDetails: [
+      { productId: 'p3', name: 'Kit de Macramé Débutant', quantity: 1, price: 19600 }
+    ],
+    trackingSteps: [
+      { status: 'Confirmée', date: '2024-03-02 12:00', description: 'Votre commande a été confirmée.', completed: true },
+      { status: 'En préparation', date: '', description: 'En attente de préparation.', completed: false }
+    ]
+  },
+  { 
+    id: 'ORD-004', 
+    customer: 'Alice Wong', 
+    date: '2024-03-03', 
+    total: 11800, 
+    status: 'shipped', 
+    items: 5,
+    paymentMethod: 'Paiement à la livraison',
+    orderDetails: [
+      { productId: 'p6', name: 'Bougie Parfumée "Forêt"', quantity: 1, price: 11800 }
+    ],
+    trackingSteps: [
+      { status: 'Confirmée', date: '2024-03-03 08:00', description: 'Votre commande a été confirmée.', completed: true },
+      { status: 'En préparation', date: '2024-03-03 10:00', description: 'Nous préparons vos articles.', completed: true },
+      { status: 'Expédiée', date: '2024-03-03 14:00', description: 'Votre colis est en route.', completed: true }
+    ]
+  },
 ];
 
 export const USERS: User[] = [
@@ -183,6 +306,40 @@ export const USERS: User[] = [
 export const CHAT_MESSAGES: ChatMessage[] = [
   { id: 'm1', senderId: 'u1', senderName: 'Jean Dupont', message: 'Bonjour, est-ce que la laine mérinos est disponible en bleu ?', timestamp: '2024-03-01 14:00', isAdmin: false },
   { id: 'm2', senderId: 'u2', senderName: 'Admin Laine', message: 'Bonjour Jean ! Oui, nous avons du bleu marine en stock.', timestamp: '2024-03-01 14:05', isAdmin: true },
+];
+
+export const CONVERSATIONS: Conversation[] = [
+  {
+    id: 'c1',
+    userId: 'u1',
+    userName: 'Jean Dupont',
+    lastMessage: 'Bonjour Jean ! Oui, nous avons du bleu marine en stock.',
+    timestamp: '14:05',
+    unreadCount: 0,
+    messages: CHAT_MESSAGES
+  },
+  {
+    id: 'c2',
+    userId: 'u3',
+    userName: 'Marie Curie',
+    lastMessage: 'Pouvez-vous me dire si le vase est fragile ?',
+    timestamp: 'Hier',
+    unreadCount: 1,
+    messages: [
+      { id: 'm3', senderId: 'u3', senderName: 'Marie Curie', message: 'Pouvez-vous me dire si le vase est fragile ?', timestamp: 'Hier 16:30', isAdmin: false }
+    ]
+  },
+  {
+    id: 'c3',
+    userId: 'u4',
+    userName: 'Paul Martin',
+    lastMessage: 'Merci pour votre réponse rapide !',
+    timestamp: '2 jours',
+    unreadCount: 0,
+    messages: [
+      { id: 'm4', senderId: 'u4', senderName: 'Paul Martin', message: 'Merci pour votre réponse rapide !', timestamp: '2 jours 10:15', isAdmin: false }
+    ]
+  }
 ];
 
 export const SITE_CONFIG: SiteConfig = {
@@ -199,3 +356,19 @@ export const SITE_CONFIG: SiteConfig = {
     { id: 'cs1', title: 'Nos Coups de Cœur Matériel', type: 'products', itemIds: ['p3', 'p5'] }
   ]
 };
+
+export const COUPONS: Coupon[] = [
+  { id: 'c1', code: 'BIENVENUE10', discount: 10, type: 'percentage', expiryDate: '2025-12-31', usageLimit: 100, usageCount: 45, status: 'active' },
+  { id: 'c2', code: 'PROMO2024', discount: 5000, type: 'fixed', expiryDate: '2024-12-31', usageLimit: 50, usageCount: 12, status: 'active' },
+];
+
+export const ADMIN_ROLES: AdminRole[] = [
+  { id: 'r1', name: 'Super Admin', permissions: ['all'] },
+  { id: 'r2', name: 'Gestionnaire Stock', permissions: ['products.view', 'products.edit', 'stock.view'] },
+  { id: 'r3', name: 'Support Client', permissions: ['messages.view', 'messages.reply', 'orders.view'] },
+];
+
+export const LANGUAGES: Language[] = [
+  { code: 'fr', name: 'Français', flag: '🇫🇷' },
+  { code: 'en', name: 'English', flag: '🇬🇧' },
+];

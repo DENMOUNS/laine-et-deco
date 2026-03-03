@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { ArrowLeft, CreditCard, Truck, ShieldCheck, CheckCircle2, Smartphone, MapPin, Loader2 } from 'lucide-react';
 import { Product } from '../types';
+import { toast } from 'sonner';
+import { Loader } from '../components/Loader';
 
 interface CheckoutViewProps {
   cart: { product: Product; quantity: number }[];
@@ -14,13 +16,29 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, onNavigate, on
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [useLocation, setUseLocation] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const subtotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
   const shipping = subtotal > 50000 ? 0 : 5000;
   const total = subtotal + shipping;
 
+  const handleConfirmOrder = () => {
+    setIsProcessing(true);
+    // Simulate API call
+    setTimeout(() => {
+      setIsProcessing(false);
+      setStep(3);
+      onComplete();
+      toast.success('Commande confirmée avec succès !', {
+        description: 'Votre commande est en cours de préparation.',
+        duration: 5000,
+      });
+    }, 2500);
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      {isProcessing && <Loader fullScreen text="Traitement de votre commande..." />}
       <button 
         onClick={() => onNavigate('cart')}
         className="flex items-center gap-2 text-primary/40 hover:text-primary font-bold text-xs uppercase tracking-widest mb-12 transition-colors"
@@ -32,16 +50,21 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, onNavigate, on
         {/* Checkout Form */}
         <div className="lg:col-span-2 space-y-12">
           {/* Steps Indicator */}
-          <div className="flex justify-between relative">
-            <div className="absolute top-1/2 left-0 w-full h-0.5 bg-primary/5 -translate-y-1/2 z-0" />
+          <div className="flex justify-between relative mb-16">
+            <div className="absolute top-1/2 left-0 w-full h-1 bg-primary/5 -translate-y-1/2 z-0 rounded-full" />
+            <motion.div 
+              initial={{ width: '0%' }}
+              animate={{ width: `${((step - 1) / 2) * 100}%` }}
+              className="absolute top-1/2 left-0 h-1 bg-accent -translate-y-1/2 z-0 rounded-full transition-all duration-500"
+            />
             {[1, 2, 3].map((s) => (
-              <div key={s} className="relative z-10 flex flex-col items-center gap-2">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all ${
-                  step >= s ? 'bg-primary text-white shadow-lg' : 'bg-white border border-primary/10 text-primary/30'
+              <div key={s} className="relative z-10 flex flex-col items-center gap-3">
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold transition-all duration-500 ${
+                  step >= s ? 'bg-accent text-white shadow-lg shadow-accent/20 scale-110' : 'bg-white border-2 border-primary/10 text-primary/30'
                 }`}>
-                  {step > s ? <CheckCircle2 size={20} /> : s}
+                  {step > s ? <CheckCircle2 size={24} /> : s}
                 </div>
-                <span className={`text-[10px] uppercase tracking-widest font-bold ${step >= s ? 'text-primary' : 'text-primary/30'}`}>
+                <span className={`text-[10px] uppercase tracking-widest font-bold transition-colors duration-500 ${step >= s ? 'text-primary' : 'text-primary/30'}`}>
                   {s === 1 && 'Livraison'}
                   {s === 2 && 'Paiement'}
                   {s === 3 && 'Confirmation'}
@@ -166,7 +189,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, onNavigate, on
               </div>
               
               <button 
-                onClick={() => { setStep(3); onComplete(); }}
+                onClick={handleConfirmOrder}
                 className="w-full bg-primary text-white py-5 rounded-2xl font-bold hover:bg-accent transition-all duration-300"
               >
                 Confirmer la commande ({total.toLocaleString()} FCFA)

@@ -19,9 +19,10 @@ import {
   Star,
   X
 } from 'lucide-react';
-import { ORDERS, INVOICES, USERS, LOGIN_LOGS } from '../constants';
+import { ORDERS, INVOICES, USERS, LOGIN_LOGS, PRODUCTS } from '../constants';
 import { Order, Invoice, User as UserType } from '../types';
 import { AnimatePresence } from 'motion/react';
+import { TabFilter } from '../components/TabFilter';
 
 interface CustomerDashboardProps {
   onNavigate: (view: string) => void;
@@ -30,6 +31,10 @@ interface CustomerDashboardProps {
 export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ onNavigate }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [orderFilter, setOrderFilter] = useState('all');
+  const [paymentFilter, setPaymentFilter] = useState('all');
+  const [historyFilter, setHistoryFilter] = useState('all');
+
   const user = USERS.find(u => u.role === 'customer')!; // Mock current user
   const userLogs = LOGIN_LOGS.filter(log => log.userId === user.id);
 
@@ -84,7 +89,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ onNavigate
                 {[
                   { label: 'Commandes', value: user.orders, icon: <Package className="text-accent" /> },
                   { label: 'En cours', value: 1, icon: <Clock className="text-blue-500" /> },
-                  { label: 'Points Fidélité', value: 1250, icon: <Star className="text-yellow-500" /> },
+                  { label: 'Points Fidélité', value: 1250, icon: <Star className="text-yellow-500" fill="currentColor" /> },
                 ].map((stat, i) => (
                   <div key={i} className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-primary/5 flex items-center gap-6">
                     <div className="p-4 bg-slate-50 rounded-2xl">{stat.icon}</div>
@@ -96,46 +101,110 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ onNavigate
                 ))}
               </div>
 
-              <div className="bg-white rounded-[3rem] shadow-sm border border-primary/5 p-10">
-                <div className="flex justify-between items-center mb-8">
-                  <h3 className="text-2xl font-serif font-bold text-primary">Dernière Commande</h3>
-                  <button onClick={() => setActiveTab('orders')} className="text-accent font-bold text-sm hover:underline flex items-center gap-1">
-                    Voir tout <ChevronRight size={16} />
-                  </button>
-                </div>
-                {ORDERS.length > 0 && (
-                  <div className="flex flex-col md:flex-row justify-between items-center gap-8 p-8 bg-slate-50 rounded-[2rem]">
-                    <div className="flex items-center gap-6">
-                      <div className="p-4 bg-white rounded-2xl shadow-sm text-primary">
-                        <ShoppingBag size={32} />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                <div className="bg-white rounded-[3rem] shadow-sm border border-primary/5 p-10">
+                  <div className="flex justify-between items-center mb-8">
+                    <h3 className="text-xl font-serif font-bold text-primary">Dernière Commande</h3>
+                    <button onClick={() => setActiveTab('orders')} className="text-accent font-bold text-sm hover:underline flex items-center gap-1">
+                      Voir tout <ChevronRight size={16} />
+                    </button>
+                  </div>
+                  {ORDERS.length > 0 && (
+                    <div className="p-6 bg-slate-50 rounded-[2rem] space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="p-3 bg-white rounded-xl shadow-sm text-primary">
+                            <ShoppingBag size={24} />
+                          </div>
+                          <div>
+                            <p className="font-mono text-[10px] text-primary/40">{ORDERS[0].id}</p>
+                            <h4 className="font-bold text-sm text-primary">{ORDERS[0].total.toLocaleString()} FCFA</h4>
+                          </div>
+                        </div>
+                        <span className="px-3 py-1 bg-green-100 text-green-600 rounded-full text-[10px] font-bold uppercase tracking-widest">
+                          {ORDERS[0].status}
+                        </span>
                       </div>
-                      <div>
-                        <p className="font-mono text-xs text-primary/40 mb-1">{ORDERS[0].id}</p>
-                        <h4 className="font-bold text-primary">{ORDERS[0].total.toLocaleString()} FCFA</h4>
-                        <p className="text-sm text-primary/60">{ORDERS[0].date}</p>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-3">
-                      <span className="px-4 py-1.5 bg-green-100 text-green-600 rounded-full text-[10px] font-bold uppercase tracking-widest">
-                        {ORDERS[0].status}
-                      </span>
                       <button 
                         onClick={() => setSelectedOrder(ORDERS[0])}
-                        className="text-primary font-bold text-sm hover:underline"
+                        className="w-full py-3 bg-white border border-primary/5 rounded-xl text-xs font-bold hover:bg-primary hover:text-white transition-all"
                       >
                         Détails de la commande
                       </button>
                     </div>
+                  )}
+                </div>
+
+                <div className="bg-white rounded-[3rem] shadow-sm border border-primary/5 p-10">
+                  <div className="flex justify-between items-center mb-8">
+                    <h3 className="text-xl font-serif font-bold text-primary">Dernier Paiement</h3>
+                    <button onClick={() => setActiveTab('payments')} className="text-accent font-bold text-sm hover:underline flex items-center gap-1">
+                      Historique <ChevronRight size={16} />
+                    </button>
                   </div>
-                )}
+                  {INVOICES.length > 0 && (
+                    <div className="p-6 bg-slate-50 rounded-[2rem] space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="p-3 bg-white rounded-xl shadow-sm text-primary">
+                            <CreditCard size={24} />
+                          </div>
+                          <div>
+                            <p className="font-mono text-[10px] text-primary/40">{INVOICES[0].id}</p>
+                            <h4 className="font-bold text-sm text-primary">{INVOICES[0].amount.toLocaleString()} FCFA</h4>
+                          </div>
+                        </div>
+                        <span className="px-3 py-1 bg-green-100 text-green-600 rounded-full text-[10px] font-bold uppercase tracking-widest">
+                          Payé
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-primary/40 text-center">Effectué le {INVOICES[0].date}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-white rounded-[3rem] shadow-sm border border-primary/5 p-10">
+                <div className="flex justify-between items-center mb-8">
+                  <h3 className="text-xl font-serif font-bold text-primary">Activité Récente</h3>
+                  <button onClick={() => setActiveTab('history')} className="text-accent font-bold text-sm hover:underline flex items-center gap-1">
+                    Tout voir <ChevronRight size={16} />
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  {userLogs.slice(0, 2).map((log) => (
+                    <div key={log.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                      <div className="flex items-center gap-4">
+                        <div className="p-2 bg-white rounded-lg text-primary/40">
+                          <Shield size={16} />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-primary">{log.device}</p>
+                          <p className="text-[10px] text-primary/40">{log.ip}</p>
+                        </div>
+                      </div>
+                      <p className="text-[10px] font-medium text-primary/60">{log.timestamp}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
 
           {activeTab === 'orders' && (
             <div className="bg-white rounded-[3rem] shadow-sm border border-primary/5 overflow-hidden">
-              <div className="p-10 border-b border-primary/5">
+              <div className="p-10 border-b border-primary/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <h3 className="text-2xl font-serif font-bold text-primary">Historique des Commandes</h3>
+                <TabFilter 
+                  options={[
+                    { id: 'all', label: 'Toutes' },
+                    { id: 'delivered', label: 'Livrées' },
+                    { id: 'processing', label: 'En cours' },
+                  ]}
+                  active={orderFilter}
+                  onChange={setOrderFilter}
+                  className="mb-0"
+                />
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
@@ -149,7 +218,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ onNavigate
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-primary/5">
-                    {ORDERS.map((order) => (
+                    {ORDERS.filter(o => orderFilter === 'all' || o.status === orderFilter).map((order) => (
                       <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-10 py-6 font-mono text-xs text-primary/60">{order.id}</td>
                         <td className="px-10 py-6 text-sm text-primary/60">{order.date}</td>
@@ -181,11 +250,21 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ onNavigate
 
           {activeTab === 'payments' && (
             <div className="bg-white rounded-[3rem] shadow-sm border border-primary/5 overflow-hidden">
-              <div className="p-10 border-b border-primary/5">
+              <div className="p-10 border-b border-primary/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <h3 className="text-2xl font-serif font-bold text-primary">Historique des Paiements</h3>
+                <TabFilter 
+                  options={[
+                    { id: 'all', label: 'Tous' },
+                    { id: 'paid', label: 'Payés' },
+                    { id: 'unpaid', label: 'En attente' },
+                  ]}
+                  active={paymentFilter}
+                  onChange={setPaymentFilter}
+                  className="mb-0"
+                />
               </div>
               <div className="p-10 space-y-6">
-                {INVOICES.map((invoice) => (
+                {INVOICES.filter(i => paymentFilter === 'all' || i.status === paymentFilter).map((invoice) => (
                   <div key={invoice.id} className="p-8 border border-primary/5 rounded-[2rem] bg-slate-50/50 flex justify-between items-center group hover:border-accent transition-all">
                     <div className="flex items-center gap-6">
                       <div className="p-4 bg-white rounded-2xl shadow-sm text-primary group-hover:text-accent transition-colors">
@@ -208,12 +287,22 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ onNavigate
 
           {activeTab === 'history' && (
             <div className="bg-white rounded-[3rem] shadow-sm border border-primary/5 overflow-hidden">
-              <div className="p-10 border-b border-primary/5">
+              <div className="p-10 border-b border-primary/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <h3 className="text-2xl font-serif font-bold text-primary">Historique des Connexions</h3>
+                <TabFilter 
+                  options={[
+                    { id: 'all', label: 'Tous' },
+                    { id: 'iPhone', label: 'Mobile' },
+                    { id: 'Mac', label: 'Desktop' },
+                  ]}
+                  active={historyFilter}
+                  onChange={setHistoryFilter}
+                  className="mb-0"
+                />
               </div>
               <div className="p-10">
                 <div className="space-y-6">
-                  {userLogs.map((log) => (
+                  {userLogs.filter(l => historyFilter === 'all' || l.device.includes(historyFilter)).map((log) => (
                     <div key={log.id} className="flex items-center gap-6 p-6 bg-slate-50 rounded-2xl">
                       <div className="p-3 bg-white rounded-xl text-primary/40">
                         <Shield size={20} />
@@ -320,25 +409,23 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ onNavigate
                   </div>
                 </div>
 
-                <div>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-primary/40 mb-4">Articles</p>
                   <div className="space-y-4">
-                    {selectedOrder.items.map((item, idx) => (
+                    {selectedOrder.orderDetails?.map((item, idx) => (
                       <div key={idx} className="flex justify-between items-center">
                         <div className="flex items-center gap-4">
                           <div className="w-12 h-12 bg-slate-100 rounded-xl overflow-hidden">
-                            <img src={item.product.image} alt={item.product.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                            <img src={PRODUCTS.find(p => p.id === item.productId)?.image} alt={item.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                           </div>
                           <div>
-                            <p className="text-sm font-bold text-primary">{item.product.name}</p>
+                            <p className="text-sm font-bold text-primary">{item.name}</p>
                             <p className="text-xs text-primary/40">Qté: {item.quantity}</p>
                           </div>
                         </div>
-                        <p className="text-sm font-bold text-primary">{(item.product.price * item.quantity).toLocaleString()} FCFA</p>
+                        <p className="text-sm font-bold text-primary">{(item.price * item.quantity).toLocaleString()} FCFA</p>
                       </div>
                     ))}
                   </div>
-                </div>
 
                 <div className="pt-6 border-t border-primary/5 flex justify-between items-center">
                   <p className="text-lg font-serif font-bold text-primary">Total</p>
