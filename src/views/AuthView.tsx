@@ -1,8 +1,18 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Mail, Lock, ArrowRight, Github, Chrome, Eye, EyeOff, Phone } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Eye, EyeOff, Phone, User as UserIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { Loader } from '../components/Loader';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+
+const authSchema = z.object({
+  name: z.string().min(2, 'Le nom est trop court').optional(),
+  email: z.string().email('Email invalide').or(z.string().min(8, 'Numéro de téléphone invalide')),
+  password: z.string().min(6, 'Le mot de passe doit contenir au moins 6 caractères').optional(),
+  confirmPassword: z.string().optional(),
+});
 
 interface AuthViewProps {
   onNavigate: (view: string) => void;
@@ -14,9 +24,13 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const { register, handleSubmit, formState: { errors } } = useForm<any>({
+    resolver: zodResolver(authSchema)
+  });
+
+  const onSubmit = (data: any) => {
     setIsSubmitting(true);
+    console.log("Auth Data:", data);
     
     // Simulate API call
     setTimeout(() => {
@@ -76,47 +90,73 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
           </div>
         </div>
 
-        <form className="mt-4 space-y-6" onSubmit={handleSubmit}>
+        <form className="mt-4 space-y-6" onSubmit={handleSubmit(onSubmit)}>
           <div className="space-y-4">
             {mode === 'signup' && (
-              <div className="relative">
-                <input
-                  type="text"
-                  required
-                  className="w-full px-12 py-4 bg-secondary/50 border border-primary/10 rounded-2xl focus:outline-none focus:border-accent transition-colors"
-                  placeholder="Nom complet"
-                />
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/30" size={20} />
+              <div className="space-y-1">
+                <div className="relative">
+                  <input
+                    {...register('name')}
+                    type="text"
+                    className={`w-full px-12 py-4 bg-secondary/50 border rounded-2xl focus:outline-none transition-colors ${errors.name ? 'border-red-500' : 'border-primary/10 focus:border-accent'}`}
+                    placeholder="Nom complet"
+                  />
+                  <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/30" size={20} />
+                </div>
+                {errors.name && <p className="text-[10px] text-red-500 font-bold ml-4">{(errors.name as any).message}</p>}
               </div>
             )}
             
-            <div className="relative">
-              <input
-                type="text"
-                required
-                className="w-full px-12 py-4 bg-secondary/50 border border-primary/10 rounded-2xl focus:outline-none focus:border-accent transition-colors"
-                placeholder="Email ou Téléphone"
-              />
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/30" size={20} />
+            <div className="space-y-1">
+              <div className="relative">
+                <input
+                  {...register('email')}
+                  type="text"
+                  className={`w-full px-12 py-4 bg-secondary/50 border rounded-2xl focus:outline-none transition-colors ${errors.email ? 'border-red-500' : 'border-primary/10 focus:border-accent'}`}
+                  placeholder="Email ou Téléphone"
+                />
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/30" size={20} />
+              </div>
+              {errors.email && <p className="text-[10px] text-red-500 font-bold ml-4">{(errors.email as any).message}</p>}
             </div>
 
             {mode !== 'reset' && (
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  className="w-full px-12 py-4 bg-secondary/50 border border-primary/10 rounded-2xl focus:outline-none focus:border-accent transition-colors"
-                  placeholder="Mot de passe"
-                />
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/30" size={20} />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-colors"
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-              </div>
+              <>
+                <div className="space-y-1">
+                  <div className="relative">
+                    <input
+                      {...register('password')}
+                      type={showPassword ? 'text' : 'password'}
+                      className={`w-full px-12 py-4 bg-secondary/50 border rounded-2xl focus:outline-none transition-colors ${errors.password ? 'border-red-500' : 'border-primary/10 focus:border-accent'}`}
+                      placeholder="Mot de passe"
+                    />
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/30" size={20} />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-colors"
+                    >
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                  {errors.password && <p className="text-[10px] text-red-500 font-bold ml-4">{(errors.password as any).message}</p>}
+                </div>
+
+                {mode === 'signup' && (
+                  <div className="space-y-1">
+                    <div className="relative">
+                      <input
+                        {...register('confirmPassword')}
+                        type={showPassword ? 'text' : 'password'}
+                        className={`w-full px-12 py-4 bg-secondary/50 border rounded-2xl focus:outline-none transition-colors ${errors.confirmPassword ? 'border-red-500' : 'border-primary/10 focus:border-accent'}`}
+                        placeholder="Confirmer le mot de passe"
+                      />
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/30" size={20} />
+                    </div>
+                    {errors.confirmPassword && <p className="text-[10px] text-red-500 font-bold ml-4">{(errors.confirmPassword as any).message}</p>}
+                  </div>
+                )}
+              </>
             )}
           </div>
 

@@ -79,7 +79,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Icons */}
           <div className="flex items-center space-x-4">
             {/* Language Selector */}
-            <div className="relative hidden lg:block">
+            <div className="relative hidden md:block">
               <button 
                 onClick={() => setIsLanguageOpen(!isLanguageOpen)}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-primary/5 transition-colors text-xs font-bold text-primary/60"
@@ -113,7 +113,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
 
             {/* Currency Selector */}
-            <div className="relative hidden lg:block">
+            <div className="relative hidden md:block">
               <button 
                 onClick={() => setIsCurrencyOpen(!isCurrencyOpen)}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-primary/5 transition-colors text-xs font-bold text-primary/60"
@@ -213,7 +213,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <X size={24} />
               </button>
             </div>
-            <div className="flex flex-col space-y-6">
+            <div className="flex flex-col space-y-6 flex-grow">
               {navLinks.map((link) => (
                 <button
                   key={link.name}
@@ -221,16 +221,57 @@ export const Navbar: React.FC<NavbarProps> = ({
                     onNavigate(link.view);
                     setIsMenuOpen(false);
                   }}
-                  className="text-2xl font-serif text-left flex justify-between items-center group"
+                  className={`text-2xl font-serif text-left flex justify-between items-center group ${currentView === link.view ? 'text-accent' : 'text-primary'}`}
                 >
                   {link.name}
-                  <ChevronRight className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ChevronRight className={currentView === link.view ? 'opacity-100 text-accent' : 'opacity-0 group-hover:opacity-100 transition-opacity'} />
                 </button>
               ))}
               <hr className="border-primary/10" />
-              <button onClick={() => onNavigate('login')} className="text-xl font-serif text-left">Mon Compte</button>
-              <button onClick={() => onNavigate('order-tracking')} className="text-xl font-serif text-left">Suivre ma commande</button>
-              <button onClick={() => onNavigate('admin-dashboard')} className="text-xl font-serif text-left text-primary/50">Admin Panel</button>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-4">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-primary/40">Langue</p>
+                  <div className="flex flex-wrap gap-2">
+                    {LANGUAGES.map(lang => (
+                      <button
+                        key={lang.code}
+                        onClick={() => setLanguage(lang)}
+                        className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all ${language.code === lang.code ? 'bg-primary text-white border-primary' : 'bg-white text-primary border-primary/10'}`}
+                      >
+                        {lang.flag} {lang.code.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-primary/40">Devise</p>
+                  <div className="flex flex-wrap gap-2">
+                    {CURRENCIES.map(curr => (
+                      <button
+                        key={curr.code}
+                        onClick={() => setCurrency(curr)}
+                        className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all ${currency.code === curr.code ? 'bg-primary text-white border-primary' : 'bg-white text-primary border-primary/10'}`}
+                      >
+                        {curr.code}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <hr className="border-primary/10" />
+              <button onClick={() => { onNavigate('customer-dashboard'); setIsMenuOpen(false); }} className="text-xl font-serif text-left flex items-center gap-3">
+                <User size={20} /> Mon Compte
+              </button>
+              <button onClick={() => { onNavigate('order-tracking'); setIsMenuOpen(false); }} className="text-xl font-serif text-left">Suivre ma commande</button>
+              <button onClick={() => { onNavigate('admin-dashboard'); setIsMenuOpen(false); }} className="text-xl font-serif text-left text-primary/30">Admin Panel</button>
+            </div>
+            
+            <div className="mt-auto pt-8 border-t border-primary/10">
+              <div className="flex justify-center space-x-6">
+                <a href="#" className="text-primary/40 hover:text-accent transition-colors">Instagram</a>
+                <a href="#" className="text-primary/40 hover:text-accent transition-colors">Pinterest</a>
+                <a href="#" className="text-primary/40 hover:text-accent transition-colors">Facebook</a>
+              </div>
             </div>
           </motion.div>
         )}
@@ -257,19 +298,19 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           <div>
             <h3 className="font-bold mb-6 uppercase tracking-widest text-xs">Boutique</h3>
             <ul className="space-y-3 text-sm text-white/70">
-              <li><a href="#" className="hover:text-white transition-colors">Toutes les laines</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Décoration</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Nouveautés</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Promotions</a></li>
+              <li><button onClick={() => onNavigate('shop')} className="hover:text-white transition-colors">Toutes les laines</button></li>
+              <li><button onClick={() => onNavigate('shop')} className="hover:text-white transition-colors">Décoration</button></li>
+              <li><button onClick={() => onNavigate('shop')} className="hover:text-white transition-colors">Nouveautés</button></li>
+              <li><button onClick={() => onNavigate('shop')} className="hover:text-white transition-colors">Promotions</button></li>
             </ul>
           </div>
             <div>
               <h3 className="font-bold mb-6 uppercase tracking-widest text-xs">Aide</h3>
               <ul className="space-y-3 text-sm text-white/70">
                 <li><button onClick={() => onNavigate('order-tracking')} className="hover:text-white transition-colors">Suivi de commande</button></li>
-                <li><a href="#" className="hover:text-white transition-colors">Livraison</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Retours</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">FAQ</a></li>
+                <li><button onClick={() => onNavigate('shipping')} className="hover:text-white transition-colors">Livraison</button></li>
+                <li><button onClick={() => onNavigate('returns')} className="hover:text-white transition-colors">Retours</button></li>
+                <li><button onClick={() => onNavigate('faq')} className="hover:text-white transition-colors">FAQ</button></li>
               </ul>
             </div>
           <div>
@@ -291,9 +332,9 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           <p>© 2024 Laine & Déco. Tous droits réservés.</p>
           <div className="flex space-x-6 mt-4 md:mt-0">
             <button onClick={() => onNavigate('admin-dashboard')} className="hover:text-white transition-colors">Administration</button>
-            <a href="#" className="hover:text-white transition-colors">Mentions légales</a>
-            <a href="#" className="hover:text-white transition-colors">Confidentialité</a>
-            <a href="#" className="hover:text-white transition-colors">CGV</a>
+            <button onClick={() => onNavigate('legal')} className="hover:text-white transition-colors">Mentions légales</button>
+            <button onClick={() => onNavigate('privacy')} className="hover:text-white transition-colors">Confidentialité</button>
+            <button onClick={() => onNavigate('terms')} className="hover:text-white transition-colors">CGV</button>
           </div>
         </div>
       </div>

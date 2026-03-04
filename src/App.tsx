@@ -10,13 +10,16 @@ import { CheckoutView } from './views/CheckoutView';
 import { BlogIndexView } from './views/BlogIndexView';
 import { BlogPostView } from './views/BlogPostView';
 import { CustomerDashboard } from './views/CustomerDashboard';
-import { Product, SiteConfig, Language, Currency } from './types';
+import { Product, SiteConfig, Language, Currency, PromoEvent } from './types';
 import { motion, AnimatePresence } from 'motion/react';
-import { SITE_CONFIG, LANGUAGES, CURRENCIES, ORDERS } from './constants';
+import { SITE_CONFIG, LANGUAGES, CURRENCIES, ORDERS, PRODUCTS } from './constants';
 import { ChatBubble } from './components/ChatBubble';
 import { QuickViewModal } from './components/QuickViewModal';
 import { Toaster, toast as sonnerToast } from 'sonner';
 import { Loader } from './components/Loader';
+import { updateSEOMeta } from './utils/siteUtils';
+import { AlertCircle, Clock } from 'lucide-react';
+import { StaticPageView } from './components/StaticPageView';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('home');
@@ -27,6 +30,7 @@ export default function App() {
   const [language, setLanguage] = useState<Language>(LANGUAGES[0]);
   const [currency, setCurrency] = useState<Currency>(CURRENCIES[0]);
   const [trackingOrder, setTrackingOrder] = useState<string>('');
+  const [initialSearchQuery, setInitialSearchQuery] = useState<string>('');
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     if (type === 'success') sonnerToast.success(message);
@@ -36,15 +40,35 @@ export default function App() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const [siteConfig, setSiteConfig] = useState<SiteConfig>(SITE_CONFIG);
+  const [events, setEvents] = useState<PromoEvent[]>([]);
 
-  const handleNavigate = (view: string, id?: string) => {
+  const handleNavigate = (view: string, id?: string, query?: string) => {
     setIsLoading(true);
     setTimeout(() => {
       setCurrentView(view);
       if (id) setSelectedId(id);
+      if (query) setInitialSearchQuery(query);
+      else if (view !== 'shop') setInitialSearchQuery(''); // Clear if not navigating to shop
       setIsLoading(false);
     }, 600);
   };
+
+  // SEO & Meta Tags
+  useEffect(() => {
+    if (currentView === 'home') {
+      updateSEOMeta(siteConfig.seo.home.title, siteConfig.seo.home.description, siteConfig.seo.home.ogImage);
+    } else if (currentView === 'shop') {
+      updateSEOMeta(siteConfig.seo.shop.title, siteConfig.seo.shop.description, siteConfig.seo.shop.ogImage);
+    } else if (currentView === 'contact') {
+      updateSEOMeta(siteConfig.seo.contact.title, siteConfig.seo.contact.description, siteConfig.seo.contact.ogImage);
+    } else if (currentView === 'about') {
+      updateSEOMeta(siteConfig.seo.about.title, siteConfig.seo.about.description, siteConfig.seo.about.ogImage);
+    } else if (currentView === 'product-detail' && selectedProduct) {
+      const title = selectedProduct.seo?.title || `${selectedProduct.name} - Laine & Déco`;
+      const desc = selectedProduct.seo?.description || selectedProduct.description;
+      updateSEOMeta(title, desc, selectedProduct.image);
+    }
+  }, [currentView, selectedProduct, siteConfig]);
 
   // Scroll to top on view change
   useEffect(() => {
@@ -97,6 +121,37 @@ export default function App() {
   };
 
   const isAdminView = currentView.startsWith('admin');
+  const isMaintenance = siteConfig.maintenance.isActive && !isAdminView;
+
+  if (isMaintenance) {
+    return (
+      <div className="min-h-screen bg-secondary flex items-center justify-center p-4">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-xl w-full bg-white p-12 rounded-[3rem] shadow-2xl text-center space-y-8"
+        >
+          <div className="w-20 h-20 bg-accent/10 text-accent rounded-full flex items-center justify-center mx-auto">
+            <AlertCircle size={40} />
+          </div>
+          <div className="space-y-4">
+            <h1 className="text-4xl font-serif font-bold text-primary">Site en Maintenance</h1>
+            <p className="text-primary/60 text-lg leading-relaxed">{siteConfig.maintenance.message}</p>
+          </div>
+          {siteConfig.maintenance.endDate && (
+            <div className="flex items-center justify-center gap-3 text-accent font-bold bg-accent/5 py-4 rounded-2xl">
+              <Clock size={20} />
+              <span>Retour prévu le {new Date(siteConfig.maintenance.endDate).toLocaleString()}</span>
+            </div>
+          )}
+          <div className="pt-8 border-t border-primary/5">
+            <h2 className="text-xl font-serif font-bold text-primary mb-2">Laine<span className="text-accent">&</span>Déco</h2>
+            <p className="text-xs font-bold uppercase tracking-widest text-primary/30">Merci de votre patience</p>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -136,6 +191,7 @@ export default function App() {
                 onQuickView={setQuickViewProduct}
                 onProductClick={handleProductClick}
                 siteConfig={siteConfig}
+                events={events}
               />
             )}
             {currentView === 'shop' && (
@@ -144,6 +200,8 @@ export default function App() {
                 onAddToWishlist={addToWishlist}
                 onQuickView={setQuickViewProduct}
                 onProductClick={handleProductClick}
+                events={events}
+                initialSearchQuery={initialSearchQuery}
               />
             )}
             {currentView === 'blog' && (
@@ -176,6 +234,7 @@ export default function App() {
                 onAddToWishlist={addToWishlist}
                 onQuickView={setQuickViewProduct}
                 onNavigate={handleNavigate}
+                events={events}
               />
             )}
             {currentView === 'admin-dashboard' && (
@@ -279,6 +338,155 @@ export default function App() {
                   </div>
                 )}
               </div>
+            )}
+
+            {currentView === 'about' && (
+              <StaticPageView 
+                title="À Propos de Nous" 
+                onBack={() => handleNavigate('home')}
+                content={
+                  <div className="space-y-6">
+                    <p>Bienvenue chez Laine & Déco, votre destination privilégiée pour l'artisanat et la décoration d'intérieur authentique au Cameroun.</p>
+                    <p>Notre histoire commence par une passion pour les matières nobles et le savoir-faire manuel. Nous croyons que chaque foyer mérite une âme, et que cette âme se construit à travers des objets qui ont une histoire.</p>
+                    <h2 className="text-2xl font-bold mt-8">Notre Mission</h2>
+                    <p>Nous nous engageons à promouvoir l'artisanat local et international en sélectionnant rigoureusement des produits qui allient esthétique moderne et techniques traditionnelles.</p>
+                  </div>
+                }
+              />
+            )}
+
+            {currentView === 'contact' && (
+              <StaticPageView 
+                title="Contactez-nous" 
+                onBack={() => handleNavigate('home')}
+                content={
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                    <div className="space-y-6">
+                      <p>Une question ? Un projet de décoration ? Notre équipe est à votre écoute.</p>
+                      <div className="space-y-4">
+                        <div>
+                          <h3 className="font-bold text-primary">Adresse</h3>
+                          <p>Douala, Akwa - Rue des Écoles</p>
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-primary">Email</h3>
+                          <p>contact@laine-deco.com</p>
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-primary">Téléphone</h3>
+                          <p>+237 600 000 000</p>
+                        </div>
+                      </div>
+                    </div>
+                    <form className="space-y-4 bg-slate-50 p-8 rounded-3xl border border-primary/5">
+                      <input type="text" placeholder="Votre nom" className="w-full px-4 py-3 rounded-xl border border-primary/10 focus:outline-none focus:border-accent" />
+                      <input type="email" placeholder="Votre email" className="w-full px-4 py-3 rounded-xl border border-primary/10 focus:outline-none focus:border-accent" />
+                      <textarea placeholder="Votre message" className="w-full px-4 py-3 rounded-xl border border-primary/10 focus:outline-none focus:border-accent h-32"></textarea>
+                      <button className="w-full py-4 bg-primary text-white rounded-xl font-bold hover:bg-accent transition-colors">Envoyer</button>
+                    </form>
+                  </div>
+                }
+              />
+            )}
+
+            {currentView === 'faq' && (
+              <StaticPageView 
+                title="Foire Aux Questions" 
+                onBack={() => handleNavigate('home')}
+                content={
+                  <div className="space-y-8">
+                    {[
+                      { q: "Comment puis-je suivre ma commande ?", a: "Vous pouvez suivre votre commande via l'onglet 'Suivi de commande' en utilisant votre numéro de commande reçu par email." },
+                      { q: "Quels sont les délais de livraison ?", a: "Pour Douala et Yaoundé, comptez 24h à 48h. Pour les autres villes, entre 3 et 5 jours ouvrés." },
+                      { q: "Puis-je retourner un article ?", a: "Oui, vous disposez de 14 jours après réception pour nous retourner un article dans son emballage d'origine." }
+                    ].map((item, i) => (
+                      <div key={i} className="border-b border-primary/5 pb-6">
+                        <h3 className="text-xl font-bold text-primary mb-2">{item.q}</h3>
+                        <p className="text-primary/70">{item.a}</p>
+                      </div>
+                    ))}
+                  </div>
+                }
+              />
+            )}
+
+            {currentView === 'shipping' && (
+              <StaticPageView 
+                title="Livraison" 
+                onBack={() => handleNavigate('home')}
+                content={
+                  <div className="space-y-6">
+                    <p>Nous livrons dans tout le Cameroun et à l'international.</p>
+                    <h2 className="text-2xl font-bold">Tarifs de livraison</h2>
+                    <ul className="list-disc pl-6 space-y-2">
+                      <li>Douala : 1 500 FCFA</li>
+                      <li>Yaoundé : 2 500 FCFA</li>
+                      <li>Autres villes : À partir de 3 500 FCFA</li>
+                    </ul>
+                    <p>La livraison est gratuite pour toute commande supérieure à 50 000 FCFA.</p>
+                  </div>
+                }
+              />
+            )}
+
+            {currentView === 'returns' && (
+              <StaticPageView 
+                title="Retours et Remboursements" 
+                onBack={() => handleNavigate('home')}
+                content={
+                  <div className="space-y-6">
+                    <p>Votre satisfaction est notre priorité. Si un article ne vous convient pas, vous pouvez nous le retourner.</p>
+                    <h2 className="text-2xl font-bold">Conditions de retour</h2>
+                    <p>L'article doit être retourné dans son état d'origine, non utilisé et dans son emballage complet.</p>
+                    <p>Les frais de retour sont à la charge du client, sauf en cas d'article défectueux à la réception.</p>
+                  </div>
+                }
+              />
+            )}
+
+            {currentView === 'legal' && (
+              <StaticPageView 
+                title="Mentions Légales" 
+                onBack={() => handleNavigate('home')}
+                content={
+                  <div className="space-y-6">
+                    <p>Éditeur du site : Laine & Déco SARL</p>
+                    <p>Siège social : Douala, Cameroun</p>
+                    <p>Directeur de la publication : Landry M.</p>
+                    <p>Hébergement : Google Cloud Platform</p>
+                  </div>
+                }
+              />
+            )}
+
+            {currentView === 'privacy' && (
+              <StaticPageView 
+                title="Politique de Confidentialité" 
+                onBack={() => handleNavigate('home')}
+                content={
+                  <div className="space-y-6">
+                    <p>Nous accordons une grande importance à la protection de vos données personnelles.</p>
+                    <p>Les informations collectées lors de votre commande sont uniquement utilisées pour le traitement de celle-ci et pour vous informer de nos offres si vous y avez consenti.</p>
+                    <p>Conformément à la loi, vous disposez d'un droit d'accès, de modification et de suppression de vos données.</p>
+                  </div>
+                }
+              />
+            )}
+
+            {currentView === 'terms' && (
+              <StaticPageView 
+                title="Conditions Générales de Vente" 
+                onBack={() => handleNavigate('home')}
+                content={
+                  <div className="space-y-6">
+                    <p>Les présentes CGV régissent les ventes effectuées sur le site Laine & Déco.</p>
+                    <h2 className="text-2xl font-bold">Prix</h2>
+                    <p>Les prix sont indiqués en FCFA toutes taxes comprises.</p>
+                    <h2 className="text-2xl font-bold">Paiement</h2>
+                    <p>Nous acceptons les paiements par Mobile Money (Orange & MTN) et par carte bancaire.</p>
+                  </div>
+                }
+              />
             )}
           </motion.div>
         </AnimatePresence>

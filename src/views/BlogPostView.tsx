@@ -37,7 +37,7 @@ export const BlogPostView: React.FC<BlogPostViewProps> = ({ postId, onNavigate }
       >
         <div className="text-center space-y-6">
           <span className="text-xs font-bold uppercase tracking-widest text-accent block">{post.category}</span>
-          <h1 className="text-5xl md:text-6xl font-serif text-primary leading-tight">{post.title}</h1>
+          <h1 className="text-3xl sm:text-5xl md:text-6xl font-serif text-primary leading-tight">{post.title}</h1>
           <div className="flex items-center justify-center gap-8 text-sm font-bold uppercase tracking-widest text-primary/40">
             <div className="flex items-center gap-2"><Calendar size={16} /> {post.date}</div>
             <div className="flex items-center gap-2"><User size={16} /> {post.author}</div>

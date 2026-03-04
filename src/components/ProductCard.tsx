@@ -1,7 +1,8 @@
 import React from 'react';
 import { Star, Heart, ShoppingCart, Eye } from 'lucide-react';
-import { Product } from '../types';
+import { Product, PromoEvent } from '../types';
 import { motion } from 'motion/react';
+import { getEffectivePrice } from '../utils/siteUtils';
 
 interface ProductCardProps {
   product: Product;
@@ -9,23 +10,33 @@ interface ProductCardProps {
   onAddToWishlist: (p: Product) => void;
   onQuickView: (p: Product) => void;
   onClick: (p: Product) => void;
+  events?: PromoEvent[];
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onAddToWishlist, onQuickView, onClick }) => {
+export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onAddToWishlist, onQuickView, onClick, events = [] }) => {
+  const effectivePrice = getEffectivePrice(product, events);
+  const hasDiscount = effectivePrice < product.price;
+  const isOutOfStock = !product.isAvailable || product.stock <= 0;
+
   return (
     <motion.div 
       layout
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="group relative bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500"
+      className={`group relative bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 ${isOutOfStock ? 'opacity-75 grayscale-[0.5]' : ''}`}
     >
       {/* Badges */}
       <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
         {product.isNew && (
-          <span className="bg-primary text-white text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full">Nouveau</span>
+          <span className="bg-primary text-white text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full shadow-sm">Nouveau</span>
         )}
-        {product.isSale && (
-          <span className="bg-accent text-white text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full">Promo</span>
+        {(product.isSale || hasDiscount) && (
+          <span className="bg-accent text-white text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full shadow-sm">
+            -{Math.round((1 - effectivePrice / product.price) * 100)}%
+          </span>
+        )}
+        {isOutOfStock && (
+          <span className="bg-red-500 text-white text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full shadow-sm">Indisponible</span>
         )}
       </div>
 
@@ -75,7 +86,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, 
           {product.name}
         </h3>
         <div className="flex justify-between items-center">
-          <span className="text-xl font-bold text-primary">{product.price.toLocaleString()} FCFA</span>
+          <div className="flex flex-col">
+            {hasDiscount && (
+              <span className="text-xs text-primary/40 line-through font-bold">{product.price.toLocaleString()} FCFA</span>
+            )}
+            <span className="text-xl font-bold text-primary">{effectivePrice.toLocaleString()} FCFA</span>
+          </div>
           <div className="flex items-center text-yellow-500 text-sm">
             <Star size={14} fill="currentColor" />
             <span className="ml-1 text-primary/70 font-medium">{product.rating}</span>

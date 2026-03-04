@@ -1,73 +1,143 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { ArrowRight, Package, Truck, ShieldCheck, Heart, Calendar, User } from 'lucide-react';
+import { ArrowRight, Package, Truck, ShieldCheck, Heart, Calendar, User, Search, Camera, Loader2 } from 'lucide-react';
 import { CATEGORIES, PRODUCTS, BLOG_POSTS } from '../constants';
 import { ProductCard } from '../components/ProductCard';
-import { Product, SiteConfig } from '../types';
+import { Product, SiteConfig, PromoEvent } from '../types';
 import { AdBanner } from '../components/AdBanner';
+import { analyzeProductImage } from '../utils/aiUtils';
 
 interface HomeViewProps {
-  onNavigate: (view: string, id?: string) => void;
+  onNavigate: (view: string, id?: string, query?: string) => void;
   onAddToCart: (p: Product) => void;
   onAddToWishlist: (p: Product) => void;
   onQuickView: (p: Product) => void;
   onProductClick: (p: Product) => void;
   siteConfig: SiteConfig;
+  events?: PromoEvent[];
 }
 
-export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onAddToWishlist, onQuickView, onProductClick, siteConfig }) => {
+export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onAddToWishlist, onQuickView, onProductClick, siteConfig, events = [] }) => {
   const [showOnlyPromos, setShowOnlyPromos] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [isAnalyzingImage, setIsAnalyzingImage] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
   const featuredProducts = PRODUCTS.filter(p => siteConfig.homeFeaturedProducts.includes(p.id));
   const featuredCategories = CATEGORIES.filter(c => siteConfig.homeFeaturedCategories.includes(c.id));
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      onNavigate('shop', undefined, searchQuery);
+    }
+  };
+
+  const handleImageSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64 = reader.result as string;
+      setIsAnalyzingImage(true);
+      
+      const keywords = await analyzeProductImage(base64);
+      if (keywords) {
+        onNavigate('shop', undefined, keywords);
+      }
+      setIsAnalyzingImage(false);
+    };
+    reader.readAsDataURL(file);
+  };
 
   return (
     <div className="space-y-24 pb-24">
       <AdBanner />
       
       {/* Hero Section */}
-      {siteConfig.showSlider && (
-        <section className="relative h-[90vh] flex items-center overflow-hidden">
-          <div className="absolute inset-0 z-0">
-            <img
-              src={siteConfig.sliderItems[0].image}
-              alt="Hero"
-              className="w-full h-full object-cover"
-              referrerPolicy="no-referrer"
-            />
-            <div className="absolute inset-0 bg-black/30" />
-          </div>
-          
-          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-            <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
-              className="max-w-2xl text-white"
-            >
-              <span className="inline-block text-xs font-bold uppercase tracking-[0.3em] mb-4 text-accent">{siteConfig.sliderItems[0].subtitle}</span>
-              <h1 className="text-6xl md:text-8xl font-serif leading-tight mb-8">
-                {siteConfig.sliderItems[0].title.split(' ').slice(0, 2).join(' ')} <br />
-                <span className="italic">&</span> {siteConfig.sliderItems[0].title.split(' ').slice(2).join(' ')}
-              </h1>
-              <p className="text-lg text-white/80 mb-10 max-w-md leading-relaxed">
-                Découvrez notre sélection de laines naturelles et d'objets de décoration pour un intérieur qui vous ressemble.
+      <section className="relative h-[90vh] flex items-center overflow-hidden">
+        <div className="absolute inset-0 z-0">
+          <img
+            src={siteConfig.hero.backgroundImage}
+            alt="Hero"
+            className="w-full h-full object-cover"
+            referrerPolicy="no-referrer"
+          />
+          <div className="absolute inset-0 bg-black/40" />
+        </div>
+        
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+          <motion.div
+            initial={{ opacity: 0, x: -50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8 }}
+            className="max-w-3xl text-white"
+          >
+            <span className="inline-block text-xs font-bold uppercase tracking-[0.3em] mb-6 text-accent">Bienvenue chez Laine & Déco</span>
+            <h1 className="text-5xl sm:text-7xl md:text-8xl font-serif leading-[1.1] mb-10">
+              {siteConfig.hero.title}
+            </h1>
+
+            {/* Search Bar */}
+            <div className="max-w-2xl mb-12">
+              <form onSubmit={handleSearch} className="relative group">
+                <div className="absolute left-6 top-1/2 -translate-y-1/2 text-white/50 group-focus-within:text-accent transition-colors">
+                  <Search size={24} />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Rechercher un produit, une catégorie..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-full py-6 pl-16 pr-32 text-lg focus:outline-none focus:border-white/40 transition-all placeholder:text-white/40"
+                />
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                  <button 
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all flex items-center gap-2"
+                    title="Rechercher par image"
+                  >
+                    {isAnalyzingImage ? <Loader2 size={20} className="animate-spin" /> : <Camera size={20} />}
+                  </button>
+                  <button 
+                    type="submit"
+                    className="bg-accent text-white px-6 py-3 rounded-full font-bold hover:bg-white hover:text-primary transition-all shadow-lg"
+                  >
+                    Go
+                  </button>
+                </div>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleImageSearch} 
+                  accept="image/*" 
+                  className="hidden" 
+                />
+              </form>
+              <p className="mt-4 text-sm text-white/60">
+                Populaire: <button onClick={() => onNavigate('shop', undefined, 'Laine')} className="hover:text-white underline decoration-accent/40">Laine</button>, 
+                <button onClick={() => onNavigate('shop', undefined, 'Coussin')} className="ml-2 hover:text-white underline decoration-accent/40">Coussin</button>, 
+                <button onClick={() => onNavigate('shop', undefined, 'Décoration')} className="ml-2 hover:text-white underline decoration-accent/40">Décoration</button>
               </p>
-              <div className="flex flex-wrap gap-4">
-                <button 
-                  onClick={() => onNavigate('shop')}
-                  className="bg-white text-primary px-10 py-4 rounded-full font-bold hover:bg-accent hover:text-white transition-all duration-300 flex items-center group"
-                >
-                  Découvrir la boutique
-                  <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={20} />
-                </button>
-                <button className="border border-white/30 backdrop-blur-sm text-white px-10 py-4 rounded-full font-bold hover:bg-white/10 transition-all duration-300">
-                  Nos inspirations
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        </section>
-      )}
+            </div>
+
+            <div className="flex flex-wrap gap-6">
+              <button 
+                onClick={() => onNavigate('shop')}
+                className="bg-white text-primary px-12 py-5 rounded-full font-bold hover:bg-accent hover:text-white transition-all duration-300 flex items-center group shadow-xl"
+              >
+                Découvrir la boutique
+                <ArrowRight className="ml-3 group-hover:translate-x-1 transition-transform" size={24} />
+              </button>
+              <button className="border-2 border-white/30 backdrop-blur-md text-white px-12 py-5 rounded-full font-bold hover:bg-white/10 transition-all duration-300">
+                Nos inspirations
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      </section>
 
       {/* Featured Slider */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -196,7 +266,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {(showOnlyPromos 
-              ? PRODUCTS.filter(p => p.oldPrice)
+              ? PRODUCTS.filter(p => p.oldPrice || p.promoPrice)
               : (featuredProducts.length > 0 ? featuredProducts : PRODUCTS.slice(0, 4))
             ).map((product) => (
               <ProductCard 
@@ -206,6 +276,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                 onAddToWishlist={onAddToWishlist}
                 onQuickView={onQuickView}
                 onClick={onProductClick}
+                events={events}
               />
             ))}
           </div>
@@ -233,8 +304,42 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
               onAddToWishlist={onAddToWishlist}
               onQuickView={onQuickView}
               onClick={onProductClick}
+              events={events}
             />
           ))}
+        </div>
+      </section>
+
+      {/* Promotions Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-accent/5 rounded-[3rem] p-12 md:p-20 border border-accent/10">
+          <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-8">
+            <div className="text-left">
+              <span className="text-xs font-bold uppercase tracking-widest text-accent mb-2 block">Offres Spéciales</span>
+              <h2 className="text-4xl font-serif mb-4">Promotions du Moment</h2>
+              <p className="text-primary/60 max-w-xl">Profitez de remises exceptionnelles sur une sélection d'articles pour embellir votre intérieur à petit prix.</p>
+            </div>
+            <button 
+              onClick={() => onNavigate('shop')}
+              className="px-8 py-4 bg-accent text-white rounded-full font-bold hover:bg-primary transition-all shadow-lg"
+            >
+              Voir toutes les promos
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {PRODUCTS.filter(p => p.oldPrice || p.promoPrice).slice(0, 4).map((product) => (
+              <ProductCard 
+                key={product.id} 
+                product={product} 
+                onAddToCart={onAddToCart}
+                onAddToWishlist={onAddToWishlist}
+                onQuickView={onQuickView}
+                onClick={onProductClick}
+                events={events}
+              />
+            ))}
+          </div>
         </div>
       </section>
 
@@ -305,6 +410,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                   onAddToWishlist={onAddToWishlist}
                   onQuickView={onQuickView}
                   onClick={onProductClick}
+                  events={events}
                 />
               ))}
             </div>

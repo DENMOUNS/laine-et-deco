@@ -50,7 +50,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, onNavigate, on
         {/* Checkout Form */}
         <div className="lg:col-span-2 space-y-12">
           {/* Steps Indicator */}
-          <div className="flex justify-between relative mb-16">
+          <div className="flex justify-between relative mb-16 px-2">
             <div className="absolute top-1/2 left-0 w-full h-1 bg-primary/5 -translate-y-1/2 z-0 rounded-full" />
             <motion.div 
               initial={{ width: '0%' }}
@@ -59,12 +59,12 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, onNavigate, on
             />
             {[1, 2, 3].map((s) => (
               <div key={s} className="relative z-10 flex flex-col items-center gap-3">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold transition-all duration-500 ${
+                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold transition-all duration-500 ${
                   step >= s ? 'bg-accent text-white shadow-lg shadow-accent/20 scale-110' : 'bg-white border-2 border-primary/10 text-primary/30'
                 }`}>
-                  {step > s ? <CheckCircle2 size={24} /> : s}
+                  {step > s ? <CheckCircle2 size={20} className="sm:w-6 sm:h-6" /> : s}
                 </div>
-                <span className={`text-[10px] uppercase tracking-widest font-bold transition-colors duration-500 ${step >= s ? 'text-primary' : 'text-primary/30'}`}>
+                <span className={`text-[8px] sm:text-[10px] uppercase tracking-widest font-bold transition-colors duration-500 ${step >= s ? 'text-primary' : 'text-primary/30'}`}>
                   {s === 1 && 'Livraison'}
                   {s === 2 && 'Paiement'}
                   {s === 3 && 'Confirmation'}
@@ -76,7 +76,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, onNavigate, on
           {step === 1 && (
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
               <h2 className="text-3xl font-serif">Informations de livraison</h2>
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase tracking-widest text-primary/40">Prénom</label>
                   <input type="text" className="w-full px-6 py-4 bg-white border border-primary/10 rounded-2xl focus:outline-none focus:border-accent" placeholder="Jean" />
@@ -85,7 +85,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, onNavigate, on
                   <label className="text-xs font-bold uppercase tracking-widest text-primary/40">Nom</label>
                   <input type="text" className="w-full px-6 py-4 bg-white border border-primary/10 rounded-2xl focus:outline-none focus:border-accent" placeholder="Dupont" />
                 </div>
-                <div className="col-span-2 space-y-2">
+                <div className="col-span-1 sm:col-span-2 space-y-2">
                   <label className="text-xs font-bold uppercase tracking-widest text-primary/40">Adresse</label>
                   <input type="text" className="w-full px-6 py-4 bg-white border border-primary/10 rounded-2xl focus:outline-none focus:border-accent" placeholder="123 Rue de la Laine" />
                 </div>
@@ -97,7 +97,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, onNavigate, on
                   <label className="text-xs font-bold uppercase tracking-widest text-primary/40">Ville</label>
                   <input type="text" className="w-full px-6 py-4 bg-white border border-primary/10 rounded-2xl focus:outline-none focus:border-accent" placeholder="Paris" />
                 </div>
-                <div className="col-span-2 p-6 bg-slate-50 rounded-2xl border border-primary/5 space-y-4">
+                <div className="col-span-1 sm:col-span-2 p-6 bg-slate-50 rounded-2xl border border-primary/5 space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="p-2 bg-white rounded-xl text-primary shadow-sm">

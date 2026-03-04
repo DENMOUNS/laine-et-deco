@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { Search, ChevronLeft, ChevronRight, Download, FileText, Table as TableIcon } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 interface DataTableProps<T> {
   data: T[];
@@ -7,22 +10,26 @@ interface DataTableProps<T> {
     header: string;
     accessor: keyof T | ((item: T) => React.ReactNode);
     className?: string;
+    exportValue?: (item: T) => string;
   }[];
   searchPlaceholder?: string;
   onSearch?: (query: string) => void;
-  itemsPerPage?: number;
+  initialItemsPerPage?: number;
   onRowClick?: (item: T) => void;
+  title?: string;
 }
 
 export function DataTable<T extends { id: string | number }>({ 
   data, 
   columns, 
   searchPlaceholder = "Rechercher...",
-  itemsPerPage = 5,
-  onRowClick
+  initialItemsPerPage = 10,
+  onRowClick,
+  title = "Export"
 }: DataTableProps<T>) {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(initialItemsPerPage);
 
   const filteredData = data.filter(item => {
     const searchStr = searchQuery.toLowerCase();
@@ -36,24 +43,72 @@ export function DataTable<T extends { id: string | number }>({
   const paginatedData = filteredData.slice(startIndex, startIndex + itemsPerPage);
 
   const handleExport = (type: 'pdf' | 'excel') => {
-    alert(`Exportation en ${type.toUpperCase()}... (Fonctionnalité simulée)`);
+    const exportData = filteredData.map(item => {
+      const row: any = {};
+      columns.forEach(col => {
+        if (col.exportValue) {
+          row[col.header] = col.exportValue(item);
+        } else if (typeof col.accessor === 'string') {
+          row[col.header] = item[col.accessor as keyof T];
+        } else {
+          row[col.header] = '';
+        }
+      });
+      return row;
+    });
+
+    if (type === 'pdf') {
+      const doc = new jsPDF();
+      const tableColumn = columns.map(c => c.header);
+      const tableRows = exportData.map(row => Object.values(row));
+      
+      (doc as any).autoTable({
+        head: [tableColumn],
+        body: tableRows,
+        startY: 20,
+      });
+      doc.text(title, 14, 15);
+      doc.save(`${title.toLowerCase().replace(/\s+/g, '_')}_${new Date().getTime()}.pdf`);
+    } else {
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
+      XLSX.writeFile(workbook, `${title.toLowerCase().replace(/\s+/g, '_')}_${new Date().getTime()}.xlsx`);
+    }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="relative w-full md:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <input
-            type="text"
-            placeholder={searchPlaceholder}
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-primary w-full shadow-sm"
-          />
+        <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+          <div className="relative w-full sm:w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <input
+              type="text"
+              placeholder={searchPlaceholder}
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-primary w-full shadow-sm"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Afficher</span>
+            <select 
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold text-slate-600 focus:outline-none focus:border-primary shadow-sm"
+            >
+              {[10, 25, 50, 100, 250].map(size => (
+                <option key={size} value={size}>{size}</option>
+              ))}
+            </select>
+          </div>
         </div>
         <div className="flex gap-2 w-full md:w-auto">
           <button 
@@ -123,12 +178,12 @@ export function DataTable<T extends { id: string | number }>({
             >
               <ChevronLeft size={20} />
             </button>
-            <div className="flex gap-1">
+            <div className="flex gap-1 overflow-x-auto no-scrollbar max-w-[150px] sm:max-w-none">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                 <button
                   key={page}
                   onClick={() => setCurrentPage(page)}
-                  className={`w-10 h-10 rounded-xl font-bold text-sm transition-all ${
+                  className={`flex-shrink-0 w-10 h-10 rounded-xl font-bold text-sm transition-all ${
                     currentPage === page 
                       ? 'bg-primary text-white shadow-md' 
                       : 'bg-white border border-slate-200 text-slate-400 hover:bg-slate-50'

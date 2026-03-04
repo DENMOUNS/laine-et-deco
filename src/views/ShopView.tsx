@@ -1,26 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Filter, Search, ChevronDown, Grid, List as ListIcon, Loader2 } from 'lucide-react';
+import { Filter, Search, ChevronDown, Grid, List as ListIcon, Loader2, Camera, X } from 'lucide-react';
 import { CATEGORIES, PRODUCTS } from '../constants';
 import { ProductCard } from '../components/ProductCard';
-import { Product } from '../types';
+import { Product, PromoEvent } from '../types';
+import { analyzeProductImage } from '../utils/aiUtils';
 
 interface ShopViewProps {
   onAddToCart: (p: Product) => void;
   onAddToWishlist: (p: Product) => void;
   onQuickView: (p: Product) => void;
   onProductClick: (p: Product) => void;
+  events?: PromoEvent[];
+  initialSearchQuery?: string;
 }
 
-export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist, onQuickView, onProductClick }) => {
+export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist, onQuickView, onProductClick, events = [], initialSearchQuery = '' }) => {
   const [selectedCategory, setSelectedCategory] = useState('Tous');
   const [selectedMaterial, setSelectedMaterial] = useState('Tous');
   const [selectedColor, setSelectedColor] = useState('Tous');
   const [selectedBrand, setSelectedBrand] = useState('Tous');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
   const [sortBy, setSortBy] = useState('Nouveautés');
   const [priceRange, setPriceRange] = useState(100000);
   const [isFiltering, setIsFiltering] = useState(false);
+  const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Update search query if initialSearchQuery changes
+  useEffect(() => {
+    if (initialSearchQuery) {
+      setSearchQuery(initialSearchQuery);
+    }
+  }, [initialSearchQuery]);
 
   // Simulate loading when filters change
   useEffect(() => {
@@ -28,6 +42,31 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
     const timer = setTimeout(() => setIsFiltering(false), 400);
     return () => clearTimeout(timer);
   }, [selectedCategory, selectedMaterial, selectedColor, selectedBrand, searchQuery, sortBy, priceRange]);
+
+  const handleImageSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64 = reader.result as string;
+      setImagePreview(base64);
+      setIsAnalyzingImage(true);
+      
+      const keywords = await analyzeProductImage(base64);
+      if (keywords) {
+        setSearchQuery(keywords);
+      }
+      setIsAnalyzingImage(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const clearImageSearch = () => {
+    setImagePreview(null);
+    setSearchQuery('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   const materials = Array.from(new Set(PRODUCTS.map(p => p.material).filter(Boolean)));
   const brands = Array.from(new Set(PRODUCTS.map(p => p.brand).filter(Boolean)));
@@ -44,8 +83,20 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
     const matchesMaterial = selectedMaterial === 'Tous' || p.material === selectedMaterial;
     const matchesColor = selectedColor === 'Tous' || (p.colors && p.colors.includes(selectedColor));
     const matchesBrand = selectedBrand === 'Tous' || p.brand === selectedBrand;
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          p.description.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Search logic: if searchQuery has commas, it's likely from image analysis
+    const searchTerms = searchQuery.toLowerCase().split(/[,\s]+/).filter(t => t.length > 2);
+    let matchesSearch = true;
+    
+    if (searchQuery.trim()) {
+      const searchableText = `${p.name} ${p.category} ${p.description} ${p.material || ''} ${p.brand || ''}`.toLowerCase();
+      if (searchTerms.length > 0 && searchQuery.includes(',')) {
+        matchesSearch = searchTerms.some(term => searchableText.includes(term));
+      } else {
+        matchesSearch = searchableText.includes(searchQuery.toLowerCase());
+      }
+    }
+
     const matchesPrice = p.price <= priceRange;
     return matchesCategory && matchesMaterial && matchesColor && matchesBrand && matchesSearch && matchesPrice;
   }).sort((a, b) => {
@@ -72,9 +123,41 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
                 placeholder="Rechercher par nom, matière..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-12 pr-4 py-2 bg-white border border-primary/10 rounded-full focus:outline-none focus:border-accent w-full md:w-80 shadow-sm"
+                className="pl-12 pr-12 py-2 bg-white border border-primary/10 rounded-full focus:outline-none focus:border-accent w-full md:w-80 shadow-sm"
+              />
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                {imagePreview ? (
+                  <button 
+                    onClick={clearImageSearch}
+                    className="p-1.5 bg-slate-100 text-primary/60 rounded-full hover:bg-slate-200 transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                ) : (
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-1.5 bg-slate-50 text-accent rounded-full hover:bg-accent hover:text-white transition-all"
+                    title="Rechercher par image"
+                  >
+                    <Camera size={16} />
+                  </button>
+                )}
+              </div>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleImageSearch} 
+                accept="image/*" 
+                className="hidden" 
               />
             </div>
+            {imagePreview && (
+              <div className="flex items-center gap-2 bg-accent/10 px-3 py-1.5 rounded-full border border-accent/20">
+                <img src={imagePreview} alt="Search" className="w-6 h-6 rounded-full object-cover" />
+                <span className="text-[10px] font-bold text-accent uppercase tracking-widest">Recherche par image</span>
+                {isAnalyzingImage && <Loader2 size={12} className="animate-spin text-accent" />}
+              </div>
+            )}
             <div className="relative">
               <select 
                 value={sortBy}
@@ -260,6 +343,7 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
                     onAddToWishlist={onAddToWishlist}
                     onQuickView={onQuickView}
                     onClick={onProductClick}
+                    events={events}
                   />
                 ))}
               </motion.div>

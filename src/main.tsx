@@ -2,9 +2,15 @@ import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+import { ErrorBoundary } from './presentation/components/ErrorBoundary';
+import { DIProvider } from './presentation/context/DIContext';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <ErrorBoundary>
+      <DIProvider>
+        <App />
+      </DIProvider>
+    </ErrorBoundary>
   </StrictMode>,
 );

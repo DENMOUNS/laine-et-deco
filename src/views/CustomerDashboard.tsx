@@ -23,6 +23,7 @@ import { ORDERS, INVOICES, USERS, LOGIN_LOGS, PRODUCTS } from '../constants';
 import { Order, Invoice, User as UserType } from '../types';
 import { AnimatePresence } from 'motion/react';
 import { TabFilter } from '../components/TabFilter';
+import { generateInvoicePDF } from '../utils/invoiceUtils';
 
 interface CustomerDashboardProps {
   onNavigate: (view: string) => void;
@@ -276,7 +277,13 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ onNavigate
                         <p className="text-xs text-primary/40">{invoice.date} • {invoice.status === 'paid' ? 'Payé' : 'En attente'}</p>
                       </div>
                     </div>
-                    <button className="p-3 bg-white rounded-xl text-primary hover:bg-primary hover:text-white transition-all shadow-sm">
+                    <button 
+                      onClick={() => {
+                        const order = ORDERS.find(o => o.id === invoice.orderId);
+                        if (order) generateInvoicePDF(order);
+                      }}
+                      className="p-3 bg-white rounded-xl text-primary hover:bg-primary hover:text-white transition-all shadow-sm"
+                    >
                       <Download size={20} />
                     </button>
                   </div>
@@ -381,7 +388,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ onNavigate
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative bg-white w-full max-w-2xl rounded-[3rem] overflow-hidden shadow-2xl"
+              className="relative bg-white w-full max-w-2xl rounded-[2rem] sm:rounded-[3rem] overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto"
             >
               <div className="p-8 border-b border-primary/5 flex justify-between items-center bg-slate-50/50">
                 <div>
@@ -441,10 +448,16 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ onNavigate
                 </div>
               </div>
               <div className="p-8 bg-slate-50 border-t border-primary/5 flex gap-4">
-                <button className="flex-grow bg-primary text-white py-4 rounded-2xl font-bold hover:bg-accent transition-all shadow-lg">
+                <button 
+                  onClick={() => generateInvoicePDF(selectedOrder)}
+                  className="flex-grow bg-primary text-white py-4 rounded-2xl font-bold hover:bg-accent transition-all shadow-lg"
+                >
                   Télécharger la Facture
                 </button>
-                <button className="px-8 py-4 border border-primary/10 rounded-2xl font-bold hover:bg-white transition-colors">
+                <button 
+                  onClick={() => onNavigate('order-tracking')}
+                  className="px-8 py-4 border border-primary/10 rounded-2xl font-bold hover:bg-white transition-colors"
+                >
                   Suivre le colis
                 </button>
               </div>

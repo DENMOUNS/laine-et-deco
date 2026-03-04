@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Star, Heart, ShoppingBag, Truck, ShieldCheck, RefreshCcw, Plus, Minus, ChevronRight, Share2 } from 'lucide-react';
-import { Product } from '../types';
+import { Product, PromoEvent } from '../types';
 import { PRODUCTS } from '../constants';
 import { ProductCard } from '../components/ProductCard';
+import { getEffectivePrice } from '../utils/siteUtils';
 
 interface ProductDetailViewProps {
   product: Product;
@@ -11,13 +12,17 @@ interface ProductDetailViewProps {
   onAddToWishlist: (p: Product) => void;
   onQuickView: (p: Product) => void;
   onNavigate: (view: string) => void;
+  events?: PromoEvent[];
 }
 
-export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ product, onAddToCart, onAddToWishlist, onQuickView, onNavigate }) => {
+export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ product, onAddToCart, onAddToWishlist, onQuickView, onNavigate, events = [] }) => {
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('description');
 
-  const relatedProducts = PRODUCTS.filter(p => p.category === product.category && p.id !== product.id).slice(0, 4);
+  const effectivePrice = getEffectivePrice(product, events);
+  const hasDiscount = effectivePrice < product.price;
+
+  const relatedProducts = PRODUCTS.filter(p => p.category === product.category && p.id !== product.id).slice(0, 3);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -45,7 +50,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ product, o
               referrerPolicy="no-referrer"
             />
           </motion.div>
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="aspect-square rounded-2xl overflow-hidden cursor-pointer border-2 border-transparent hover:border-accent transition-all">
                 <img 
@@ -90,7 +95,12 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ product, o
             </span>
           </div>
 
-          <p className="text-3xl font-bold text-primary mb-8">{product.price.toLocaleString()} FCFA</p>
+          <div className="flex items-center gap-4 mb-8">
+            {hasDiscount && (
+              <span className="text-xl text-primary/40 line-through font-bold">{product.price.toLocaleString()} FCFA</span>
+            )}
+            <p className="text-4xl font-bold text-primary">{effectivePrice.toLocaleString()} FCFA</p>
+          </div>
           
           <p className="text-primary/70 leading-relaxed mb-10 text-lg">
             {product.description} Notre sélection est faite avec passion pour vous offrir le meilleur de l'artisanat.
@@ -131,7 +141,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ product, o
           </div>
 
           {/* Features List */}
-          <div className="grid grid-cols-2 gap-6 pt-8 border-t border-primary/10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-8 border-t border-primary/10">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-accent/10 text-accent rounded-lg"><Truck size={20} /></div>
               <span className="text-xs font-bold text-primary/70">Livraison 48h</span>
@@ -150,22 +160,24 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ product, o
 
       {/* Tabs Section */}
       <section className="mb-24">
-        <div className="flex border-b border-primary/10 mb-10">
-          {['description', 'caractéristiques', 'avis'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-8 py-4 text-sm font-bold uppercase tracking-widest transition-all relative ${
-                activeTab === tab ? 'text-primary' : 'text-primary/40 hover:text-primary'
-              }`}
-            >
-              {tab}
-              {activeTab === tab && (
-                <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 w-full h-1 bg-accent" />
-              )}
-            </button>
-          ))}
-        </div>
+          <div className="flex border-b border-primary/10 mb-10 overflow-x-auto no-scrollbar">
+            <div className="flex min-w-max">
+              {['description', 'caractéristiques', 'avis'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-8 py-4 text-sm font-bold uppercase tracking-widest transition-all relative ${
+                    activeTab === tab ? 'text-primary' : 'text-primary/40 hover:text-primary'
+                  }`}
+                >
+                  {tab}
+                  {activeTab === tab && (
+                    <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 w-full h-1 bg-accent" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
         <div className="max-w-3xl">
           {activeTab === 'description' && (
             <div className="space-y-6 text-primary/70 leading-relaxed">
@@ -247,7 +259,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ product, o
       {/* Related Products */}
       <section>
         <h2 className="text-3xl font-serif mb-12">Vous aimerez aussi</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {relatedProducts.map((p) => (
             <ProductCard 
               key={p.id} 
@@ -256,6 +268,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ product, o
               onAddToWishlist={onAddToWishlist}
               onQuickView={onQuickView}
               onClick={() => onNavigate('product-detail')}
+              events={events}
             />
           ))}
         </div>

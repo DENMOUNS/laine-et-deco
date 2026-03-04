@@ -43,11 +43,42 @@ export interface RequestLog {
   duration: string;
 }
 
+export interface SEOMeta {
+  title: string;
+  description: string;
+  ogImage?: string;
+}
+
+export interface PromoEvent {
+  id: string;
+  name: string;
+  startDate: string; // ISO string
+  endDate: string; // ISO string
+  discountPercentage: number;
+  applyToAll: boolean;
+  productIds?: string[];
+  status: 'active' | 'scheduled' | 'expired';
+}
+
+export interface MaintenanceConfig {
+  isActive: boolean;
+  message: string;
+  endDate?: string; // ISO string
+}
+
+export interface BrandingConfig {
+  logo?: string;
+  favicon?: string;
+  primaryColor: string;
+  secondaryColor: string;
+}
+
 export interface Product {
   id: string;
   name: string;
   price: number;
   oldPrice?: number;
+  promoPrice?: number; // Added for strikethrough pricing
   category: string;
   image: string;
   description: string;
@@ -55,12 +86,14 @@ export interface Product {
   rating: number;
   isNew?: boolean;
   isSale?: boolean;
+  isAvailable: boolean; // Added for stock management toggle
   material?: string;
   colors?: string[];
   reviews?: Review[];
-  views?: number; // Added for analytics
-  salesCount?: number; // Added for analytics
-  brand?: string; // Added for filtering
+  views?: number;
+  salesCount?: number;
+  brand?: string;
+  seo?: SEOMeta; // Added for SEO
 }
 
 export interface Category {
@@ -78,6 +111,8 @@ export interface Order {
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   items: number;
   paymentMethod?: string;
+  address?: string;
+  coordinates?: [number, number];
   orderDetails?: { productId: string; quantity: number; price: number; name: string }[];
   trackingSteps?: { status: string; date: string; description: string; completed: boolean }[]; // Added for tracking
 }
@@ -150,6 +185,18 @@ export interface SiteConfig {
   showSlider: boolean;
   sliderItems: { id: string; image: string; title: string; subtitle: string }[];
   customSections: HomeSection[];
+  maintenance: MaintenanceConfig;
+  branding: BrandingConfig;
+  seo: {
+    home: SEOMeta;
+    shop: SEOMeta;
+    contact: SEOMeta;
+    about: SEOMeta;
+  };
+  hero: {
+    title: string;
+    backgroundImage: string;
+  };
 }
 
 export interface Coupon {
