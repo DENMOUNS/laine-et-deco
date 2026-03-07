@@ -1,11 +1,56 @@
-import React from 'react';
-import { motion } from 'motion/react';
-import { ArrowRight, Package, Truck, ShieldCheck, Heart, Calendar, User, Search, Camera, Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { ArrowRight, Package, Truck, ShieldCheck, Heart, Calendar, User, Search, Camera, Loader2, Zap, Clock } from 'lucide-react';
 import { CATEGORIES, PRODUCTS, BLOG_POSTS } from '../constants';
 import { ProductCard } from '../components/ProductCard';
 import { Product, SiteConfig, PromoEvent } from '../types';
 import { AdBanner } from '../components/AdBanner';
 import { analyzeProductImage } from '../utils/aiUtils';
+
+const CountdownTimer: React.FC<{ endDate: string }> = ({ endDate }) => {
+  const [timeLeft, setTimeLeft] = useState({
+    hours: 0,
+    minutes: 0,
+    seconds: 0
+  });
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date().getTime();
+      const distance = new Date(endDate).getTime() - now;
+
+      if (distance < 0) {
+        clearInterval(timer);
+        return;
+      }
+
+      setTimeLeft({
+        hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+        minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
+        seconds: Math.floor((distance % (1000 * 60)) / 1000)
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [endDate]);
+
+  return (
+    <div className="flex gap-4">
+      {[
+        { label: 'Heures', value: timeLeft.hours },
+        { label: 'Min', value: timeLeft.minutes },
+        { label: 'Sec', value: timeLeft.seconds },
+      ].map((item, i) => (
+        <div key={i} className="flex flex-col items-center">
+          <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-xl font-bold text-accent shadow-sm border border-accent/10">
+            {item.value.toString().padStart(2, '0')}
+          </div>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-primary/40 mt-2">{item.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 interface HomeViewProps {
   onNavigate: (view: string, id?: string, query?: string) => void;
@@ -21,10 +66,42 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
   const [showOnlyPromos, setShowOnlyPromos] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
   const [isAnalyzingImage, setIsAnalyzingImage] = React.useState(false);
+  const [currentSlide, setCurrentSlide] = React.useState(0);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const HERO_SLIDES = [
+    {
+      image: siteConfig.hero.backgroundImage,
+      title: siteConfig.hero.title,
+      subtitle: "Bienvenue chez Laine & Déco",
+      link: "shop"
+    },
+    {
+      image: "https://picsum.photos/seed/promo1/1920/1080",
+      title: "Nouvelle Collection Artisanale",
+      subtitle: "Découvrez nos dernières créations",
+      link: "shop"
+    },
+    {
+      image: "https://picsum.photos/seed/promo2/1920/1080",
+      title: "Promotions de Printemps",
+      subtitle: "Jusqu'à -50% sur une sélection",
+      link: "shop"
+    }
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide(prev => (prev + 1) % HERO_SLIDES.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
 
   const featuredProducts = PRODUCTS.filter(p => siteConfig.homeFeaturedProducts.includes(p.id));
   const featuredCategories = CATEGORIES.filter(c => siteConfig.homeFeaturedCategories.includes(c.id));
+
+  const flashSaleProduct = PRODUCTS.find(p => p.isSale) || PRODUCTS[0];
+  const flashSaleEndDate = new Date(Date.now() + 1000 * 60 * 60 * 5).toISOString(); // 5 hours from now
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,28 +132,40 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
     <div className="space-y-24 pb-24">
       <AdBanner />
       
-      {/* Hero Section */}
+      {/* Hero Section Slider */}
       <section className="relative h-[90vh] flex items-center overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <img
-            src={siteConfig.hero.backgroundImage}
-            alt="Hero"
-            className="w-full h-full object-cover"
-            referrerPolicy="no-referrer"
-          />
-          <div className="absolute inset-0 bg-black/40" />
-        </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentSlide}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1 }}
+            className="absolute inset-0 z-0"
+          >
+            <img
+              src={HERO_SLIDES[currentSlide].image}
+              alt="Hero"
+              className="w-full h-full object-cover"
+              referrerPolicy="no-referrer"
+            />
+            <div className="absolute inset-0 bg-black/40" />
+          </motion.div>
+        </AnimatePresence>
         
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <motion.div
+            key={currentSlide}
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
             className="max-w-3xl text-white"
           >
-            <span className="inline-block text-xs font-bold uppercase tracking-[0.3em] mb-6 text-accent">Bienvenue chez Laine & Déco</span>
+            <span className="inline-block text-xs font-bold uppercase tracking-[0.3em] mb-6 text-accent">
+              {HERO_SLIDES[currentSlide].subtitle}
+            </span>
             <h1 className="text-5xl sm:text-7xl md:text-8xl font-serif leading-[1.1] mb-10">
-              {siteConfig.hero.title}
+              {HERO_SLIDES[currentSlide].title}
             </h1>
 
             {/* Search Bar */}
@@ -116,26 +205,83 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                   className="hidden" 
                 />
               </form>
-              <p className="mt-4 text-sm text-white/60">
-                Populaire: <button onClick={() => onNavigate('shop', undefined, 'Laine')} className="hover:text-white underline decoration-accent/40">Laine</button>, 
-                <button onClick={() => onNavigate('shop', undefined, 'Coussin')} className="ml-2 hover:text-white underline decoration-accent/40">Coussin</button>, 
-                <button onClick={() => onNavigate('shop', undefined, 'Décoration')} className="ml-2 hover:text-white underline decoration-accent/40">Décoration</button>
-              </p>
             </div>
 
             <div className="flex flex-wrap gap-6">
               <button 
-                onClick={() => onNavigate('shop')}
+                onClick={() => onNavigate(HERO_SLIDES[currentSlide].link)}
                 className="bg-white text-primary px-12 py-5 rounded-full font-bold hover:bg-accent hover:text-white transition-all duration-300 flex items-center group shadow-xl"
               >
-                Découvrir la boutique
+                Voir plus
                 <ArrowRight className="ml-3 group-hover:translate-x-1 transition-transform" size={24} />
               </button>
-              <button className="border-2 border-white/30 backdrop-blur-md text-white px-12 py-5 rounded-full font-bold hover:bg-white/10 transition-all duration-300">
-                Nos inspirations
-              </button>
+              <div className="flex gap-2 items-center ml-auto">
+                {HERO_SLIDES.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentSlide(i)}
+                    className={`w-3 h-3 rounded-full transition-all ${currentSlide === i ? 'bg-accent w-8' : 'bg-white/30 hover:bg-white/50'}`}
+                  />
+                ))}
+              </div>
             </div>
           </motion.div>
+        </div>
+      </section>
+
+      {/* Flash Sale Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-primary rounded-[3rem] overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-1/2 h-full bg-accent/10 skew-x-12 translate-x-1/4" />
+          <div className="relative z-10 flex flex-col lg:flex-row items-center">
+            <div className="w-full lg:w-1/2 p-12 md:p-20 space-y-8">
+              <div className="flex items-center gap-3 text-accent font-bold uppercase tracking-widest text-sm">
+                <Zap size={20} fill="currentColor" />
+                <span>Vente Flash Exceptionnelle</span>
+              </div>
+              <h2 className="text-4xl md:text-6xl font-serif text-white leading-tight">
+                Offre limitée sur la <span className="italic text-accent">Collection Hiver</span>
+              </h2>
+              <p className="text-white/60 text-lg max-w-md">
+                Profitez de remises allant jusqu'à -40% sur une sélection exclusive de laines et objets déco.
+              </p>
+              
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-white/40 text-xs font-bold uppercase tracking-widest">
+                  <Clock size={14} />
+                  <span>Se termine dans :</span>
+                </div>
+                <CountdownTimer endDate={flashSaleEndDate} />
+              </div>
+
+              <button 
+                onClick={() => onNavigate('shop')}
+                className="bg-accent text-white px-10 py-4 rounded-full font-bold hover:bg-white hover:text-primary transition-all shadow-xl shadow-accent/20"
+              >
+                En profiter maintenant
+              </button>
+            </div>
+            
+            <div className="w-full lg:w-1/2 p-12 lg:p-0">
+              <div className="relative aspect-square max-w-md mx-auto">
+                <motion.div 
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                  className="absolute inset-0 border-2 border-dashed border-accent/30 rounded-full"
+                />
+                <img 
+                  src={flashSaleProduct.image} 
+                  alt="Flash Sale" 
+                  className="w-full h-full object-cover rounded-full p-8 relative z-10"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute top-1/4 -right-4 bg-white p-4 rounded-2xl shadow-2xl z-20 rotate-12">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-primary/40">À partir de</p>
+                  <p className="text-2xl font-bold text-accent">5 900 FCFA</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 

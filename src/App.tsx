@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { SITE_CONFIG, LANGUAGES, CURRENCIES, ORDERS, PRODUCTS } from './constants';
 import { ChatBubble } from './components/ChatBubble';
 import { QuickViewModal } from './components/QuickViewModal';
+import { NewsletterPopup } from './components/NewsletterPopup';
 import { Toaster, toast as sonnerToast } from 'sonner';
 import { Loader } from './components/Loader';
 import { updateSEOMeta } from './utils/siteUtils';
@@ -494,6 +495,7 @@ export default function App() {
 
       {!isAdminView && <Footer onNavigate={handleNavigate} />}
       {!isAdminView && <ChatBubble />}
+      {!isAdminView && <NewsletterPopup />}
       <Toaster position="top-center" richColors />
       {isLoading && <Loader fullScreen text="Chargement..." />}
       <QuickViewModal 

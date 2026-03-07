@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { ShoppingBag, Search, User, Heart, Menu, X, ChevronRight, Globe } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ShoppingBag, Search, User, Heart, Menu, X, ChevronRight, Globe, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { CURRENCIES, LANGUAGES } from '../constants';
-import { Language, Currency } from '../types';
+import { CURRENCIES, LANGUAGES, PRODUCTS } from '../constants';
+import { Language, Currency, Product } from '../types';
 
 interface NavbarProps {
-  onNavigate: (view: string) => void;
+  onNavigate: (view: string, id?: string) => void;
   currentView: string;
   cartCount: number;
   wishlistCount: number;
@@ -29,6 +29,32 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (searchQuery.trim().length > 1) {
+      const filtered = PRODUCTS.filter(p => 
+        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.category.toLowerCase().includes(searchQuery.toLowerCase())
+      ).slice(0, 5);
+      setSearchResults(filtered);
+    } else {
+      setSearchResults([]);
+    }
+  }, [searchQuery]);
+
+  // Close search on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setIsSearchOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const navLinks = [
     { name: 'Accueil', view: 'home' },
@@ -181,18 +207,77 @@ export const Navbar: React.FC<NavbarProps> = ({
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="absolute top-full left-0 w-full bg-white shadow-xl p-4 z-40"
+            className="absolute top-full left-0 w-full bg-white shadow-2xl border-t border-primary/5 z-40"
+            ref={searchRef}
           >
-            <div className="max-w-3xl mx-auto relative">
-              <input
-                type="text"
-                placeholder="Rechercher de la laine, un vase, une bougie..."
-                className="w-full border-b-2 border-primary/20 py-3 px-4 focus:outline-none focus:border-accent text-lg font-serif"
-                autoFocus
-              />
-              <button className="absolute right-4 top-1/2 -translate-y-1/2 text-primary">
-                <Search size={24} />
-              </button>
+            <div className="max-w-3xl mx-auto p-6">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Rechercher de la laine, un vase, une bougie..."
+                  className="w-full border-b-2 border-primary/10 py-4 px-4 focus:outline-none focus:border-accent text-xl font-serif transition-colors"
+                  autoFocus
+                />
+                <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-primary/30" size={24} />
+              </div>
+
+              {/* Autocomplete Results */}
+              <AnimatePresence>
+                {searchResults.length > 0 && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-6 space-y-4"
+                  >
+                    <p className="text-[10px] uppercase tracking-widest font-bold text-primary/40">Suggestions de produits</p>
+                    <div className="grid grid-cols-1 gap-2">
+                      {searchResults.map(product => (
+                        <button
+                          key={product.id}
+                          onClick={() => {
+                            onNavigate('product-detail', product.id);
+                            setIsSearchOpen(false);
+                            setSearchQuery('');
+                          }}
+                          className="flex items-center gap-4 p-3 rounded-2xl hover:bg-secondary/50 transition-colors text-left group"
+                        >
+                          <img 
+                            src={product.image} 
+                            alt={product.name} 
+                            className="w-12 h-12 object-cover rounded-xl shadow-sm"
+                            referrerPolicy="no-referrer"
+                          />
+                          <div className="flex-grow">
+                            <h4 className="text-sm font-bold text-primary group-hover:text-accent transition-colors">{product.name}</h4>
+                            <p className="text-xs text-primary/40">{product.category}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-bold text-primary">{(product.price * currency.rate).toLocaleString()} {currency.symbol}</p>
+                            <ArrowRight size={14} className="ml-auto text-primary/20 group-hover:text-accent group-hover:translate-x-1 transition-all" />
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                    <button 
+                      onClick={() => {
+                        onNavigate('shop', undefined);
+                        setIsSearchOpen(false);
+                      }}
+                      className="w-full py-3 text-xs font-bold uppercase tracking-widest text-accent hover:bg-accent/5 rounded-xl transition-colors"
+                    >
+                      Voir tous les résultats
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {searchQuery.length > 1 && searchResults.length === 0 && (
+                <div className="mt-8 text-center py-12">
+                  <p className="text-primary/40 italic font-serif">Aucun produit ne correspond à votre recherche...</p>
+                </div>
+              )}
             </div>
           </motion.div>
         )}

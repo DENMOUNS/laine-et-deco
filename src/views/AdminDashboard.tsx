@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   LineChart, 
@@ -57,11 +57,32 @@ import {
   MonitorOff,
   Info
 } from 'lucide-react';
-import { ORDERS, PRODUCTS, USERS, CATEGORIES, LOGIN_LOGS, REQUEST_LOGS, CURRENCIES, NOTIFICATIONS, SALES_DATA, SITE_CONFIG, CHAT_MESSAGES, CONVERSATIONS, COUPONS, ADMIN_ROLES, PROMO_EVENTS } from '../constants';
+import { 
+  ORDERS, 
+  PRODUCTS, 
+  USERS, 
+  CATEGORIES, 
+  LOGIN_LOGS, 
+  REQUEST_LOGS, 
+  CURRENCIES, 
+  NOTIFICATIONS, 
+  SALES_DATA, 
+  SITE_CONFIG, 
+  CHAT_MESSAGES, 
+  CONVERSATIONS, 
+  COUPONS, 
+  ADMIN_ROLES, 
+  PROMO_EVENTS,
+  CATEGORY_DISTRIBUTION,
+  DEVICE_DATA,
+  TRAFFIC_SOURCES,
+  RETENTION_DATA,
+  REVENUE_BY_PAYMENT
+} from '../constants';
 import { Modal } from '../components/Modal';
 import { DataTable } from '../components/DataTable';
 import { TabFilter } from '../components/TabFilter';
-import { Notification, Product, Category, SiteConfig, ChatMessage, HomeSection, Conversation, Coupon, AdminRole, PromoEvent, Order, User as UserType } from '../types';
+import { Notification, Product, Category, SiteConfig, ChatMessage, HomeSection, Conversation, Coupon, AdminRole, PromoEvent, Order, User as UserType, LoginLog, RequestLog } from '../types';
 import { OrderMap } from '../components/OrderMap';
 import { generateInvoicePDF } from '../utils/invoiceUtils';
 
@@ -98,6 +119,58 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   const [reviewFilter, setReviewFilter] = useState('all');
   const [logFilter, setLogFilter] = useState('all');
   const [requestLogFilter, setRequestLogFilter] = useState('all');
+  const [messageInput, setMessageInput] = useState('');
+
+  useEffect(() => {
+    const handleClientMessage = (event: CustomEvent) => {
+      const msg = event.detail;
+      if (selectedConversation && selectedConversation.userId === msg.senderId) {
+        setSelectedConversation(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            messages: [...prev.messages, msg],
+            lastMessage: msg.message,
+            timestamp: msg.timestamp
+          };
+        });
+      }
+    };
+    window.addEventListener('client-message', handleClientMessage as any);
+    return () => window.removeEventListener('client-message', handleClientMessage as any);
+  }, [selectedConversation]);
+
+  const handleSendMessage = () => {
+    if (!messageInput.trim() || !selectedConversation) return;
+
+    const newMessage: ChatMessage = {
+      id: `m${Date.now()}`,
+      senderId: 'u2', // Admin ID
+      senderName: 'Admin Laine',
+      message: messageInput,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isAdmin: true
+    };
+
+    setSelectedConversation(prev => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        messages: [...prev.messages, newMessage],
+        lastMessage: messageInput,
+        timestamp: 'À l\'instant'
+      };
+    });
+
+    // Dispatch event for client to see
+    window.dispatchEvent(new CustomEvent('admin-message', { detail: newMessage }));
+
+    setMessageInput('');
+    toast.success('Message envoyé');
+  };
+  const [categoryPage, setCategoryPage] = useState(1);
+  const [notificationPage, setNotificationPage] = useState(1);
+  const itemsPerPage = 5;
   const [overviewOrderFilter, setOverviewOrderFilter] = useState('all');
 
   const stats = [
@@ -171,11 +244,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
         <div className="p-8 border-t border-white/10">
           <button 
-            onClick={() => onNavigate('home')}
+            onClick={() => {
+              toast.info('Déconnexion...');
+              setTimeout(() => onNavigate('login'), 1000);
+            }}
             className="flex items-center gap-4 text-white/60 hover:text-white transition-colors"
           >
             <LogOut size={20} />
-            <span>Quitter</span>
+            <span>Déconnexion</span>
           </button>
         </div>
       </aside>
@@ -824,15 +900,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
         {activeTab === 'logs' && (
           <div className="space-y-10">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
               {/* Login History */}
-              <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
-                <div className="p-8 border-b border-slate-50 flex justify-between items-center">
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
                   <h3 className="text-xl font-serif flex items-center gap-3">
                     <Shield className="text-accent" size={24} /> Connexions
                   </h3>
-                </div>
-                <div className="px-8 pt-6">
                   <TabFilter 
                     options={[
                       { id: 'all', label: 'Tous' },
@@ -841,34 +915,43 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     ]}
                     active={logFilter}
                     onChange={setLogFilter}
+                    className="mb-0"
                   />
                 </div>
-                <div className="p-4 space-y-4">
-                  {LOGIN_LOGS.filter(l => logFilter === 'all' || l.device.includes(logFilter)).map(log => (
-                    <div key={log.id} className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl">
-                      <div className="p-3 bg-white rounded-xl text-primary shadow-sm">
-                        {log.device.includes('iPhone') ? <Smartphone size={20} /> : <Monitor size={20} />}
-                      </div>
-                      <div className="flex-grow">
-                        <p className="font-bold text-sm">{log.userName}</p>
-                        <p className="text-xs text-slate-400">{log.timestamp} • {log.ip}</p>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-green-500">Succès</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <DataTable<LoginLog>
+                  data={LOGIN_LOGS.filter(l => logFilter === 'all' || l.device.includes(logFilter))}
+                  title="Historique des Connexions"
+                  columns={[
+                    { 
+                      header: 'Utilisateur', 
+                      accessor: (log) => (
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-slate-50 rounded-lg text-primary">
+                            {log.device.includes('iPhone') ? <Smartphone size={16} /> : <Monitor size={16} />}
+                          </div>
+                          <span className="font-bold">{log.userName}</span>
+                        </div>
+                      ),
+                      exportValue: (log) => log.userName
+                    },
+                    { header: 'Appareil', accessor: 'device', className: 'text-slate-400 text-xs' },
+                    { header: 'Date', accessor: 'timestamp', className: 'text-slate-400 text-xs' },
+                    { header: 'IP', accessor: 'ip', className: 'font-mono text-[10px]' },
+                    { 
+                      header: 'Statut', 
+                      accessor: () => <span className="text-[10px] font-bold uppercase text-green-500">Succès</span>,
+                      exportValue: () => 'Succès'
+                    }
+                  ]}
+                />
               </div>
 
               {/* Request Logs */}
-              <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
-                <div className="p-8 border-b border-slate-50 flex justify-between items-center">
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
                   <h3 className="text-xl font-serif flex items-center gap-3">
                     <Activity className="text-primary" size={24} /> Requêtes API
                   </h3>
-                </div>
-                <div className="px-8 pt-6">
                   <TabFilter 
                     options={[
                       { id: 'all', label: 'Toutes' },
@@ -877,37 +960,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     ]}
                     active={requestLogFilter}
                     onChange={setRequestLogFilter}
+                    className="mb-0"
                   />
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead className="bg-slate-50 text-slate-400 text-[10px] uppercase tracking-widest font-bold">
-                      <tr>
-                        <th className="px-6 py-4">Méthode</th>
-                        <th className="px-6 py-4">Path</th>
-                        <th className="px-6 py-4">Status</th>
-                        <th className="px-6 py-4">Temps</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                      {REQUEST_LOGS.filter(req => {
-                        if (requestLogFilter === 'all') return true;
-                        if (requestLogFilter === 'success') return req.status < 400;
-                        if (requestLogFilter === 'error') return req.status >= 400;
-                        return true;
-                      }).map(req => (
-                        <tr key={req.id} className="text-xs">
-                          <td className="px-6 py-4 font-bold text-primary">{req.method}</td>
-                          <td className="px-6 py-4 font-mono text-slate-500">{req.path}</td>
-                          <td className="px-6 py-4">
-                            <span className="text-green-500 font-bold">{req.status}</span>
-                          </td>
-                          <td className="px-6 py-4 text-slate-400">{req.duration}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <DataTable<RequestLog>
+                  data={REQUEST_LOGS.filter(req => {
+                    if (requestLogFilter === 'all') return true;
+                    if (requestLogFilter === 'success') return req.status < 400;
+                    if (requestLogFilter === 'error') return req.status >= 400;
+                    return true;
+                  })}
+                  title="Logs des Requêtes"
+                  columns={[
+                    { header: 'Méthode', accessor: 'method', className: 'font-bold text-primary' },
+                    { header: 'Path', accessor: 'path', className: 'font-mono text-slate-500 text-xs' },
+                    { 
+                      header: 'Status', 
+                      accessor: (req) => <span className={req.status >= 400 ? 'text-red-500 font-bold' : 'text-green-500 font-bold'}>{req.status}</span>,
+                      exportValue: (req) => String(req.status)
+                    },
+                    { header: 'Temps', accessor: 'duration', className: 'text-slate-400 text-xs' },
+                    { header: 'Date', accessor: 'timestamp', className: 'text-slate-400 text-[10px]' }
+                  ]}
+                />
               </div>
             </div>
           </div>
@@ -986,6 +1061,110 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                   <p className="text-xs text-slate-400">{card.sub}</p>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'analytics' && (
+          <div className="space-y-10">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Device Distribution */}
+              <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+                <h3 className="text-xl font-serif mb-8">Appareils Utilisés</h3>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: 'Mobile', value: 65, color: '#F27D26' },
+                          { name: 'Desktop', value: 30, color: '#5A5A40' },
+                          { name: 'Tablette', value: 5, color: '#94a3b8' },
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {[
+                          { name: 'Mobile', value: 65, color: '#F27D26' },
+                          { name: 'Desktop', value: 30, color: '#5A5A40' },
+                          { name: 'Tablette', value: 5, color: '#94a3b8' },
+                        ].map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="mt-6 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-accent" />
+                      <span className="text-sm text-slate-600">Mobile</span>
+                    </div>
+                    <span className="font-bold">65%</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-primary" />
+                      <span className="text-sm text-slate-600">Desktop</span>
+                    </div>
+                    <span className="font-bold">30%</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Traffic Sources */}
+              <div className="lg:col-span-2 bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+                <h3 className="text-xl font-serif mb-8">Sources de Trafic</h3>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      layout="vertical"
+                      data={[
+                        { name: 'Recherche Google', value: 4500, color: '#5A5A40' },
+                        { name: 'Réseaux Sociaux', value: 3200, color: '#F27D26' },
+                        { name: 'Direct', value: 2100, color: '#94a3b8' },
+                        { name: 'Email Marketing', value: 1500, color: '#F27D26' },
+                      ]}
+                      margin={{ left: 40 }}
+                    >
+                      <XAxis type="number" hide />
+                      <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                      <Tooltip cursor={{fill: 'transparent'}} />
+                      <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={20}>
+                        {[
+                          { name: 'Recherche Google', value: 4500, color: '#5A5A40' },
+                          { name: 'Réseaux Sociaux', value: 3200, color: '#F27D26' },
+                          { name: 'Direct', value: 2100, color: '#94a3b8' },
+                          { name: 'Email Marketing', value: 1500, color: '#F27D26' },
+                        ].map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+
+            {/* Customer Retention Chart */}
+            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+              <h3 className="text-xl font-serif mb-8">Rétention des Clients</h3>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={SALES_DATA}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                    <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                    <Line type="monotone" dataKey="orders" stroke="#F27D26" strokeWidth={3} dot={{ r: 4, fill: '#F27D26', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
         )}
@@ -1432,8 +1611,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         )}
 
         {activeTab === 'categories' && (
-          <div className="space-y-6">
-            <div className="flex justify-end">
+          <div className="space-y-10">
+            <div className="flex justify-between items-center">
+              <h3 className="text-2xl font-serif font-bold text-primary">Gestion des Catégories</h3>
               <button 
                 onClick={() => { setModalType('category'); setIsAddModalOpen(true); }}
                 className="bg-primary text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-accent transition-all shadow-lg"
@@ -1442,7 +1622,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
               </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {localCategories.map(cat => (
+              {localCategories.slice((categoryPage - 1) * itemsPerPage, categoryPage * itemsPerPage).map(cat => (
                 <div 
                   key={cat.id} 
                   onClick={() => { setEditingItem(cat); setModalType('category'); }}
@@ -1471,10 +1651,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 </div>
               ))}
             </div>
+            {localCategories.length > itemsPerPage && (
+              <div className="flex justify-center gap-2 mt-8">
+                {Array.from({ length: Math.ceil(localCategories.length / itemsPerPage) }, (_, i) => i + 1).map(n => (
+                  <button
+                    key={n}
+                    onClick={() => setCategoryPage(n)}
+                    className={`w-10 h-10 rounded-full font-bold text-sm transition-all ${categoryPage === n ? 'bg-primary text-white shadow-lg' : 'bg-white border border-slate-100 text-slate-400 hover:border-primary hover:text-primary'}`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
         {activeTab === 'notifications' && (
-          <div className="space-y-6">
+          <div className="space-y-10">
             <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 overflow-hidden">
               <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
                 <h3 className="text-xl font-serif flex items-center gap-3">
@@ -1491,11 +1684,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     { id: 'inquiry', label: 'Demandes' },
                   ]}
                   active={notificationFilter}
-                  onChange={setNotificationFilter}
+                  onChange={(val) => { setNotificationFilter(val); setNotificationPage(1); }}
                 />
               </div>
               <div className="divide-y divide-slate-50">
-                {NOTIFICATIONS.filter(n => notificationFilter === 'all' || n.type === notificationFilter).map((notif) => (
+                {NOTIFICATIONS.filter(n => notificationFilter === 'all' || n.type === notificationFilter)
+                  .slice((notificationPage - 1) * itemsPerPage, notificationPage * itemsPerPage)
+                  .map((notif) => (
                   <div key={notif.id} className={`p-8 flex gap-6 hover:bg-slate-50 transition-colors cursor-pointer ${!notif.read ? 'bg-primary/5' : ''}`}>
                     <div className={`p-4 rounded-2xl flex-shrink-0 ${
                       notif.type === 'order' ? 'bg-green-100 text-green-600' :
@@ -1518,6 +1713,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                   </div>
                 ))}
               </div>
+              {NOTIFICATIONS.filter(n => notificationFilter === 'all' || n.type === notificationFilter).length > itemsPerPage && (
+                <div className="p-8 border-t border-slate-50 flex justify-center gap-2">
+                  {Array.from({ length: Math.ceil(NOTIFICATIONS.filter(n => notificationFilter === 'all' || n.type === notificationFilter).length / itemsPerPage) }, (_, i) => i + 1).map(n => (
+                    <button
+                      key={n}
+                      onClick={() => setNotificationPage(n)}
+                      className={`w-10 h-10 rounded-full font-bold text-sm transition-all ${notificationPage === n ? 'bg-primary text-white shadow-lg' : 'bg-white border border-slate-100 text-slate-400 hover:border-primary hover:text-primary'}`}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1664,16 +1872,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     </div>
 
                     <div className="p-6 bg-white border-t border-slate-100">
-                      <div className="flex gap-4">
+                      <form 
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          handleSendMessage();
+                        }}
+                        className="flex gap-4"
+                      >
                         <input 
                           type="text" 
                           placeholder="Tapez votre réponse..." 
+                          value={messageInput}
+                          onChange={(e) => setMessageInput(e.target.value)}
                           className="flex-grow px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:border-primary"
                         />
-                        <button className="bg-primary text-white px-8 py-4 rounded-2xl font-bold hover:bg-accent transition-all shadow-lg">
+                        <button 
+                          type="submit"
+                          className="bg-primary text-white px-8 py-4 rounded-2xl font-bold hover:bg-accent transition-all shadow-lg"
+                        >
                           Envoyer
                         </button>
-                      </div>
+                      </form>
                     </div>
                   </>
                 ) : (

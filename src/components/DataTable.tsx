@@ -23,7 +23,7 @@ export function DataTable<T extends { id: string | number }>({
   data, 
   columns, 
   searchPlaceholder = "Rechercher...",
-  initialItemsPerPage = 10,
+  initialItemsPerPage = 5,
   onRowClick,
   title = "Export"
 }: DataTableProps<T>) {
@@ -104,7 +104,7 @@ export function DataTable<T extends { id: string | number }>({
               }}
               className="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold text-slate-600 focus:outline-none focus:border-primary shadow-sm"
             >
-              {[10, 25, 50, 100, 250].map(size => (
+              {[5, 10, 25, 50, 100, 250].map(size => (
                 <option key={size} value={size}>{size}</option>
               ))}
             </select>

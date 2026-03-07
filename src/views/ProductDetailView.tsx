@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Star, Heart, ShoppingBag, Truck, ShieldCheck, RefreshCcw, Plus, Minus, ChevronRight, Share2 } from 'lucide-react';
+import { Star, Heart, ShoppingBag, Truck, ShieldCheck, RefreshCcw, Plus, Minus, ChevronRight, Share2, Loader2 } from 'lucide-react';
 import { Product, PromoEvent } from '../types';
 import { PRODUCTS } from '../constants';
 import { ProductCard } from '../components/ProductCard';
 import { getEffectivePrice } from '../utils/siteUtils';
+import { toast } from 'sonner';
 
 interface ProductDetailViewProps {
   product: Product;
@@ -23,6 +24,22 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ product, o
   const hasDiscount = effectivePrice < product.price;
 
   const relatedProducts = PRODUCTS.filter(p => p.category === product.category && p.id !== product.id).slice(0, 3);
+
+  const [newReview, setNewReview] = useState({ rating: 5, comment: '', images: [] as string[] });
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+
+  const handleReviewSubmit = () => {
+    if (!newReview.comment.trim()) {
+      toast.error('Veuillez entrer un commentaire');
+      return;
+    }
+    setIsSubmittingReview(true);
+    setTimeout(() => {
+      setIsSubmittingReview(false);
+      toast.success('Merci pour votre avis ! Il sera publié après modération.');
+      setNewReview({ rating: 5, comment: '', images: [] as string[] });
+    }, 1500);
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -211,17 +228,33 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ product, o
                   product.reviews.map((review) => (
                     <div key={review.id} className="border-b border-primary/5 pb-8">
                       <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <h4 className="font-bold text-primary">{review.userName}</h4>
-                          <div className="flex text-yellow-500 mt-1">
-                            {[1, 2, 3, 4, 5].map((i) => (
-                              <Star key={i} size={12} fill={i <= review.rating ? "currentColor" : "none"} />
-                            ))}
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-secondary rounded-full flex items-center justify-center font-bold text-primary">
+                            {review.userName.charAt(0)}
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-primary">{review.userName}</h4>
+                            <div className="flex text-yellow-500 mt-1">
+                              {[1, 2, 3, 4, 5].map((i) => (
+                                <Star key={i} size={12} fill={i <= review.rating ? "currentColor" : "none"} />
+                              ))}
+                            </div>
                           </div>
                         </div>
                         <span className="text-xs text-primary/40">{review.date}</span>
                       </div>
-                      <p className="text-primary/70 text-sm leading-relaxed">{review.comment}</p>
+                      <p className="text-primary/70 text-sm leading-relaxed mb-4">{review.comment}</p>
+                      
+                      {/* Review Photos */}
+                      {review.images && review.images.length > 0 && (
+                        <div className="flex gap-2">
+                          {review.images.map((img, idx) => (
+                            <div key={idx} className="w-20 h-20 rounded-xl overflow-hidden border border-primary/5 cursor-zoom-in">
+                              <img src={img} alt="Avis" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))
                 ) : (
@@ -229,25 +262,53 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ product, o
                 )}
               </div>
 
-              <div className="bg-secondary/50 p-8 rounded-3xl space-y-6">
+              <div className="bg-white p-8 rounded-[2rem] border border-primary/5 space-y-6 shadow-sm">
                 <h3 className="text-xl font-serif">Laisser un avis</h3>
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <div className="flex items-center gap-4">
                     <span className="text-sm font-bold text-primary/60">Votre note :</span>
                     <div className="flex text-yellow-500">
                       {[1, 2, 3, 4, 5].map((i) => (
-                        <button key={i} className="hover:scale-125 transition-transform">
-                          <Star size={20} />
+                        <button 
+                          key={i} 
+                          onClick={() => setNewReview(prev => ({ ...prev, rating: i }))}
+                          className={`hover:scale-125 transition-transform p-1 ${newReview.rating >= i ? 'text-yellow-500' : 'text-primary/10'}`}
+                        >
+                          <Star size={24} fill={newReview.rating >= i ? "currentColor" : "none"} />
                         </button>
                       ))}
                     </div>
                   </div>
-                  <textarea 
-                    placeholder="Partagez votre expérience avec ce produit..."
-                    className="w-full p-4 bg-white border border-primary/10 rounded-2xl focus:outline-none focus:border-accent min-h-[120px]"
-                  />
-                  <button className="bg-primary text-white px-8 py-3 rounded-xl font-bold hover:bg-accent transition-all">
-                    Publier l'avis
+                  
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-widest text-primary/40">Votre commentaire</label>
+                    <textarea 
+                      value={newReview.comment}
+                      onChange={(e) => setNewReview(prev => ({ ...prev, comment: e.target.value }))}
+                      placeholder="Partagez votre expérience avec ce produit..."
+                      className="w-full p-5 bg-secondary/30 border border-primary/5 rounded-2xl focus:outline-none focus:border-accent min-h-[120px] text-sm"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-widest text-primary/40">Ajouter des photos</label>
+                    <div className="flex gap-4">
+                      <button 
+                        onClick={() => toast.info('Fonctionnalité d\'upload bientôt disponible')}
+                        className="w-24 h-24 border-2 border-dashed border-primary/10 rounded-2xl flex flex-col items-center justify-center text-primary/30 hover:border-accent hover:text-accent transition-all group"
+                      >
+                        <Plus size={24} className="group-hover:scale-110 transition-transform" />
+                        <span className="text-[10px] font-bold mt-1">Photo</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <button 
+                    onClick={handleReviewSubmit}
+                    disabled={isSubmittingReview}
+                    className="w-full bg-primary text-white py-4 rounded-2xl font-bold hover:bg-accent transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
+                  >
+                    {isSubmittingReview ? <Loader2 size={20} className="animate-spin" /> : "Publier l'avis"}
                   </button>
                 </div>
               </div>

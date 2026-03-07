@@ -24,6 +24,8 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
   const [sortBy, setSortBy] = useState('Nouveautés');
   const [priceRange, setPriceRange] = useState(100000);
   const [isFiltering, setIsFiltering] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
   const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
@@ -39,6 +41,7 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
   // Simulate loading when filters change
   useEffect(() => {
     setIsFiltering(true);
+    setCurrentPage(1);
     const timer = setTimeout(() => setIsFiltering(false), 400);
     return () => clearTimeout(timer);
   }, [selectedCategory, selectedMaterial, selectedColor, selectedBrand, searchQuery, sortBy, priceRange]);
@@ -106,6 +109,10 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
     if (sortBy === 'Nouveautés') return (a.isNew ? -1 : 1) - (b.isNew ? -1 : 1);
     return 0;
   });
+
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedProducts = filteredProducts.slice(startIndex, startIndex + itemsPerPage);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -335,7 +342,7 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
                 animate={{ opacity: 1 }}
                 className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8"
               >
-                {filteredProducts.map((product) => (
+                {paginatedProducts.map((product) => (
                   <ProductCard 
                     key={product.id} 
                     product={product} 
@@ -362,10 +369,17 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
             </div>
           )}
 
-          {filteredProducts.length > 0 && (
+          {filteredProducts.length > itemsPerPage && (
             <div className="mt-16 flex justify-center space-x-2">
-              {[1, 2, 3].map(n => (
-                <button key={n} className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${n === 1 ? 'bg-primary text-white' : 'bg-white border border-primary/10 hover:border-accent hover:text-accent'}`}>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+                <button 
+                  key={n} 
+                  onClick={() => {
+                    setCurrentPage(n);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${currentPage === n ? 'bg-primary text-white shadow-lg' : 'bg-white border border-primary/10 hover:border-accent hover:text-accent'}`}
+                >
                   {n}
                 </button>
               ))}

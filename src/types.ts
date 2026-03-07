@@ -4,7 +4,7 @@ export interface Review {
   rating: number;
   comment: string;
   date: string;
-  image?: string; // Added for review photos
+  images?: string[]; // Multiple photos for reviews
 }
 
 export interface BlogPost {

@@ -1,7 +1,7 @@
 import { Product, Category, Order, User, Review, BlogPost, Currency, LoginLog, RequestLog, Notification, SalesStat, Invoice, SiteConfig, ChatMessage, HomeSection, Conversation, Coupon, AdminRole, Language, PromoEvent } from './types';
 
 export const REVIEWS: Review[] = [
-  { id: 'r1', userName: 'Sophie L.', rating: 5, comment: 'La laine est incroyablement douce ! J\'ai hâte de commencer mon projet.', date: '2024-02-15', image: 'https://picsum.photos/seed/review1/400/400' },
+  { id: 'r1', userName: 'Sophie L.', rating: 5, comment: 'La laine est incroyablement douce ! J\'ai hâte de commencer mon projet.', date: '2024-02-15', images: ['https://picsum.photos/seed/review1/400/400'] },
   { id: 'r2', userName: 'Marc D.', rating: 4, comment: 'Très beau vase, bien emballé. Un peu plus petit que ce que j\'imaginais.', date: '2024-02-20' },
   { id: 'r3', userName: 'Alice B.', rating: 5, comment: 'Kit macramé parfait pour débuter, les explications sont claires.', date: '2024-02-22' },
   { id: 'r4', userName: 'Thomas G.', rating: 3, comment: 'Bougie sympa mais l\'odeur est un peu trop forte pour moi.', date: '2024-02-25' },
@@ -100,6 +100,45 @@ export const SALES_DATA: SalesStat[] = [
   { name: 'Avr', sales: 610000, orders: 61 },
   { name: 'Mai', sales: 550000, orders: 55 },
   { name: 'Juin', sales: 670000, orders: 67 },
+  { name: 'Juil', sales: 720000, orders: 72 },
+  { name: 'Août', sales: 680000, orders: 68 },
+];
+
+export const CATEGORY_DISTRIBUTION = [
+  { name: 'Laines', value: 450 },
+  { name: 'Matériel', value: 300 },
+  { name: 'Déco', value: 250 },
+  { name: 'Coussins', value: 200 },
+  { name: 'Bougies', value: 150 },
+];
+
+export const DEVICE_DATA = [
+  { name: 'Mobile', value: 65 },
+  { name: 'Desktop', value: 25 },
+  { name: 'Tablet', value: 10 },
+];
+
+export const TRAFFIC_SOURCES = [
+  { name: 'Direct', value: 400 },
+  { name: 'Social', value: 300 },
+  { name: 'Search', value: 200 },
+  { name: 'Referral', value: 100 },
+];
+
+export const RETENTION_DATA = [
+  { month: 'Jan', rate: 85 },
+  { month: 'Feb', rate: 82 },
+  { month: 'Mar', rate: 88 },
+  { month: 'Apr', rate: 90 },
+  { month: 'May', rate: 92 },
+  { month: 'Jun', rate: 91 },
+];
+
+export const REVENUE_BY_PAYMENT = [
+  { name: 'Orange Money', value: 1200000 },
+  { name: 'MTN MoMo', value: 950000 },
+  { name: 'Carte Bancaire', value: 600000 },
+  { name: 'Cash', value: 300000 },
 ];
 
 export const INVOICES: Invoice[] = [

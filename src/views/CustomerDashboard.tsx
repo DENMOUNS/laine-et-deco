@@ -19,11 +19,14 @@ import {
   Star,
   X
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { ORDERS, INVOICES, USERS, LOGIN_LOGS, PRODUCTS } from '../constants';
 import { Order, Invoice, User as UserType } from '../types';
 import { AnimatePresence } from 'motion/react';
 import { TabFilter } from '../components/TabFilter';
 import { generateInvoicePDF } from '../utils/invoiceUtils';
+import { DataTable } from '../components/DataTable';
+import { LoginLog } from '../types';
 
 interface CustomerDashboardProps {
   onNavigate: (view: string) => void;
@@ -59,7 +62,10 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ onNavigate
             <h2 className="text-xl font-serif font-bold text-primary">{user.name}</h2>
             <p className="text-sm text-primary/40 mb-6">{user.email}</p>
             <button 
-              onClick={() => onNavigate('home')}
+              onClick={() => {
+                toast.info('Déconnexion...');
+                setTimeout(() => onNavigate('login'), 1000);
+              }}
               className="w-full py-3 bg-secondary text-primary rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-red-50 hover:text-red-500 transition-all"
             >
               <LogOut size={18} /> Déconnexion
@@ -193,8 +199,8 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ onNavigate
           )}
 
           {activeTab === 'orders' && (
-            <div className="bg-white rounded-[3rem] shadow-sm border border-primary/5 overflow-hidden">
-              <div className="p-10 border-b border-primary/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div className="space-y-6">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <h3 className="text-2xl font-serif font-bold text-primary">Historique des Commandes</h3>
                 <TabFilter 
                   options={[
@@ -207,51 +213,50 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ onNavigate
                   className="mb-0"
                 />
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead className="bg-slate-50 text-primary/40 text-[10px] uppercase tracking-widest font-bold">
-                    <tr>
-                      <th className="px-10 py-6">ID</th>
-                      <th className="px-10 py-6">Date</th>
-                      <th className="px-10 py-6">Total</th>
-                      <th className="px-10 py-6">Statut</th>
-                      <th className="px-10 py-6">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-primary/5">
-                    {ORDERS.filter(o => orderFilter === 'all' || o.status === orderFilter).map((order) => (
-                      <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-10 py-6 font-mono text-xs text-primary/60">{order.id}</td>
-                        <td className="px-10 py-6 text-sm text-primary/60">{order.date}</td>
-                        <td className="px-10 py-6 font-bold text-primary">{order.total.toLocaleString()} FCFA</td>
-                        <td className="px-10 py-6">
-                          <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
-                            order.status === 'delivered' ? 'bg-green-100 text-green-600' :
-                            order.status === 'processing' ? 'bg-blue-100 text-blue-600' :
-                            order.status === 'shipped' ? 'bg-purple-100 text-purple-600' : 'bg-yellow-100 text-yellow-600'
-                          }`}>
-                            {order.status}
-                          </span>
-                        </td>
-                        <td className="px-10 py-6">
-                          <button 
-                            onClick={() => setSelectedOrder(order)}
-                            className="text-accent font-bold text-sm hover:underline"
-                          >
-                            Détails
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <DataTable<Order>
+                data={ORDERS.filter(o => orderFilter === 'all' || o.status === orderFilter)}
+                title="Mes Commandes"
+                onRowClick={(order) => setSelectedOrder(order)}
+                columns={[
+                  { header: 'ID', accessor: 'id', className: 'font-mono text-xs text-primary/60' },
+                  { header: 'Date', accessor: 'date', className: 'text-sm text-primary/60' },
+                  { 
+                    header: 'Total', 
+                    accessor: (order) => <span className="font-bold text-primary">{order.total.toLocaleString()} FCFA</span>,
+                    exportValue: (order) => `${order.total} FCFA`
+                  },
+                  {
+                    header: 'Statut',
+                    accessor: (order) => (
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
+                        order.status === 'delivered' ? 'bg-green-100 text-green-600' :
+                        order.status === 'processing' ? 'bg-blue-100 text-blue-600' :
+                        order.status === 'shipped' ? 'bg-purple-100 text-purple-600' : 'bg-yellow-100 text-yellow-600'
+                      }`}>
+                        {order.status}
+                      </span>
+                    ),
+                    exportValue: (order) => order.status
+                  },
+                  {
+                    header: 'Action',
+                    accessor: (order) => (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setSelectedOrder(order); }}
+                        className="text-accent font-bold text-sm hover:underline"
+                      >
+                        Détails
+                      </button>
+                    )
+                  }
+                ]}
+              />
             </div>
           )}
 
           {activeTab === 'payments' && (
-            <div className="bg-white rounded-[3rem] shadow-sm border border-primary/5 overflow-hidden">
-              <div className="p-10 border-b border-primary/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div className="space-y-6">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <h3 className="text-2xl font-serif font-bold text-primary">Historique des Paiements</h3>
                 <TabFilter 
                   options={[
@@ -264,37 +269,57 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ onNavigate
                   className="mb-0"
                 />
               </div>
-              <div className="p-10 space-y-6">
-                {INVOICES.filter(i => paymentFilter === 'all' || i.status === paymentFilter).map((invoice) => (
-                  <div key={invoice.id} className="p-8 border border-primary/5 rounded-[2rem] bg-slate-50/50 flex justify-between items-center group hover:border-accent transition-all">
-                    <div className="flex items-center gap-6">
-                      <div className="p-4 bg-white rounded-2xl shadow-sm text-primary group-hover:text-accent transition-colors">
-                        <CreditCard size={24} />
+              <DataTable<Invoice>
+                data={INVOICES.filter(i => paymentFilter === 'all' || i.status === paymentFilter)}
+                title="Mes Paiements"
+                columns={[
+                  { 
+                    header: 'Paiement', 
+                    accessor: (invoice) => (
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 bg-slate-50 rounded-xl text-primary">
+                          <CreditCard size={20} />
+                        </div>
+                        <div>
+                          <p className="font-mono text-[10px] text-primary/40">{invoice.id}</p>
+                          <p className="font-bold text-sm">{invoice.amount.toLocaleString()} FCFA</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-mono text-xs text-primary/40 mb-1">{invoice.id}</p>
-                        <h4 className="font-bold text-primary">{invoice.amount.toLocaleString()} FCFA</h4>
-                        <p className="text-xs text-primary/40">{invoice.date} • {invoice.status === 'paid' ? 'Payé' : 'En attente'}</p>
-                      </div>
-                    </div>
-                    <button 
-                      onClick={() => {
-                        const order = ORDERS.find(o => o.id === invoice.orderId);
-                        if (order) generateInvoicePDF(order);
-                      }}
-                      className="p-3 bg-white rounded-xl text-primary hover:bg-primary hover:text-white transition-all shadow-sm"
-                    >
-                      <Download size={20} />
-                    </button>
-                  </div>
-                ))}
-              </div>
+                    ),
+                    exportValue: (invoice) => `${invoice.amount} FCFA`
+                  },
+                  { header: 'Date', accessor: 'date', className: 'text-sm text-primary/60' },
+                  { 
+                    header: 'Statut', 
+                    accessor: (invoice) => (
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${invoice.status === 'paid' ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600'}`}>
+                        {invoice.status === 'paid' ? 'Payé' : 'En attente'}
+                      </span>
+                    ),
+                    exportValue: (invoice) => invoice.status
+                  },
+                  {
+                    header: 'Action',
+                    accessor: (invoice) => (
+                      <button 
+                        onClick={() => {
+                          const order = ORDERS.find(o => o.id === invoice.orderId);
+                          if (order) generateInvoicePDF(order);
+                        }}
+                        className="p-2 bg-slate-50 rounded-lg text-primary hover:bg-primary hover:text-white transition-all"
+                      >
+                        <Download size={18} />
+                      </button>
+                    )
+                  }
+                ]}
+              />
             </div>
           )}
 
           {activeTab === 'history' && (
-            <div className="bg-white rounded-[3rem] shadow-sm border border-primary/5 overflow-hidden">
-              <div className="p-10 border-b border-primary/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div className="space-y-6">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <h3 className="text-2xl font-serif font-bold text-primary">Historique des Connexions</h3>
                 <TabFilter 
                   options={[
@@ -307,25 +332,33 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ onNavigate
                   className="mb-0"
                 />
               </div>
-              <div className="p-10">
-                <div className="space-y-6">
-                  {userLogs.filter(l => historyFilter === 'all' || l.device.includes(historyFilter)).map((log) => (
-                    <div key={log.id} className="flex items-center gap-6 p-6 bg-slate-50 rounded-2xl">
-                      <div className="p-3 bg-white rounded-xl text-primary/40">
-                        <Shield size={20} />
+              <DataTable<LoginLog>
+                data={userLogs.filter(l => historyFilter === 'all' || l.device.includes(historyFilter))}
+                title="Historique des Connexions"
+                columns={[
+                  { 
+                    header: 'Appareil', 
+                    accessor: (log) => (
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 bg-slate-50 rounded-xl text-primary/40">
+                          <Shield size={20} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-primary">{log.device}</p>
+                          <p className="text-[10px] text-primary/40">{log.ip}</p>
+                        </div>
                       </div>
-                      <div className="flex-grow">
-                        <p className="text-sm font-bold text-primary">{log.device}</p>
-                        <p className="text-xs text-primary/40">{log.ip}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium text-primary">{log.timestamp}</p>
-                        <p className="text-[10px] text-green-500 font-bold uppercase tracking-widest">Réussi</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                    ),
+                    exportValue: (log) => log.device
+                  },
+                  { header: 'Date', accessor: 'timestamp', className: 'text-sm font-medium text-primary' },
+                  { 
+                    header: 'Statut', 
+                    accessor: () => <span className="text-[10px] text-green-500 font-bold uppercase tracking-widest">Réussi</span>,
+                    exportValue: () => 'Réussi'
+                  }
+                ]}
+              />
             </div>
           )}
 
