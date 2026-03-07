@@ -7,12 +7,14 @@ import { CartView } from './views/CartView';
 import { AdminDashboard } from './views/AdminDashboard';
 import { ProductDetailView } from './views/ProductDetailView';
 import { CheckoutView } from './views/CheckoutView';
+import { TeamView } from './views/TeamView';
+import { PackDetailView } from './views/PackDetailView';
 import { BlogIndexView } from './views/BlogIndexView';
 import { BlogPostView } from './views/BlogPostView';
 import { CustomerDashboard } from './views/CustomerDashboard';
 import { Product, SiteConfig, Language, Currency, PromoEvent } from './types';
 import { motion, AnimatePresence } from 'motion/react';
-import { SITE_CONFIG, LANGUAGES, CURRENCIES, ORDERS, PRODUCTS } from './constants';
+import { SITE_CONFIG, LANGUAGES, CURRENCIES, ORDERS, PRODUCTS, PACKS } from './constants';
 import { ChatBubble } from './components/ChatBubble';
 import { QuickViewModal } from './components/QuickViewModal';
 import { NewsletterPopup } from './components/NewsletterPopup';
@@ -116,6 +118,28 @@ export default function App() {
     });
   };
 
+  const addPackToCart = (pack: typeof PACKS[0]) => {
+    setCart(prev => {
+      let newCart = [...prev];
+      pack.products.forEach(item => {
+        const product = PRODUCTS.find(p => p.id === item.productId);
+        if (product) {
+          const existingIndex = newCart.findIndex(c => c.product.id === product.id);
+          if (existingIndex >= 0) {
+            newCart[existingIndex] = {
+              ...newCart[existingIndex],
+              quantity: newCart[existingIndex].quantity + item.quantity
+            };
+          } else {
+            newCart.push({ product, quantity: item.quantity });
+          }
+        }
+      });
+      return newCart;
+    });
+    showToast(`Pack ${pack.name} ajouté au panier !`);
+  };
+
   const handleProductClick = (product: Product) => {
     setSelectedProduct(product);
     setCurrentView('product-detail');
@@ -208,6 +232,16 @@ export default function App() {
             {currentView === 'blog' && (
               <BlogIndexView onNavigate={handleNavigate} />
             )}
+            {currentView === 'team' && (
+              <TeamView />
+            )}
+            {currentView === 'pack-detail' && selectedId && (
+              <PackDetailView 
+                pack={PACKS.find(p => p.id === selectedId)!} 
+                onNavigate={handleNavigate} 
+                onAddToCart={addPackToCart}
+              />
+            )}
             {currentView === 'blog-post' && selectedId && (
               <BlogPostView postId={selectedId} onNavigate={handleNavigate} />
             )}
@@ -219,6 +253,9 @@ export default function App() {
                 onUpdateQuantity={updateCartQuantity} 
                 onRemove={removeFromCart}
                 onNavigate={handleNavigate}
+                onAddToCart={addToCart}
+                onAddToWishlist={addToWishlist}
+                onQuickView={setQuickViewProduct}
               />
             )}
             {currentView === 'checkout' && (
@@ -239,14 +276,28 @@ export default function App() {
               />
             )}
             {currentView === 'admin-dashboard' && (
-              <AdminDashboard onNavigate={handleNavigate} />
+              <AdminDashboard onNavigate={handleNavigate} siteConfig={siteConfig} setSiteConfig={setSiteConfig} />
             )}
             {currentView === 'customer-dashboard' && (
               <CustomerDashboard onNavigate={handleNavigate} />
             )}
             {currentView === 'wishlist' && (
               <div className="max-w-7xl mx-auto px-4 py-12">
-                <h1 className="text-4xl font-serif mb-12">Ma Liste de Souhaits</h1>
+                <div className="flex justify-between items-center mb-12">
+                  <h1 className="text-4xl font-serif">Ma Liste de Souhaits</h1>
+                  {wishlist.length > 0 && (
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(window.location.href + '?wishlist=shared');
+                        showToast('Lien de partage copié dans le presse-papier !');
+                      }}
+                      className="flex items-center gap-2 bg-primary/5 text-primary px-6 py-3 rounded-full font-bold hover:bg-primary hover:text-white transition-colors text-sm"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></svg>
+                      Partager ma liste
+                    </button>
+                  )}
+                </div>
                 {wishlist.length === 0 ? (
                   <div className="text-center py-24 bg-white rounded-[3rem] border border-primary/5">
                     <p className="text-xl text-primary/40 font-serif italic">Votre liste est vide.</p>
@@ -496,7 +547,7 @@ export default function App() {
       {!isAdminView && <Footer onNavigate={handleNavigate} />}
       {!isAdminView && <ChatBubble />}
       {!isAdminView && <NewsletterPopup />}
-      <Toaster position="top-center" richColors />
+      <Toaster position="bottom-right" richColors closeButton />
       {isLoading && <Loader fullScreen text="Chargement..." />}
       <QuickViewModal 
         product={quickViewProduct} 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingBag, Search, User, Heart, Menu, X, ChevronRight, Globe, ArrowRight } from 'lucide-react';
+import { ShoppingBag, Search, User, Heart, Menu, X, ChevronRight, Globe, ArrowRight, Moon, Sun } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { CURRENCIES, LANGUAGES, PRODUCTS } from '../constants';
+import { CURRENCIES, LANGUAGES, PRODUCTS, CATEGORIES, PACKS } from '../constants';
 import { Language, Currency, Product } from '../types';
 
 interface NavbarProps {
@@ -31,7 +31,24 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (document.documentElement.classList.contains('dark')) {
+      setIsDarkMode(true);
+    }
+  }, []);
+
+  const toggleDarkMode = () => {
+    if (isDarkMode) {
+      document.documentElement.classList.remove('dark');
+      setIsDarkMode(false);
+    } else {
+      document.documentElement.classList.add('dark');
+      setIsDarkMode(true);
+    }
+  };
 
   useEffect(() => {
     if (searchQuery.trim().length > 1) {
@@ -59,6 +76,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   const navLinks = [
     { name: 'Accueil', view: 'home' },
     { name: 'Boutique', view: 'shop' },
+    { name: 'Blog', view: 'blog' },
+    { name: 'Équipe', view: 'team' },
     { name: 'À propos', view: 'about' },
     { name: 'Contact', view: 'contact' },
   ];
@@ -66,16 +85,21 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <nav className="sticky top-0 z-50 glass border-b border-primary/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20">
-          {/* Mobile Menu Button */}
-          <div className="flex md:hidden">
-            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 text-primary">
+        <div className="flex justify-between items-center h-20 relative">
+          {/* Mobile Menu Button & Logo Container */}
+          <div className="flex items-center gap-3 md:hidden z-20">
+            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 text-primary hover:bg-primary/5 rounded-full transition-colors">
               {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
+            <div className="cursor-pointer pt-1" onClick={() => onNavigate('home')}>
+              <h1 className="text-base font-serif font-bold tracking-tight text-primary leading-none">
+                Laine<span className="text-accent">&</span>Déco
+              </h1>
+            </div>
           </div>
 
-          {/* Logo */}
-          <div className="flex-shrink-0 flex items-center cursor-pointer" onClick={() => onNavigate('home')}>
+          {/* Desktop Logo */}
+          <div className="hidden md:flex flex-shrink-0 items-center cursor-pointer" onClick={() => onNavigate('home')}>
             <h1 className="text-2xl font-serif font-bold tracking-tight text-primary">
               Laine<span className="text-accent">&</span>Déco
             </h1>
@@ -103,7 +127,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Icons */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-1 md:space-x-2 z-20">
             {/* Language Selector */}
             <div className="relative hidden md:block">
               <button 
@@ -119,7 +143,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 10 }}
-                    className="absolute top-full right-0 mt-2 bg-white shadow-2xl rounded-2xl border border-primary/5 p-2 min-w-[120px] z-50"
+                    className="absolute top-full right-0 mt-2 glass shadow-2xl rounded-2xl border border-primary/5 p-2 min-w-[120px] z-50"
                   >
                     {LANGUAGES.map(lang => (
                       <button
@@ -153,7 +177,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 10 }}
-                    className="absolute top-full right-0 mt-2 bg-white shadow-2xl rounded-2xl border border-primary/5 p-2 min-w-[120px] z-50"
+                    className="absolute top-full right-0 mt-2 glass shadow-2xl rounded-2xl border border-primary/5 p-2 min-w-[120px] z-50"
                   >
                     {CURRENCIES.map(curr => (
                       <button
@@ -171,10 +195,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               </AnimatePresence>
             </div>
 
-            <button onClick={() => setIsSearchOpen(!isSearchOpen)} className="p-2 text-primary hover:text-accent transition-colors">
+            <button onClick={toggleDarkMode} className="p-2 text-primary hover:text-accent transition-colors rounded-full hover:bg-primary/5">
+              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+            <button onClick={() => setIsSearchOpen(!isSearchOpen)} className="p-2 text-primary hover:text-accent transition-colors rounded-full hover:bg-primary/5">
               <Search size={20} />
             </button>
-            <button onClick={() => onNavigate('wishlist')} className="p-2 text-primary hover:text-accent transition-colors relative">
+            <button onClick={() => onNavigate('wishlist')} className="p-2 text-primary hover:text-accent transition-colors relative rounded-full hover:bg-primary/5">
               <Heart size={20} />
               {wishlistCount > 0 && (
                 <span className="absolute top-0 right-0 bg-accent text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
@@ -182,7 +209,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </span>
               )}
             </button>
-            <button onClick={() => onNavigate('cart')} className="p-2 text-primary hover:text-accent transition-colors relative">
+            <button onClick={() => onNavigate('cart')} className="p-2 text-primary hover:text-accent transition-colors relative rounded-full hover:bg-primary/5">
               <ShoppingBag size={20} />
               {cartCount > 0 && (
                 <span className="absolute top-0 right-0 bg-primary text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
@@ -192,7 +219,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
             <button 
               onClick={() => onNavigate('customer-dashboard')} 
-              className={`p-2 transition-colors ${currentView === 'customer-dashboard' ? 'text-accent' : 'text-primary hover:text-accent'}`}
+              className={`p-2 transition-colors rounded-full hover:bg-primary/5 ${currentView === 'customer-dashboard' ? 'text-accent' : 'text-primary hover:text-accent'}`}
             >
               <User size={20} />
             </button>
@@ -207,7 +234,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="absolute top-full left-0 w-full bg-white shadow-2xl border-t border-primary/5 z-40"
+            className="absolute top-full left-0 w-full glass shadow-2xl border-t border-primary/5 z-40"
             ref={searchRef}
           >
             <div className="max-w-3xl mx-auto p-6">
@@ -217,7 +244,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Rechercher de la laine, un vase, une bougie..."
-                  className="w-full border-b-2 border-primary/10 py-4 px-4 focus:outline-none focus:border-accent text-xl font-serif transition-colors"
+                  className="w-full bg-transparent border-b-2 border-primary/10 py-4 px-4 focus:outline-none focus:border-accent text-xl font-serif transition-colors"
                   autoFocus
                 />
                 <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-primary/30" size={24} />
@@ -283,82 +310,161 @@ export const Navbar: React.FC<NavbarProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu (Sidebar) */}
       <AnimatePresence>
         {isMenuOpen && (
-          <motion.div
-            initial={{ x: '-100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '-100%' }}
-            className="fixed inset-0 bg-secondary z-50 md:hidden flex flex-col p-8"
-          >
-            <div className="flex justify-between items-center mb-12">
-              <h1 className="text-2xl font-serif font-bold text-primary">Laine&Déco</h1>
-              <button onClick={() => setIsMenuOpen(false)} className="p-2">
-                <X size={24} />
-              </button>
-            </div>
-            <div className="flex flex-col space-y-6 flex-grow">
-              {navLinks.map((link) => (
-                <button
-                  key={link.name}
-                  onClick={() => {
-                    onNavigate(link.view);
-                    setIsMenuOpen(false);
-                  }}
-                  className={`text-2xl font-serif text-left flex justify-between items-center group ${currentView === link.view ? 'text-accent' : 'text-primary'}`}
-                >
-                  {link.name}
-                  <ChevronRight className={currentView === link.view ? 'opacity-100 text-accent' : 'opacity-0 group-hover:opacity-100 transition-opacity'} />
-                </button>
-              ))}
-              <hr className="border-primary/10" />
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-4">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-primary/40">Langue</p>
-                  <div className="flex flex-wrap gap-2">
-                    {LANGUAGES.map(lang => (
-                      <button
-                        key={lang.code}
-                        onClick={() => setLanguage(lang)}
-                        className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all ${language.code === lang.code ? 'bg-primary text-white border-primary' : 'bg-white text-primary border-primary/10'}`}
-                      >
-                        {lang.flag} {lang.code.toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMenuOpen(false)}
+              className="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed inset-y-0 left-0 w-[85%] max-w-sm shadow-2xl z-50 md:hidden flex flex-col overflow-y-auto bg-primary text-white"
+            >
+              <div className="p-6 border-b border-white/10 bg-primary/50 backdrop-blur-sm">
+                <div className="flex justify-between items-center mb-6">
+                  <h1 className="text-xl font-serif font-bold text-white">Menu</h1>
+                  <button onClick={() => setIsMenuOpen(false)} className="p-2 bg-white/10 rounded-full shadow-sm text-white hover:text-accent transition-colors">
+                    <X size={20} />
+                  </button>
                 </div>
-                <div className="space-y-4">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-primary/40">Devise</p>
-                  <div className="flex flex-wrap gap-2">
-                    {CURRENCIES.map(curr => (
-                      <button
-                        key={curr.code}
-                        onClick={() => setCurrency(curr)}
-                        className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all ${currency.code === curr.code ? 'bg-primary text-white border-primary' : 'bg-white text-primary border-primary/10'}`}
-                      >
-                        {curr.code}
-                      </button>
-                    ))}
+                <div className="flex items-center gap-3 p-3 bg-white/10 rounded-2xl shadow-sm border border-white/5">
+                  <div className="w-10 h-10 rounded-full bg-accent text-white flex items-center justify-center">
+                    <User size={20} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-white/40 uppercase tracking-widest">Bienvenue</p>
+                    <p className="font-serif font-bold text-white">Invité</p>
                   </div>
                 </div>
               </div>
-              <hr className="border-primary/10" />
-              <button onClick={() => { onNavigate('customer-dashboard'); setIsMenuOpen(false); }} className="text-xl font-serif text-left flex items-center gap-3">
-                <User size={20} /> Mon Compte
-              </button>
-              <button onClick={() => { onNavigate('order-tracking'); setIsMenuOpen(false); }} className="text-xl font-serif text-left">Suivre ma commande</button>
-              <button onClick={() => { onNavigate('admin-dashboard'); setIsMenuOpen(false); }} className="text-xl font-serif text-left text-primary/30">Admin Panel</button>
-            </div>
-            
-            <div className="mt-auto pt-8 border-t border-primary/10">
-              <div className="flex justify-center space-x-6">
-                <a href="#" className="text-primary/40 hover:text-accent transition-colors">Instagram</a>
-                <a href="#" className="text-primary/40 hover:text-accent transition-colors">Pinterest</a>
-                <a href="#" className="text-primary/40 hover:text-accent transition-colors">Facebook</a>
+              
+              <div className="flex flex-col p-6 space-y-2 flex-grow">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2 px-2">Navigation</p>
+                {navLinks.map((link) => (
+                  <button
+                    key={link.name}
+                    onClick={() => {
+                      onNavigate(link.view);
+                      setIsMenuOpen(false);
+                    }}
+                    className={`text-lg font-serif text-left flex justify-between items-center p-4 rounded-2xl transition-all ${currentView === link.view ? 'bg-accent text-white font-bold shadow-lg' : 'text-white hover:bg-white/10'}`}
+                  >
+                    {link.name}
+                    <ChevronRight size={18} className={currentView === link.view ? 'opacity-100 text-white' : 'opacity-0'} />
+                  </button>
+                ))}
+
+                <hr className="border-white/10 my-6" />
+
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2 px-2">Catégories</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {CATEGORIES.map((cat) => (
+                    <button
+                      key={cat.id}
+                      onClick={() => {
+                        onNavigate('shop', undefined, cat.name);
+                        setIsMenuOpen(false);
+                      }}
+                      className="text-sm font-medium text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 hover:text-accent transition-colors text-white border border-white/5"
+                    >
+                      {cat.name}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mt-4">
+                    <button
+                      onClick={() => {
+                        onNavigate('shop');
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full text-left p-4 rounded-2xl bg-accent text-white font-bold hover:bg-accent/90 transition-colors flex justify-between items-center shadow-lg"
+                    >
+                      <span>Packs & Bundles</span>
+                      <ShoppingBag size={18} />
+                    </button>
+                </div>
+                
+                <hr className="border-white/10 my-6" />
+                
+                <div className="space-y-6">
+                  <div className="space-y-3">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 px-2">Préférences</p>
+                    <div className="flex gap-2 px-2">
+                       <button onClick={toggleDarkMode} className="flex-1 py-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center gap-2 text-white font-medium hover:bg-white/10 transition-colors">
+                          {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+                          <span className="text-xs">{isDarkMode ? 'Mode Clair' : 'Mode Sombre'}</span>
+                       </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 px-2">
+                      <div className="space-y-2">
+                          <label className="text-[10px] text-white/40 font-bold uppercase">Langue</label>
+                          <div className="flex flex-col gap-1">
+                            {LANGUAGES.map(lang => (
+                                <button
+                                key={lang.code}
+                                onClick={() => setLanguage(lang)}
+                                className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all flex items-center gap-2 ${language.code === lang.code ? 'bg-white text-primary border-white' : 'bg-transparent text-white border-white/10 hover:bg-white/5'}`}
+                                >
+                                <span>{lang.flag}</span> {lang.code.toUpperCase()}
+                                </button>
+                            ))}
+                          </div>
+                      </div>
+                      <div className="space-y-2">
+                          <label className="text-[10px] text-white/40 font-bold uppercase">Devise</label>
+                          <div className="flex flex-col gap-1">
+                            {CURRENCIES.map(curr => (
+                                <button
+                                key={curr.code}
+                                onClick={() => setCurrency(curr)}
+                                className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all ${currency.code === curr.code ? 'bg-white text-primary border-white' : 'bg-transparent text-white border-white/10 hover:bg-white/5'}`}
+                                >
+                                {curr.code}
+                                </button>
+                            ))}
+                          </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <hr className="border-white/10 my-6" />
+                
+                <div className="space-y-2">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2 px-2">Compte</p>
+                  <button onClick={() => { onNavigate('customer-dashboard'); setIsMenuOpen(false); }} className="w-full p-4 rounded-2xl text-left flex items-center gap-3 text-white hover:bg-white/10 transition-colors font-medium">
+                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white"><User size={16} /></div>
+                    Mon Compte
+                  </button>
+                  <button onClick={() => { onNavigate('order-tracking'); setIsMenuOpen(false); }} className="w-full p-4 rounded-2xl text-left flex items-center gap-3 text-white hover:bg-white/10 transition-colors font-medium">
+                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white"><Globe size={16} /></div>
+                    Suivre ma commande
+                  </button>
+                  <button onClick={() => { onNavigate('admin-dashboard'); setIsMenuOpen(false); }} className="w-full p-4 rounded-2xl text-left flex items-center gap-3 text-white/40 hover:bg-white/10 hover:text-white transition-colors font-medium">
+                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center"><Search size={16} /></div>
+                    Admin Panel
+                  </button>
+                </div>
               </div>
-            </div>
-          </motion.div>
+              
+              <div className="mt-auto p-6 bg-primary/50 border-t border-white/10 backdrop-blur-sm">
+                <div className="flex justify-center space-x-6">
+                  <a href="#" className="w-10 h-10 rounded-full bg-white/10 shadow-sm flex items-center justify-center text-white hover:bg-accent hover:text-white hover:shadow-md transition-all">IG</a>
+                  <a href="#" className="w-10 h-10 rounded-full bg-white/10 shadow-sm flex items-center justify-center text-white hover:bg-accent hover:text-white hover:shadow-md transition-all">PT</a>
+                  <a href="#" className="w-10 h-10 rounded-full bg-white/10 shadow-sm flex items-center justify-center text-white hover:bg-accent hover:text-white hover:shadow-md transition-all">FB</a>
+                </div>
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </nav>
@@ -416,6 +522,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
         <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-white/40">
           <p>© 2024 Laine & Déco. Tous droits réservés.</p>
           <div className="flex space-x-6 mt-4 md:mt-0">
+            <button onClick={() => onNavigate('team')} className="hover:text-white transition-colors">Équipe</button>
             <button onClick={() => onNavigate('admin-dashboard')} className="hover:text-white transition-colors">Administration</button>
             <button onClick={() => onNavigate('legal')} className="hover:text-white transition-colors">Mentions légales</button>
             <button onClick={() => onNavigate('privacy')} className="hover:text-white transition-colors">Confidentialité</button>

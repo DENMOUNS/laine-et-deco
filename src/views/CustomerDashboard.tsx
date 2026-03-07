@@ -300,17 +300,22 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ onNavigate
                   },
                   {
                     header: 'Action',
-                    accessor: (invoice) => (
-                      <button 
-                        onClick={() => {
-                          const order = ORDERS.find(o => o.id === invoice.orderId);
-                          if (order) generateInvoicePDF(order);
-                        }}
-                        className="p-2 bg-slate-50 rounded-lg text-primary hover:bg-primary hover:text-white transition-all"
-                      >
-                        <Download size={18} />
-                      </button>
-                    )
+                    accessor: (invoice) => {
+                      const order = ORDERS.find(o => o.id === invoice.orderId);
+                      const isDelivered = order?.status === 'delivered';
+                      return (
+                        <button 
+                          onClick={() => {
+                            if (order && isDelivered) generateInvoicePDF(order);
+                            else toast.error("La facture n'est disponible qu'après la livraison.");
+                          }}
+                          className={`p-2 rounded-lg transition-all ${isDelivered ? 'bg-slate-50 text-primary hover:bg-primary hover:text-white' : 'bg-slate-100 text-primary/20 cursor-not-allowed'}`}
+                          title={isDelivered ? "Télécharger la facture" : "Disponible après livraison"}
+                        >
+                          <Download size={18} />
+                        </button>
+                      );
+                    }
                   }
                 ]}
               />
@@ -364,41 +369,47 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ onNavigate
 
           {activeTab === 'profile' && (
             <div className="bg-white rounded-[3rem] shadow-sm border border-primary/5 p-10 space-y-12">
-              <h3 className="text-2xl font-serif font-bold text-primary">Informations Personnelles</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-2xl font-serif font-bold text-primary">Informations Personnelles</h3>
+                <span className="px-4 py-2 bg-accent/10 text-accent rounded-full text-xs font-bold uppercase tracking-widest">Membre depuis {user.joinDate}</span>
+              </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <div className="space-y-4">
                   <label className="text-xs font-bold uppercase tracking-widest text-primary/40 block">Nom Complet</label>
                   <div className="relative">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/20" size={18} />
-                    <input type="text" defaultValue={user.name} className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-primary/5 rounded-2xl focus:outline-none focus:border-accent" />
+                    <input type="text" defaultValue={user.name} className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-primary/5 rounded-2xl focus:outline-none focus:border-accent transition-all" />
                   </div>
                 </div>
                 <div className="space-y-4">
                   <label className="text-xs font-bold uppercase tracking-widest text-primary/40 block">Email</label>
                   <div className="relative">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/20" size={18} />
-                    <input type="email" defaultValue={user.email} className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-primary/5 rounded-2xl focus:outline-none focus:border-accent" />
+                    <input type="email" defaultValue={user.email} className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-primary/5 rounded-2xl focus:outline-none focus:border-accent transition-all" />
                   </div>
                 </div>
                 <div className="space-y-4">
                   <label className="text-xs font-bold uppercase tracking-widest text-primary/40 block">Téléphone</label>
                   <div className="relative">
                     <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/20" size={18} />
-                    <input type="tel" defaultValue="+237 600 000 000" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-primary/5 rounded-2xl focus:outline-none focus:border-accent" />
+                    <input type="tel" defaultValue="+237 600 000 000" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-primary/5 rounded-2xl focus:outline-none focus:border-accent transition-all" />
                   </div>
                 </div>
                 <div className="space-y-4">
                   <label className="text-xs font-bold uppercase tracking-widest text-primary/40 block">Adresse</label>
                   <div className="relative">
                     <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/20" size={18} />
-                    <input type="text" defaultValue="Douala, Cameroun" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-primary/5 rounded-2xl focus:outline-none focus:border-accent" />
+                    <input type="text" defaultValue="Douala, Cameroun" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-primary/5 rounded-2xl focus:outline-none focus:border-accent transition-all" />
                   </div>
                 </div>
               </div>
 
-              <div className="pt-8 border-t border-primary/5 flex justify-end">
-                <button className="bg-primary text-white px-10 py-4 rounded-full font-bold hover:bg-accent transition-all shadow-lg">
+              <div className="pt-8 border-t border-primary/5 flex justify-end gap-4">
+                <button className="px-10 py-4 rounded-full font-bold text-primary hover:bg-slate-50 transition-all">
+                  Annuler
+                </button>
+                <button className="bg-primary text-white px-10 py-4 rounded-full font-bold hover:bg-accent transition-all shadow-lg hover:shadow-xl">
                   Enregistrer les modifications
                 </button>
               </div>

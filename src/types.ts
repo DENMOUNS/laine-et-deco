@@ -19,6 +19,7 @@ export interface BlogPost {
 }
 
 export interface Currency {
+  id: string;
   code: string;
   symbol: string;
   rate: number; // relative to a base
@@ -94,6 +95,15 @@ export interface Product {
   salesCount?: number;
   brand?: string;
   seo?: SEOMeta; // Added for SEO
+  purchasePrice?: number; // Added for Finance Management
+}
+
+export interface Expense {
+  id: string;
+  description: string;
+  amount: number;
+  date: string;
+  category: 'stock' | 'transport' | 'marketing' | 'other';
 }
 
 export interface Category {
@@ -117,15 +127,23 @@ export interface Order {
   trackingSteps?: { status: string; date: string; description: string; completed: boolean }[]; // Added for tracking
 }
 
+export interface Role {
+  id: string;
+  name: string;
+  description: string;
+  // permissions: string[]; // Removed as per request
+}
+
 export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'customer';
+  role: string; // 'admin', 'customer', or custom role ID
   joinDate: string;
-  orders: number;
+  orders: number; // Only relevant for customers
   phone?: string;
   avatar?: string;
+  password?: string; // In a real app, this wouldn't be here, but for mock CRUD
 }
 
 export interface Notification {
@@ -225,4 +243,30 @@ export interface Language {
 export interface WishlistItem {
   productId: string;
   addedAt: string;
+}
+
+export interface Pack {
+  id: string;
+  name: string;
+  description: string;
+  products: { productId: string; quantity: number }[]; // Max 4 products
+  promoCode: string;
+  discountPercentage: number;
+}
+
+export interface PushNotification {
+  id: string;
+  title: string;
+  message: string;
+  sentAt: string;
+  status: 'draft' | 'sent';
+}
+
+export interface Email {
+  id: string;
+  subject: string;
+  recipient: string;
+  content: string;
+  sentAt: string;
+  status: 'sent' | 'draft';
 }

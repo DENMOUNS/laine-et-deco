@@ -2,16 +2,20 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Trash2, Plus, Minus, ArrowRight, ShoppingBag, Ticket, X, CheckCircle2 } from 'lucide-react';
 import { Product, Coupon } from '../types';
-import { COUPONS } from '../constants';
+import { COUPONS, PRODUCTS, PACKS } from '../constants';
+import { ProductCard } from '../components/ProductCard';
 
 interface CartViewProps {
   cart: { product: Product; quantity: number }[];
   onUpdateQuantity: (id: string, delta: number) => void;
   onRemove: (id: string) => void;
-  onNavigate: (view: string) => void;
+  onNavigate: (view: string, id?: string) => void;
+  onAddToCart: (p: Product) => void;
+  onAddToWishlist: (p: Product) => void;
+  onQuickView: (p: Product) => void;
 }
 
-export const CartView: React.FC<CartViewProps> = ({ cart, onUpdateQuantity, onRemove, onNavigate }) => {
+export const CartView: React.FC<CartViewProps> = ({ cart, onUpdateQuantity, onRemove, onNavigate, onAddToCart, onAddToWishlist, onQuickView }) => {
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
   const [couponError, setCouponError] = useState('');
@@ -28,10 +32,61 @@ export const CartView: React.FC<CartViewProps> = ({ cart, onUpdateQuantity, onRe
   const total = subtotal - discountAmount + shipping;
 
   const handleApplyCoupon = () => {
+    // 1. Check standard coupons
     const coupon = COUPONS.find(c => c.code.toUpperCase() === couponCode.toUpperCase() && c.status === 'active');
     if (coupon) {
       setAppliedCoupon(coupon);
       setCouponError('');
+      return;
+    }
+
+    // 2. Check pack coupons
+    const pack = PACKS.find(p => p.promoCode.toUpperCase() === couponCode.toUpperCase());
+    if (pack) {
+        // Validate
+        const packQuantities = pack.products; // [{productId, quantity}]
+        let multiplier: number | null = null;
+        let isValid = true;
+
+        for (const packItem of packQuantities) {
+            const cartItem = cart.find(c => c.product.id === packItem.productId);
+            if (!cartItem) {
+                isValid = false;
+                break;
+            }
+            
+            if (cartItem.quantity % packItem.quantity !== 0) {
+                isValid = false;
+                break;
+            }
+
+            const currentMultiplier = cartItem.quantity / packItem.quantity;
+            if (multiplier === null) {
+                multiplier = currentMultiplier;
+            } else if (multiplier !== currentMultiplier) {
+                isValid = false;
+                break;
+            }
+        }
+
+        if (isValid && multiplier !== null && multiplier > 0) {
+            // Create a temporary coupon object for the pack
+            const packCoupon: Coupon = {
+                id: `pack-${pack.id}`,
+                code: pack.promoCode,
+                discount: pack.discountPercentage,
+                type: 'percentage',
+                expiryDate: '2099-12-31',
+                usageLimit: 9999,
+                usageCount: 0,
+                status: 'active'
+            };
+            setAppliedCoupon(packCoupon);
+            setCouponError('');
+        } else {
+            setCouponError('Les produits du panier ne correspondent pas aux conditions du pack (quantités incorrectes).');
+            setAppliedCoupon(null);
+        }
     } else {
       setCouponError('Code promo invalide ou expiré');
       setAppliedCoupon(null);
@@ -42,6 +97,12 @@ export const CartView: React.FC<CartViewProps> = ({ cart, onUpdateQuantity, onRe
     setAppliedCoupon(null);
     setCouponCode('');
   };
+
+  // Cross-selling logic
+  const cartCategoryIds = cart.map(item => item.product.category);
+  const relatedProducts = PRODUCTS.filter(p => 
+    cartCategoryIds.includes(p.category) && !cart.find(c => c.product.id === p.id)
+  ).slice(0, 4);
 
   if (cart.length === 0) {
     return (
@@ -216,6 +277,26 @@ export const CartView: React.FC<CartViewProps> = ({ cart, onUpdateQuantity, onRe
           </div>
         </div>
       </div>
+
+      {/* Cross-selling Section */}
+      {relatedProducts.length > 0 && (
+        <div className="mt-24">
+          <h2 className="text-3xl font-serif mb-12">Vous aimerez aussi</h2>
+          <div className="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-8 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 no-scrollbar">
+            {relatedProducts.map((p) => (
+              <div key={p.id} className="min-w-[85vw] sm:min-w-0 snap-center">
+                <ProductCard 
+                  product={p} 
+                  onAddToCart={onAddToCart}
+                  onAddToWishlist={onAddToWishlist}
+                  onQuickView={onQuickView}
+                  onClick={() => onNavigate('product-detail', p.id)}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

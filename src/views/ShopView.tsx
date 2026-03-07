@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Filter, Search, ChevronDown, Grid, List as ListIcon, Loader2, Camera, X } from 'lucide-react';
-import { CATEGORIES, PRODUCTS } from '../constants';
+import { CATEGORIES } from '../constants';
 import { ProductCard } from '../components/ProductCard';
 import { Product, PromoEvent } from '../types';
 import { analyzeProductImage } from '../utils/aiUtils';
+import { useProducts } from '../hooks/useProducts';
 
 interface ShopViewProps {
   onAddToCart: (p: Product) => void;
@@ -16,6 +17,7 @@ interface ShopViewProps {
 }
 
 export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist, onQuickView, onProductClick, events = [], initialSearchQuery = '' }) => {
+  const { products: PRODUCTS, isLoading: isInitialLoading } = useProducts();
   const [selectedCategory, setSelectedCategory] = useState('Tous');
   const [selectedMaterial, setSelectedMaterial] = useState('Tous');
   const [selectedColor, setSelectedColor] = useState('Tous');
@@ -113,6 +115,15 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedProducts = filteredProducts.slice(startIndex, startIndex + itemsPerPage);
+
+  if (isInitialLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-32">
+        <Loader2 size={48} className="text-accent animate-spin mb-4" />
+        <p className="text-lg font-serif italic text-primary/60">Chargement de la boutique...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

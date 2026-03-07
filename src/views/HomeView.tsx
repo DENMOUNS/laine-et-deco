@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowRight, Package, Truck, ShieldCheck, Heart, Calendar, User, Search, Camera, Loader2, Zap, Clock } from 'lucide-react';
-import { CATEGORIES, PRODUCTS, BLOG_POSTS } from '../constants';
+import { CATEGORIES, PRODUCTS, BLOG_POSTS, PACKS } from '../constants';
 import { ProductCard } from '../components/ProductCard';
-import { Product, SiteConfig, PromoEvent } from '../types';
+import { Product, SiteConfig, PromoEvent, Pack } from '../types';
 import { AdBanner } from '../components/AdBanner';
 import { analyzeProductImage } from '../utils/aiUtils';
+import { toast } from 'sonner';
 
 const CountdownTimer: React.FC<{ endDate: string }> = ({ endDate }) => {
   const [timeLeft, setTimeLeft] = useState({
@@ -141,15 +142,26 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 1 }}
-            className="absolute inset-0 z-0"
+            className="absolute inset-0 z-0 cursor-grab active:cursor-grabbing"
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.2}
+            style={{ touchAction: 'pan-y' }}
+            onDragEnd={(e, { offset }) => {
+              if (offset.x < -50) {
+                setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
+              } else if (offset.x > 50) {
+                setCurrentSlide((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length);
+              }
+            }}
           >
             <img
               src={HERO_SLIDES[currentSlide].image}
               alt="Hero"
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover pointer-events-none"
               referrerPolicy="no-referrer"
             />
-            <div className="absolute inset-0 bg-black/40" />
+            <div className="absolute inset-0 bg-black/40 pointer-events-none" />
           </motion.div>
         </AnimatePresence>
         
@@ -179,7 +191,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                   placeholder="Rechercher un produit, une catégorie..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-full py-6 pl-16 pr-32 text-lg focus:outline-none focus:border-white/40 transition-all placeholder:text-white/40"
+                  className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-full py-6 pl-16 pr-48 text-lg focus:outline-none focus:border-white/40 transition-all placeholder:text-white/40"
                 />
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
                   <button 
@@ -360,7 +372,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
           </button>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div 
+          className="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-8 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 no-scrollbar"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
           {(featuredCategories.length > 0 ? featuredCategories : CATEGORIES.slice(0, 3)).map((cat, i) => (
             <motion.div
               key={cat.id}
@@ -368,7 +383,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              className="group relative aspect-[4/5] overflow-hidden rounded-3xl cursor-pointer"
+              className="min-w-[70vw] sm:min-w-0 snap-center group relative aspect-[4/5] overflow-hidden rounded-3xl cursor-pointer"
               onClick={() => onNavigate('shop')}
             >
               <img
@@ -410,20 +425,24 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
             </div>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div 
+            className="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-8 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 no-scrollbar"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
             {(showOnlyPromos 
               ? PRODUCTS.filter(p => p.oldPrice || p.promoPrice)
               : (featuredProducts.length > 0 ? featuredProducts : PRODUCTS.slice(0, 4))
             ).map((product) => (
-              <ProductCard 
-                key={product.id} 
-                product={product} 
-                onAddToCart={onAddToCart}
-                onAddToWishlist={onAddToWishlist}
-                onQuickView={onQuickView}
-                onClick={onProductClick}
-                events={events}
-              />
+              <div key={product.id} className="min-w-[70vw] sm:min-w-0 snap-center">
+                <ProductCard 
+                  product={product} 
+                  onAddToCart={onAddToCart}
+                  onAddToWishlist={onAddToWishlist}
+                  onQuickView={onQuickView}
+                  onClick={onProductClick}
+                  events={events}
+                />
+              </div>
             ))}
           </div>
         </div>
@@ -441,17 +460,21 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
           </button>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div 
+          className="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-8 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 no-scrollbar"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
           {PRODUCTS.filter(p => p.category === 'Coussins & Plaids').slice(0, 4).map((product) => (
-            <ProductCard 
-              key={product.id} 
-              product={product} 
-              onAddToCart={onAddToCart}
-              onAddToWishlist={onAddToWishlist}
-              onQuickView={onQuickView}
-              onClick={onProductClick}
-              events={events}
-            />
+            <div key={product.id} className="min-w-[70vw] sm:min-w-0 snap-center">
+              <ProductCard 
+                product={product} 
+                onAddToCart={onAddToCart}
+                onAddToWishlist={onAddToWishlist}
+                onQuickView={onQuickView}
+                onClick={onProductClick}
+                events={events}
+              />
+            </div>
           ))}
         </div>
       </section>
@@ -473,18 +496,86 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
             </button>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div 
+            className="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-8 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 no-scrollbar"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
             {PRODUCTS.filter(p => p.oldPrice || p.promoPrice).slice(0, 4).map((product) => (
-              <ProductCard 
-                key={product.id} 
-                product={product} 
-                onAddToCart={onAddToCart}
-                onAddToWishlist={onAddToWishlist}
-                onQuickView={onQuickView}
-                onClick={onProductClick}
-                events={events}
-              />
+              <div key={product.id} className="min-w-[70vw] sm:min-w-0 snap-center">
+                <ProductCard 
+                  product={product} 
+                  onAddToCart={onAddToCart}
+                  onAddToWishlist={onAddToWishlist}
+                  onQuickView={onQuickView}
+                  onClick={onProductClick}
+                  events={events}
+                />
+              </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Packs & Bundles Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-secondary/20 rounded-[3rem] p-12 md:p-20 border border-primary/5">
+          <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-8">
+            <div className="text-left">
+              <span className="text-xs font-bold uppercase tracking-widest text-accent mb-2 block">Kits Complets</span>
+              <h2 className="text-4xl font-serif mb-4">Packs & Bundles</h2>
+              <p className="text-primary/60 max-w-xl">Économisez en achetant nos kits complets, parfaits pour démarrer un nouveau projet ou pour offrir.</p>
+            </div>
+            <button 
+              onClick={() => onNavigate('shop')}
+              className="px-8 py-4 bg-primary text-white rounded-full font-bold hover:bg-accent transition-all shadow-lg"
+            >
+              Voir tous les kits
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {PACKS.map((pack) => {
+              const packProducts = pack.products.map(item => {
+                const product = PRODUCTS.find(p => p.id === item.productId);
+                return product ? { ...product, quantity: item.quantity } : null;
+              }).filter((p): p is Product & { quantity: number } => p !== null);
+              
+              const totalPrice = packProducts.reduce((acc, p) => acc + (p.price || 0) * (p.quantity || 1), 0);
+              const discountedPrice = totalPrice * (1 - (pack.discountPercentage || 0) / 100);
+
+              return (
+                <div key={pack.id} className="bg-white rounded-[2rem] p-8 shadow-sm border border-primary/5 flex flex-col gap-6 group cursor-pointer hover:shadow-md transition-shadow" onClick={() => onNavigate('pack-detail', pack.id)}>
+                  <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-100">
+                     <div className="grid grid-cols-2 gap-1 h-full">
+                        {packProducts.slice(0, 4).map((p, i) => (
+                            <img key={i} src={p.image} alt={p.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        ))}
+                     </div>
+                     <div className="absolute bottom-0 right-0 bg-primary text-white px-3 py-1 rounded-tl-xl text-xs font-bold uppercase tracking-widest">
+                        {packProducts.length} Articles
+                     </div>
+                  </div>
+                  <div className="space-y-4">
+                    <span className="px-3 py-1 bg-accent/10 text-accent rounded-full text-[10px] font-bold uppercase tracking-widest">Économisez {pack.discountPercentage}%</span>
+                    <h3 className="text-2xl font-serif text-primary group-hover:text-accent transition-colors">{pack.name}</h3>
+                    <p className="text-sm text-primary/60 line-clamp-2">{pack.description}</p>
+                    <div className="flex items-center gap-4 pt-4">
+                      <span className="text-lg text-primary/40 line-through font-bold">{totalPrice.toLocaleString()} FCFA</span>
+                      <span className="text-2xl font-bold text-primary">{discountedPrice.toLocaleString()} FCFA</span>
+                    </div>
+                    <button 
+                      onClick={(e) => { 
+                          e.stopPropagation(); 
+                          onNavigate('pack-detail', pack.id);
+                      }}
+                      className="w-full py-3 bg-primary text-white rounded-xl font-bold hover:bg-accent transition-colors mt-4"
+                    >
+                      Voir le pack
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -501,7 +592,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+        <div 
+          className="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-8 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 no-scrollbar"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
           {BLOG_POSTS.slice(0, 2).map((post, i) => (
             <motion.article
               key={post.id}
@@ -509,7 +603,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              className="group cursor-pointer"
+              className="min-w-[85vw] sm:min-w-0 snap-center group cursor-pointer"
               onClick={() => onNavigate('blog-post', post.id)}
             >
               <div className="aspect-[16/9] rounded-[2rem] overflow-hidden mb-6 shadow-lg">

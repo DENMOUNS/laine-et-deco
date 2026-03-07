@@ -1,8 +1,9 @@
 import React from 'react';
-import { Star, Heart, ShoppingCart, Eye } from 'lucide-react';
+import { Star, Heart, ShoppingCart, Eye, Share2 } from 'lucide-react';
 import { Product, PromoEvent } from '../types';
 import { motion } from 'motion/react';
 import { getEffectivePrice } from '../utils/siteUtils';
+import { toast } from 'sonner';
 
 interface ProductCardProps {
   product: Product;
@@ -17,6 +18,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, 
   const effectivePrice = getEffectivePrice(product, events);
   const hasDiscount = effectivePrice < product.price;
   const isOutOfStock = !product.isAvailable || product.stock <= 0;
+
+  const handleShare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const shareData = {
+      title: product.name,
+      text: product.description,
+      url: window.location.href,
+    };
+
+    if (navigator.share) {
+      navigator.share(shareData).catch(console.error);
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      toast.success('Lien copié dans le presse-papier !');
+    }
+  };
 
   return (
     <motion.div 
@@ -60,6 +77,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, 
             className="w-12 h-12 rounded-full bg-white text-primary flex items-center justify-center hover:bg-accent hover:text-white transition-colors shadow-lg"
           >
             <ShoppingCart size={20} />
+          </button>
+          <button 
+            onClick={handleShare}
+            className="w-12 h-12 rounded-full bg-white text-primary flex items-center justify-center hover:bg-accent hover:text-white transition-colors shadow-lg"
+          >
+            <Share2 size={20} />
           </button>
           <button 
             onClick={(e) => { e.stopPropagation(); onQuickView(product); }}

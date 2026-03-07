@@ -55,7 +55,8 @@ import {
   Image as ImageIcon,
   Type as TypeIcon,
   MonitorOff,
-  Info
+  Info,
+  User
 } from 'lucide-react';
 import { 
   ORDERS, 
@@ -77,12 +78,16 @@ import {
   DEVICE_DATA,
   TRAFFIC_SOURCES,
   RETENTION_DATA,
-  REVENUE_BY_PAYMENT
+  REVENUE_BY_PAYMENT,
+  PACKS,
+  PUSH_NOTIFICATIONS,
+  EMAILS,
+  EXPENSES
 } from '../constants';
 import { Modal } from '../components/Modal';
 import { DataTable } from '../components/DataTable';
 import { TabFilter } from '../components/TabFilter';
-import { Notification, Product, Category, SiteConfig, ChatMessage, HomeSection, Conversation, Coupon, AdminRole, PromoEvent, Order, User as UserType, LoginLog, RequestLog } from '../types';
+import { Notification, Product, Category, SiteConfig, ChatMessage, HomeSection, Conversation, Coupon, AdminRole, PromoEvent, Order, User as UserType, LoginLog, RequestLog, Pack, PushNotification, Email, Currency, Role, Expense } from '../types';
 import { OrderMap } from '../components/OrderMap';
 import { generateInvoicePDF } from '../utils/invoiceUtils';
 
@@ -91,17 +96,18 @@ import { Loader } from '../components/Loader';
 
 interface AdminDashboardProps {
   onNavigate: (view: string) => void;
+  siteConfig: SiteConfig;
+  setSiteConfig: React.Dispatch<React.SetStateAction<SiteConfig>>;
 }
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, siteConfig, setSiteConfig }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [modalType, setModalType] = useState<'product' | 'category' | 'currency' | 'site' | 'event'>('product');
+  const [modalType, setModalType] = useState<'product' | 'category' | 'currency' | 'site' | 'event' | 'pack' | 'notification' | 'email' | 'customer' | 'user' | 'role' | 'expense'>('product');
   const [editingItem, setEditingItem] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [siteConfig, setSiteConfig] = useState<SiteConfig>(SITE_CONFIG);
   const [events, setEvents] = useState<PromoEvent[]>(PROMO_EVENTS);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -109,7 +115,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   const [localProducts, setLocalProducts] = useState<Product[]>(PRODUCTS);
   const [localCategories, setLocalCategories] = useState<Category[]>(CATEGORIES);
   const [localOrders, setLocalOrders] = useState<Order[]>(ORDERS);
+  const [localPacks, setLocalPacks] = useState<Pack[]>(PACKS);
+  const [localNotifications, setLocalNotifications] = useState<PushNotification[]>(PUSH_NOTIFICATIONS);
+  const [localEmails, setLocalEmails] = useState<Email[]>(EMAILS);
+  const [localCurrencies, setLocalCurrencies] = useState<Currency[]>(CURRENCIES);
   const [localUsers, setLocalUsers] = useState<UserType[]>(USERS);
+  const [localRoles, setLocalRoles] = useState<Role[]>(ADMIN_ROLES.map(r => ({ id: r.id, name: r.name, description: 'Role description' })));
+  const [localExpenses, setLocalExpenses] = useState<Expense[]>(EXPENSES);
+  const [selectedPackProducts, setSelectedPackProducts] = useState<{productId: string, quantity: number}[]>([]);
+
+  useEffect(() => {
+    if (editingItem && modalType === 'pack') {
+        setSelectedPackProducts(editingItem.products || []);
+    } else {
+        setSelectedPackProducts([]);
+    }
+  }, [editingItem, modalType]);
 
   // Filter states
   const [orderFilter, setOrderFilter] = useState('all');
@@ -183,17 +204,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   const menuItems = [
     { id: 'overview', label: 'Tableau de bord', icon: <LayoutDashboard size={20} /> },
     { id: 'products', label: 'Produits', icon: <Package size={20} /> },
+    { id: 'packs', label: 'Packs', icon: <ShoppingBag size={20} /> },
     { id: 'orders', label: 'Commandes', icon: <ShoppingBag size={20} /> },
+    { id: 'finances', label: 'Finances', icon: <TrendingUp size={20} /> },
     { id: 'categories', label: 'Catégories', icon: <LayoutDashboard size={20} /> },
     { id: 'customers', label: 'Clients', icon: <Users size={20} /> },
+    { id: 'users', label: 'Utilisateurs', icon: <Users size={20} /> },
     { id: 'logs', label: 'Historique & Logs', icon: <History size={20} /> },
     { id: 'currencies', label: 'Devises', icon: <Coins size={20} /> },
     { id: 'stats', label: 'Statistiques', icon: <BarChart3 size={20} /> },
     { id: 'analytics', label: 'Analytique Avancée', icon: <TrendingUp size={20} /> },
     { id: 'coupons', label: 'Coupons', icon: <Ticket size={20} /> },
     { id: 'events', label: 'Évènements & Promos', icon: <CalendarIcon size={20} /> },
-    { id: 'roles', label: 'Rôles & Permissions', icon: <Lock size={20} /> },
-    { id: 'notifications', label: 'Notifications', icon: <Bell size={20} /> },
+    { id: 'roles', label: 'Rôles', icon: <Lock size={20} /> },
+    { id: 'notifications', label: 'Notifications Push', icon: <Bell size={20} /> },
+    { id: 'emails', label: 'Emails', icon: <MessageSquare size={20} /> },
     { id: 'reviews', label: 'Avis Clients', icon: <Star size={20} /> },
     { id: 'messages', label: 'Messages', icon: <MessageSquare size={20} /> },
     { id: 'site', label: 'Configuration Site', icon: <Settings size={20} /> },
@@ -201,14 +226,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row">
-      {/* Mobile Header */}
-      <div className="lg:hidden bg-primary text-white p-4 flex justify-between items-center sticky top-0 z-50">
-        <h1 className="text-xl font-serif font-bold">Laine&Déco Admin</h1>
-        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2">
-          {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
-      </div>
-
       {/* Sidebar */}
       <aside className={`
         fixed inset-y-0 left-0 z-40 w-72 bg-primary text-white flex flex-col transition-transform duration-300 lg:relative lg:translate-x-0 overflow-y-auto custom-scrollbar shadow-2xl
@@ -343,9 +360,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 )}
               </AnimatePresence>
             </div>
-            <div className="w-10 h-10 rounded-full bg-accent text-white flex items-center justify-center font-bold shadow-md flex-shrink-0">
+            <button 
+              onClick={() => onNavigate('profile')}
+              className="w-10 h-10 rounded-full bg-accent text-white flex items-center justify-center font-bold shadow-md flex-shrink-0 hover:bg-primary transition-all"
+            >
               AD
-            </div>
+            </button>
           </div>
         </header>
 
@@ -354,21 +374,204 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
           isOpen={isAddModalOpen || !!editingItem} 
           onClose={() => { setIsAddModalOpen(false); setEditingItem(null); }} 
           title={
-            editingItem ? `Modifier ${editingItem.name || 'l\'élément'}` :
+            editingItem ? `Modifier ${editingItem.name || editingItem.title || editingItem.subject || 'l\'élément'}` :
             modalType === 'product' ? 'Ajouter un Produit' : 
             modalType === 'category' ? 'Nouvelle Catégorie' : 
-            modalType === 'event' ? 'Créer un Évènement' : 'Ajouter une Devise'
+            modalType === 'event' ? 'Créer un Évènement' : 
+            modalType === 'pack' ? 'Ajouter un Pack' :
+            modalType === 'currency' ? 'Ajouter une Devise' :
+            modalType === 'notification' ? 'Nouvelle Notification' : 'Nouvel Email'
           }
         >
           <form className="space-y-6" onSubmit={(e) => { 
             e.preventDefault(); 
             const formData = new FormData(e.currentTarget);
-            const name = formData.get('name') as string;
             
-            if (editingItem) {
-              toast.success(`${editingItem.name || 'L\'élément'} a été mis à jour avec succès !`);
-            } else {
-              toast.success('Nouvel élément ajouté avec succès !');
+            if (modalType === 'product') {
+                const newProduct: any = {
+                    id: editingItem ? editingItem.id : `prod-${Date.now()}`,
+                    name: formData.get('name') as string,
+                    category: formData.get('category') as string,
+                    price: Number(formData.get('price')),
+                    purchasePrice: formData.get('purchasePrice') ? Number(formData.get('purchasePrice')) : undefined,
+                    promoPrice: formData.get('promoPrice') ? Number(formData.get('promoPrice')) : undefined,
+                    stock: Number(formData.get('stock')),
+                    isAvailable: editingItem ? editingItem.isAvailable : true,
+                    image: editingItem?.image || 'https://picsum.photos/seed/wool/300/300',
+                    description: formData.get('description') as string,
+                    colors: editingItem?.colors || ['#FFFFFF'],
+                    seo: {
+                        title: formData.get('seoTitle') as string,
+                        description: formData.get('seoDescription') as string
+                    }
+                };
+                
+                if (editingItem) {
+                    setLocalProducts(prev => prev.map(p => p.id === editingItem.id ? { ...p, ...newProduct } : p));
+                    toast.success('Produit mis à jour !');
+                } else {
+                    setLocalProducts(prev => [...prev, newProduct]);
+                    toast.success('Produit ajouté !');
+                }
+            } else if (modalType === 'category') {
+                const newCategory: any = {
+                    id: editingItem ? editingItem.id : `cat-${Date.now()}`,
+                    name: formData.get('name') as string,
+                    image: formData.get('image') as string || 'https://picsum.photos/seed/cat/300/200',
+                    count: editingItem ? editingItem.count : 0
+                };
+                
+                if (editingItem) {
+                    setLocalCategories(prev => prev.map(c => c.id === editingItem.id ? { ...c, ...newCategory } : c));
+                    toast.success('Catégorie mise à jour !');
+                } else {
+                    setLocalCategories(prev => [...prev, newCategory]);
+                    toast.success('Catégorie ajoutée !');
+                }
+            } else if (modalType === 'pack') {
+                const newPack: any = {
+                    id: editingItem ? editingItem.id : `pack-${Date.now()}`,
+                    name: formData.get('name') as string,
+                    description: formData.get('description') as string,
+                    products: selectedPackProducts,
+                    discountPercentage: Number(formData.get('discountPercentage')),
+                    promoCode: formData.get('promoCode') as string || `PACK${Date.now().toString().slice(-4)}`
+                };
+                 if (editingItem) {
+                    setLocalPacks(prev => prev.map(p => p.id === editingItem.id ? { ...p, ...newPack } : p));
+                    toast.success('Pack mis à jour !');
+                } else {
+                    setLocalPacks(prev => [...prev, newPack]);
+                    toast.success('Pack ajouté !');
+                }
+            } else if (modalType === 'user') {
+                 const newUser: any = {
+                    id: editingItem ? editingItem.id : `user-${Date.now()}`,
+                    name: formData.get('name') as string,
+                    email: formData.get('email') as string,
+                    role: formData.get('role') as string,
+                    joinDate: editingItem ? editingItem.joinDate : new Date().toISOString().split('T')[0],
+                    orders: 0,
+                    password: formData.get('password') as string
+                };
+                 if (editingItem) {
+                    setLocalUsers(prev => prev.map(u => u.id === editingItem.id ? { ...u, ...newUser } : u));
+                    toast.success('Utilisateur mis à jour !');
+                } else {
+                    setLocalUsers(prev => [...prev, newUser]);
+                    toast.success('Utilisateur ajouté !');
+                }
+            } else if (modalType === 'role') {
+                 const newRole: any = {
+                    id: editingItem ? editingItem.id : `role-${Date.now()}`,
+                    name: formData.get('name') as string,
+                    description: formData.get('description') as string
+                };
+                 if (editingItem) {
+                    setLocalRoles(prev => prev.map(r => r.id === editingItem.id ? { ...r, ...newRole } : r));
+                    toast.success('Rôle mis à jour !');
+                } else {
+                    setLocalRoles(prev => [...prev, newRole]);
+                    toast.success('Rôle ajouté !');
+                }
+            } else if (modalType === 'currency') {
+                 const newCurrency: any = {
+                    code: (formData.get('code') as string || 'NEW').toUpperCase(),
+                    name: formData.get('name') as string,
+                    symbol: formData.get('symbol') as string,
+                    rate: Number(formData.get('rate')),
+                    flag: '🏳️'
+                };
+                 if (editingItem) {
+                    setLocalCurrencies(prev => prev.map(c => c.code === editingItem.code ? { ...c, ...newCurrency } : c));
+                    toast.success('Devise mise à jour !');
+                } else {
+                    setLocalCurrencies(prev => [...prev, newCurrency]);
+                    toast.success('Devise ajoutée !');
+                }
+            } else if (modalType === 'notification') {
+                const newNotif: any = {
+                    id: editingItem ? editingItem.id : `notif-${Date.now()}`,
+                    title: formData.get('title') as string,
+                    message: formData.get('message') as string,
+                    sentAt: editingItem ? editingItem.sentAt : '',
+                    status: editingItem ? editingItem.status : 'draft',
+                    read: false,
+                    type: 'info'
+                };
+                 if (editingItem) {
+                    setLocalNotifications(prev => prev.map(n => n.id === editingItem.id ? { ...n, ...newNotif } : n));
+                    toast.success('Notification mise à jour !');
+                } else {
+                    setLocalNotifications(prev => [newNotif, ...prev]);
+                    toast.success('Notification enregistrée en brouillon !');
+                }
+            } else if (modalType === 'email') {
+                 const newEmail: any = {
+                    id: editingItem ? editingItem.id : `email-${Date.now()}`,
+                    subject: formData.get('subject') as string,
+                    recipient: formData.get('recipient') as string,
+                    content: formData.get('content') as string,
+                    status: 'Envoyé',
+                    sentAt: new Date().toISOString().split('T')[0]
+                };
+                 if (editingItem) {
+                    setLocalEmails(prev => prev.map(e => e.id === editingItem.id ? { ...e, ...newEmail } : e));
+                    toast.success('Email mis à jour !');
+                } else {
+                    setLocalEmails(prev => [newEmail, ...prev]);
+                    toast.success('Email envoyé !');
+                }
+            } else if (modalType === 'customer') {
+                 const newUser: any = {
+                    id: editingItem ? editingItem.id : `user-${Date.now()}`,
+                    name: formData.get('name') as string,
+                    email: formData.get('email') as string,
+                    role: formData.get('role') as string,
+                    joinDate: new Date().toISOString().split('T')[0],
+                    orders: 0,
+                    totalSpent: 0,
+                    avatar: 'https://i.pravatar.cc/150?u=' + Date.now()
+                };
+                 if (editingItem) {
+                    setLocalUsers(prev => prev.map(u => u.id === editingItem.id ? { ...u, ...newUser } : u));
+                    toast.success('Client mis à jour !');
+                } else {
+                    setLocalUsers(prev => [...prev, newUser]);
+                    toast.success('Client ajouté !');
+                }
+            } else if (modalType === 'event') {
+                 const newEvent: any = {
+                    id: editingItem ? editingItem.id : `evt-${Date.now()}`,
+                    name: formData.get('name') as string,
+                    startDate: formData.get('startDate') as string,
+                    endDate: formData.get('endDate') as string,
+                    discountPercentage: Number(formData.get('discountPercentage')),
+                    applyToAll: formData.get('applyToAll') === 'all',
+                    isActive: true
+                };
+                 if (editingItem) {
+                    setEvents(prev => prev.map(e => e.id === editingItem.id ? { ...e, ...newEvent } : e));
+                    toast.success('Évènement mis à jour !');
+                } else {
+                    setEvents(prev => [...prev, newEvent]);
+                    toast.success('Évènement créé !');
+                }
+            } else if (modalType === 'expense') {
+                const newExpense: any = {
+                    id: editingItem ? editingItem.id : `exp-${Date.now()}`,
+                    description: formData.get('description') as string,
+                    amount: Number(formData.get('amount')),
+                    date: formData.get('date') as string,
+                    category: formData.get('category') as string
+                };
+                 if (editingItem) {
+                    setLocalExpenses(prev => prev.map(e => e.id === editingItem.id ? { ...e, ...newExpense } : e));
+                    toast.success('Dépense mise à jour !');
+                } else {
+                    setLocalExpenses(prev => [...prev, newExpense]);
+                    toast.success('Dépense ajoutée !');
+                }
             }
             
             setIsAddModalOpen(false); 
@@ -379,6 +582,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Nom du produit</label>
                   <input 
+                    name="name"
                     type="text" 
                     className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-primary" 
                     placeholder="Laine Mérinos..." 
@@ -388,6 +592,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Catégorie</label>
                   <select 
+                    name="category"
                     className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-primary"
                     defaultValue={editingItem?.category}
                   >
@@ -397,6 +602,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Prix (FCFA)</label>
                   <input 
+                    name="price"
                     type="number" 
                     className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-primary" 
                     placeholder="8500" 
@@ -406,6 +612,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Prix Promo (Optionnel)</label>
                   <input 
+                    name="promoPrice"
                     type="number" 
                     className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-primary" 
                     placeholder="7500" 
@@ -415,6 +622,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Stock Initial</label>
                   <input 
+                    name="stock"
                     type="number" 
                     className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-primary" 
                     placeholder="50" 
@@ -440,6 +648,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     <div className="space-y-2">
                       <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Meta Title</label>
                       <input 
+                        name="seoTitle"
                         type="text" 
                         className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-primary" 
                         placeholder="Titre pour Google..." 
@@ -449,6 +658,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     <div className="space-y-2">
                       <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Meta Description</label>
                       <textarea 
+                        name="seoDescription"
                         className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-primary h-20" 
                         placeholder="Description pour les résultats de recherche..."
                         defaultValue={editingItem?.seo?.description}
@@ -475,6 +685,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 <div className="col-span-2 space-y-2">
                   <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Description</label>
                   <textarea 
+                    name="description"
                     className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-primary h-32" 
                     placeholder="Description détaillée du produit..."
                     defaultValue={editingItem?.description}
@@ -482,12 +693,186 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 </div>
               </div>
             )}
-
+            {modalType === 'pack' && (
+              <div className="grid grid-cols-1 gap-6">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Nom du pack</label>
+                  <input name="name" type="text" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-primary" defaultValue={editingItem?.name} required />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Description</label>
+                  <textarea name="description" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-primary" defaultValue={editingItem?.description} required />
+                </div>
+                <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Réduction (%)</label>
+                        <input name="discountPercentage" type="number" min="0" max="100" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-primary" defaultValue={editingItem?.discountPercentage || 10} required />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Code Promo (Auto)</label>
+                        <input name="promoCode" type="text" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-primary" defaultValue={editingItem?.promoCode} placeholder="Généré automatiquement si vide" />
+                    </div>
+                </div>
+                <div className="space-y-4">
+                    <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Produits du Pack (Max 4)</label>
+                    <div className="space-y-3">
+                        {selectedPackProducts.map((item, idx) => (
+                            <div key={idx} className="flex gap-4 items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                <select 
+                                    value={item.productId} 
+                                    onChange={(e) => {
+                                        const newProducts = [...selectedPackProducts];
+                                        newProducts[idx].productId = e.target.value;
+                                        setSelectedPackProducts(newProducts);
+                                    }}
+                                    className="flex-grow bg-transparent font-medium focus:outline-none"
+                                >
+                                    {localProducts.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                </select>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs text-slate-400 font-bold">Qté:</span>
+                                    <input 
+                                        type="number" 
+                                        min="1"
+                                        value={item.quantity} 
+                                        onChange={(e) => {
+                                            const newProducts = [...selectedPackProducts];
+                                            newProducts[idx].quantity = Number(e.target.value);
+                                            setSelectedPackProducts(newProducts);
+                                        }}
+                                        className="w-16 px-3 py-2 bg-white rounded-xl border border-slate-200 text-center font-bold"
+                                    />
+                                </div>
+                                <button 
+                                    type="button" 
+                                    onClick={() => setSelectedPackProducts(prev => prev.filter((_, i) => i !== idx))}
+                                    className="w-8 h-8 rounded-full bg-red-100 text-red-500 flex items-center justify-center hover:bg-red-200 transition-colors"
+                                >
+                                    <X size={16} />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                    {selectedPackProducts.length < 4 && (
+                        <button 
+                            type="button" 
+                            onClick={() => setSelectedPackProducts(prev => [...prev, { productId: localProducts[0]?.id || '', quantity: 1 }])}
+                            className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-bold hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2"
+                        >
+                            <Plus size={20} /> Ajouter un produit
+                        </button>
+                    )}
+                </div>
+              </div>
+            )}
+            {modalType === 'user' && (
+              <div className="grid grid-cols-1 gap-6">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Nom complet</label>
+                  <input name="name" type="text" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-primary" defaultValue={editingItem?.name} required />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Email</label>
+                  <input name="email" type="email" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-primary" defaultValue={editingItem?.email} required />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Mot de passe</label>
+                  <input name="password" type="password" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-primary" placeholder={editingItem ? "Laisser vide pour ne pas changer" : "Mot de passe"} required={!editingItem} />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Rôle</label>
+                  <select name="role" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-primary" defaultValue={editingItem?.role}>
+                    {localRoles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                    <option value="customer">Client</option>
+                  </select>
+                </div>
+              </div>
+            )}
+            {modalType === 'role' && (
+              <div className="grid grid-cols-1 gap-6">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Nom du rôle</label>
+                  <input name="name" type="text" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-primary" defaultValue={editingItem?.name} required />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Description</label>
+                  <textarea name="description" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-primary" defaultValue={editingItem?.description} required />
+                </div>
+              </div>
+            )}
+            {modalType === 'currency' && (
+              <div className="grid grid-cols-1 gap-6">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Code</label>
+                  <input name="code" type="text" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl" defaultValue={editingItem?.code} placeholder="USD" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Nom de la devise</label>
+                  <input name="name" type="text" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl" defaultValue={editingItem?.name} />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Symbole</label>
+                  <input name="symbol" type="text" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl" defaultValue={editingItem?.symbol} />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Taux</label>
+                  <input name="rate" type="number" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl" defaultValue={editingItem?.rate} />
+                </div>
+              </div>
+            )}
+            {modalType === 'notification' && (
+              <div className="grid grid-cols-1 gap-6">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Titre</label>
+                  <input name="title" type="text" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl" defaultValue={editingItem?.title} />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Message</label>
+                  <textarea name="message" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl" defaultValue={editingItem?.message} />
+                </div>
+              </div>
+            )}
+            {modalType === 'email' && (
+              <div className="grid grid-cols-1 gap-6">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Sujet</label>
+                  <input name="subject" type="text" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl" defaultValue={editingItem?.subject} />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Destinataire</label>
+                  <input name="recipient" type="email" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl" defaultValue={editingItem?.recipient} />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Contenu</label>
+                  <textarea name="content" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl" defaultValue={editingItem?.content} />
+                </div>
+              </div>
+            )}
+            {modalType === 'customer' && (
+              <div className="grid grid-cols-1 gap-6">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Nom complet</label>
+                  <input name="name" type="text" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl" defaultValue={editingItem?.name} />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Email</label>
+                  <input name="email" type="email" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl" defaultValue={editingItem?.email} />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Rôle</label>
+                  <select name="role" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl" defaultValue={editingItem?.role || 'customer'}>
+                    <option value="customer">Client</option>
+                    <option value="admin">Administrateur</option>
+                  </select>
+                </div>
+              </div>
+            )}
             {modalType === 'category' && (
               <div className="space-y-6">
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Nom de la catégorie</label>
                   <input 
+                    name="name"
                     type="text" 
                     className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-primary" 
                     placeholder="Décoration Murale..." 
@@ -497,6 +882,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Image de couverture (URL)</label>
                   <input 
+                    name="image"
                     type="text" 
                     className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-primary" 
                     placeholder="https://..." 
@@ -512,6 +898,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                   <div className="col-span-2 space-y-2">
                     <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Nom de l'évènement</label>
                     <input 
+                      name="name"
                       type="text" 
                       className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-primary" 
                       placeholder="Soldes d'Été..." 
@@ -521,6 +908,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                   <div className="space-y-2">
                     <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Date de début</label>
                     <input 
+                      name="startDate"
                       type="datetime-local" 
                       className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-primary" 
                       defaultValue={editingItem?.startDate}
@@ -529,6 +917,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                   <div className="space-y-2">
                     <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Date de fin</label>
                     <input 
+                      name="endDate"
                       type="datetime-local" 
                       className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-primary" 
                       defaultValue={editingItem?.endDate}
@@ -537,6 +926,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                   <div className="space-y-2">
                     <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Pourcentage de remise (%)</label>
                     <input 
+                      name="discountPercentage"
                       type="number" 
                       className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-primary" 
                       placeholder="20" 
@@ -546,6 +936,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                   <div className="space-y-2">
                     <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Portée</label>
                     <select 
+                      name="applyToAll"
                       className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-primary"
                       defaultValue={editingItem?.applyToAll ? 'all' : 'specific'}
                     >
@@ -557,7 +948,46 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
               </div>
             )}
 
+            {modalType === 'expense' && (
+              <div className="grid grid-cols-1 gap-6">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Description</label>
+                  <input name="description" type="text" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-primary" defaultValue={editingItem?.description} required />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Montant (FCFA)</label>
+                  <input name="amount" type="number" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-primary" defaultValue={editingItem?.amount} required />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Date</label>
+                  <input name="date" type="date" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-primary" defaultValue={editingItem?.date} required />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Catégorie</label>
+                  <select name="category" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-primary" defaultValue={editingItem?.category || 'other'}>
+                    <option value="stock">Achat Stock</option>
+                    <option value="transport">Transport / Livraison</option>
+                    <option value="marketing">Marketing / Pub</option>
+                    <option value="other">Autre</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
             <div className="pt-6 flex gap-4">
+              {editingItem && (
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setIsAddModalOpen(false);
+                    setEditingItem(null);
+                    toast.success('Élément supprimé avec succès !');
+                  }}
+                  className="flex-grow py-4 bg-red-100 text-red-600 rounded-2xl font-bold hover:bg-red-200 transition-all"
+                >
+                  Supprimer
+                </button>
+              )}
               <button type="button" onClick={() => { setIsAddModalOpen(false); setEditingItem(null); }} className="flex-grow py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all">
                 Annuler
               </button>
@@ -581,14 +1011,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 <div className="space-y-6">
                   <div>
                     <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Informations Client</h4>
-                    <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                      <p className="font-bold text-lg text-slate-900">{selectedOrder.customer}</p>
+                    <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 relative">
+                      <p className="font-bold text-lg text-slate-900 pr-12">{selectedOrder.customer}</p>
                       <p className="text-sm text-slate-500 mt-1">{selectedOrder.address || 'Adresse non renseignée'}</p>
                       <div className="mt-4 flex gap-2">
                         <span className="px-3 py-1 bg-white border border-slate-200 rounded-full text-[10px] font-bold uppercase tracking-widest text-slate-600">
                           {selectedOrder.paymentMethod}
                         </span>
                       </div>
+                      <button 
+                        onClick={() => {
+                          const user = localUsers.find(u => u.name === selectedOrder.customer);
+                          if (user) {
+                            setSelectedOrder(null);
+                            setTimeout(() => setSelectedCustomer(user), 300);
+                          } else {
+                            toast.error("Profil client introuvable");
+                          }
+                        }}
+                        className="absolute top-6 right-6 p-3 bg-white rounded-full shadow-sm text-primary hover:text-accent hover:shadow-md transition-all"
+                        title="Voir le profil client"
+                      >
+                        <User size={20} />
+                      </button>
                     </div>
                   </div>
 
@@ -638,8 +1083,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                   Fermer
                 </button>
                 <button 
-                  onClick={() => generateInvoicePDF(selectedOrder)}
-                  className="px-8 py-3 bg-primary text-white rounded-xl font-bold hover:bg-accent transition-all shadow-lg"
+                  onClick={() => {
+                    if (selectedOrder.status === 'delivered') generateInvoicePDF(selectedOrder);
+                    else toast.error("La facture n'est disponible qu'après la livraison.");
+                  }}
+                  className={`px-8 py-3 rounded-xl font-bold transition-all shadow-lg ${selectedOrder.status === 'delivered' ? 'bg-primary text-white hover:bg-accent' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
+                  title={selectedOrder.status === 'delivered' ? "Imprimer la facture" : "Disponible après livraison"}
                 >
                   Imprimer la facture
                 </button>
@@ -1456,6 +1905,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
         {activeTab === 'customers' && (
           <div className="space-y-6">
+            <div className="flex justify-end">
+              <button 
+                onClick={() => { setModalType('customer'); setIsAddModalOpen(true); }}
+                className="bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg"
+              >
+                + Ajouter un Client
+              </button>
+            </div>
             <TabFilter 
               options={[
                 { id: 'all', label: 'Tous' },
@@ -1607,6 +2064,182 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 }
               ]}
             />
+          </div>
+        )}
+
+        {activeTab === 'finances' && (
+          <div className="space-y-10">
+            {/* Financial Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+              {[
+                { 
+                  label: "Chiffre d'Affaires", 
+                  value: localOrders.reduce((acc, o) => acc + o.total, 0), 
+                  color: "text-green-600",
+                  icon: <TrendingUp size={20} />
+                },
+                { 
+                  label: "Coût d'Achat (Estimé)", 
+                  value: localOrders.reduce((acc, o) => {
+                    return acc + (o.orderDetails?.reduce((sum, item) => {
+                      const product = localProducts.find(p => p.id === item.productId);
+                      return sum + ((product?.purchasePrice || 0) * item.quantity);
+                    }, 0) || 0);
+                  }, 0), 
+                  color: "text-blue-600",
+                  icon: <ShoppingBag size={20} />
+                },
+                { 
+                  label: "Dépenses Totales", 
+                  value: localExpenses.reduce((acc, e) => acc + e.amount, 0), 
+                  color: "text-red-600",
+                  icon: <ArrowDownRight size={20} />
+                },
+                { 
+                  label: "Bénéfice Net", 
+                  value: localOrders.reduce((acc, o) => acc + o.total, 0) - 
+                         localOrders.reduce((acc, o) => {
+                           return acc + (o.orderDetails?.reduce((sum, item) => {
+                             const product = localProducts.find(p => p.id === item.productId);
+                             return sum + ((product?.purchasePrice || 0) * item.quantity);
+                           }, 0) || 0);
+                         }, 0) - 
+                         localExpenses.reduce((acc, e) => acc + e.amount, 0), 
+                  color: "text-accent",
+                  icon: <Coins size={20} />
+                },
+              ].map((stat, i) => (
+                <div key={i} className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="p-3 bg-slate-50 rounded-2xl text-primary">{stat.icon}</div>
+                  </div>
+                  <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">{stat.label}</p>
+                  <h3 className={`text-2xl font-bold ${stat.color}`}>{stat.value.toLocaleString()} FCFA</h3>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+              {/* Expenses Chart */}
+              <div className="lg:col-span-2 bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+                <h3 className="text-xl font-serif mb-8">Répartition des Dépenses</h3>
+                <div className="h-80 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={[
+                      { name: 'Stock', value: localExpenses.filter(e => e.category === 'stock').reduce((acc, e) => acc + e.amount, 0) },
+                      { name: 'Transport', value: localExpenses.filter(e => e.category === 'transport').reduce((acc, e) => acc + e.amount, 0) },
+                      { name: 'Marketing', value: localExpenses.filter(e => e.category === 'marketing').reduce((acc, e) => acc + e.amount, 0) },
+                      { name: 'Autre', value: localExpenses.filter(e => e.category === 'other').reduce((acc, e) => acc + e.amount, 0) },
+                    ]}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} dy={10} />
+                      <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                      <Tooltip 
+                        cursor={{fill: '#f8fafc'}}
+                        contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                        formatter={(value: number) => [`${value.toLocaleString()} FCFA`, 'Montant']}
+                      />
+                      <Bar dataKey="value" fill="#F27D26" radius={[6, 6, 0, 0]} barSize={40} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Profit Chart */}
+              <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+                <h3 className="text-xl font-serif mb-8">Rentabilité</h3>
+                <div className="h-80 w-full flex items-center justify-center">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: 'Coûts', value: localOrders.reduce((acc, o) => {
+                            return acc + (o.orderDetails?.reduce((sum, item) => {
+                              const product = localProducts.find(p => p.id === item.productId);
+                              return sum + ((product?.purchasePrice || 0) * item.quantity);
+                            }, 0) || 0);
+                          }, 0) + localExpenses.reduce((acc, e) => acc + e.amount, 0), color: '#ef4444' },
+                          { name: 'Bénéfice', value: Math.max(0, localOrders.reduce((acc, o) => acc + o.total, 0) - 
+                            localOrders.reduce((acc, o) => {
+                              return acc + (o.orderDetails?.reduce((sum, item) => {
+                                const product = localProducts.find(p => p.id === item.productId);
+                                return sum + ((product?.purchasePrice || 0) * item.quantity);
+                              }, 0) || 0);
+                            }, 0) - 
+                            localExpenses.reduce((acc, e) => acc + e.amount, 0)), color: '#22c55e' },
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {[
+                          { color: '#ef4444' },
+                          { color: '#22c55e' },
+                        ].map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value: number) => [`${value.toLocaleString()} FCFA`, 'Montant']} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="mt-4 flex justify-center gap-6">
+                    <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-red-500" />
+                        <span className="text-sm text-slate-600">Coûts</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-green-500" />
+                        <span className="text-sm text-slate-600">Bénéfice</span>
+                    </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Expenses Table */}
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-serif">Journal des Dépenses</h3>
+                <button 
+                  onClick={() => { setModalType('expense'); setIsAddModalOpen(true); }}
+                  className="bg-primary text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-accent transition-all shadow-md"
+                >
+                  <Plus size={18} /> Ajouter une dépense
+                </button>
+              </div>
+              <DataTable<Expense>
+                data={localExpenses}
+                title="Dépenses"
+                onRowClick={(expense) => { setEditingItem(expense); setModalType('expense'); setIsAddModalOpen(true); }}
+                columns={[
+                  { header: 'Date', accessor: 'date', className: 'text-slate-400 text-sm' },
+                  { header: 'Description', accessor: 'description', className: 'font-medium' },
+                  { 
+                    header: 'Catégorie', 
+                    accessor: (e) => (
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
+                        e.category === 'stock' ? 'bg-blue-100 text-blue-600' :
+                        e.category === 'transport' ? 'bg-yellow-100 text-yellow-600' :
+                        e.category === 'marketing' ? 'bg-purple-100 text-purple-600' : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {e.category === 'stock' ? 'Achat Stock' :
+                         e.category === 'transport' ? 'Transport' :
+                         e.category === 'marketing' ? 'Marketing' : 'Autre'}
+                      </span>
+                    ),
+                    exportValue: (e) => e.category
+                  },
+                  { 
+                    header: 'Montant', 
+                    accessor: (e) => <span className="font-bold text-red-500">-{e.amount.toLocaleString()} FCFA</span>,
+                    exportValue: (e) => e.amount.toString()
+                  }
+                ]}
+              />
+            </div>
           </div>
         )}
 
@@ -2055,38 +2688,214 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
         {activeTab === 'roles' && (
           <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-serif">Rôles & Permissions</h2>
-              <button className="bg-primary text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-accent transition-all shadow-lg">
-                <Plus size={18} /> Nouveau Rôle
+            <div className="flex justify-end">
+              <button 
+                onClick={() => { setModalType('role'); setIsAddModalOpen(true); }}
+                className="bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg"
+              >
+                + Ajouter un Rôle
               </button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {ADMIN_ROLES.map(role => (
-                <div key={role.id} className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm hover:border-primary transition-all group">
-                  <div className="flex justify-between items-start mb-6">
-                    <div className="p-3 bg-primary/5 rounded-2xl text-primary">
-                      <Shield size={24} />
-                    </div>
-                    <button className="text-slate-300 group-hover:text-primary transition-colors">
-                      <Settings size={18} />
-                    </button>
-                  </div>
-                  <h3 className="text-xl font-serif font-bold mb-2">{role.name}</h3>
-                  <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-6">{role.permissions.length} Permissions</p>
-                  <div className="flex flex-wrap gap-2">
-                    {role.permissions.map(p => (
-                      <span key={p} className="px-3 py-1 bg-slate-50 text-slate-500 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-slate-100">
-                        {p}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <DataTable<Role>
+              data={localRoles}
+              onRowClick={(role) => { setEditingItem(role); setModalType('role'); }}
+              title="Gestion des Rôles"
+              columns={[
+                { header: 'Nom', accessor: 'name', className: 'font-bold' },
+                { header: 'Description', accessor: 'description', className: 'text-slate-500' },
+                {
+                    header: 'Actions',
+                    accessor: (role: Role) => (
+                        <div className="flex gap-2">
+                            <button onClick={(e) => { e.stopPropagation(); setEditingItem(role); setModalType('role'); }} className="text-primary hover:text-accent font-bold text-sm">Modifier</button>
+                        </div>
+                    )
+                }
+              ]}
+            />
           </div>
         )}
 
+        {activeTab === 'users' && (
+          <div className="space-y-6">
+            <div className="flex justify-end">
+              <button 
+                onClick={() => { setModalType('user'); setIsAddModalOpen(true); }}
+                className="bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg"
+              >
+                + Ajouter un Utilisateur
+              </button>
+            </div>
+            <DataTable<UserType>
+              data={localUsers.filter(u => u.role !== 'customer')}
+              onRowClick={(user) => { setEditingItem(user); setModalType('user'); }}
+              title="Liste des Utilisateurs"
+              columns={[
+                {
+                  header: 'Utilisateur',
+                  accessor: (user: UserType) => (
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-accent/10 text-accent flex items-center justify-center font-bold">
+                        {user.name[0]}
+                      </div>
+                      <span className="font-medium">{user.name}</span>
+                    </div>
+                  ),
+                },
+                { header: 'Email', accessor: 'email', className: 'text-slate-400' },
+                { 
+                  header: 'Rôle', 
+                  accessor: (u: UserType) => localRoles.find(r => r.id === u.role)?.name || (u.role === 'customer' ? 'Client' : u.role), 
+                  className: 'font-bold uppercase text-xs tracking-widest' 
+                },
+                { header: 'Date d\'ajout', accessor: 'joinDate', className: 'text-slate-400' },
+                {
+                    header: 'Actions',
+                    accessor: (user: UserType) => (
+                        <div className="flex gap-2">
+                            <button onClick={(e) => { e.stopPropagation(); setEditingItem(user); setModalType('user'); }} className="text-primary hover:text-accent font-bold text-sm">Modifier</button>
+                        </div>
+                    )
+                }
+              ]}
+            />
+          </div>
+        )}
+
+        {activeTab === 'packs' && (
+          <div className="space-y-6">
+            <div className="flex justify-end">
+              <button 
+                onClick={() => { setModalType('pack'); setIsAddModalOpen(true); }}
+                className="bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg"
+              >
+                + Ajouter un Pack
+              </button>
+            </div>
+            <DataTable<Pack>
+              data={localPacks}
+              onRowClick={(p) => { setEditingItem(p); setModalType('pack'); }}
+              title="Packs"
+              columns={[
+                { header: 'ID', accessor: 'id', className: 'font-mono text-xs' },
+                { header: 'Nom', accessor: 'name', className: 'font-bold' },
+                { header: 'Produits', accessor: (p: Pack) => p.products.length, className: 'text-center font-bold' },
+                { header: 'Code Promo', accessor: 'promoCode', className: 'font-mono text-accent' },
+                { header: 'Réduction', accessor: (p) => `${p.discountPercentage}%`, className: 'text-right' },
+              ]}
+            />
+          </div>
+        )}
+        {activeTab === 'notifications' && (
+          <div className="space-y-6">
+            <div className="flex justify-end">
+              <button 
+                onClick={() => { setModalType('notification'); setIsAddModalOpen(true); }}
+                className="bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg"
+              >
+                + Ajouter une Notification
+              </button>
+            </div>
+            <DataTable<PushNotification>
+              data={localNotifications}
+              onRowClick={(n) => { setEditingItem(n); setModalType('notification'); }}
+              title="Notifications Push"
+              columns={[
+                { header: 'ID', accessor: 'id', className: 'font-mono text-xs' },
+                { header: 'Titre', accessor: 'title', className: 'font-bold' },
+                { header: 'Message', accessor: 'message', className: 'text-slate-400' },
+                { 
+                  header: 'Statut', 
+                  accessor: (n) => (
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
+                      n.status === 'sent' ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600'
+                    }`}>
+                      {n.status === 'sent' ? 'Envoyé' : 'Brouillon'}
+                    </span>
+                  ),
+                  exportValue: (n) => n.status
+                },
+                { header: 'Date d\'envoi', accessor: 'sentAt', className: 'text-slate-400' },
+                {
+                  header: 'Actions',
+                  accessor: (n) => (
+                    <div className="flex gap-2">
+                      {n.status === 'draft' && (
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setLocalNotifications(prev => prev.map(notif => 
+                              notif.id === n.id 
+                                ? { ...notif, status: 'sent', sentAt: new Date().toISOString().split('T')[0] } 
+                                : notif
+                            ));
+                            toast.success('Notification envoyée !');
+                          }}
+                          className="text-primary font-bold text-sm hover:underline"
+                        >
+                          Envoyer
+                        </button>
+                      )}
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setEditingItem(n); setModalType('notification'); }}
+                        className="text-slate-400 font-bold text-sm hover:underline"
+                      >
+                        Modifier
+                      </button>
+                    </div>
+                  )
+                }
+              ]}
+            />
+          </div>
+        )}
+        {activeTab === 'emails' && (
+          <div className="space-y-6">
+            <div className="flex justify-end">
+              <button 
+                onClick={() => { setModalType('email'); setIsAddModalOpen(true); }}
+                className="bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg"
+              >
+                + Ajouter un Email
+              </button>
+            </div>
+            <DataTable<Email>
+              data={localEmails}
+              onRowClick={(e) => { setEditingItem(e); setModalType('email'); }}
+              title="Gestion Emails"
+              columns={[
+                { header: 'ID', accessor: 'id', className: 'font-mono text-xs' },
+                { header: 'Sujet', accessor: 'subject', className: 'font-bold' },
+                { header: 'Destinataire', accessor: 'recipient', className: 'text-slate-400' },
+                { header: 'Statut', accessor: 'status', className: 'font-bold' },
+              ]}
+            />
+          </div>
+        )}
+        {activeTab === 'currencies' && (
+          <div className="space-y-6">
+            <div className="flex justify-end">
+              <button 
+                onClick={() => { setModalType('currency'); setIsAddModalOpen(true); }}
+                className="bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg"
+              >
+                + Ajouter une Devise
+              </button>
+            </div>
+            <DataTable<Currency>
+              data={localCurrencies}
+              onRowClick={(c) => { setEditingItem(c); setModalType('currency'); }}
+              title="Devises"
+              columns={[
+                { header: 'Code', accessor: 'code', className: 'font-mono text-xs' },
+                { header: 'Nom', accessor: 'name', className: 'font-bold' },
+                { header: 'Symbole', accessor: 'symbol', className: 'text-slate-400' },
+                { header: 'Taux', accessor: 'rate', className: 'text-right' },
+              ]}
+            />
+          </div>
+        )}
+        
         {activeTab === 'site' && (
           <div className="space-y-10">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
@@ -2325,6 +3134,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             </div>
           </div>
         )}
+        
+        <footer className="mt-12 pt-8 border-t border-slate-200 flex flex-col md:flex-row justify-between items-center text-xs text-slate-400">
+          <p>© 2024 Laine & Déco Admin. Tous droits réservés.</p>
+          <div className="flex gap-6 mt-4 md:mt-0">
+            <a href="#" className="hover:text-primary transition-colors">Support Technique</a>
+            <a href="#" className="hover:text-primary transition-colors">Documentation</a>
+            <span className="font-mono">v1.2.0</span>
+          </div>
+        </footer>
       </main>
     </div>
   );

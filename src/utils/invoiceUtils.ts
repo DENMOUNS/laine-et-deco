@@ -46,6 +46,12 @@ export const generateInvoicePDF = (order: Order) => {
   doc.setFontSize(14);
   doc.text(`TOTAL: ${order.total.toLocaleString()} FCFA`, 140, finalY + 20);
   
+  // System Generated Mention
+  doc.setFontSize(10);
+  doc.setTextColor(150, 150, 150);
+  doc.text("FACTURE GÉNÉRÉE PAR LE SYSTÈME", 105, finalY + 40, { align: "center" });
+  doc.setTextColor(0, 0, 0); // Reset color
+  
   // Footer
   doc.setFontSize(10);
   doc.text("Merci pour votre confiance !", 105, 280, { align: "center" });

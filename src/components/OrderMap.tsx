@@ -48,11 +48,34 @@ export const OrderMap: React.FC<OrderMapProps> = ({ customerLocation, customerNa
 
   return (
     <div className="h-full w-full rounded-2xl overflow-hidden border border-slate-200 shadow-sm z-0">
-      <MapContainer center={customerLocation} zoom={13} style={{ height: '100%', width: '100%' }}>
+      <MapContainer 
+        center={customerLocation} 
+        zoom={13} 
+        style={{ height: '100%', width: '100%' }}
+        attributionControl={false}
+      >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
+        <div className="leaflet-bottom leaflet-right">
+          <div className="leaflet-control-attribution leaflet-control" style={{ 
+            margin: 0, 
+            padding: '4px 10px', 
+            background: 'rgba(255,255,255,0.9)', 
+            fontSize: '10px',
+            fontWeight: 'bold',
+            color: '#1e293b',
+            borderTopLeftRadius: '12px',
+            boxShadow: '0 -2px 10px rgba(0,0,0,0.05)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}>
+            <span className="text-accent">Laine & Déco</span>
+            <span className="text-slate-300">|</span>
+            <span>&copy; OpenStreetMap contributors</span>
+          </div>
+        </div>
         <ChangeView center={customerLocation} />
         
         {/* Delivery Marker */}

@@ -67,9 +67,9 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ product, o
               referrerPolicy="no-referrer"
             />
           </motion.div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-4 no-scrollbar">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="aspect-square rounded-2xl overflow-hidden cursor-pointer border-2 border-transparent hover:border-accent transition-all">
+              <div key={i} className="min-w-[40vw] sm:min-w-0 snap-center aspect-square rounded-2xl overflow-hidden cursor-pointer border-2 border-transparent hover:border-accent transition-all">
                 <img 
                   src={`https://picsum.photos/seed/${product.id}-${i}/400/400`} 
                   alt="Gallery" 
@@ -320,17 +320,18 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ product, o
       {/* Related Products */}
       <section>
         <h2 className="text-3xl font-serif mb-12">Vous aimerez aussi</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-8 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 no-scrollbar">
           {relatedProducts.map((p) => (
-            <ProductCard 
-              key={p.id} 
-              product={p} 
-              onAddToCart={() => onAddToCart(p, 1)}
-              onAddToWishlist={onAddToWishlist}
-              onQuickView={onQuickView}
-              onClick={() => onNavigate('product-detail')}
-              events={events}
-            />
+            <div key={p.id} className="min-w-[85vw] sm:min-w-0 snap-center">
+              <ProductCard 
+                product={p} 
+                onAddToCart={() => onAddToCart(p, 1)}
+                onAddToWishlist={onAddToWishlist}
+                onQuickView={onQuickView}
+                onClick={() => onNavigate('product-detail')}
+                events={events}
+              />
+            </div>
           ))}
         </div>
       </section>

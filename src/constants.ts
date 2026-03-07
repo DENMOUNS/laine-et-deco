@@ -1,4 +1,11 @@
-import { Product, Category, Order, User, Review, BlogPost, Currency, LoginLog, RequestLog, Notification, SalesStat, Invoice, SiteConfig, ChatMessage, HomeSection, Conversation, Coupon, AdminRole, Language, PromoEvent } from './types';
+import { Product, Category, Order, User, Review, BlogPost, Currency, LoginLog, RequestLog, Notification, SalesStat, Invoice, SiteConfig, ChatMessage, Conversation, Coupon, AdminRole, Language, PromoEvent, Pack, PushNotification, Email, Expense } from './types';
+
+export const EXPENSES: Expense[] = [
+  { id: 'e1', description: 'Achat Laine Mérinos (Fournisseur A)', amount: 250000, date: '2024-02-01', category: 'stock' },
+  { id: 'e2', description: 'Transport Livraison Février', amount: 45000, date: '2024-02-28', category: 'transport' },
+  { id: 'e3', description: 'Campagne Facebook Ads', amount: 30000, date: '2024-03-01', category: 'marketing' },
+  { id: 'e4', description: 'Emballages et Cartons', amount: 15000, date: '2024-03-02', category: 'other' },
+];
 
 export const REVIEWS: Review[] = [
   { id: 'r1', userName: 'Sophie L.', rating: 5, comment: 'La laine est incroyablement douce ! J\'ai hâte de commencer mon projet.', date: '2024-02-15', images: ['https://picsum.photos/seed/review1/400/400'] },
@@ -62,11 +69,11 @@ export const BLOG_POSTS: BlogPost[] = [
 ];
 
 export const CURRENCIES: Currency[] = [
-  { code: 'XAF', symbol: 'FCFA', rate: 1, name: 'Franc CFA' },
-  { code: 'EUR', symbol: '€', rate: 0.0015, name: 'Euro' },
-  { code: 'USD', symbol: '$', rate: 0.0016, name: 'US Dollar' },
-  { code: 'GBP', symbol: '£', rate: 0.0013, name: 'British Pound' },
-  { code: 'CAD', symbol: 'C$', rate: 0.0022, name: 'Canadian Dollar' },
+  { id: 'c1', code: 'XAF', symbol: 'FCFA', rate: 1, name: 'Franc CFA' },
+  { id: 'c2', code: 'EUR', symbol: '€', rate: 0.0015, name: 'Euro' },
+  { id: 'c3', code: 'USD', symbol: '$', rate: 0.0016, name: 'US Dollar' },
+  { id: 'c4', code: 'GBP', symbol: '£', rate: 0.0013, name: 'British Pound' },
+  { id: 'c5', code: 'CAD', symbol: 'C$', rate: 0.0022, name: 'Canadian Dollar' },
 ];
 
 export const LOGIN_LOGS: LoginLog[] = [
@@ -175,7 +182,8 @@ export const PRODUCTS: Product[] = [
     views: 1250,
     salesCount: 85,
     brand: 'EcoWool',
-    seo: { title: 'Laine Mérinos Extra Fine - Laine & Déco', description: 'Achetez notre laine mérinos extra fine de qualité supérieure.' }
+    seo: { title: 'Laine Mérinos Extra Fine - Laine & Déco', description: 'Achetez notre laine mérinos extra fine de qualité supérieure.' },
+    purchasePrice: 4500
   },
   {
     id: 'p2',
@@ -193,7 +201,8 @@ export const PRODUCTS: Product[] = [
     views: 850,
     salesCount: 32,
     brand: 'TerraCotta',
-    seo: { title: 'Vase en Céramique Artisanale - Laine & Déco', description: 'Vase en céramique fait main, pièce unique.' }
+    seo: { title: 'Vase en Céramique Artisanale - Laine & Déco', description: 'Vase en céramique fait main, pièce unique.' },
+    purchasePrice: 15000
   },
   {
     id: 'p3',
@@ -214,7 +223,8 @@ export const PRODUCTS: Product[] = [
     views: 2100,
     salesCount: 145,
     brand: 'KnotArt',
-    seo: { title: 'Kit de Macramé Débutant - Laine & Déco', description: 'Apprenez le macramé avec notre kit complet pour débutants.' }
+    seo: { title: 'Kit de Macramé Débutant - Laine & Déco', description: 'Apprenez le macramé avec notre kit complet pour débutants.' },
+    purchasePrice: 8500
   },
   {
     id: 'p4',
@@ -234,7 +244,8 @@ export const PRODUCTS: Product[] = [
     views: 3400,
     salesCount: 56,
     brand: 'CozyHome',
-    seo: { title: 'Plaid en Grosse Maille - Laine & Déco', description: 'Plaid chaud et douillet en grosse maille pour votre salon.' }
+    seo: { title: 'Plaid en Grosse Maille - Laine & Déco', description: 'Plaid chaud et douillet en grosse maille pour votre salon.' },
+    purchasePrice: 35000
   },
   {
     id: 'p7',
@@ -251,7 +262,8 @@ export const PRODUCTS: Product[] = [
     reviews: [],
     views: 1100,
     salesCount: 42,
-    brand: 'SoftTouch'
+    brand: 'SoftTouch',
+    purchasePrice: 8000
   },
   {
     id: 'p8',
@@ -270,7 +282,8 @@ export const PRODUCTS: Product[] = [
     reviews: [],
     views: 950,
     salesCount: 28,
-    brand: 'NaturePure'
+    brand: 'NaturePure',
+    purchasePrice: 25000
   },
   {
     id: 'p9',
@@ -287,7 +300,8 @@ export const PRODUCTS: Product[] = [
     reviews: [],
     views: 1500,
     salesCount: 64,
-    brand: 'EcoWool'
+    brand: 'EcoWool',
+    purchasePrice: 9500
   },
   {
     id: 'p5',
@@ -304,7 +318,8 @@ export const PRODUCTS: Product[] = [
     reviews: [],
     views: 600,
     salesCount: 210,
-    brand: 'KnitPro'
+    brand: 'KnitPro',
+    purchasePrice: 2000
   },
   {
     id: 'p6',
@@ -321,7 +336,8 @@ export const PRODUCTS: Product[] = [
     reviews: [],
     views: 1800,
     salesCount: 120,
-    brand: 'ScentedLife'
+    brand: 'ScentedLife',
+    purchasePrice: 5000
   },
   {
     id: 'p10',
@@ -340,7 +356,8 @@ export const PRODUCTS: Product[] = [
     reviews: [],
     views: 1200,
     salesCount: 15,
-    brand: 'KnotArt'
+    brand: 'KnotArt',
+    purchasePrice: 18000
   }
 ];
 
@@ -559,4 +576,26 @@ export const ADMIN_ROLES: AdminRole[] = [
 export const LANGUAGES: Language[] = [
   { code: 'fr', name: 'Français', flag: '🇫🇷' },
   { code: 'en', name: 'English', flag: '🇬🇧' },
+];
+
+export const PUSH_NOTIFICATIONS: PushNotification[] = [
+  { id: 'pn1', title: 'Nouvelle Collection', message: 'Découvrez nos nouveautés !', sentAt: '2024-03-05 10:00', status: 'sent' }
+];
+
+export const EMAILS: Email[] = [
+  { id: 'e1', subject: 'Bienvenue', recipient: 'client@example.com', content: 'Bienvenue chez nous !', sentAt: '2024-03-05 11:00', status: 'sent' }
+];
+
+export const PACKS: Pack[] = [
+  {
+    id: 'pack1',
+    name: 'Pack Débutant Tricot',
+    description: 'Tout le nécessaire pour bien commencer le tricot.',
+    products: [
+      { productId: 'p1', quantity: 2 },
+      { productId: 'p5', quantity: 1 }
+    ],
+    promoCode: 'PACKDEBUTANT',
+    discountPercentage: 10
+  }
 ];
