@@ -90,6 +90,10 @@ export interface Product {
   isAvailable: boolean; // Added for stock management toggle
   material?: string;
   colors?: string[];
+  variants?: { color: string; hex: string; image?: string }[]; // Added for visual variants
+  careInstructions?: string[]; // Added for care guide
+  yardage?: number; // Added for yarn calculator (meters per skein)
+  weight?: number; // Added for yarn calculator (grams per skein)
   reviews?: Review[];
   views?: number;
   salesCount?: number;

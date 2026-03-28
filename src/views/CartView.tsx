@@ -98,6 +98,10 @@ export const CartView: React.FC<CartViewProps> = ({ cart, onUpdateQuantity, onRe
     setCouponCode('');
   };
 
+  const FREE_SHIPPING_THRESHOLD = 50000;
+  const progressToFreeShipping = Math.min((subtotal / FREE_SHIPPING_THRESHOLD) * 100, 100);
+  const amountNeededForFreeShipping = Math.max(FREE_SHIPPING_THRESHOLD - subtotal, 0);
+
   // Cross-selling logic
   const cartCategoryIds = cart.map(item => item.product.category);
   const relatedProducts = PRODUCTS.filter(p => 
@@ -129,6 +133,33 @@ export const CartView: React.FC<CartViewProps> = ({ cart, onUpdateQuantity, onRe
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
         {/* Cart Items */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Free Shipping Progress Bar */}
+          <div className="bg-white p-6 rounded-[2rem] border border-primary/5 shadow-sm">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="font-bold text-primary flex items-center gap-2">
+                <span className="text-xl">🚚</span> Livraison
+              </h3>
+              <span className="text-sm font-bold text-accent">
+                {amountNeededForFreeShipping === 0 
+                  ? "Livraison gratuite !" 
+                  : `Plus que ${amountNeededForFreeShipping.toLocaleString()} FCFA`}
+              </span>
+            </div>
+            <div className="w-full bg-secondary/50 rounded-full h-3 overflow-hidden">
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: `${progressToFreeShipping}%` }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                className={`h-full rounded-full ${progressToFreeShipping === 100 ? 'bg-green-500' : 'bg-accent'}`}
+              />
+            </div>
+            {amountNeededForFreeShipping === 0 && (
+              <p className="text-xs text-green-600 mt-2 font-medium flex items-center gap-1">
+                <CheckCircle2 size={14} /> Félicitations, vous bénéficiez de la livraison gratuite !
+              </p>
+            )}
+          </div>
+
           <AnimatePresence mode="popLayout">
             {cart.map((item) => (
               <motion.div

@@ -12,6 +12,11 @@ import { PackDetailView } from './views/PackDetailView';
 import { BlogIndexView } from './views/BlogIndexView';
 import { BlogPostView } from './views/BlogPostView';
 import { CustomerDashboard } from './views/CustomerDashboard';
+import { LookbookView } from './views/LookbookView';
+import { GalleryView } from './views/GalleryView';
+import { CareGuideView } from './views/CareGuideView';
+import { ContactView } from './views/ContactView';
+import { AboutView } from './views/AboutView';
 import { Product, SiteConfig, Language, Currency, PromoEvent } from './types';
 import { motion, AnimatePresence } from 'motion/react';
 import { SITE_CONFIG, LANGUAGES, CURRENCIES, ORDERS, PRODUCTS, PACKS } from './constants';
@@ -66,6 +71,12 @@ export default function App() {
       updateSEOMeta(siteConfig.seo.contact.title, siteConfig.seo.contact.description, siteConfig.seo.contact.ogImage);
     } else if (currentView === 'about') {
       updateSEOMeta(siteConfig.seo.about.title, siteConfig.seo.about.description, siteConfig.seo.about.ogImage);
+    } else if (currentView === 'lookbook') {
+      updateSEOMeta('Lookbook - Laine & Déco', 'Découvrez nos inspirations et ambiances.');
+    } else if (currentView === 'gallery') {
+      updateSEOMeta('Galerie - Laine & Déco', 'Notre galerie de créations.');
+    } else if (currentView === 'care-guide') {
+      updateSEOMeta('Guide d\'entretien - Laine & Déco', 'Conseils pour prendre soin de vos articles.');
     } else if (currentView === 'product-detail' && selectedProduct) {
       const title = selectedProduct.seo?.title || `${selectedProduct.name} - Laine & Déco`;
       const desc = selectedProduct.seo?.description || selectedProduct.description;
@@ -393,52 +404,23 @@ export default function App() {
             )}
 
             {currentView === 'about' && (
-              <StaticPageView 
-                title="À Propos de Nous" 
-                onBack={() => handleNavigate('home')}
-                content={
-                  <div className="space-y-6">
-                    <p>Bienvenue chez Laine & Déco, votre destination privilégiée pour l'artisanat et la décoration d'intérieur authentique au Cameroun.</p>
-                    <p>Notre histoire commence par une passion pour les matières nobles et le savoir-faire manuel. Nous croyons que chaque foyer mérite une âme, et que cette âme se construit à travers des objets qui ont une histoire.</p>
-                    <h2 className="text-2xl font-bold mt-8">Notre Mission</h2>
-                    <p>Nous nous engageons à promouvoir l'artisanat local et international en sélectionnant rigoureusement des produits qui allient esthétique moderne et techniques traditionnelles.</p>
-                  </div>
-                }
-              />
+              <AboutView onNavigate={handleNavigate} />
             )}
 
             {currentView === 'contact' && (
-              <StaticPageView 
-                title="Contactez-nous" 
-                onBack={() => handleNavigate('home')}
-                content={
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                    <div className="space-y-6">
-                      <p>Une question ? Un projet de décoration ? Notre équipe est à votre écoute.</p>
-                      <div className="space-y-4">
-                        <div>
-                          <h3 className="font-bold text-primary">Adresse</h3>
-                          <p>Douala, Akwa - Rue des Écoles</p>
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-primary">Email</h3>
-                          <p>contact@laine-deco.com</p>
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-primary">Téléphone</h3>
-                          <p>+237 600 000 000</p>
-                        </div>
-                      </div>
-                    </div>
-                    <form className="space-y-4 bg-slate-50 p-8 rounded-3xl border border-primary/5">
-                      <input type="text" placeholder="Votre nom" className="w-full px-4 py-3 rounded-xl border border-primary/10 focus:outline-none focus:border-accent" />
-                      <input type="email" placeholder="Votre email" className="w-full px-4 py-3 rounded-xl border border-primary/10 focus:outline-none focus:border-accent" />
-                      <textarea placeholder="Votre message" className="w-full px-4 py-3 rounded-xl border border-primary/10 focus:outline-none focus:border-accent h-32"></textarea>
-                      <button className="w-full py-4 bg-primary text-white rounded-xl font-bold hover:bg-accent transition-colors">Envoyer</button>
-                    </form>
-                  </div>
-                }
-              />
+              <ContactView onNavigate={handleNavigate} />
+            )}
+
+            {currentView === 'lookbook' && (
+              <LookbookView onNavigate={handleNavigate} onAddToCart={addToCart} />
+            )}
+
+            {currentView === 'gallery' && (
+              <GalleryView onNavigate={handleNavigate} />
+            )}
+
+            {currentView === 'care-guide' && (
+              <CareGuideView onNavigate={handleNavigate} />
             )}
 
             {currentView === 'faq' && (

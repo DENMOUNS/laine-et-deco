@@ -178,6 +178,14 @@ export const PRODUCTS: Product[] = [
     isAvailable: true,
     material: 'Laine Mérinos',
     colors: ['#FFFFFF', '#F5F5DC', '#8B4513'],
+    variants: [
+      { color: 'Blanc Neige', hex: '#FFFFFF', image: 'https://picsum.photos/seed/merinowhite/600/800' },
+      { color: 'Beige Naturel', hex: '#F5F5DC', image: 'https://picsum.photos/seed/merinobeige/600/800' },
+      { color: 'Brun Terre', hex: '#8B4513', image: 'https://picsum.photos/seed/merinobrown/600/800' }
+    ],
+    careInstructions: ['Lavage à la main à l\'eau froide', 'Séchage à plat', 'Ne pas repasser'],
+    yardage: 120,
+    weight: 50,
     reviews: REVIEWS,
     views: 1250,
     salesCount: 85,
@@ -197,6 +205,12 @@ export const PRODUCTS: Product[] = [
     isAvailable: true,
     material: 'Céramique',
     colors: ['#D2B48C', '#BC8F8F', '#808080'],
+    variants: [
+      { color: 'Terre Cuite', hex: '#D2B48C', image: 'https://picsum.photos/seed/vaseterra/600/800' },
+      { color: 'Vieux Rose', hex: '#BC8F8F', image: 'https://picsum.photos/seed/vaserose/600/800' },
+      { color: 'Gris Minéral', hex: '#808080', image: 'https://picsum.photos/seed/vasegrey/600/800' }
+    ],
+    careInstructions: ['Nettoyer avec un chiffon humide', 'Éviter les chocs thermiques'],
     reviews: [],
     views: 850,
     salesCount: 32,
@@ -219,6 +233,13 @@ export const PRODUCTS: Product[] = [
     isAvailable: true,
     material: 'Coton Bio',
     colors: ['#F5F5DC', '#FFFFFF'],
+    variants: [
+      { color: 'Écru', hex: '#F5F5DC', image: 'https://picsum.photos/seed/macrameecru/600/800' },
+      { color: 'Blanc', hex: '#FFFFFF', image: 'https://picsum.photos/seed/macramewhite/600/800' }
+    ],
+    careInstructions: ['Dépoussiérer régulièrement', 'Lavage à la main si nécessaire'],
+    yardage: 100,
+    weight: 250,
     reviews: [],
     views: 2100,
     salesCount: 145,
@@ -240,6 +261,12 @@ export const PRODUCTS: Product[] = [
     isAvailable: true,
     material: 'Laine Acrylique',
     colors: ['#808080', '#2F4F4F', '#000000'],
+    variants: [
+      { color: 'Gris Souris', hex: '#808080', image: 'https://picsum.photos/seed/plaidgrey/600/800' },
+      { color: 'Vert Sapin', hex: '#2F4F4F', image: 'https://picsum.photos/seed/plaidgreen/600/800' },
+      { color: 'Noir Profond', hex: '#000000', image: 'https://picsum.photos/seed/plaidblack/600/800' }
+    ],
+    careInstructions: ['Lavage en machine à 30°C', 'Séchage à plat', 'Ne pas utiliser d\'eau de javel'],
     reviews: [],
     views: 3400,
     salesCount: 56,

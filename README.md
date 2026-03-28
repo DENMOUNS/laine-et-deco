@@ -1,20 +1,33 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Laine & Déco
 
-# Run and deploy your AI Studio app
+Boutique de décoration et artisanat.
 
-This contains everything you need to run your app locally.
+## Fonctionnalités
+- PWA (Progressive Web App) installable
+- Navigation mobile (Sidebar) avec Accueil, Boutique, Catégories, Profil et Déconnexion (Corrigé : affichage complet sur tout l'écran, largeur ajustée, suppression des liens sociaux)
+- Mode clair/sombre
+- Gestion des devises et langues
+- Panier d'achat
+- Tableau de bord client
+- Tableau de bord administrateur
 
-View your app in AI Studio: https://ai.studio/apps/a159808d-9aef-4627-b409-9c85482b4e60
+## Technologies
+- React
+- Vite
+- Tailwind CSS
+- PWA (vite-plugin-pwa)
 
-## Run Locally
+## Fonctionnalités Frontend Implémentées
+- Barre de progression "Livraison gratuite" dans le panier
+- Notifications "Toast" élégantes (Ajout au panier, favoris)
+- Galerie d'inspiration (Lookbook) avec produits cliquables (Hotspots)
+- Zoom sur les images produits
+- Sélecteur de variantes visuel (Pastilles de couleurs)
+- Accordéons d'information sur la page produit
+- Calculateur de laine (Estimer le nombre de pelotes nécessaires)
+- Galerie photo classique (Différente du Lookbook)
+- Page "À propos de nous" enrichie
+- Page "Nous contacter" avec formulaire
+- Guide d'entretien (Lavage, séchage des matières)
 
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Prochaines étapes (Roadmap Backend)

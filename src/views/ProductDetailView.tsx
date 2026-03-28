@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { motion } from 'motion/react';
-import { Star, Heart, ShoppingBag, Truck, ShieldCheck, RefreshCcw, Plus, Minus, ChevronRight, Share2, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Star, Heart, ShoppingBag, Truck, ShieldCheck, RefreshCcw, Plus, Minus, ChevronRight, Share2, Loader2, ChevronDown, Calculator } from 'lucide-react';
 import { Product, PromoEvent } from '../types';
 import { PRODUCTS } from '../constants';
 import { ProductCard } from '../components/ProductCard';
@@ -27,6 +27,32 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ product, o
 
   const [newReview, setNewReview] = useState({ rating: 5, comment: '', images: [] as string[] });
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [selectedVariant, setSelectedVariant] = useState(product.variants?.[0] || null);
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [openAccordion, setOpenAccordion] = useState<string | null>('description');
+  const [showCalculator, setShowCalculator] = useState(false);
+  const [calcProject, setCalcProject] = useState('pull');
+  const [calcSize, setCalcSize] = useState('M');
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - left) / width) * 100;
+    const y = ((e.clientY - top) / height) * 100;
+    setMousePos({ x, y });
+  };
+
+  const calculateYarn = () => {
+    if (!product.yardage) return 0;
+    // Rough estimates in meters
+    const estimates: Record<string, Record<string, number>> = {
+      pull: { S: 1000, M: 1200, L: 1400, XL: 1600 },
+      echarpe: { S: 400, M: 500, L: 600, XL: 700 },
+      bonnet: { S: 150, M: 200, L: 250, XL: 300 }
+    };
+    const neededMeters = estimates[calcProject][calcSize];
+    return Math.ceil(neededMeters / product.yardage);
+  };
 
   const handleReviewSubmit = () => {
     if (!newReview.comment.trim()) {
@@ -58,12 +84,16 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ product, o
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="aspect-[3/4] rounded-[3rem] overflow-hidden shadow-2xl"
+            className="aspect-[3/4] rounded-[3rem] overflow-hidden shadow-2xl relative cursor-zoom-in"
+            onMouseEnter={() => setIsZoomed(true)}
+            onMouseLeave={() => setIsZoomed(false)}
+            onMouseMove={handleMouseMove}
           >
             <img 
-              src={product.image} 
+              src={selectedVariant?.image || product.image} 
               alt={product.name} 
-              className="w-full h-full object-cover"
+              className={`w-full h-full object-cover transition-transform duration-200 ${isZoomed ? 'scale-150' : 'scale-100'}`}
+              style={isZoomed ? { transformOrigin: `${mousePos.x}% ${mousePos.y}%` } : {}}
               referrerPolicy="no-referrer"
             />
           </motion.div>
@@ -118,11 +148,95 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ product, o
             )}
             <p className="text-4xl font-bold text-primary">{effectivePrice.toLocaleString()} FCFA</p>
           </div>
-          
-          <p className="text-primary/70 leading-relaxed mb-10 text-lg">
-            {product.description} Notre sélection est faite avec passion pour vous offrir le meilleur de l'artisanat.
-          </p>
 
+          {/* Visual Variants */}
+          {product.variants && product.variants.length > 0 && (
+            <div className="mb-8">
+              <h3 className="text-xs font-bold uppercase tracking-widest mb-4">Couleur : <span className="text-primary/60">{selectedVariant?.color}</span></h3>
+              <div className="flex gap-3">
+                {product.variants.map((variant, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setSelectedVariant(variant)}
+                    className={`w-12 h-12 rounded-full border-2 p-1 transition-all ${selectedVariant?.color === variant.color ? 'border-accent' : 'border-transparent hover:border-primary/20'}`}
+                    title={variant.color}
+                  >
+                    <div className="w-full h-full rounded-full shadow-inner" style={{ backgroundColor: variant.hex }} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Yarn Calculator Button */}
+          {product.yardage && (
+            <div className="mb-8 p-6 bg-secondary/30 rounded-3xl border border-primary/5">
+              <div className="flex justify-between items-center cursor-pointer" onClick={() => setShowCalculator(!showCalculator)}>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-accent shadow-sm">
+                    <Calculator size={20} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-primary">Calculateur de laine</h4>
+                    <p className="text-xs text-primary/60">Estimez le nombre de pelotes nécessaires</p>
+                  </div>
+                </div>
+                <ChevronDown size={20} className={`text-primary/40 transition-transform ${showCalculator ? 'rotate-180' : ''}`} />
+              </div>
+              
+              <AnimatePresence>
+                {showCalculator && (
+                  <motion.div 
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="pt-6 mt-6 border-t border-primary/10 grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-widest text-primary/60 mb-2">Projet</label>
+                        <select 
+                          value={calcProject}
+                          onChange={(e) => setCalcProject(e.target.value)}
+                          className="w-full p-3 rounded-xl border border-primary/10 bg-white focus:outline-none focus:border-accent"
+                        >
+                          <option value="pull">Pull</option>
+                          <option value="echarpe">Écharpe</option>
+                          <option value="bonnet">Bonnet</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-widest text-primary/60 mb-2">Taille</label>
+                        <select 
+                          value={calcSize}
+                          onChange={(e) => setCalcSize(e.target.value)}
+                          className="w-full p-3 rounded-xl border border-primary/10 bg-white focus:outline-none focus:border-accent"
+                        >
+                          <option value="S">S</option>
+                          <option value="M">M</option>
+                          <option value="L">L</option>
+                          <option value="XL">XL</option>
+                        </select>
+                      </div>
+                      <div className="col-span-2 mt-4 flex items-center justify-between bg-white p-4 rounded-2xl border border-primary/5">
+                        <div>
+                          <p className="text-sm text-primary/60">Estimation :</p>
+                          <p className="font-bold text-xl text-primary">{calculateYarn()} pelotes</p>
+                        </div>
+                        <button 
+                          onClick={() => setQuantity(calculateYarn())}
+                          className="text-sm font-bold text-accent bg-accent/10 px-4 py-2 rounded-xl hover:bg-accent hover:text-white transition-colors"
+                        >
+                          Appliquer
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+          
           <div className="space-y-8 mb-12">
             <div>
               <h3 className="text-xs font-bold uppercase tracking-widest mb-4">Quantité</h3>
@@ -170,6 +284,99 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ product, o
             <div className="flex items-center gap-3">
               <div className="p-2 bg-accent/10 text-accent rounded-lg"><RefreshCcw size={20} /></div>
               <span className="text-xs font-bold text-primary/70">Retours Gratuits</span>
+            </div>
+          </div>
+          {/* Accordions */}
+          <div className="mt-12 space-y-4 border-t border-primary/10 pt-8">
+            {/* Description Accordion */}
+            <div className="border border-primary/10 rounded-2xl overflow-hidden">
+              <button 
+                onClick={() => setOpenAccordion(openAccordion === 'desc' ? null : 'desc')}
+                className="w-full flex justify-between items-center p-6 bg-white hover:bg-secondary/20 transition-colors"
+              >
+                <span className="font-bold text-primary">Description & Détails</span>
+                <ChevronDown size={20} className={`text-primary/40 transition-transform ${openAccordion === 'desc' ? 'rotate-180' : ''}`} />
+              </button>
+              <AnimatePresence>
+                {openAccordion === 'desc' && (
+                  <motion.div 
+                    initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }}
+                    className="overflow-hidden bg-white"
+                  >
+                    <div className="p-6 pt-0 text-primary/70 leading-relaxed">
+                      <p>{product.description} Notre sélection est faite avec passion pour vous offrir le meilleur de l'artisanat.</p>
+                      {product.yardage && <p className="mt-4"><strong>Métrage :</strong> {product.yardage}m / {product.weight}g</p>}
+                      {product.material && <p className="mt-2"><strong>Matière :</strong> {product.material}</p>}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Care Instructions Accordion */}
+            {product.careInstructions && (
+              <div className="border border-primary/10 rounded-2xl overflow-hidden">
+                <button 
+                  onClick={() => setOpenAccordion(openAccordion === 'care' ? null : 'care')}
+                  className="w-full flex justify-between items-center p-6 bg-white hover:bg-secondary/20 transition-colors"
+                >
+                  <span className="font-bold text-primary">Guide d'entretien</span>
+                  <ChevronDown size={20} className={`text-primary/40 transition-transform ${openAccordion === 'care' ? 'rotate-180' : ''}`} />
+                </button>
+                <AnimatePresence>
+                  {openAccordion === 'care' && (
+                    <motion.div 
+                      initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }}
+                      className="overflow-hidden bg-white"
+                    >
+                      <div className="p-6 pt-0 text-primary/70">
+                        <ul className="list-disc pl-5 space-y-2">
+                          {product.careInstructions.map((inst, idx) => (
+                            <li key={idx}>{inst}</li>
+                          ))}
+                        </ul>
+                        <button onClick={() => onNavigate('care-guide')} className="mt-4 text-sm font-bold text-accent hover:underline">Voir le guide complet</button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+
+            {/* Shipping Accordion */}
+            <div className="border border-primary/10 rounded-2xl overflow-hidden">
+              <button 
+                onClick={() => setOpenAccordion(openAccordion === 'shipping' ? null : 'shipping')}
+                className="w-full flex justify-between items-center p-6 bg-white hover:bg-secondary/20 transition-colors"
+              >
+                <span className="font-bold text-primary">Livraison & Retours</span>
+                <ChevronDown size={20} className={`text-primary/40 transition-transform ${openAccordion === 'shipping' ? 'rotate-180' : ''}`} />
+              </button>
+              <AnimatePresence>
+                {openAccordion === 'shipping' && (
+                  <motion.div 
+                    initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }}
+                    className="overflow-hidden bg-white"
+                  >
+                    <div className="p-6 pt-0 text-primary/70 space-y-4">
+                      <div className="flex items-start gap-3">
+                        <Truck size={20} className="text-accent shrink-0 mt-1" />
+                        <div>
+                          <p className="font-bold text-primary">Livraison Standard (2-5 jours)</p>
+                          <p className="text-sm">Gratuite à partir de 50 000 FCFA d'achats.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <RefreshCcw size={20} className="text-accent shrink-0 mt-1" />
+                        <div>
+                          <p className="font-bold text-primary">Retours Faciles</p>
+                          <p className="text-sm">Vous avez 14 jours pour changer d'avis.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </div>

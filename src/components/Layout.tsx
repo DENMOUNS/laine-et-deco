@@ -76,15 +76,17 @@ export const Navbar: React.FC<NavbarProps> = ({
   const navLinks = [
     { name: 'Accueil', view: 'home' },
     { name: 'Boutique', view: 'shop' },
+    { name: 'Lookbook', view: 'lookbook' },
+    { name: 'Galerie', view: 'gallery' },
     { name: 'Blog', view: 'blog' },
-    { name: 'Équipe', view: 'team' },
     { name: 'À propos', view: 'about' },
     { name: 'Contact', view: 'contact' },
   ];
 
   return (
-    <nav className="sticky top-0 z-50 glass border-b border-primary/10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <>
+      <nav className="sticky top-0 z-50 glass border-b border-primary/10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20 relative">
           {/* Mobile Menu Button & Logo Container */}
           <div className="flex items-center gap-3 md:hidden z-20">
@@ -309,25 +311,29 @@ export const Navbar: React.FC<NavbarProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
+      </nav>
 
       {/* Mobile Menu (Sidebar) */}
       <AnimatePresence>
         {isMenuOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsMenuOpen(false)}
-              className="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 left-0 w-[85%] max-w-sm shadow-2xl z-50 md:hidden flex flex-col overflow-y-auto bg-primary text-white"
-            >
+          <motion.div
+            key="overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsMenuOpen(false)}
+            className="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-sm"
+          />
+        )}
+        {isMenuOpen && (
+          <motion.div
+            key="sidebar"
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="fixed inset-y-0 left-0 w-[70%] max-w-[280px] shadow-2xl z-50 md:hidden flex flex-col overflow-y-auto bg-primary text-white"
+          >
               <div className="p-6 border-b border-white/10 bg-primary/50 backdrop-blur-sm">
                 <div className="flex justify-between items-center mb-6">
                   <h1 className="text-xl font-serif font-bold text-white">Menu</h1>
@@ -348,19 +354,28 @@ export const Navbar: React.FC<NavbarProps> = ({
               
               <div className="flex flex-col p-6 space-y-2 flex-grow">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2 px-2">Navigation</p>
-                {navLinks.map((link) => (
-                  <button
-                    key={link.name}
-                    onClick={() => {
-                      onNavigate(link.view);
-                      setIsMenuOpen(false);
-                    }}
-                    className={`text-lg font-serif text-left flex justify-between items-center p-4 rounded-2xl transition-all ${currentView === link.view ? 'bg-accent text-white font-bold shadow-lg' : 'text-white hover:bg-white/10'}`}
-                  >
-                    {link.name}
-                    <ChevronRight size={18} className={currentView === link.view ? 'opacity-100 text-white' : 'opacity-0'} />
-                  </button>
-                ))}
+                
+                <button
+                  onClick={() => {
+                    onNavigate('home');
+                    setIsMenuOpen(false);
+                  }}
+                  className={`text-lg font-serif text-left flex justify-between items-center p-4 rounded-2xl transition-all ${currentView === 'home' ? 'bg-accent text-white font-bold shadow-lg' : 'text-white hover:bg-white/10'}`}
+                >
+                  Accueil
+                  <ChevronRight size={18} className={currentView === 'home' ? 'opacity-100 text-white' : 'opacity-0'} />
+                </button>
+
+                <button
+                  onClick={() => {
+                    onNavigate('shop');
+                    setIsMenuOpen(false);
+                  }}
+                  className={`text-lg font-serif text-left flex justify-between items-center p-4 rounded-2xl transition-all ${currentView === 'shop' ? 'bg-accent text-white font-bold shadow-lg' : 'text-white hover:bg-white/10'}`}
+                >
+                  Boutique
+                  <ChevronRight size={18} className={currentView === 'shop' ? 'opacity-100 text-white' : 'opacity-0'} />
+                </button>
 
                 <hr className="border-white/10 my-6" />
 
@@ -379,63 +394,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                     </button>
                   ))}
                 </div>
-
-                <div className="mt-4">
-                    <button
-                      onClick={() => {
-                        onNavigate('shop');
-                        setIsMenuOpen(false);
-                      }}
-                      className="w-full text-left p-4 rounded-2xl bg-accent text-white font-bold hover:bg-accent/90 transition-colors flex justify-between items-center shadow-lg"
-                    >
-                      <span>Packs & Bundles</span>
-                      <ShoppingBag size={18} />
-                    </button>
-                </div>
-                
-                <hr className="border-white/10 my-6" />
-                
-                <div className="space-y-6">
-                  <div className="space-y-3">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 px-2">Préférences</p>
-                    <div className="flex gap-2 px-2">
-                       <button onClick={toggleDarkMode} className="flex-1 py-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center gap-2 text-white font-medium hover:bg-white/10 transition-colors">
-                          {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
-                          <span className="text-xs">{isDarkMode ? 'Mode Clair' : 'Mode Sombre'}</span>
-                       </button>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 px-2">
-                      <div className="space-y-2">
-                          <label className="text-[10px] text-white/40 font-bold uppercase">Langue</label>
-                          <div className="flex flex-col gap-1">
-                            {LANGUAGES.map(lang => (
-                                <button
-                                key={lang.code}
-                                onClick={() => setLanguage(lang)}
-                                className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all flex items-center gap-2 ${language.code === lang.code ? 'bg-white text-primary border-white' : 'bg-transparent text-white border-white/10 hover:bg-white/5'}`}
-                                >
-                                <span>{lang.flag}</span> {lang.code.toUpperCase()}
-                                </button>
-                            ))}
-                          </div>
-                      </div>
-                      <div className="space-y-2">
-                          <label className="text-[10px] text-white/40 font-bold uppercase">Devise</label>
-                          <div className="flex flex-col gap-1">
-                            {CURRENCIES.map(curr => (
-                                <button
-                                key={curr.code}
-                                onClick={() => setCurrency(curr)}
-                                className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all ${currency.code === curr.code ? 'bg-white text-primary border-white' : 'bg-transparent text-white border-white/10 hover:bg-white/5'}`}
-                                >
-                                {curr.code}
-                                </button>
-                            ))}
-                          </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
                 
                 <hr className="border-white/10 my-6" />
                 
@@ -443,31 +401,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2 px-2">Compte</p>
                   <button onClick={() => { onNavigate('customer-dashboard'); setIsMenuOpen(false); }} className="w-full p-4 rounded-2xl text-left flex items-center gap-3 text-white hover:bg-white/10 transition-colors font-medium">
                     <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white"><User size={16} /></div>
-                    Mon Compte
+                    Profil
                   </button>
-                  <button onClick={() => { onNavigate('order-tracking'); setIsMenuOpen(false); }} className="w-full p-4 rounded-2xl text-left flex items-center gap-3 text-white hover:bg-white/10 transition-colors font-medium">
-                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white"><Globe size={16} /></div>
-                    Suivre ma commande
+                  <button onClick={() => { onNavigate('home'); setIsMenuOpen(false); }} className="w-full p-4 rounded-2xl text-left flex items-center gap-3 text-red-400 hover:bg-red-500/10 transition-colors font-medium mt-4">
+                    <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center text-red-400"><X size={16} /></div>
+                    Déconnexions
                   </button>
-                  <button onClick={() => { onNavigate('admin-dashboard'); setIsMenuOpen(false); }} className="w-full p-4 rounded-2xl text-left flex items-center gap-3 text-white/40 hover:bg-white/10 hover:text-white transition-colors font-medium">
-                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center"><Search size={16} /></div>
-                    Admin Panel
-                  </button>
-                </div>
-              </div>
-              
-              <div className="mt-auto p-6 bg-primary/50 border-t border-white/10 backdrop-blur-sm">
-                <div className="flex justify-center space-x-6">
-                  <a href="#" className="w-10 h-10 rounded-full bg-white/10 shadow-sm flex items-center justify-center text-white hover:bg-accent hover:text-white hover:shadow-md transition-all">IG</a>
-                  <a href="#" className="w-10 h-10 rounded-full bg-white/10 shadow-sm flex items-center justify-center text-white hover:bg-accent hover:text-white hover:shadow-md transition-all">PT</a>
-                  <a href="#" className="w-10 h-10 rounded-full bg-white/10 shadow-sm flex items-center justify-center text-white hover:bg-accent hover:text-white hover:shadow-md transition-all">FB</a>
                 </div>
               </div>
             </motion.div>
-          </>
         )}
       </AnimatePresence>
-    </nav>
+    </>
   );
 };
 
@@ -491,14 +436,15 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             <ul className="space-y-3 text-sm text-white/70">
               <li><button onClick={() => onNavigate('shop')} className="hover:text-white transition-colors">Toutes les laines</button></li>
               <li><button onClick={() => onNavigate('shop')} className="hover:text-white transition-colors">Décoration</button></li>
-              <li><button onClick={() => onNavigate('shop')} className="hover:text-white transition-colors">Nouveautés</button></li>
-              <li><button onClick={() => onNavigate('shop')} className="hover:text-white transition-colors">Promotions</button></li>
+              <li><button onClick={() => onNavigate('lookbook')} className="hover:text-white transition-colors">Lookbook</button></li>
+              <li><button onClick={() => onNavigate('gallery')} className="hover:text-white transition-colors">Galerie</button></li>
             </ul>
           </div>
             <div>
               <h3 className="font-bold mb-6 uppercase tracking-widest text-xs">Aide</h3>
               <ul className="space-y-3 text-sm text-white/70">
-                <li><button onClick={() => onNavigate('order-tracking')} className="hover:text-white transition-colors">Suivi de commande</button></li>
+                <li><button onClick={() => onNavigate('contact')} className="hover:text-white transition-colors">Contactez-nous</button></li>
+                <li><button onClick={() => onNavigate('care-guide')} className="hover:text-white transition-colors">Guide d'entretien</button></li>
                 <li><button onClick={() => onNavigate('shipping')} className="hover:text-white transition-colors">Livraison</button></li>
                 <li><button onClick={() => onNavigate('returns')} className="hover:text-white transition-colors">Retours</button></li>
                 <li><button onClick={() => onNavigate('faq')} className="hover:text-white transition-colors">FAQ</button></li>
