@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingBag, Search, User, Heart, Menu, X, ChevronRight, Globe, ArrowRight, Moon, Sun } from 'lucide-react';
+import { ShoppingBag, Search, User, Heart, Menu, X, ChevronRight, Globe, ArrowRight, Moon, Sun, Settings, Layers, LayoutGrid, Navigation, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CURRENCIES, LANGUAGES, PRODUCTS, CATEGORIES, PACKS } from '../constants';
 import { Language, Currency, Product } from '../types';
@@ -273,149 +273,140 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </div>
               </div>
               
-              <div className="flex flex-col p-6 space-y-2 flex-grow">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2 px-2">Navigation</p>
-                
-                <button
-                  onClick={() => {
-                    onNavigate('home');
-                    setIsMenuOpen(false);
-                  }}
-                  className={`text-lg font-serif text-left flex justify-between items-center p-4 rounded-2xl transition-all ${currentView === 'home' ? 'bg-accent text-white font-bold shadow-lg' : 'text-white hover:bg-white/10'}`}
-                >
-                  Accueil
-                  <ChevronRight size={18} className={currentView === 'home' ? 'opacity-100 text-white' : 'opacity-0'} />
-                </button>
-
-                <button
-                  onClick={() => {
-                    onNavigate('shop');
-                    setIsMenuOpen(false);
-                  }}
-                  className={`text-lg font-serif text-left flex justify-between items-center p-4 rounded-2xl transition-all ${currentView === 'shop' ? 'bg-accent text-white font-bold shadow-lg' : 'text-white hover:bg-white/10'}`}
-                >
-                  Boutique
-                  <ChevronRight size={18} className={currentView === 'shop' ? 'opacity-100 text-white' : 'opacity-0'} />
-                </button>
-
-                <button
-                  onClick={() => {
-                    onNavigate('gift-box');
-                    setIsMenuOpen(false);
-                  }}
-                  className={`text-lg font-serif text-left flex justify-between items-center p-4 rounded-2xl transition-all ${currentView === 'gift-box' ? 'bg-accent text-white font-bold shadow-lg' : 'text-white hover:bg-white/10'}`}
-                >
-                  Coffrets
-                  <ChevronRight size={18} className={currentView === 'gift-box' ? 'opacity-100 text-white' : 'opacity-0'} />
-                </button>
-
-                <button
-                  onClick={() => {
-                    onNavigate('wool-calculator');
-                    setIsMenuOpen(false);
-                  }}
-                  className={`text-lg font-serif text-left flex justify-between items-center p-4 rounded-2xl transition-all ${currentView === 'wool-calculator' ? 'bg-accent text-white font-bold shadow-lg' : 'text-white hover:bg-white/10'}`}
-                >
-                  Calculateur Laine
-                  <ChevronRight size={18} className={currentView === 'wool-calculator' ? 'opacity-100 text-white' : 'opacity-0'} />
-                </button>
-
-                <button
-                  onClick={() => {
-                    onNavigate('volume-calculator');
-                    setIsMenuOpen(false);
-                  }}
-                  className={`text-lg font-serif text-left flex justify-between items-center p-4 rounded-2xl transition-all ${currentView === 'volume-calculator' ? 'bg-accent text-white font-bold shadow-lg' : 'text-white hover:bg-white/10'}`}
-                >
-                  Calculateur Volume
-                  <ChevronRight size={18} className={currentView === 'volume-calculator' ? 'opacity-100 text-white' : 'opacity-0'} />
-                </button>
-
-                <button
-                  onClick={() => {
-                    onNavigate('lookbook');
-                    setIsMenuOpen(false);
-                  }}
-                  className={`text-lg font-serif text-left flex justify-between items-center p-4 rounded-2xl transition-all ${currentView === 'lookbook' ? 'bg-accent text-white font-bold shadow-lg' : 'text-white hover:bg-white/10'}`}
-                >
-                  Lookbook
-                  <ChevronRight size={18} className={currentView === 'lookbook' ? 'opacity-100 text-white' : 'opacity-0'} />
-                </button>
-
-                <button
-                  onClick={() => {
-                    onNavigate('gallery');
-                    setIsMenuOpen(false);
-                  }}
-                  className={`text-lg font-serif text-left flex justify-between items-center p-4 rounded-2xl transition-all ${currentView === 'gallery' ? 'bg-accent text-white font-bold shadow-lg' : 'text-white hover:bg-white/10'}`}
-                >
-                  Galerie
-                  <ChevronRight size={18} className={currentView === 'gallery' ? 'opacity-100 text-white' : 'opacity-0'} />
-                </button>
-
-                <button
-                  onClick={() => {
-                    onNavigate('about');
-                    setIsMenuOpen(false);
-                  }}
-                  className={`text-lg font-serif text-left flex justify-between items-center p-4 rounded-2xl transition-all ${currentView === 'about' ? 'bg-accent text-white font-bold shadow-lg' : 'text-white hover:bg-white/10'}`}
-                >
-                  À propos
-                  <ChevronRight size={18} className={currentView === 'about' ? 'opacity-100 text-white' : 'opacity-0'} />
-                </button>
-
-                <button
-                  onClick={() => {
-                    onNavigate('contact');
-                    setIsMenuOpen(false);
-                  }}
-                  className={`text-lg font-serif text-left flex justify-between items-center p-4 rounded-2xl transition-all ${currentView === 'contact' ? 'bg-accent text-white font-bold shadow-lg' : 'text-white hover:bg-white/10'}`}
-                >
-                  Contact
-                  <ChevronRight size={18} className={currentView === 'contact' ? 'opacity-100 text-white' : 'opacity-0'} />
-                </button>
-
-                <button
-                  onClick={() => {
-                    onNavigate('care-guide');
-                    setIsMenuOpen(false);
-                  }}
-                  className={`text-lg font-serif text-left flex justify-between items-center p-4 rounded-2xl transition-all ${currentView === 'care-guide' ? 'bg-accent text-white font-bold shadow-lg' : 'text-white hover:bg-white/10'}`}
-                >
-                  Guide d'entretien
-                  <ChevronRight size={18} className={currentView === 'care-guide' ? 'opacity-100 text-white' : 'opacity-0'} />
-                </button>
-
-                <hr className="border-white/10 my-6" />
-
-                <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2 px-2">Catégories</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {CATEGORIES.map((cat) => (
-                    <button
-                      key={cat.id}
-                      onClick={() => {
-                        onNavigate('shop', undefined, cat.name);
-                        setIsMenuOpen(false);
-                      }}
-                      className="text-sm font-medium text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 hover:text-accent transition-colors text-white border border-white/5"
-                    >
-                      {cat.name}
-                    </button>
-                  ))}
+              <div className="flex flex-col p-6 space-y-8 flex-grow">
+                {/* Section: Navigation */}
+                <div>
+                  <div className="flex items-center gap-2 mb-4 px-2">
+                    <Navigation size={14} className="text-accent" />
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Navigation</p>
+                  </div>
+                  <div className="space-y-1">
+                    {[
+                      { id: 'home', name: 'Accueil' },
+                      { id: 'shop', name: 'Boutique' },
+                      { id: 'lookbook', name: 'Lookbook' },
+                      { id: 'gallery', name: 'Galerie' },
+                      { id: 'about', name: 'À propos' },
+                      { id: 'contact', name: 'Contact' },
+                      { id: 'care-guide', name: 'Guide d\'entretien' }
+                    ].map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          onNavigate(item.id);
+                          setIsMenuOpen(false);
+                        }}
+                        className={`w-full text-base font-serif text-left flex justify-between items-center p-3 rounded-xl transition-all ${currentView === item.id ? 'bg-accent text-white font-bold shadow-lg' : 'text-white/80 hover:bg-white/10'}`}
+                      >
+                        {item.name}
+                        <ChevronRight size={16} className={currentView === item.id ? 'opacity-100 text-white' : 'opacity-0'} />
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                
-                <hr className="border-white/10 my-6" />
-                
-                <div className="space-y-2">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2 px-2">Compte</p>
-                  <button onClick={() => { onNavigate('customer-dashboard'); setIsMenuOpen(false); }} className="w-full p-4 rounded-2xl text-left flex items-center gap-3 text-white hover:bg-white/10 transition-colors font-medium">
-                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white"><User size={16} /></div>
-                    Profil
-                  </button>
-                  <button onClick={() => { onNavigate('home'); setIsMenuOpen(false); }} className="w-full p-4 rounded-2xl text-left flex items-center gap-3 text-red-400 hover:bg-red-500/10 transition-colors font-medium mt-4">
-                    <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center text-red-400"><X size={16} /></div>
-                    Déconnexions
-                  </button>
+
+                {/* Section: Catégories */}
+                <div>
+                  <div className="flex items-center gap-2 mb-4 px-2">
+                    <Layers size={14} className="text-accent" />
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Catégories</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {CATEGORIES.map((cat) => (
+                      <button
+                        key={cat.id}
+                        onClick={() => {
+                          onNavigate('shop', undefined, cat.name);
+                          setIsMenuOpen(false);
+                        }}
+                        className="text-xs font-medium text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 hover:text-accent transition-colors text-white/90 border border-white/5"
+                      >
+                        {cat.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Section: Application */}
+                <div>
+                  <div className="flex items-center gap-2 mb-4 px-2">
+                    <LayoutGrid size={14} className="text-accent" />
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Application</p>
+                  </div>
+                  <div className="space-y-1">
+                    {[
+                      { id: 'wool-calculator', name: 'Calculateur Laine' },
+                      { id: 'volume-calculator', name: 'Calculateur Volume' },
+                      { id: 'gift-box', name: 'Coffrets Cadeaux' }
+                    ].map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          onNavigate(item.id);
+                          setIsMenuOpen(false);
+                        }}
+                        className={`w-full text-base font-serif text-left flex justify-between items-center p-3 rounded-xl transition-all ${currentView === item.id ? 'bg-accent text-white font-bold shadow-lg' : 'text-white/80 hover:bg-white/10'}`}
+                      >
+                        {item.name}
+                        <ChevronRight size={16} className={currentView === item.id ? 'opacity-100 text-white' : 'opacity-0'} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Section: Paramètres */}
+                <div className="pb-8">
+                  <div className="flex items-center gap-2 mb-4 px-2">
+                    <Settings size={14} className="text-accent" />
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Paramètres</p>
+                  </div>
+                  <div className="space-y-2">
+                    <button 
+                      onClick={() => { onNavigate('customer-dashboard'); setIsMenuOpen(false); }} 
+                      className={`w-full p-3 rounded-xl text-left flex items-center justify-between text-white/90 hover:bg-white/10 transition-colors font-medium ${currentView === 'customer-dashboard' ? 'bg-white/10' : ''}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <User size={16} className="text-accent" />
+                        <span>Mon Profil</span>
+                      </div>
+                      <ChevronRight size={14} className="opacity-40" />
+                    </button>
+
+                    <button 
+                      onClick={toggleDarkMode}
+                      className="w-full p-3 rounded-xl text-left flex items-center justify-between text-white/90 hover:bg-white/10 transition-colors font-medium"
+                    >
+                      <div className="flex items-center gap-3">
+                        {isDarkMode ? <Sun size={16} className="text-accent" /> : <Moon size={16} className="text-accent" />}
+                        <span>Mode {isDarkMode ? 'Clair' : 'Sombre'}</span>
+                      </div>
+                    </button>
+
+                    <div className="grid grid-cols-2 gap-2 mt-4">
+                      <div className="p-3 rounded-xl bg-white/5 border border-white/5">
+                        <p className="text-[8px] uppercase tracking-tighter text-white/40 mb-1">Langue</p>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">{language.flag}</span>
+                          <span className="text-xs font-bold">{language.code}</span>
+                        </div>
+                      </div>
+                      <div className="p-3 rounded-xl bg-white/5 border border-white/5">
+                        <p className="text-[8px] uppercase tracking-tighter text-white/40 mb-1">Devise</p>
+                        <div className="flex items-center gap-2">
+                          <Globe size={12} className="text-accent" />
+                          <span className="text-xs font-bold">{currency.code}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button 
+                      onClick={() => { onNavigate('home'); setIsMenuOpen(false); }} 
+                      className="w-full p-3 rounded-xl text-left flex items-center gap-3 text-red-400 hover:bg-red-500/10 transition-colors font-medium mt-6 border border-red-500/20"
+                    >
+                      <LogOut size={16} />
+                      <span>Déconnexion</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </motion.div>

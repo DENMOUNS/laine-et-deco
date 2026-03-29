@@ -4,7 +4,7 @@ Boutique de décoration et artisanat.
 
 ## Fonctionnalités
 - PWA (Progressive Web App) installable
-- Navigation mobile (Sidebar) avec Accueil, Boutique, Catégories, Profil et Déconnexion (Corrigé : affichage complet sur tout l'écran, largeur ajustée, suppression des liens sociaux)
+- **Navigation Mobile (Sidebar) Réorganisée** : Structure claire en 4 sections (Navigation, Catégories, Application, Paramètres) avec icônes dédiées et accès rapide aux réglages (Langue, Devise, Mode Sombre).
 - Mode clair/sombre
 - Gestion des devises et langues
 - Panier d'achat
@@ -32,7 +32,6 @@ Boutique de décoration et artisanat.
 - Page "À propos de nous" enrichie
 - Page "Nous contacter" avec formulaire
 - Guide d'entretien (Lavage, séchage des matières)
-- Navigation mobile (Sidebar) complète avec tous les accès rapides
 - **Optimisation Mobile** : Regroupement des 4 fonctionnalités clés (Qualité, Livraison, etc.) en grille 2x2 sur mobile pour réduire la longueur de la page et améliorer la lisibilité.
 - **Assistant Créatif IA** : Chatbot intelligent (Gemini API) pour conseils shopping et idées projets
 - **Recherche Avancée (Style Lucene)** : Recherche puissante avec support de préfixes (ex: `name:laine category:deco`) sur la page boutique.
