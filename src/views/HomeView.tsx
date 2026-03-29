@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowRight, Package, Truck, ShieldCheck, Heart, Calendar, User, Search, Camera, Loader2, Zap, Clock } from 'lucide-react';
+import { ArrowRight, Package, Truck, ShieldCheck, Heart, Calendar, User, Search, Camera, Loader2, Zap, Clock, Calculator, Gift, Sparkles, Flower2, Dna, Wind, Waves, Box, FlaskConical, Ruler, Check } from 'lucide-react';
 import { CATEGORIES, PRODUCTS, BLOG_POSTS, PACKS } from '../constants';
 import { ProductCard } from '../components/ProductCard';
 import { Product, SiteConfig, PromoEvent, Pack } from '../types';
@@ -62,6 +62,20 @@ interface HomeViewProps {
   siteConfig: SiteConfig;
   events?: PromoEvent[];
 }
+
+const ShimmerEffect: React.FC = () => (
+  <motion.div
+    initial={{ x: '-150%', skewX: -25 }}
+    animate={{ x: '250%' }}
+    transition={{
+      duration: 1.5,
+      repeat: Infinity,
+      repeatDelay: 3.5,
+      ease: "easeInOut"
+    }}
+    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent z-10 pointer-events-none"
+  />
+);
 
 export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onAddToWishlist, onQuickView, onProductClick, siteConfig, events = [] }) => {
   const [showOnlyPromos, setShowOnlyPromos] = React.useState(false);
@@ -202,12 +216,15 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                   >
                     {isAnalyzingImage ? <Loader2 size={20} className="animate-spin" /> : <Camera size={20} />}
                   </button>
-                  <button 
+                  <motion.button 
                     type="submit"
-                    className="bg-accent text-white px-6 py-3 rounded-full font-bold hover:bg-white hover:text-primary transition-all shadow-lg"
+                    whileHover={{ scale: 1.05, brightness: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="bg-accent text-white px-6 py-3 rounded-full font-bold hover:bg-white hover:text-primary transition-all shadow-lg relative overflow-hidden"
                   >
+                    <ShimmerEffect />
                     Go
-                  </button>
+                  </motion.button>
                 </div>
                 <input 
                   type="file" 
@@ -220,13 +237,16 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
             </div>
 
             <div className="flex flex-wrap gap-6">
-              <button 
+              <motion.button 
                 onClick={() => onNavigate(HERO_SLIDES[currentSlide].link)}
-                className="bg-white text-primary px-12 py-5 rounded-full font-bold hover:bg-accent hover:text-white transition-all duration-300 flex items-center group shadow-xl"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="bg-white text-primary px-12 py-5 rounded-full font-bold hover:bg-accent hover:text-white transition-all duration-300 flex items-center group shadow-xl relative overflow-hidden"
               >
+                <ShimmerEffect />
                 Voir plus
                 <ArrowRight className="ml-3 group-hover:translate-x-1 transition-transform" size={24} />
-              </button>
+              </motion.button>
               <div className="flex gap-2 items-center ml-auto">
                 {HERO_SLIDES.map((_, i) => (
                   <button
@@ -238,6 +258,31 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
               </div>
             </div>
           </motion.div>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8">
+          {[
+            { icon: <Package size={32} />, title: "Qualité Premium", desc: "Laines 100% naturelles" },
+            { icon: <Truck size={32} />, title: "Livraison Rapide", desc: "Offerte dès 50€ d'achat" },
+            { icon: <ShieldCheck size={32} />, title: "Paiement Sécurisé", desc: "Transaction 100% protégée" },
+            { icon: <Heart size={32} />, title: "Fait avec Amour", desc: "Sélection artisanale" },
+          ].map((feature, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1 }}
+              className="flex flex-col items-center text-center p-6 sm:p-8 bg-white rounded-3xl shadow-sm border border-primary/5"
+            >
+              <div className="text-accent mb-4">{feature.icon}</div>
+              <h3 className="font-serif text-base sm:text-lg mb-2">{feature.title}</h3>
+              <p className="text-[10px] sm:text-sm text-primary/60">{feature.desc}</p>
+            </motion.div>
+          ))}
         </div>
       </section>
 
@@ -266,12 +311,15 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                 <CountdownTimer endDate={flashSaleEndDate} />
               </div>
 
-              <button 
+              <motion.button 
                 onClick={() => onNavigate('shop')}
-                className="bg-accent text-white px-10 py-4 rounded-full font-bold hover:bg-white hover:text-primary transition-all shadow-xl shadow-accent/20"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="bg-accent text-white px-10 py-4 rounded-full font-bold hover:bg-white hover:text-primary transition-all shadow-xl shadow-accent/20 relative overflow-hidden"
               >
+                <ShimmerEffect />
                 En profiter maintenant
-              </button>
+              </motion.button>
             </div>
             
             <div className="w-full lg:w-1/2 p-12 lg:p-0">
@@ -297,66 +345,360 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
         </div>
       </section>
 
-      {/* Featured Slider */}
+      {/* Wool Calculator Promo Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-secondary/30 rounded-[3rem] p-12 md:p-20 overflow-hidden relative">
-          <div className="flex flex-col md:flex-row items-center gap-12">
-            <div className="w-full md:w-1/2 space-y-6">
-              <span className="text-xs font-bold uppercase tracking-widest text-accent">Produit Vedette</span>
-              <h2 className="text-4xl md:text-5xl font-serif text-primary leading-tight">Laine Mérinos <br/> Extra Fine</h2>
-              <p className="text-primary/60 text-lg">Une douceur incomparable pour vos créations les plus précieuses. Disponible en 12 coloris naturels.</p>
-              <div className="flex items-center gap-6">
-                <span className="text-3xl font-bold text-primary">8 200 FCFA</span>
-                <button 
-                  onClick={() => onNavigate('shop')}
-                  className="bg-primary text-white px-8 py-3 rounded-full font-bold hover:bg-accent transition-all shadow-lg"
-                >
-                  Acheter maintenant
-                </button>
+        <div className="bg-primary rounded-[3rem] overflow-hidden relative shadow-2xl">
+          <div className="absolute top-0 left-0 w-1/2 h-full bg-white/5 -skew-x-12 -translate-x-1/4" />
+          <div className="relative z-10 flex flex-col lg:flex-row-reverse items-center">
+            <div className="w-full lg:w-1/2 p-12 md:p-20 space-y-8">
+              <div className="flex items-center gap-3 text-accent font-bold uppercase tracking-widest text-sm">
+                <div className="relative">
+                  <Calculator size={20} />
+                  <Sparkles size={10} className="absolute -top-1 -right-1 text-white animate-pulse" />
+                </div>
+                <span>Calculateur de Laine</span>
               </div>
-            </div>
-            <div className="w-full md:w-1/2 relative">
-              <motion.div 
-                animate={{ y: [0, -20, 0] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                className="relative z-10"
+              <h2 className="text-4xl md:text-6xl font-serif text-white leading-tight">
+                Combien de <span className="italic text-accent">pelotes</span> pour votre projet ?
+              </h2>
+              <p className="text-white/80 text-lg max-w-md">
+                Ne manquez plus jamais de fil. Notre calculateur intelligent estime précisément vos besoins selon votre projet et votre taille.
+              </p>
+              
+              <motion.button 
+                onClick={() => onNavigate('wool-calculator')}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="bg-accent text-white px-10 py-4 rounded-full font-bold hover:bg-white hover:text-primary transition-all shadow-xl shadow-accent/20 relative overflow-hidden"
               >
-                <img 
-                  src="https://picsum.photos/seed/merino-slider/800/800" 
-                  alt="Featured" 
-                  className="w-full aspect-square object-cover rounded-[3rem] shadow-2xl"
-                  referrerPolicy="no-referrer"
-                />
-              </motion.div>
-              <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-accent/10 rounded-full blur-3xl" />
-              <div className="absolute -top-10 -left-10 w-48 h-48 bg-primary/5 rounded-full blur-2xl" />
+                <ShimmerEffect />
+                Calculer maintenant
+              </motion.button>
+            </div>
+            
+            <div className="w-full lg:w-1/2 p-12 lg:p-0 flex items-center justify-center">
+              <div className="relative w-full max-w-md aspect-square flex items-center justify-center">
+                {/* Wool & Needles Animation Component */}
+                <div className="relative w-full h-full flex items-center justify-center">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    className="relative z-10 w-full h-full flex items-center justify-center"
+                  >
+                    {/* Background Soft Glow */}
+                    <div className="absolute inset-0 bg-accent/20 rounded-full blur-[100px]" />
+                    
+                    {/* Floating Decorative Icons */}
+                    <motion.div
+                      animate={{ y: [0, -20, 0], opacity: [0.4, 0.8, 0.4] }}
+                      transition={{ duration: 4, repeat: Infinity }}
+                      className="absolute top-1/4 left-1/4 text-accent/40"
+                    >
+                      <Sparkles size={24} />
+                    </motion.div>
+                    <motion.div
+                      animate={{ y: [0, 20, 0], opacity: [0.3, 0.6, 0.3] }}
+                      transition={{ duration: 5, repeat: Infinity, delay: 1 }}
+                      className="absolute bottom-1/4 right-1/3 text-white/30"
+                    >
+                      <Heart size={20} />
+                    </motion.div>
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                      className="absolute top-1/3 right-1/4 text-accent/20"
+                    >
+                      <Flower2 size={40} />
+                    </motion.div>
+
+                    {/* The "Calculateur" Label */}
+                    <motion.div 
+                      animate={{ y: [0, -5, 0] }}
+                      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                      className="absolute top-10 left-10 z-30 bg-black/40 backdrop-blur-md px-6 py-3 rounded-2xl shadow-xl border border-white/10"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 bg-accent rounded-full animate-pulse" />
+                        <span className="text-xs font-bold uppercase tracking-[0.3em] text-white/80">Calculateur</span>
+                      </div>
+                    </motion.div>
+
+                    {/* Wool Ball 1 */}
+                    <motion.div
+                      animate={{ 
+                        y: [0, -15, 0],
+                        rotate: [0, 5, 0]
+                      }}
+                      transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+                      className="absolute z-20 top-1/4 right-1/4"
+                    >
+                      <div className="w-32 h-32 bg-accent rounded-full shadow-2xl flex items-center justify-center relative overflow-hidden group">
+                        <Dna className="text-white/30 absolute rotate-45 scale-150" size={80} />
+                        <Dna className="text-white/20 absolute -rotate-45 scale-125" size={80} />
+                        <div className="w-full h-full bg-gradient-to-br from-white/20 to-transparent" />
+                        <Sparkles className="absolute text-white/40 animate-pulse" size={16} />
+                      </div>
+                    </motion.div>
+
+                    {/* Wool Ball 2 (Smaller) */}
+                    <motion.div
+                      animate={{ 
+                        y: [0, 15, 0],
+                        rotate: [0, -5, 0]
+                      }}
+                      transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+                      className="absolute z-10 bottom-1/4 left-1/4"
+                    >
+                      <div className="w-24 h-24 bg-secondary rounded-full shadow-2xl flex items-center justify-center relative overflow-hidden">
+                        <Dna className="text-primary/20 absolute rotate-90 scale-125" size={60} />
+                        <div className="w-full h-full bg-gradient-to-br from-white/40 to-transparent" />
+                        <Heart className="absolute text-primary/30 animate-bounce" size={12} />
+                      </div>
+                    </motion.div>
+
+                    {/* Knitting Needles */}
+                    <motion.div
+                      animate={{ 
+                        rotate: [45, 50, 45],
+                        x: [0, 5, 0]
+                      }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                      className="absolute z-30 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-2 bg-white/80 rounded-full shadow-lg transform rotate-45"
+                    >
+                      <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full flex items-center justify-center">
+                        <Sparkles size={8} className="text-accent" />
+                      </div>
+                    </motion.div>
+                    <motion.div
+                      animate={{ 
+                        rotate: [-45, -50, -45],
+                        x: [0, -5, 0]
+                      }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
+                      className="absolute z-30 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-2 bg-white/60 rounded-full shadow-lg transform -rotate-45"
+                    >
+                      <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-4 h-4 bg-white/80 rounded-full flex items-center justify-center">
+                        <Sparkles size={8} className="text-accent" />
+                      </div>
+                    </motion.div>
+
+                    {/* Animated Thread */}
+                    <svg className="absolute inset-0 w-full h-full z-0 pointer-events-none">
+                      <motion.path
+                        d="M 100 300 Q 200 100 300 300 T 500 300"
+                        fill="none"
+                        stroke="var(--color-accent)"
+                        strokeWidth="2"
+                        strokeDasharray="10 10"
+                        initial={{ pathLength: 0, opacity: 0 }}
+                        animate={{ pathLength: 1, opacity: 0.6 }}
+                        transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                      />
+                      <motion.path
+                        d="M 50 150 Q 250 350 450 150"
+                        fill="none"
+                        stroke="var(--color-primary)"
+                        strokeWidth="1.5"
+                        strokeDasharray="5 5"
+                        initial={{ pathLength: 0, opacity: 0 }}
+                        animate={{ pathLength: 1, opacity: 0.2 }}
+                        transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
+                      />
+                    </svg>
+                  </motion.div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features */}
+      {/* Volume Calculator Promo Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {[
-            { icon: <Package size={32} />, title: "Qualité Premium", desc: "Laines 100% naturelles" },
-            { icon: <Truck size={32} />, title: "Livraison Rapide", desc: "Offerte dès 50€ d'achat" },
-            { icon: <ShieldCheck size={32} />, title: "Paiement Sécurisé", desc: "Transaction 100% protégée" },
-            { icon: <Heart size={32} />, title: "Fait avec Amour", desc: "Sélection artisanale" },
-          ].map((feature, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              className="flex flex-col items-center text-center p-8 bg-white rounded-3xl shadow-sm border border-primary/5"
-            >
-              <div className="text-accent mb-4">{feature.icon}</div>
-              <h3 className="font-serif text-lg mb-2">{feature.title}</h3>
-              <p className="text-sm text-primary/60">{feature.desc}</p>
-            </motion.div>
-          ))}
+        <div className="bg-white rounded-[3rem] overflow-hidden relative shadow-xl border border-primary/5">
+          <div className="absolute top-0 right-0 w-1/2 h-full bg-accent/5 skew-x-12 translate-x-1/4" />
+          <div className="relative z-10 flex flex-col lg:flex-row items-center">
+            <div className="w-full lg:w-1/2 p-12 md:p-20 space-y-8">
+              <div className="flex items-center gap-3 text-accent font-bold uppercase tracking-widest text-sm">
+                <div className="relative">
+                  <Box size={20} />
+                  <Sparkles size={10} className="absolute -top-1 -right-1 text-primary animate-pulse" />
+                </div>
+                <span>Nouveau : Décoration Maison</span>
+              </div>
+              <h2 className="text-4xl md:text-6xl font-serif text-primary leading-tight">
+                Créez vos propres <span className="italic text-accent">objets déco</span>
+              </h2>
+              <p className="text-primary/60 text-lg max-w-md">
+                Découvrez nos moules et poudres créatives. Utilisez notre calculateur de volume pour doser parfaitement vos mélanges de Jesmonite ou de plâtre.
+              </p>
+              
+              <div className="flex flex-wrap gap-4">
+                <motion.button 
+                  onClick={() => onNavigate('volume-calculator')}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="bg-primary text-white px-10 py-4 rounded-full font-bold hover:bg-accent transition-all shadow-xl shadow-primary/20 relative overflow-hidden"
+                >
+                  <ShimmerEffect />
+                  Calculateur de Volume
+                </motion.button>
+                <motion.button 
+                  onClick={() => onNavigate('shop')}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="bg-white text-primary border-2 border-primary/10 px-10 py-4 rounded-full font-bold hover:border-primary transition-all"
+                >
+                  Voir les moules
+                </motion.button>
+              </div>
+            </div>
+            
+            <div className="w-full lg:w-1/2 p-12 lg:p-0 flex items-center justify-center">
+              <div className="relative w-full max-w-md aspect-square flex items-center justify-center">
+                <div className="relative w-full h-full flex items-center justify-center">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    className="relative z-10 w-full h-full flex items-center justify-center"
+                  >
+                    {/* Decorative background elements */}
+                    <div className="absolute inset-0 bg-accent/10 rounded-full blur-[80px]" />
+                    
+                    {/* Floating Mold/Object Icons */}
+                    <motion.div
+                      animate={{ y: [0, -20, 0], rotate: [0, 10, 0] }}
+                      transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+                      className="absolute top-1/4 right-1/4 z-20"
+                    >
+                      <div className="w-40 h-40 bg-white rounded-[2rem] shadow-2xl flex items-center justify-center border border-primary/5 overflow-hidden group">
+                        <img src="https://picsum.photos/seed/moldovale/400/400" alt="Moule" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" referrerPolicy="no-referrer" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                        <Box className="absolute bottom-4 right-4 text-white/80" size={24} />
+                      </div>
+                    </motion.div>
+
+                    <motion.div
+                      animate={{ y: [0, 20, 0], rotate: [0, -10, 0] }}
+                      transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                      className="absolute bottom-1/4 left-1/4 z-10"
+                    >
+                      <div className="w-32 h-32 bg-secondary rounded-[2rem] shadow-xl flex items-center justify-center border border-primary/5 overflow-hidden">
+                        <img src="https://picsum.photos/seed/jesmonite/400/400" alt="Poudre" className="w-full h-full object-cover opacity-80" referrerPolicy="no-referrer" />
+                        <FlaskConical className="absolute text-primary/40" size={32} />
+                      </div>
+                    </motion.div>
+
+                    {/* Measurement Ruler Animation */}
+                    <motion.div
+                      animate={{ 
+                        width: ["0%", "80%", "0%"],
+                        opacity: [0, 1, 0]
+                      }}
+                      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-1 bg-accent/30 rounded-full z-30"
+                    >
+                      <div className="absolute -right-2 -top-2 w-4 h-4 bg-accent rounded-full flex items-center justify-center">
+                        <Ruler size={10} className="text-white" />
+                      </div>
+                    </motion.div>
+
+                    <motion.div
+                      animate={{ scale: [1, 1.1, 1], opacity: [0.4, 0.8, 0.4] }}
+                      transition={{ duration: 3, repeat: Infinity }}
+                      className="absolute top-10 right-10 text-accent"
+                    >
+                      <Sparkles size={32} />
+                    </motion.div>
+                  </motion.div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Gift Box Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-24">
+        <div className="bg-primary rounded-[4rem] p-12 md:p-20 overflow-hidden relative shadow-2xl shadow-primary/20">
+          <div className="absolute top-0 right-0 w-1/2 h-full opacity-10 pointer-events-none">
+            <Gift size={600} className="translate-x-1/4 -translate-y-1/4 rotate-12" />
+          </div>
+          <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-16">
+            <div className="w-full lg:w-1/2 space-y-8">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent/20 rounded-full border border-accent/20">
+                <Sparkles size={16} className="text-accent" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent">Nouveau : Coffrets Cadeaux</span>
+              </div>
+              <h2 className="text-5xl md:text-7xl font-serif text-white leading-tight">
+                Offrez le <span className="italic text-accent">cadeau parfait</span>
+              </h2>
+              <p className="text-white/60 text-xl leading-relaxed max-w-xl">
+                Composez votre propre coffret cadeau personnalisé. Choisissez vos laines, vos accessoires et ajoutez un mot doux. Nous préparons un emballage premium pour une surprise inoubliable.
+              </p>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4">
+                <div className="flex items-center gap-4 text-white/80">
+                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-accent">
+                    <Check size={20} />
+                  </div>
+                  <span className="text-sm font-medium">Emballage Premium</span>
+                </div>
+                <div className="flex items-center gap-4 text-white/80">
+                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-accent">
+                    <Check size={20} />
+                  </div>
+                  <span className="text-sm font-medium">Carte Personnalisée</span>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-8 pt-6">
+                <motion.button 
+                  onClick={() => onNavigate('gift-box')}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="bg-accent text-white px-12 py-5 rounded-full font-bold hover:bg-white hover:text-primary transition-all shadow-2xl shadow-accent/20 flex items-center gap-3 group/btn relative overflow-hidden"
+                >
+                  <ShimmerEffect />
+                  Créer mon coffret
+                  <ArrowRight size={20} className="group-hover/btn:translate-x-2 transition-transform" />
+                </motion.button>
+                
+                <div className="flex items-center gap-4 text-white/40">
+                  <div className="flex -space-x-3">
+                    {[1,2,3].map(i => (
+                      <div key={i} className="w-10 h-10 rounded-full border-2 border-primary bg-secondary overflow-hidden">
+                        <img src={`https://picsum.photos/seed/user${i}/100/100`} alt="User" referrerPolicy="no-referrer" />
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs font-medium">+500 créés ce mois-ci</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="w-full lg:w-1/2 flex justify-center">
+              <div className="relative group/img">
+                <motion.div
+                  animate={{ rotate: [0, 5, -5, 0], y: [0, -10, 0] }}
+                  transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                  className="relative z-10"
+                >
+                  <div className="w-72 h-72 md:w-96 md:h-96 bg-white/10 backdrop-blur-md border border-white/20 rounded-[4rem] p-12 flex items-center justify-center shadow-2xl overflow-hidden">
+                    <img 
+                      src="https://picsum.photos/seed/giftbox-preview/800/800" 
+                      alt="Gift Box Preview" 
+                      className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover/img:scale-110 transition-transform duration-700"
+                      referrerPolicy="no-referrer"
+                    />
+                    <Gift size={140} className="text-white relative z-10 drop-shadow-2xl" />
+                  </div>
+                </motion.div>
+                <div className="absolute -bottom-12 -right-12 w-48 h-48 bg-accent rounded-full blur-[100px] opacity-30" />
+                <div className="absolute -top-12 -left-12 w-48 h-48 bg-white rounded-full blur-[100px] opacity-10" />
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -525,12 +867,15 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
               <h2 className="text-4xl font-serif mb-4">Packs & Bundles</h2>
               <p className="text-primary/60 max-w-xl">Économisez en achetant nos kits complets, parfaits pour démarrer un nouveau projet ou pour offrir.</p>
             </div>
-            <button 
+            <motion.button 
               onClick={() => onNavigate('shop')}
-              className="px-8 py-4 bg-primary text-white rounded-full font-bold hover:bg-accent transition-all shadow-lg"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="px-8 py-4 bg-primary text-white rounded-full font-bold hover:bg-accent transition-all shadow-lg relative overflow-hidden"
             >
+              <ShimmerEffect />
               Voir tous les kits
-            </button>
+            </motion.button>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -704,9 +1049,14 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                 placeholder="Votre adresse email"
                 className="flex-grow bg-white/10 border border-white/20 rounded-full px-8 py-4 focus:outline-none focus:border-white transition-colors"
               />
-              <button className="bg-accent text-white px-10 py-4 rounded-full font-bold hover:bg-white hover:text-primary transition-all duration-300">
+              <motion.button 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="bg-accent text-white px-10 py-4 rounded-full font-bold hover:bg-white hover:text-primary transition-all duration-300 relative overflow-hidden"
+              >
+                <ShimmerEffect />
                 S'abonner
-              </button>
+              </motion.button>
             </form>
           </div>
         </div>

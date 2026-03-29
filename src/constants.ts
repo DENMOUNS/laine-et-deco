@@ -162,6 +162,7 @@ export const CATEGORIES: Category[] = [
   { id: '3', name: 'Décoration Murale', image: 'https://picsum.photos/seed/decor1/400/500', count: 89 },
   { id: '4', name: 'Coussins & Plaids', image: 'https://picsum.photos/seed/cushion/400/500', count: 67 },
   { id: '5', name: 'Bougies Artisanales', image: 'https://picsum.photos/seed/candle/400/500', count: 34 },
+  { id: '6', name: 'Moules & Poudres', image: 'https://picsum.photos/seed/mold/400/500', count: 56 },
 ];
 
 export const PRODUCTS: Product[] = [
@@ -385,6 +386,78 @@ export const PRODUCTS: Product[] = [
     salesCount: 15,
     brand: 'KnotArt',
     purchasePrice: 18000
+  },
+  {
+    id: 'p11',
+    name: 'Moule Plateau Ovale',
+    price: 12500,
+    category: 'Moules & Poudres',
+    image: 'https://picsum.photos/seed/moldovale/600/800',
+    description: 'Moule en silicone de haute qualité pour créer vos plateaux décoratifs.',
+    stock: 15,
+    rating: 4.9,
+    isAvailable: true,
+    material: 'Silicone',
+    moldVolume: 180,
+    brand: 'DecoMold',
+    purchasePrice: 6000
+  },
+  {
+    id: 'p12',
+    name: 'Moule Vase Coquillage',
+    price: 18000,
+    category: 'Moules & Poudres',
+    image: 'https://picsum.photos/seed/moldshell/600/800',
+    description: 'Un design organique pour des créations uniques en plâtre ou résine.',
+    stock: 8,
+    rating: 5.0,
+    isAvailable: true,
+    material: 'Silicone',
+    moldVolume: 450,
+    brand: 'DecoMold',
+    purchasePrice: 9000
+  },
+  {
+    id: 'p13',
+    name: 'Jesmonite AC100 - Kit 3.5kg',
+    price: 45000,
+    category: 'Moules & Poudres',
+    image: 'https://picsum.photos/seed/jesmonite/600/800',
+    description: 'L\'éco-résine de référence pour des objets déco lisses et résistants.',
+    stock: 10,
+    rating: 4.8,
+    isAvailable: true,
+    material: 'Eco-résine',
+    brand: 'Jesmonite',
+    purchasePrice: 32000
+  },
+  {
+    id: 'p14',
+    name: 'Plâtre Céramique Extra Blanc',
+    price: 8500,
+    category: 'Moules & Poudres',
+    image: 'https://picsum.photos/seed/plaster/600/800',
+    description: 'Poudre ultra-fine pour un rendu porcelaine parfait.',
+    stock: 30,
+    rating: 4.7,
+    isAvailable: true,
+    material: 'Plâtre',
+    brand: 'Raysin',
+    purchasePrice: 4000
+  },
+  {
+    id: 'p15',
+    name: 'Vide-poche Marbré',
+    price: 15000,
+    category: 'Décoration Murale',
+    image: 'https://picsum.photos/seed/decorfinished/600/800',
+    description: 'Objet fini en Jesmonite, fait main avec un effet marbré unique.',
+    stock: 5,
+    rating: 4.9,
+    isAvailable: true,
+    material: 'Jesmonite',
+    brand: 'Laine & Déco',
+    purchasePrice: 5000
   }
 ];
 

@@ -94,6 +94,7 @@ export interface Product {
   careInstructions?: string[]; // Added for care guide
   yardage?: number; // Added for yarn calculator (meters per skein)
   weight?: number; // Added for yarn calculator (grams per skein)
+  moldVolume?: number; // Added for volume calculator (ml)
   reviews?: Review[];
   views?: number;
   salesCount?: number;

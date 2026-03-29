@@ -29,6 +29,23 @@ export const LookbookView: React.FC<LookbookViewProps> = ({ onNavigate, onAddToC
       hotspots: [
         { id: 'h3', x: 45, y: 50, productId: 'p1' }, // Laine
       ]
+    },
+    {
+      id: 'lb3',
+      image: 'https://picsum.photos/seed/lookbook3/1200/800',
+      title: 'Coin Lecture',
+      hotspots: [
+        { id: 'h4', x: 20, y: 30, productId: 'p3' }, // Bougie
+        { id: 'h5', x: 60, y: 70, productId: 'p4' }, // Plaid
+      ]
+    },
+    {
+      id: 'lb4',
+      image: 'https://picsum.photos/seed/lookbook4/1200/800',
+      title: 'Décoration Bohème',
+      hotspots: [
+        { id: 'h6', x: 50, y: 40, productId: 'p2' }, // Vase
+      ]
     }
   ];
 

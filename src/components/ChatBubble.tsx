@@ -1,13 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MessageCircle, X, Send, Sparkles, Loader2 } from 'lucide-react';
+import { MessageCircle, X, Send, Sparkles, Loader2, MessageSquare } from 'lucide-react';
 import { CHAT_MESSAGES, PRODUCTS } from '../constants';
 import { GoogleGenAI } from "@google/genai";
 
 export const ChatBubble: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState(CHAT_MESSAGES);
+  const [messages, setMessages] = useState([
+    {
+      id: 'welcome',
+      senderId: 'ai',
+      senderName: 'Assistant Créatif',
+      message: "Bonjour ! Je suis votre assistant Laine & Déco. Comment puis-je vous aider dans vos projets créatifs aujourd'hui ?",
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isAdmin: true
+    }
+  ]);
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -26,9 +35,16 @@ export const ChatBubble: React.FC = () => {
         `- ${p.name}: ${p.price} FCFA, Catégorie: ${p.category}, Description: ${p.description}`
       ).join('\n');
 
-      const systemInstruction = `Tu es l'assistant shopping expert de "Laine & Déco", une boutique artisanale au Cameroun.
-      Ton but est de conseiller les clients sur les produits disponibles et de les aider dans leurs projets créatifs (tricot, déco).
-      
+      const systemInstruction = `Tu es l'Assistant Créatif de "Laine & Déco", une boutique de laine et décoration haut de gamme au Cameroun.
+      Ton rôle est d'être un expert en tricot, crochet et décoration d'intérieur.
+      Tu dois :
+      1. Conseiller les clients sur le choix de la laine en fonction de leur projet (pull, écharpe, couverture).
+      2. Proposer des idées créatives de décoration utilisant nos produits (vases, bougies).
+      3. Expliquer comment utiliser notre "Calculateur de Laine" ou notre "Coffret Cadeau Personnalisé".
+      4. Répondre avec enthousiasme, élégance et professionnalisme.
+      5. Utiliser des termes techniques du tricot si nécessaire mais rester accessible.
+      6. Si on te demande un produit spécifique, mentionne qu'il est disponible dans notre boutique.
+
       Voici notre catalogue actuel :
       ${productsContext}
       
@@ -148,10 +164,37 @@ export const ChatBubble: React.FC = () => {
               ))}
               {isTyping && (
                 <div className="flex justify-start">
-                  <div className="bg-white p-4 rounded-2xl rounded-tl-none border border-primary/5 shadow-sm flex items-center gap-2">
-                    <Loader2 size={14} className="animate-spin text-accent" />
+                  <div className="bg-white p-4 rounded-2xl rounded-tl-none border border-primary/5 shadow-sm flex items-center gap-3">
+                    <div className="flex gap-1">
+                      <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 1 }} className="w-1.5 h-1.5 bg-accent rounded-full" />
+                      <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-1.5 h-1.5 bg-accent rounded-full" />
+                      <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className="w-1.5 h-1.5 bg-accent rounded-full" />
+                    </div>
                     <span className="text-xs text-primary/40 font-medium italic">L'expert réfléchit...</span>
                   </div>
+                </div>
+              )}
+
+              {/* Suggestions */}
+              {messages.length <= 1 && !isTyping && (
+                <div className="pt-2 flex flex-wrap gap-2">
+                  {[
+                    "Quel fil pour un pull d'hiver ?",
+                    "Idée cadeau pour une débutante",
+                    "Comment marche le calculateur ?",
+                    "Conseils déco pour mon salon"
+                  ].map((s, i) => (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        setMessage(s);
+                        // Trigger send manually or just set message
+                      }}
+                      className="text-[9px] font-bold uppercase tracking-widest px-3 py-2 rounded-full border border-primary/10 bg-white hover:border-accent hover:text-accent transition-all"
+                    >
+                      {s}
+                    </button>
+                  ))}
                 </div>
               )}
             </div>

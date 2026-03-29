@@ -10,26 +10,46 @@ interface LoaderProps {
 
 export const Loader: React.FC<LoaderProps> = ({ 
   size = 'md', 
-  color = 'var(--color-primary)', 
+  color = 'var(--color-accent)', 
   text, 
   fullScreen = false 
 }) => {
   const sizes = {
-    sm: 'w-6 h-6 border-2',
-    md: 'w-10 h-10 border-3',
-    lg: 'w-16 h-16 border-4'
+    sm: 'w-8 h-8',
+    md: 'w-16 h-16',
+    lg: 'w-24 h-24'
   };
 
   const loaderContent = (
-    <div className="flex flex-col items-center justify-center gap-4">
-      <motion.div
-        className={`${sizes[size]} rounded-full border-t-transparent animate-spin`}
-        style={{ borderColor: `${color} transparent transparent transparent` }}
-        animate={{ rotate: 360 }}
-        transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-      />
+    <div className="flex flex-col items-center justify-center gap-6">
+      <div className={`${sizes[size]} relative flex items-center justify-center`}>
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+          className="absolute inset-0"
+        >
+          <svg viewBox="0 0 40 40" className="w-full h-full" style={{ color }}>
+            <motion.path
+              d="M 20 5 A 15 15 0 1 1 19.99 5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: [0, 0.8, 0] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            />
+          </svg>
+        </motion.div>
+        <motion.div 
+          animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+          className="w-1/4 h-1/4 rounded-full shadow-lg"
+          style={{ backgroundColor: color }}
+        />
+      </div>
       {text && (
-        <p className="text-sm font-serif italic text-primary/60 animate-pulse">
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary/40 animate-pulse">
           {text}
         </p>
       )}

@@ -17,6 +17,9 @@ import { GalleryView } from './views/GalleryView';
 import { CareGuideView } from './views/CareGuideView';
 import { ContactView } from './views/ContactView';
 import { AboutView } from './views/AboutView';
+import { WoolCalculatorView } from './views/WoolCalculatorView';
+import { VolumeCalculatorView } from './views/VolumeCalculatorView';
+import { GiftBoxView } from './views/GiftBoxView';
 import { Product, SiteConfig, Language, Currency, PromoEvent } from './types';
 import { motion, AnimatePresence } from 'motion/react';
 import { SITE_CONFIG, LANGUAGES, CURRENCIES, ORDERS, PRODUCTS, PACKS } from './constants';
@@ -47,6 +50,17 @@ export default function App() {
   };
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
+
+  // Sync selectedProduct with selectedId for direct navigation
+  useEffect(() => {
+    if (selectedId && (currentView === 'product-detail' || currentView === 'pack-detail')) {
+      if (currentView === 'product-detail') {
+        const product = PRODUCTS.find(p => p.id === selectedId);
+        if (product) setSelectedProduct(product);
+      }
+    }
+  }, [selectedId, currentView]);
+
   const [siteConfig, setSiteConfig] = useState<SiteConfig>(SITE_CONFIG);
   const [events, setEvents] = useState<PromoEvent[]>([]);
 
@@ -75,6 +89,12 @@ export default function App() {
       updateSEOMeta('Lookbook - Laine & Déco', 'Découvrez nos inspirations et ambiances.');
     } else if (currentView === 'gallery') {
       updateSEOMeta('Galerie - Laine & Déco', 'Notre galerie de créations.');
+    } else if (currentView === 'wool-calculator') {
+      updateSEOMeta('Calculateur de Laine - Laine & Déco', 'Estimez le nombre de pelotes pour votre prochain projet.');
+    } else if (currentView === 'volume-calculator') {
+      updateSEOMeta('Calculateur de Volume - Laine & Déco', 'Dosez vos poudres créatives avec précision.');
+    } else if (currentView === 'gift-box') {
+      updateSEOMeta('Créez votre Coffret Cadeau - Laine & Déco', 'Composez le cadeau parfait avec nos laines et accessoires.');
     } else if (currentView === 'care-guide') {
       updateSEOMeta('Guide d\'entretien - Laine & Déco', 'Conseils pour prendre soin de vos articles.');
     } else if (currentView === 'product-detail' && selectedProduct) {
@@ -421,6 +441,18 @@ export default function App() {
 
             {currentView === 'care-guide' && (
               <CareGuideView onNavigate={handleNavigate} />
+            )}
+
+            {currentView === 'wool-calculator' && (
+              <WoolCalculatorView onNavigate={handleNavigate} onAddToCart={addToCart} />
+            )}
+
+            {currentView === 'volume-calculator' && (
+              <VolumeCalculatorView onNavigate={handleNavigate} onAddToCart={addToCart} />
+            )}
+
+            {currentView === 'gift-box' && (
+              <GiftBoxView onNavigate={handleNavigate} onAddToCart={addToCart} />
             )}
 
             {currentView === 'faq' && (

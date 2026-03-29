@@ -26,6 +26,7 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
   const [sortBy, setSortBy] = useState('Nouveautés');
   const [priceRange, setPriceRange] = useState(100000);
   const [isFiltering, setIsFiltering] = useState(false);
+  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
   const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
@@ -89,19 +90,47 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
     const matchesColor = selectedColor === 'Tous' || (p.colors && p.colors.includes(selectedColor));
     const matchesBrand = selectedBrand === 'Tous' || p.brand === selectedBrand;
     
-    // Search logic: if searchQuery has commas, it's likely from image analysis
-    const searchTerms = searchQuery.toLowerCase().split(/[,\s]+/).filter(t => t.length > 2);
-    let matchesSearch = true;
-    
-    if (searchQuery.trim()) {
-      const searchableText = `${p.name} ${p.category} ${p.description} ${p.material || ''} ${p.brand || ''}`.toLowerCase();
-      if (searchTerms.length > 0 && searchQuery.includes(',')) {
-        matchesSearch = searchTerms.some(term => searchableText.includes(term));
-      } else {
-        matchesSearch = searchableText.includes(searchQuery.toLowerCase());
-      }
-    }
+    // Advanced search logic (Apache Lucene style)
+    const parseLuceneQuery = (query: string, product: Product) => {
+      if (!query.trim()) return true;
 
+      // Split by space but keep quoted strings together
+      const terms = query.toLowerCase().match(/(?:[^\s"]+|"[^"]*")+/g);
+      if (!terms) return true;
+      
+      return terms.every((term: string) => {
+        let field = '';
+        let value = term;
+
+        if (term.includes(':')) {
+          const parts = term.split(':');
+          field = parts[0];
+          value = parts.slice(1).join(':'); // Handle cases like field:value:extra
+        }
+        
+        value = value.replace(/"/g, ''); // Remove quotes
+
+        const getFieldText = (f: string) => {
+          switch(f) {
+            case 'name': return product.name.toLowerCase();
+            case 'category': return product.category.toLowerCase();
+            case 'material': return (product.material || '').toLowerCase();
+            case 'brand': return (product.brand || '').toLowerCase();
+            case 'desc': return product.description.toLowerCase();
+            case 'price': return product.price.toString();
+            default: return `${product.name} ${product.category} ${product.description} ${product.material || ''} ${product.brand || ''}`.toLowerCase();
+          }
+        };
+
+        if (field) {
+          return getFieldText(field).includes(value);
+        } else {
+          return getFieldText('').includes(value);
+        }
+      });
+    };
+
+    const matchesSearch = parseLuceneQuery(searchQuery, p);
     const matchesPrice = p.price <= priceRange;
     return matchesCategory && matchesMaterial && matchesColor && matchesBrand && matchesSearch && matchesPrice;
   }).sort((a, b) => {
@@ -134,11 +163,20 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
         </div>
         
           <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
+            <button 
+              onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
+              className={`flex items-center gap-2 px-6 py-2 rounded-full border transition-all ${isFilterMenuOpen ? 'bg-primary text-white border-primary' : 'bg-white text-primary border-primary/10 hover:border-accent hover:text-accent'}`}
+            >
+              <Filter size={18} />
+              <span className="font-bold uppercase tracking-widest text-xs">Filtres</span>
+              {isFilterMenuOpen ? <ChevronDown size={16} className="rotate-180 transition-transform" /> : <ChevronDown size={16} />}
+            </button>
+
             <div className="relative flex-grow md:flex-grow-0">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/40" size={18} />
               <input
                 type="text"
-                placeholder="Rechercher par nom, matière..."
+                placeholder="Ex: name:wool category:deco ..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-12 pr-12 py-2 bg-white border border-primary/10 rounded-full focus:outline-none focus:border-accent w-full md:w-80 shadow-sm"
@@ -192,146 +230,101 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
           </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-12">
-        {/* Sidebar Filters */}
-        <aside className="w-full lg:w-72 space-y-10">
-          <div>
-            <h3 className="font-bold uppercase tracking-widest text-xs mb-6 flex items-center">
-              <Filter size={14} className="mr-2" /> Catégories
-            </h3>
-            <div className="space-y-3">
-              <button
-                onClick={() => setSelectedCategory('Tous')}
-                className={`block w-full text-left text-sm transition-colors ${selectedCategory === 'Tous' ? 'text-accent font-bold' : 'text-primary/70 hover:text-primary'}`}
-              >
-                Tous les produits
-              </button>
-              {CATEGORIES.map(cat => (
-                <button
-                  key={cat.id}
-                  onClick={() => setSelectedCategory(cat.name)}
-                  className={`block w-full text-left text-sm transition-colors ${selectedCategory === cat.name ? 'text-accent font-bold' : 'text-primary/70 hover:text-primary'}`}
-                >
-                  {cat.name}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h3 className="font-bold uppercase tracking-widest text-xs mb-6">Matières</h3>
-            <div className="space-y-3">
-              <button
-                onClick={() => setSelectedMaterial('Tous')}
-                className={`block w-full text-left text-sm transition-colors ${selectedMaterial === 'Tous' ? 'text-accent font-bold' : 'text-primary/70 hover:text-primary'}`}
-              >
-                Toutes les matières
-              </button>
-              {materials.map(mat => (
-                <button
-                  key={mat}
-                  onClick={() => setSelectedMaterial(mat!)}
-                  className={`flex justify-between items-center w-full text-sm transition-colors ${selectedMaterial === mat ? 'text-accent font-bold' : 'text-primary/70 hover:text-primary'}`}
-                >
-                  <span>{mat}</span>
-                  <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full text-primary/40">
-                    {PRODUCTS.filter(p => p.material === mat).length}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h3 className="font-bold uppercase tracking-widest text-xs mb-6">Marques</h3>
-            <div className="space-y-3">
-              <button
-                onClick={() => setSelectedBrand('Tous')}
-                className={`block w-full text-left text-sm transition-colors ${selectedBrand === 'Tous' ? 'text-accent font-bold' : 'text-primary/70 hover:text-primary'}`}
-              >
-                Toutes les marques
-              </button>
-              {brands.map(brand => (
-                <button
-                  key={brand}
-                  onClick={() => setSelectedBrand(brand!)}
-                  className={`flex justify-between items-center w-full text-sm transition-colors ${selectedBrand === brand ? 'text-accent font-bold' : 'text-primary/70 hover:text-primary'}`}
-                >
-                  <span>{brand}</span>
-                  <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full text-primary/40">
-                    {PRODUCTS.filter(p => p.brand === brand).length}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h3 className="font-bold uppercase tracking-widest text-xs mb-6">Budget</h3>
-            <div className="space-y-6 bg-slate-50 p-6 rounded-2xl border border-primary/5">
-              <div className="flex justify-between items-end">
-                <div className="space-y-1">
-                  <p className="text-[10px] uppercase tracking-widest text-primary/40 font-bold">Max</p>
-                  <p className="text-lg font-serif font-bold text-primary">{priceRange.toLocaleString()} <span className="text-xs">FCFA</span></p>
-                </div>
-                <button 
-                  onClick={() => setPriceRange(100000)}
-                  className="text-[10px] font-bold uppercase tracking-widest text-accent hover:underline"
-                >
-                  Reset
-                </button>
-              </div>
-              <input 
-                type="range" 
-                className="w-full h-1.5 bg-primary/10 rounded-lg appearance-none cursor-pointer accent-accent" 
-                min="0" 
-                max="100000" 
-                step="1000"
-                value={priceRange}
-                onChange={(e) => setPriceRange(parseInt(e.target.value))}
-              />
-              <div className="flex justify-between text-[10px] text-primary/40 font-bold uppercase tracking-widest">
-                <span>0 FCFA</span>
-                <span>100k FCFA</span>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="font-bold uppercase tracking-widest text-xs mb-6">Couleurs</h3>
-            <div className="flex flex-wrap gap-3">
-              <button 
-                onClick={() => setSelectedColor('Tous')}
-                className={`w-8 h-8 rounded-full border border-primary/10 flex items-center justify-center text-[10px] font-bold ${selectedColor === 'Tous' ? 'bg-primary text-white' : 'bg-white text-primary'}`}
-              >
-                All
-              </button>
-              {colors.map((color, i) => (
-                <button 
-                  key={i} 
-                  onClick={() => setSelectedColor(color.hex)}
-                  title={color.name}
-                  className={`w-8 h-8 rounded-full border border-primary/10 cursor-pointer hover:ring-2 ring-accent ring-offset-2 transition-all ${selectedColor === color.hex ? 'ring-2' : ''}`}
-                  style={{ backgroundColor: color.hex }}
-                />
-              ))}
-            </div>
-          </div>
-
-          <button 
-            onClick={() => {
-              setSelectedCategory('Tous');
-              setSelectedMaterial('Tous');
-              setSelectedColor('Tous');
-              setSearchQuery('');
-              setPriceRange(100000);
-            }}
-            className="w-full py-3 border border-primary/10 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-primary hover:text-white transition-all"
+      <AnimatePresence>
+        {isFilterMenuOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden mb-12"
           >
-            Réinitialiser les filtres
-          </button>
-        </aside>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 p-8 bg-secondary/30 rounded-[2.5rem] border border-primary/5">
+              <div>
+                <h3 className="font-bold uppercase tracking-widest text-[10px] text-primary/40 mb-4">Catégories</h3>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setSelectedCategory('Tous')}
+                    className={`px-3 py-1.5 rounded-full text-xs transition-all ${selectedCategory === 'Tous' ? 'bg-primary text-white' : 'bg-white text-primary/70 hover:bg-primary/5'}`}
+                  >
+                    Tous
+                  </button>
+                  {CATEGORIES.map(cat => (
+                    <button
+                      key={cat.id}
+                      onClick={() => setSelectedCategory(cat.name)}
+                      className={`px-3 py-1.5 rounded-full text-xs transition-all ${selectedCategory === cat.name ? 'bg-primary text-white' : 'bg-white text-primary/70 hover:bg-primary/5'}`}
+                    >
+                      {cat.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
+              <div>
+                <h3 className="font-bold uppercase tracking-widest text-[10px] text-primary/40 mb-4">Matières</h3>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setSelectedMaterial('Tous')}
+                    className={`px-3 py-1.5 rounded-full text-xs transition-all ${selectedMaterial === 'Tous' ? 'bg-primary text-white' : 'bg-white text-primary/70 hover:bg-primary/5'}`}
+                  >
+                    Toutes
+                  </button>
+                  {materials.map(mat => (
+                    <button
+                      key={mat}
+                      onClick={() => setSelectedMaterial(mat!)}
+                      className={`px-3 py-1.5 rounded-full text-xs transition-all ${selectedMaterial === mat ? 'bg-primary text-white' : 'bg-white text-primary/70 hover:bg-primary/5'}`}
+                    >
+                      {mat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-bold uppercase tracking-widest text-[10px] text-primary/40 mb-4">Budget Max</h3>
+                <div className="space-y-4">
+                  <input 
+                    type="range" 
+                    className="w-full h-1.5 bg-primary/10 rounded-lg appearance-none cursor-pointer accent-accent" 
+                    min="0" 
+                    max="100000" 
+                    step="1000"
+                    value={priceRange}
+                    onChange={(e) => setPriceRange(parseInt(e.target.value))}
+                  />
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-bold text-primary">{priceRange.toLocaleString()} FCFA</span>
+                    <button onClick={() => setPriceRange(100000)} className="text-[10px] font-bold uppercase tracking-widest text-accent">Reset</button>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-bold uppercase tracking-widest text-[10px] text-primary/40 mb-4">Couleurs</h3>
+                <div className="flex flex-wrap gap-2">
+                  {colors.map((color, i) => (
+                    <button 
+                      key={i} 
+                      onClick={() => setSelectedColor(color.hex)}
+                      className={`w-6 h-6 rounded-full border border-primary/10 transition-all ${selectedColor === color.hex ? 'ring-2 ring-accent ring-offset-2' : ''}`}
+                      style={{ backgroundColor: color.hex }}
+                    />
+                  ))}
+                  <button 
+                    onClick={() => setSelectedColor('Tous')}
+                    className="text-[10px] font-bold text-accent px-2"
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="flex flex-col lg:flex-row gap-12">
         {/* Product Grid */}
         <main className="flex-grow relative min-h-[400px]">
           <AnimatePresence mode="wait">

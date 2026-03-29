@@ -76,8 +76,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   const navLinks = [
     { name: 'Accueil', view: 'home' },
     { name: 'Boutique', view: 'shop' },
+    { name: 'Coffrets', view: 'gift-box' },
     { name: 'Lookbook', view: 'lookbook' },
     { name: 'Galerie', view: 'gallery' },
+    { name: 'Calculateur Laine', view: 'wool-calculator' },
+    { name: 'Calculateur Volume', view: 'volume-calculator' },
     { name: 'Blog', view: 'blog' },
     { name: 'À propos', view: 'about' },
     { name: 'Contact', view: 'contact' },
@@ -200,7 +203,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button onClick={toggleDarkMode} className="p-2 text-primary hover:text-accent transition-colors rounded-full hover:bg-primary/5">
               {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
             </button>
-            <button onClick={() => setIsSearchOpen(!isSearchOpen)} className="p-2 text-primary hover:text-accent transition-colors rounded-full hover:bg-primary/5">
+            <button onClick={() => onNavigate('shop')} className="p-2 text-primary hover:text-accent transition-colors rounded-full hover:bg-primary/5">
               <Search size={20} />
             </button>
             <button onClick={() => onNavigate('wishlist')} className="p-2 text-primary hover:text-accent transition-colors relative rounded-full hover:bg-primary/5">
@@ -229,88 +232,6 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </div>
 
-      {/* Search Overlay */}
-      <AnimatePresence>
-        {isSearchOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="absolute top-full left-0 w-full glass shadow-2xl border-t border-primary/5 z-40"
-            ref={searchRef}
-          >
-            <div className="max-w-3xl mx-auto p-6">
-              <div className="relative">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Rechercher de la laine, un vase, une bougie..."
-                  className="w-full bg-transparent border-b-2 border-primary/10 py-4 px-4 focus:outline-none focus:border-accent text-xl font-serif transition-colors"
-                  autoFocus
-                />
-                <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-primary/30" size={24} />
-              </div>
-
-              {/* Autocomplete Results */}
-              <AnimatePresence>
-                {searchResults.length > 0 && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-6 space-y-4"
-                  >
-                    <p className="text-[10px] uppercase tracking-widest font-bold text-primary/40">Suggestions de produits</p>
-                    <div className="grid grid-cols-1 gap-2">
-                      {searchResults.map(product => (
-                        <button
-                          key={product.id}
-                          onClick={() => {
-                            onNavigate('product-detail', product.id);
-                            setIsSearchOpen(false);
-                            setSearchQuery('');
-                          }}
-                          className="flex items-center gap-4 p-3 rounded-2xl hover:bg-secondary/50 transition-colors text-left group"
-                        >
-                          <img 
-                            src={product.image} 
-                            alt={product.name} 
-                            className="w-12 h-12 object-cover rounded-xl shadow-sm"
-                            referrerPolicy="no-referrer"
-                          />
-                          <div className="flex-grow">
-                            <h4 className="text-sm font-bold text-primary group-hover:text-accent transition-colors">{product.name}</h4>
-                            <p className="text-xs text-primary/40">{product.category}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm font-bold text-primary">{(product.price * currency.rate).toLocaleString()} {currency.symbol}</p>
-                            <ArrowRight size={14} className="ml-auto text-primary/20 group-hover:text-accent group-hover:translate-x-1 transition-all" />
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                    <button 
-                      onClick={() => {
-                        onNavigate('shop', undefined);
-                        setIsSearchOpen(false);
-                      }}
-                      className="w-full py-3 text-xs font-bold uppercase tracking-widest text-accent hover:bg-accent/5 rounded-xl transition-colors"
-                    >
-                      Voir tous les résultats
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {searchQuery.length > 1 && searchResults.length === 0 && (
-                <div className="mt-8 text-center py-12">
-                  <p className="text-primary/40 italic font-serif">Aucun produit ne correspond à votre recherche...</p>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
       </nav>
 
       {/* Mobile Menu (Sidebar) */}
@@ -375,6 +296,94 @@ export const Navbar: React.FC<NavbarProps> = ({
                 >
                   Boutique
                   <ChevronRight size={18} className={currentView === 'shop' ? 'opacity-100 text-white' : 'opacity-0'} />
+                </button>
+
+                <button
+                  onClick={() => {
+                    onNavigate('gift-box');
+                    setIsMenuOpen(false);
+                  }}
+                  className={`text-lg font-serif text-left flex justify-between items-center p-4 rounded-2xl transition-all ${currentView === 'gift-box' ? 'bg-accent text-white font-bold shadow-lg' : 'text-white hover:bg-white/10'}`}
+                >
+                  Coffrets
+                  <ChevronRight size={18} className={currentView === 'gift-box' ? 'opacity-100 text-white' : 'opacity-0'} />
+                </button>
+
+                <button
+                  onClick={() => {
+                    onNavigate('wool-calculator');
+                    setIsMenuOpen(false);
+                  }}
+                  className={`text-lg font-serif text-left flex justify-between items-center p-4 rounded-2xl transition-all ${currentView === 'wool-calculator' ? 'bg-accent text-white font-bold shadow-lg' : 'text-white hover:bg-white/10'}`}
+                >
+                  Calculateur Laine
+                  <ChevronRight size={18} className={currentView === 'wool-calculator' ? 'opacity-100 text-white' : 'opacity-0'} />
+                </button>
+
+                <button
+                  onClick={() => {
+                    onNavigate('volume-calculator');
+                    setIsMenuOpen(false);
+                  }}
+                  className={`text-lg font-serif text-left flex justify-between items-center p-4 rounded-2xl transition-all ${currentView === 'volume-calculator' ? 'bg-accent text-white font-bold shadow-lg' : 'text-white hover:bg-white/10'}`}
+                >
+                  Calculateur Volume
+                  <ChevronRight size={18} className={currentView === 'volume-calculator' ? 'opacity-100 text-white' : 'opacity-0'} />
+                </button>
+
+                <button
+                  onClick={() => {
+                    onNavigate('lookbook');
+                    setIsMenuOpen(false);
+                  }}
+                  className={`text-lg font-serif text-left flex justify-between items-center p-4 rounded-2xl transition-all ${currentView === 'lookbook' ? 'bg-accent text-white font-bold shadow-lg' : 'text-white hover:bg-white/10'}`}
+                >
+                  Lookbook
+                  <ChevronRight size={18} className={currentView === 'lookbook' ? 'opacity-100 text-white' : 'opacity-0'} />
+                </button>
+
+                <button
+                  onClick={() => {
+                    onNavigate('gallery');
+                    setIsMenuOpen(false);
+                  }}
+                  className={`text-lg font-serif text-left flex justify-between items-center p-4 rounded-2xl transition-all ${currentView === 'gallery' ? 'bg-accent text-white font-bold shadow-lg' : 'text-white hover:bg-white/10'}`}
+                >
+                  Galerie
+                  <ChevronRight size={18} className={currentView === 'gallery' ? 'opacity-100 text-white' : 'opacity-0'} />
+                </button>
+
+                <button
+                  onClick={() => {
+                    onNavigate('about');
+                    setIsMenuOpen(false);
+                  }}
+                  className={`text-lg font-serif text-left flex justify-between items-center p-4 rounded-2xl transition-all ${currentView === 'about' ? 'bg-accent text-white font-bold shadow-lg' : 'text-white hover:bg-white/10'}`}
+                >
+                  À propos
+                  <ChevronRight size={18} className={currentView === 'about' ? 'opacity-100 text-white' : 'opacity-0'} />
+                </button>
+
+                <button
+                  onClick={() => {
+                    onNavigate('contact');
+                    setIsMenuOpen(false);
+                  }}
+                  className={`text-lg font-serif text-left flex justify-between items-center p-4 rounded-2xl transition-all ${currentView === 'contact' ? 'bg-accent text-white font-bold shadow-lg' : 'text-white hover:bg-white/10'}`}
+                >
+                  Contact
+                  <ChevronRight size={18} className={currentView === 'contact' ? 'opacity-100 text-white' : 'opacity-0'} />
+                </button>
+
+                <button
+                  onClick={() => {
+                    onNavigate('care-guide');
+                    setIsMenuOpen(false);
+                  }}
+                  className={`text-lg font-serif text-left flex justify-between items-center p-4 rounded-2xl transition-all ${currentView === 'care-guide' ? 'bg-accent text-white font-bold shadow-lg' : 'text-white hover:bg-white/10'}`}
+                >
+                  Guide d'entretien
+                  <ChevronRight size={18} className={currentView === 'care-guide' ? 'opacity-100 text-white' : 'opacity-0'} />
                 </button>
 
                 <hr className="border-white/10 my-6" />
