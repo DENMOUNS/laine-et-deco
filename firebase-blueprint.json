@@ -1,0 +1,66 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Représente un utilisateur de la boutique.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "loyaltyPoints": { "type": "number" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Pattern": {
+      "title": "Pattern",
+      "description": "Représente un patron de tricot.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "price": { "type": "number" }
+      },
+      "required": ["id", "title", "price"]
+    },
+    "WishlistItem": {
+      "title": "WishlistItem",
+      "description": "Représente un article dans la liste de souhaits.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "productId": { "type": "string" }
+      },
+      "required": ["uid", "productId"]
+    },
+    "CustomOrder": {
+      "title": "CustomOrder",
+      "description": "Représente une commande sur-mesure.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "in-progress", "completed"] }
+      },
+      "required": ["uid", "description"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": { "$ref": "User" },
+      "description": "Données des utilisateurs."
+    },
+    "/patterns/{patternId}": {
+      "schema": { "$ref": "Pattern" },
+      "description": "Patrons exclusifs."
+    },
+    "/wishlists/{uid}/items/{productId}": {
+      "schema": { "$ref": "WishlistItem" },
+      "description": "Liste de souhaits des utilisateurs."
+    },
+    "/customOrders/{orderId}": {
+      "schema": { "$ref": "CustomOrder" },
+      "description": "Commandes sur-mesure."
+    }
+  }
+}

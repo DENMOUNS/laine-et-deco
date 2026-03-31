@@ -1,0 +1,81 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {uid}
+    // Fields:
+    //   - uid: string (required) - User ID
+    //   - email: string (required) - User email
+    //   - role: string (optional) - 'user' or 'admin'
+    //   - loyaltyPoints: number (optional) - Points for loyalty program
+    //
+    // Collection: patterns
+    // Document ID: {patternId}
+    // Fields:
+    //   - id: string (required) - Pattern ID
+    //   - title: string (required) - Pattern title
+    //   - price: number (required) - Pattern price
+    //
+    // Collection: wishlists
+    // Document ID: {uid}/items/{productId}
+    // Fields:
+    //   - uid: string (required) - User ID
+    //   - productId: string (required) - Product ID
+    //
+    // Collection: customOrders
+    // Document ID: {orderId}
+    // Fields:
+    //   - uid: string (required) - User ID
+    //   - description: string (required) - Order description
+    //   - status: string (required) - 'pending', 'in-progress', 'completed'
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "landrymoutongo97@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow write: if isOwner(uid) || isAdmin();
+    }
+
+    match /patterns/{patternId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /wishlists/{uid}/items/{productId} {
+      allow read: if isOwner(uid);
+      allow write: if isOwner(uid);
+    }
+
+    match /customOrders/{orderId} {
+      allow read: if isOwner(resource.data.uid) || isAdmin();
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+      allow update: if isOwner(resource.data.uid) || isAdmin();
+      allow delete: if isAdmin();
+    }
+  }
+}

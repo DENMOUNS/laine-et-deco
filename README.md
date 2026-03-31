@@ -40,3 +40,24 @@ Boutique de décoration et artisanat.
 - **Coffrets Cadeaux Personnalisables** : Interface interactive "Build-a-Box" étape par étape (boîte, laines, aiguilles, accessoires, message personnalisé) avec suivi de capacité en temps réel et résumé premium.
 
 ## Prochaines étapes (Roadmap Backend)
+- [x] Configuration Firebase (Firestore, Auth)
+- [ ] Implémentation des fonctionnalités (Programme de fidélité, Patrons, Liste de souhaits, Quiz, Commande sur-mesure)
+
+## Priorités de développement
+- **Programme de fidélité parrainage** : Gagnez des remises en invitant vos amis créatifs.
+- **Vente de patrons exclusifs** : Patrons de tricot créés par des artisans partenaires.
+- **Liste de souhaits partagée** : Créez et partagez vos envies pour des cadeaux.
+- **Quiz "Quel est votre style déco ?"** : Test pour obtenir des recommandations personnalisées.
+- **Service de commande sur-mesure** : Demandez une création unique à nos artisans.
+
+## Idées pour nos utilisateurs
+1. **Ateliers DIY en ligne** : Cours vidéo interactifs pour apprendre à tricoter ou créer des objets en Jesmonite.
+2. **Communauté de créateurs** : Espace pour partager ses réalisations et échanger des patrons.
+3. **Abonnement "Box Créative"** : Recevez chaque mois un kit complet pour un nouveau projet.
+4. **Service de personnalisation** : Faites graver ou broder vos objets achetés.
+5. **Blog d'inspiration saisonnière** : Articles sur les tendances déco et tricot selon les saisons.
+6. **Outil de visualisation AR** : Visualisez les objets déco dans votre intérieur via la caméra.
+7. **Service de réparation/entretien** : Conseils et kits pour réparer vos créations en laine.
+8. **Événements pop-up locaux** : Informations sur les marchés de créateurs où nous serons présents.
+9. **Calculateur de budget projet** : Estimez le coût total de vos futurs projets créatifs.
+10. **Catalogue de matières éco-responsables** : Filtre dédié aux produits durables et locaux.

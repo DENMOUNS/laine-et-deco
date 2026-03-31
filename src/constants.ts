@@ -691,6 +691,7 @@ export const PACKS: Pack[] = [
     id: 'pack1',
     name: 'Pack Débutant Tricot',
     description: 'Tout le nécessaire pour bien commencer le tricot.',
+    price: 15000,
     products: [
       { productId: 'p1', quantity: 2 },
       { productId: 'p5', quantity: 1 }

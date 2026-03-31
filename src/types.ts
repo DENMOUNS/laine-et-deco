@@ -254,6 +254,7 @@ export interface Pack {
   id: string;
   name: string;
   description: string;
+  price: number;
   products: { productId: string; quantity: number }[]; // Max 4 products
   promoCode: string;
   discountPercentage: number;

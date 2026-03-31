@@ -84,6 +84,9 @@ export const Navbar: React.FC<NavbarProps> = ({
     { name: 'Blog', view: 'blog' },
     { name: 'À propos', view: 'about' },
     { name: 'Contact', view: 'contact' },
+    { name: 'Patrons', view: 'patterns' },
+    { name: 'Quiz', view: 'quiz' },
+    { name: 'Sur-mesure', view: 'custom-order' },
   ];
 
   return (
@@ -337,7 +340,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                     {[
                       { id: 'wool-calculator', name: 'Calculateur Laine' },
                       { id: 'volume-calculator', name: 'Calculateur Volume' },
-                      { id: 'gift-box', name: 'Coffrets Cadeaux' }
+                      { id: 'gift-box', name: 'Coffrets Cadeaux' },
+                      { id: 'wishlist', name: 'Liste de souhaits' },
+                      { id: 'patterns', name: 'Patrons exclusifs' },
+                      { id: 'quiz', name: 'Quiz Déco' },
+                      { id: 'custom-order', name: 'Sur-mesure' }
                     ].map((item) => (
                       <button
                         key={item.id}
