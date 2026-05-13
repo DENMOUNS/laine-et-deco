@@ -2,7 +2,7 @@
 import React from 'react';
 import { Menu, Search, Bell, CheckCircle2, AlertCircle, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { SystemNotification } from '../../../types';
+import { Notification } from '../../../types';
 
 interface AdminHeaderProps {
   activeTab: string;
@@ -11,8 +11,8 @@ interface AdminHeaderProps {
   setIsSidebarOpen: (open: boolean) => void;
   showNotifications: boolean;
   setShowNotifications: (show: boolean) => void;
-  localSystemNotifications: SystemNotification[];
-  handleNotificationClick: (notif: SystemNotification) => void;
+  localSystemNotifications: Notification[];
+  handleNotificationClick: (notif: Notification) => void;
   setActiveTab: (tab: string) => void;
   onSearch: (query: string) => void;
 }

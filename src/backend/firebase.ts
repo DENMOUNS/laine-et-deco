@@ -65,8 +65,7 @@ if (firebaseConfig && firebaseConfig.projectId) {
       : '(default)';
     
     db = initializeFirestore(app, {
-      experimentalAutoDetectLongPolling: true,
-      experimentalForceLongPolling: true
+      experimentalAutoDetectLongPolling: true
     }, databaseId);
     auth = getAuth(app);
 
