@@ -7596,7 +7596,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
         )}
 
         <footer className="mt-12 pt-8 border-t border-primary/10 flex flex-col md:flex-row justify-between items-center text-xs text-primary/60">
-          <p>© {new Date().getFullYear()} Atelier de Doleres Admin. Tous droits réservés.</p>
+          <p>© {new Date().getFullYear()} Laine et Déco Admin. Tous droits réservés.</p>
           <div className="flex gap-6 mt-4 md:mt-0">
             <a href="#" className="hover:text-primary transition-colors">Support Technique</a>
             <a href="#" className="hover:text-primary transition-colors">Documentation</a>

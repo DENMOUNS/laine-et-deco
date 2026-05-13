@@ -141,7 +141,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
     : heroImages.map(image => ({
         image,
         title: siteConfig.hero.title,
-        subtitle: siteConfig.hero.description || "Bienvenue chez Atelier de Doleres",
+        subtitle: siteConfig.hero.description || "Bienvenue chez Laine et Déco",
         ctaText: siteConfig.hero.ctaText || "Découvrir la collection",
         link: "shop"
       }));

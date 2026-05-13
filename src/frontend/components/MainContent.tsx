@@ -427,7 +427,7 @@ export const MainContent: React.FC<MainContentProps> = ({
             onBack={() => handleNavigate('home')}
             content={
               <div className="space-y-6">
-                <p>Bienvenue chez Atelier de Doleres, votre destination pour l'artisanat, la décoration et les nouvelles technologies.</p>
+                <p>Bienvenue chez Laine et Déco, votre destination pour l'artisanat, la décoration et les nouvelles technologies.</p>
                 <p>Notre histoire commence par une passion pour les matières nobles et le savoir-faire manuel. Nous croyons que chaque foyer mérite une âme, et que cette âme se construit à travers des objets qui ont une histoire.</p>
                 <h2 className="text-2xl font-bold mt-8">Notre Mission</h2>
                 <p>Nous nous engageons à promouvoir l'artisanat local et international en sélectionnant rigoureusement des produits qui allient esthétique moderne et techniques traditionnelles.</p>
@@ -489,7 +489,7 @@ export const MainContent: React.FC<MainContentProps> = ({
             onBack={() => handleNavigate('home')}
             content={
               <div className="space-y-6">
-                <p><strong>Éditeur du site :</strong> Atelier de Doleres SARL</p>
+                <p><strong>Éditeur du site :</strong> Laine et Déco SARL</p>
                 <p><strong>Siège social :</strong> Douala, Cameroun</p>
                 <p><strong>Propriétaires :</strong> Landry et Doleres</p>
                 <p><strong>Développement Web :</strong> Landry MOUTONGO</p>
@@ -515,7 +515,7 @@ export const MainContent: React.FC<MainContentProps> = ({
             onBack={() => handleNavigate('home')}
             content={
               <div className="space-y-6">
-                <p>Les présentes CGV régissent les ventes effectuées sur le site Atelier de Doleres.</p>
+                <p>Les présentes CGV régissent les ventes effectuées sur le site Laine et Déco.</p>
                 <h2 className="text-2xl font-bold">Prix</h2>
                 <p>Les prix sont indiqués en FCFA toutes taxes comprises.</p>
                 <h2 className="text-2xl font-bold">Paiement</h2>

@@ -48,7 +48,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
               ''
             )}
           </h2>
-          <p className="text-primary/60 text-sm">Atelier de Doleres — Gestion Professionnelle</p>
+          <p className="text-primary/60 text-sm">Laine et Déco — Gestion Professionnelle</p>
         </div>
       </div>
       

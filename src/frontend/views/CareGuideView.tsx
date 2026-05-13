@@ -61,7 +61,7 @@ export const CareGuideView: React.FC = () => {
         </motion.div>
         <h1 className="text-5xl font-serif text-primary mb-6">Prendre soin de vos trésors</h1>
         <p className="text-primary/70 max-w-2xl mx-auto text-lg">
-          Chaque pièce de Atelier de Doleres est unique et mérite une attention particulière pour durer dans le temps.
+          Chaque pièce de Laine et Déco est unique et mérite une attention particulière pour durer dans le temps.
         </p>
       </div>
 

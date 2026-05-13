@@ -16,7 +16,7 @@ export const BlogIndexView: React.FC = () => {
           <BookOpen size={14} />
           <span>Journal Créatif</span>
         </motion.div>
-        <h1 className="text-5xl font-serif text-primary mb-6">Le Blog d'Atelier de Doleres</h1>
+        <h1 className="text-5xl font-serif text-primary mb-6">Le Blog d'Laine et Déco</h1>
         <p className="text-primary/70 max-w-2xl mx-auto text-lg">
           Conseils, tutoriels, coulisses de création et inspirations pour votre quotidien créatif.
         </p>

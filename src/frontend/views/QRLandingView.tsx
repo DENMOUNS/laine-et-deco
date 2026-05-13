@@ -201,7 +201,7 @@ export const QRLandingView: React.FC<QRLandingViewProps> = ({ onNavigate }) => {
           </motion.div>
           
           <motion.h1 variants={itemVariants} className="text-3xl font-serif font-bold text-primary mb-4 tracking-tight">
-            Atelier De Doleres
+            Laine et Déco
           </motion.h1>
           
           <motion.p variants={itemVariants} className="text-primary/70 mb-10 leading-relaxed min-h-[3rem]">

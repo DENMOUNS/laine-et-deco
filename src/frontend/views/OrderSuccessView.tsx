@@ -83,7 +83,7 @@ export const OrderSuccessView: React.FC<OrderSuccessViewProps> = ({ onNavigate }
         </div>
 
         <p className="mt-12 text-xs text-primary/70 uppercase tracking-[0.2em] font-bold italic">
-          Atelier de Doleres — Artisanat, Déco & Tech
+          Laine et Déco — Artisanat, Déco & Tech
         </p>
       </motion.div>
     </div>

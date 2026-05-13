@@ -207,7 +207,7 @@ export const useAppLogic = () => {
     } else if (currentView === 'about') {
       updateSEOMeta(siteConfig.seo.about.title, siteConfig.seo.about.description, siteConfig.seo.about.ogImage);
     } else if (currentView === 'product-detail' && selectedProduct) {
-      const title = selectedProduct.seo?.title || `${selectedProduct.name} - Atelier de Doleres`;
+      const title = selectedProduct.seo?.title || `${selectedProduct.name} - Laine et Déco`;
       const desc = selectedProduct.seo?.description || selectedProduct.description;
       updateSEOMeta(title, desc, selectedProduct.image);
     }

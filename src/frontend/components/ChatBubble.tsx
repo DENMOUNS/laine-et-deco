@@ -74,7 +74,7 @@ export const ChatBubble: React.FC = () => {
         `- ${p.name}: ${p.price} FCFA, Catégorie: ${p.category}, Description: ${p.description}`
       ).join('\n');
 
-      const systemInstruction = `Tu es l'assistant shopping expert de "Atelier de Doleres", un concept store polyvalent.
+      const systemInstruction = `Tu es l'assistant shopping expert de "Laine et Déco", un concept store polyvalent.
       Ton but est de conseiller les clients sur nos produits :
       - Artisanat & Déco : Laine, tricot, décoration intérieure, bougies.
       - Électronique & High-Tech : Casques audio, montres connectées, tablettes, enceintes, accessoires technologiques.
@@ -126,13 +126,13 @@ export const ChatBubble: React.FC = () => {
     setIsTyping(true);
     
     const today = new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    const prompt = `Aujourd'hui nous sommes le ${today}. Donne-moi 3 conseils de lifestyle ou d'aménagement uniques et thématiques pour aujourd'hui. Sois créatif, varie les styles chaque jour et mentionne des produits spécifiques de notre catalogue Atelier de Doleres.`;
+    const prompt = `Aujourd'hui nous sommes le ${today}. Donne-moi 3 conseils de lifestyle ou d'aménagement uniques et thématiques pour aujourd'hui. Sois créatif, varie les styles chaque jour et mentionne des produits spécifiques de notre catalogue Laine et Déco.`;
     const responseText = await getAIResponse(prompt);
 
     await addDoc(collection(db, 'chat_message'), {
       userId: auth.currentUser?.uid,
       senderId: 'ai',
-      senderName: 'Atelier de Doleres AI',
+      senderName: 'Laine et Déco AI',
       text: responseText,
       timestamp: Date.now()
     });
@@ -162,7 +162,7 @@ export const ChatBubble: React.FC = () => {
     await addDoc(collection(db, 'chat_message'), {
       userId: auth.currentUser?.uid,
       senderId: 'ai',
-      senderName: 'Atelier de Doleres AI',
+      senderName: 'Laine et Déco AI',
       text: responseText,
       timestamp: Date.now(),
       isMoodboard: true,
@@ -200,7 +200,7 @@ export const ChatBubble: React.FC = () => {
     await addDoc(collection(db, 'chat_message'), {
       userId: auth.currentUser.uid,
       senderId: 'ai',
-      senderName: 'Atelier de Doleres AI',
+      senderName: 'Laine et Déco AI',
       text: aiResponseText,
       timestamp: Date.now()
     });

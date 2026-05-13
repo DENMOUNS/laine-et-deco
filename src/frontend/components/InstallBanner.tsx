@@ -24,7 +24,7 @@ export const InstallBanner: React.FC<InstallBannerProps> = ({ showInstallBanner,
                 <Download size={20} className="text-accent" />
               </div>
               <div>
-                <p className="text-sm font-bold">Atelier de Doleres App</p>
+                <p className="text-sm font-bold">Laine et Déco App</p>
                 <p className="text-[10px] text-white/70">Profitez d'une meilleure expérience</p>
               </div>
             </div>

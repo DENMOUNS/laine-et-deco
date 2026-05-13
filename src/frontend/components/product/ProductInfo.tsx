@@ -20,7 +20,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({ product, onAddToCart, 
   const handleShare = async () => {
     const shareData = {
       title: product.name,
-      text: `Découvrez ${product.name} sur Atelier de Doleres !`,
+      text: `Découvrez ${product.name} sur Laine et Déco !`,
       url: window.location.href,
     };
     try {

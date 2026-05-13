@@ -140,7 +140,7 @@ export const PRODUCTS: Product[] = [
     material: 'Aluminium et verre',
     views: 5600,
     salesCount: 10,
-    brand: 'Atelier de Doleres',
+    brand: 'Laine et Déco',
     purchasePrice: 200000
   },
   {
@@ -217,7 +217,7 @@ export const PRODUCTS: Product[] = [
     ],
     views: 1250,
     salesCount: 85,
-    brand: 'Atelier de Doleres',
+    brand: 'Laine et Déco',
     purchasePrice: 4200
   },
   {
@@ -724,10 +724,10 @@ export const SITE_CONFIG: SiteConfig = {
     { iconName: "Heart", title: "Fait avec Amour", description: "Sélection artisanale" },
   ],
   seo: {
-    home: { title: 'Atelier de Doleres - Concept Store', description: 'Découvrez notre sélection variée créations et de produits premium.' },
-    shop: { title: 'Boutique - Atelier de Doleres', description: 'Explorez notre catalogue complet.' },
-    contact: { title: 'Contactez-nous - Atelier de Doleres', description: 'Une question ? Notre équipe est à votre écoute.' },
-    about: { title: 'À Propos - Atelier de Doleres', description: 'L\'histoire de notre boutique.' }
+    home: { title: 'Laine et Déco - Concept Store', description: 'Découvrez notre sélection variée créations et de produits premium.' },
+    shop: { title: 'Boutique - Laine et Déco', description: 'Explorez notre catalogue complet.' },
+    contact: { title: 'Contactez-nous - Laine et Déco', description: 'Une question ? Notre équipe est à votre écoute.' },
+    about: { title: 'À Propos - Laine et Déco', description: 'L\'histoire de notre boutique.' }
   },
   hero: {
     title: 'Créez une atmosphère chic et authentique',

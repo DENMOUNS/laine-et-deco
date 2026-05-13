@@ -447,8 +447,8 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, user }) => {
         </div>
         <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-white/70">
           <div className="flex flex-col items-center md:items-start gap-2">
-            <p>© {new Date().getFullYear()} Atelier de Doleres. Tous droits réservés.</p>
-            <p>Site réalisé par <span className="font-bold text-white/70">Mouns avec amour</span> | Propriété de <span className="font-bold text-white/70">Atelier De Doleres</span></p>
+            <p>© {new Date().getFullYear()} Laine et Déco. Tous droits réservés.</p>
+            <p>Site réalisé par <span className="font-bold text-white/70">Mouns avec amour</span> | Propriété de <span className="font-bold text-white/70">Laine et Déco</span></p>
             <p className="font-bold opacity-50 mt-1">Version 1.0.0</p>
           </div>
           <div className="flex space-x-6 mt-4 md:mt-0">

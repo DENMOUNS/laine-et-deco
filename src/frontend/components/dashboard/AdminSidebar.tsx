@@ -33,7 +33,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       <div className="p-8 flex justify-between items-center flex-shrink-0">
         <div>
           <h1 className="text-2xl font-serif font-bold">Admin Panel</h1>
-          <p className="text-white/40 text-[10px] uppercase tracking-widest font-bold mt-1">Atelier de Doleres</p>
+          <p className="text-white/40 text-[10px] uppercase tracking-widest font-bold mt-1">Laine et Déco</p>
         </div>
         <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 hover:bg-primary/10 rounded-full transition-colors">
           <X size={20} />
