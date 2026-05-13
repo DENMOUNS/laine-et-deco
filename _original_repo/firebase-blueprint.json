@@ -1,0 +1,132 @@
+{
+  "entities": {
+    "product": {
+      "title": "Product",
+      "description": "E-commerce product",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "category": { "type": "string" },
+        "image": { "type": "string" },
+        "description": { "type": "string" }
+      },
+      "required": ["name", "price", "category"]
+    },
+    "category": {
+      "title": "Category",
+      "description": "Product category",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "icon": { "type": "string" }
+      },
+      "required": ["name"]
+    },
+    "order": {
+      "title": "Order",
+      "description": "Customer order",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "totalAmount": { "type": "number" },
+        "status": { "type": "string" }
+      },
+      "required": ["userId", "totalAmount"]
+    },
+    "chat_message": {
+      "title": "ChatMessage",
+      "description": "Chat message",
+      "type": "object",
+      "properties": {
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["senderId", "senderName", "text", "timestamp"]
+    },
+    "log": {
+      "title": "Log",
+      "description": "System log entry",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "method": { "type": "string" },
+        "path": { "type": "string" },
+        "statusCode": { "type": "number" },
+        "duration": { "type": "number" },
+        "device": { "type": "string" },
+        "browser": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "ip": { "type": "string" }
+      },
+      "required": ["method", "path", "timestamp"]
+    },
+    "custom_order": {
+      "title": "CustomOrder",
+      "description": "Bespoke project request",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "email": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["userId", "description", "status"]
+    },
+    "city": {
+      "title": "City",
+      "description": "Cameroon city for delivery pricing",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "slug": { "type": "string" },
+        "deliveryPrice": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "inactive"] }
+      },
+      "required": ["name", "slug", "deliveryPrice", "status"]
+    },
+    "nav_item": {
+      "title": "NavItem",
+      "description": "Navigation bar item",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "view": { "type": "string" },
+        "order": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "inactive"] }
+      },
+      "required": ["name", "view", "order"]
+    },
+    "faq": {
+      "title": "FAQ",
+      "description": "Frequently Asked Question",
+      "type": "object",
+      "properties": {
+        "question": { "type": "string" },
+        "answer": { "type": "string" },
+        "category": { "type": "string" },
+        "order": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "inactive"] }
+      },
+      "required": ["question", "answer", "category"]
+    }
+  },
+  "firestore": {
+    "product": { "schema": "product", "description": "Products collection" },
+    "category": { "schema": "category", "description": "Categories collection" },
+    "order": { "schema": "order", "description": "Orders collection" },
+    "user": { "schema": "user", "description": "Users collection" },
+    "blog_post": { "schema": "blog_post", "description": "Blog posts" },
+    "pack": { "schema": "pack", "description": "Product packs" },
+    "site_config": { "schema": "site_config", "description": "Site configuration" },
+    "chat_message": { "schema": "chat_message", "description": "Chat messages collection" },
+    "log": { "schema": "log", "description": "System logs collection" },
+    "custom_order": { "schema": "custom_order", "description": "Custom orders collection" },
+    "city": { "schema": "city", "description": "Cities and delivery prices collection" },
+    "nav_item": { "schema": "nav_item", "description": "Navigation menu items" },
+    "faq": { "schema": "faq", "description": "Foire Aux Questions collection" }
+  }
+}

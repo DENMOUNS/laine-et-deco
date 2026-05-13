@@ -1,0 +1,21 @@
+365:                  <button 
+375:                  <button 
+385:                  <button 
+404:                  <button 
+417:                    <button 
+431:                      <button 
+458:                          <button 
+484:                    <button 
+498:                              <button
+514:                            <button 
+534:                        <button
+561:              <button 
+570:                  <button
+836:          <button onClick={() => onNavigate('categories')} className="text-primary font-bold border-b-2 border-primary/20 hover:border-accent hover:text-accent transition-all pb-1">
+886:          <button onClick={() => onNavigate('shop', undefined, 'Laine')} className="text-primary font-bold border-b-2 border-primary/20 hover:border-accent hover:text-accent transition-all pb-1">
+913:          <button onClick={() => onNavigate('shop', undefined, 'Artisanat')} className="text-primary font-bold border-b-2 border-primary/20 hover:border-accent hover:text-accent transition-all pb-1">
+940:          <button onClick={() => onNavigate('shop')} className="text-primary font-bold border-b-2 border-primary/20 hover:border-accent hover:text-accent transition-all pb-1">
+971:              <button 
+1114:          <button onClick={() => onNavigate('blog')} className="text-primary font-bold border-b-2 border-primary/20 hover:border-accent hover:text-accent transition-all pb-1">
+1163:            <button onClick={() => onNavigate('shop')} className="text-primary font-bold border-b-2 border-primary/20 hover:border-accent hover:text-accent transition-all pb-1">
+1234:              <button className="bg-accent text-white px-10 py-4 rounded-full font-bold hover:bg-white hover:text-primary transition-all duration-300">

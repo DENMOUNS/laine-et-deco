@@ -1,0 +1,120 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helper Functions ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isAdmin() {
+      return isEmailVerified() && (
+        get(/databases/$(database)/documents/user/$(request.auth.uid)).data.role == 'admin' ||
+        request.auth.token.email == 'landrymoutongo97@gmail.com'
+      );
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Entities Validation ---
+    function isValidProduct(data) {
+      return data.keys().hasAll(['name', 'price', 'category']) &&
+             data.name is string && data.name.size() <= 200 &&
+             data.price is number && data.price >= 0 &&
+             data.category is string;
+    }
+
+    function isValidCategory(data) {
+      return data.keys().hasAll(['name']) &&
+             data.name is string && data.name.size() <= 100;
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll(['userId', 'totalAmount', 'status']) &&
+             data.userId == request.auth.uid &&
+             data.totalAmount is number &&
+             data.status is string;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['name', 'email']) &&
+             data.name is string && data.name.size() <= 100 &&
+             data.email is string;
+    }
+
+    // --- Collection Rules ---
+
+    // Products
+    match /product/{productId} {
+      allow read: if true;
+      allow create: if isAdmin() && isValidId(productId) && isValidProduct(incoming());
+      allow update: if isAdmin() && isValidProduct(incoming());
+      allow delete: if isAdmin();
+    }
+
+    // Categories
+    match /category/{categoryId} {
+      allow read: if true;
+      allow create: if isAdmin() && isValidId(categoryId) && isValidCategory(incoming());
+      allow update: if isAdmin() && isValidCategory(incoming());
+      allow delete: if isAdmin();
+    }
+
+    // Orders
+    match /order/{orderId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isEmailVerified() && isValidId(orderId) && isValidOrder(incoming());
+      allow update: if isAdmin() && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Users
+    match /user/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow create: if isEmailVerified() && request.auth.uid == userId && isValidUser(incoming()) && 
+                     (!('role' in incoming()) || incoming().role == 'customer' || isAdmin());
+      allow update: if (isSignedIn() && request.auth.uid == userId && 
+                        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'updatedAt']) &&
+                        isValidUser(incoming())) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Site Config
+    match /site_config/{configId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Test Connection
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // Logs (Admin Only)
+    match /log/{logId} {
+      allow read: if isAdmin();
+      allow create: if true; // Allow system to create logs
+      allow update, delete: if isAdmin();
+    }
+  }
+}

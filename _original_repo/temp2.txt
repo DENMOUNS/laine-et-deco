@@ -1,0 +1,49 @@
+142:import { Modal } from '../components/Modal';
+267:  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+269:  const [modalType, setModalType] = useState<string>('');
+769:      setIsAddModalOpen(false);
+1181:        {/* Modals */}
+1183:          isOpen={(isAddModalOpen || !!editingItem) && !['rma-detail', 'product-edit', 'product-create'].includes(activeTab)} 
+1184:          onClose={() => { setIsAddModalOpen(false); setEditingItem(null); }} 
+1649:                    setIsAddModalOpen(false);
+1658:              <button type="button" onClick={() => { setIsAddModalOpen(false); setEditingItem(null); }} className="flex-grow py-4 bg-secondary/50 text-primary/60 rounded-2xl font-bold hover:bg-secondary/70 transition-all border border-primary/10">
+1670:        </Modal>
+1672:        {/* Order Details Modal */}
+2007:        </Modal>
+2009:        {/* Customer Details Modal */}
+2081:        </Modal>
+2354:                <button onClick={() => { setActiveTab('product-create'); setModalType('product'); setEditingItem(null); }} className="flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-accent transition-all">
+2393:                          onClick={(e) => { e.stopPropagation(); setEditingItem(product); setModalType('product'); }}
+2404:                onRowClick={(p) => { setEditingItem(p); setModalType('product'); }}
+2434:                    onClick={() => { setEditingItem(siteConfig.loyaltyConfig); setModalType('loyalty-config'); setIsAddModalOpen(true); }}
+2457:                        onClick={() => { setEditingItem(badge); setModalType('badge'); setIsAddModalOpen(true); }}
+2499:                <button onClick={() => { setModalType('customer-group'); setIsAddModalOpen(true); setEditingItem(null); }} className="flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-accent transition-all">
+2514:                          onClick={(e) => { e.stopPropagation(); setEditingItem(group); setModalType('customer-group'); setIsAddModalOpen(true); }}
+4056:                  onClick={() => { setModalType('expense'); setIsAddModalOpen(true); }}
+4065:                onRowClick={(expense) => { setEditingItem(expense); setModalType('expense'); setIsAddModalOpen(true); }}
+4118:                        <button onClick={(ev) => { ev.stopPropagation(); setEditingItem(e); setModalType('expense'); setIsAddModalOpen(true); }} className="p-2 text-primary/60 hover:text-primary transition-colors"><Settings size={16} /></button>
+4435:                        onClick={(e) => { e.stopPropagation(); setEditingItem(tax); setModalType('tax'); }}
+4492:                        onClick={(e) => { e.stopPropagation(); setEditingItem(shipping); setModalType('shipping'); }}
+4612:                onClick={() => { setModalType('category'); setIsAddModalOpen(true); }}
+4622:                  onClick={() => { setEditingItem(cat); setModalType('category'); }}
+4926:                onClick={() => { setModalType('role'); setIsAddModalOpen(true); }}
+4934:              onRowClick={(role) => { setEditingItem(role); setModalType('role'); }}
+4962:                            <button onClick={(e) => { e.stopPropagation(); setEditingItem(role); setModalType('role'); }} className="text-primary hover:text-accent font-bold text-sm">Modifier</button>
+5477:                onClick={() => { setModalType('user'); setIsAddModalOpen(true); }}
+5510:                            <button onClick={(e) => { e.stopPropagation(); setEditingItem(user); setModalType('user'); }} className="text-primary hover:text-accent font-bold text-sm">Modifier</button>
+5525:                onClick={() => { setModalType('pack'); setIsAddModalOpen(true); }}
+5533:              onRowClick={(p) => { setEditingItem(p); setModalType('pack'); }}
+5577:                        onClick={(e) => { e.stopPropagation(); setEditingItem(pack); setModalType('pack'); }}
+5596:                onClick={() => { setModalType('lookbook'); setIsAddModalOpen(true); }}
+5604:              onRowClick={(l) => { setEditingItem(l); setModalType('lookbook'); }}
+5634:                        onClick={(e) => { e.stopPropagation(); setEditingItem(look); setModalType('lookbook'); }}
+5653:                onClick={() => { setModalType('blog'); setIsAddModalOpen(true); }}
+5661:              onRowClick={(b) => { setEditingItem(b); setModalType('blog'); }}
+5690:                        onClick={(e) => { e.stopPropagation(); setEditingItem(post); setModalType('blog'); }}
+5875:                onClick={() => { setModalType('notification'); setIsAddModalOpen(true); }}
+5883:              onRowClick={(n) => { setEditingItem(n); setModalType('notification'); }}
+5964:                        onClick={(e) => { e.stopPropagation(); setEditingItem(n); setModalType('notification'); }}
+5982:                onClick={() => { setModalType('email'); setIsAddModalOpen(true); }}
+5990:              onRowClick={(e) => { setEditingItem(e); setModalType('email'); }}
+6010:                onClick={() => { setModalType('customer-group'); setIsAddModalOpen(true); }}
+6044:                        onClick={(e) => { e.stopPropagation(); setEditingItem(group); setModalType('customer-group'); }}

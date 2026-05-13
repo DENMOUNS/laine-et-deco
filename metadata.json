@@ -1,0 +1,9 @@
+{
+  "name": "doleres-tricot",
+  "description": "Application waiting for user to upload a ZIP file for processing.",
+  "requestFramePermissions": [
+    "geolocation",
+    "microphone"
+  ],
+  "majorCapabilities": []
+}

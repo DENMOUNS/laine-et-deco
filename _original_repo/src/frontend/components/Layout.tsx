@@ -1,0 +1,457 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { ShoppingBag, Search, User, Heart, Menu, X, ChevronRight, ArrowRight, Moon, Sun, Home, Shield, ArrowRightLeft, QrCode } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { PRODUCTS as INITIAL_PRODUCTS, CATEGORIES as INITIAL_CATEGORIES, PACKS as INITIAL_PACKS, NAV_ITEMS as INITIAL_NAV_ITEMS } from '../../constants';
+import { useProducts } from '../hooks/useProducts';
+import { useEntity } from '../hooks/useEntity';
+import { Product, NavItem } from '../../types';
+import { User as FirebaseUser, signOut } from 'firebase/auth';
+import { auth } from '../../backend/firebase';
+
+interface NavbarProps {
+  onNavigate: (view: string, id?: string, query?: string) => void;
+  currentView: string;
+  cartCount: number;
+  wishlistCount: number;
+  user: FirebaseUser | null;
+  comparisonList?: Product[];
+  navItems?: NavItem[];
+}
+
+export const Navbar: React.FC<NavbarProps> = ({ 
+  onNavigate, 
+  currentView, 
+  cartCount, 
+  wishlistCount,
+  user,
+  comparisonList = [],
+  navItems = INITIAL_NAV_ITEMS
+}) => {
+  const { products: fetchedProducts } = useProducts();
+  const PRODUCTS = fetchedProducts.length > 0 ? fetchedProducts : INITIAL_PRODUCTS;
+  const { data: CATEGORIES } = useEntity<any>('category', INITIAL_CATEGORIES);
+  const { data: PACKS } = useEntity<any>('pack', INITIAL_PACKS);
+  
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    if (document.documentElement.classList.contains('dark')) {
+      setIsDarkMode(true);
+    }
+  }, []);
+
+  const toggleDarkMode = () => {
+    if (isDarkMode) {
+      document.documentElement.classList.remove('dark');
+      setIsDarkMode(false);
+    } else {
+      document.documentElement.classList.add('dark');
+      setIsDarkMode(true);
+    }
+  };
+
+  const mainNavLinks = navItems.filter(item => item.status === 'active').sort((a, b) => a.order - b.order);
+
+  const sidebarLinks = [
+    { name: 'Compagnon Tricot', view: 'knitting-companion', icon: <ChevronRight size={18} /> },
+    { name: 'Générateur IA', view: 'pattern-generator', icon: <ChevronRight size={18} /> },
+    { name: 'Configurateur', view: 'configurator', icon: <ChevronRight size={18} /> },
+    { name: 'Sur Mesure', view: 'custom-order', icon: <ChevronRight size={18} /> },
+    { name: 'Lookbook', view: 'lookbook', icon: <ChevronRight size={18} /> },
+    { name: 'Blog Inspirations', view: 'blog', icon: <ChevronRight size={18} /> },
+    { name: 'Contactez-nous', view: 'contact', icon: <ChevronRight size={18} /> },
+    { name: 'Calculateur de Laine', view: 'calculator', icon: <ChevronRight size={18} /> },
+    { name: 'Calculateur de Volume', view: 'volume-calculator', icon: <ChevronRight size={18} /> },
+  ];
+
+  const navLinks = [
+    ...mainNavLinks,
+  ];
+
+  return (
+    <>
+      <nav className="sticky top-0 z-50 glass border-b border-primary/10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-20 relative">
+          {/* Logo Container */}
+          <div className="flex items-center gap-3 z-20 flex-shrink-0">
+            <div className="cursor-pointer flex items-center" onClick={() => onNavigate('home')}>
+              <img src="/logo.png" alt="Laine et Déco" className="h-10 sm:h-12 md:h-16 object-contain" onError={(e) => {
+                // Fallback if logo is not found
+                e.currentTarget.style.display = 'none';
+                e.currentTarget.nextElementSibling?.classList.remove('hidden');
+              }} />
+              <h1 className="hidden sm:block text-lg md:text-2xl font-serif font-bold tracking-tight text-primary ml-1 sm:ml-2">
+                Atelier <span className="text-accent">de</span> Doleres
+              </h1>
+            </div>
+          </div>
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex space-x-4 lg:space-x-8">
+            {mainNavLinks.map((link) => (
+              <button
+                key={link.name}
+                onClick={() => onNavigate(link.view)}
+                className={`text-sm font-bold uppercase tracking-widest transition-all hover:text-accent relative py-2 ${
+                  currentView === link.view ? 'text-accent' : 'text-primary/70'
+                }`}
+              >
+                {link.name}
+                {currentView === link.view && (
+                  <motion.div 
+                    layoutId="nav-underline"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"
+                  />
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Icons */}
+          <div className="flex items-center space-x-1 md:space-x-2 z-20">
+            <button onClick={toggleDarkMode} className="flex p-2 text-primary hover:text-accent transition-colors rounded-full hover:bg-primary/5">
+              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+            
+            {/* Icons visible on all screens */}
+            <div className="flex items-center space-x-0.5 sm:space-x-1 flex-nowrap z-20">
+              <button 
+                onClick={() => onNavigate('shop')} 
+                className="p-2 text-primary hover:text-accent transition-colors rounded-full hover:bg-primary/5"
+                title="Rechercher"
+              >
+                <Search size={20} />
+              </button>
+              <button onClick={() => onNavigate('wishlist')} className="flex p-2 text-primary hover:text-accent transition-colors relative rounded-full hover:bg-primary/5">
+                <Heart size={20} />
+                {wishlistCount > 0 && (
+                  <span className="absolute top-1 right-1 bg-accent text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                    {wishlistCount}
+                  </span>
+                )}
+              </button>
+              <button onClick={() => onNavigate('cart')} className="p-2 text-primary hover:text-accent transition-colors relative rounded-full hover:bg-primary/5">
+                <ShoppingBag size={20} />
+                {cartCount > 0 && (
+                  <span className="absolute top-1 right-1 bg-primary text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
+              </button>
+              <button onClick={() => onNavigate('comparison')} className="hidden sm:flex lg:flex p-2 text-primary hover:text-accent transition-colors relative rounded-full hover:bg-primary/5">
+                <ArrowRightLeft size={20} />
+                {comparisonList?.length > 0 && (
+                  <span className="absolute top-1 right-1 bg-accent text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                    {comparisonList.length}
+                  </span>
+                )}
+              </button>
+              {user?.email === 'landrymouns@gmail.com' && (
+                <button 
+                  onClick={() => onNavigate('admin-dashboard')} 
+                  className={`hidden md:flex p-2 transition-colors rounded-full hover:bg-primary/5 ${currentView === 'admin-dashboard' ? 'text-accent' : 'text-primary'}`}
+                  title="Tableau de bord Admin"
+                >
+                  <Shield size={20} />
+                </button>
+              )}
+              <button 
+                onClick={() => user ? onNavigate('customer-dashboard') : onNavigate('auth')} 
+                className={`flex p-2 transition-colors rounded-full hover:bg-primary/5 ${currentView === 'customer-dashboard' ? 'text-accent' : 'text-primary'} items-center gap-2`}
+              >
+                {user?.photoURL ? (
+                  <img src={user.photoURL} alt={user.displayName || 'User'} className="w-6 h-6 rounded-full border border-primary/10" />
+                ) : (
+                  <User size={20} />
+                )}
+                {user && <span className="hidden xl:block text-xs font-bold">{user.displayName || 'Compte'}</span>}
+              </button>
+              <button 
+                onClick={() => setIsMenuOpen(true)}
+                className="p-2 text-primary hover:text-accent transition-colors rounded-full hover:bg-primary/5 ml-1"
+              >
+                <Menu size={20} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+      {/* Navigation Sidebar */}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMenuOpen(false)}
+              className="fixed inset-0 bg-primary/20 z-[100] backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed inset-y-0 left-0 w-[85%] max-w-sm shadow-2xl z-[110] flex flex-col overflow-y-auto bg-primary text-white"
+            >
+              <div className="p-6 border-b border-white/10 bg-primary/50 backdrop-blur-sm sticky top-0 z-10">
+                <div className="flex justify-between items-center mb-6">
+                  <h1 className="text-xl font-serif font-bold text-white">Menu & Services</h1>
+                  <button onClick={() => setIsMenuOpen(false)} className="p-2 bg-white/10 rounded-full shadow-sm text-white hover:text-accent transition-colors">
+                    <X size={20} />
+                  </button>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-white/10 rounded-2xl shadow-sm border border-white/5">
+                  <div className="w-10 h-10 rounded-full bg-accent text-white flex items-center justify-center overflow-hidden">
+                    {user?.photoURL ? (
+                      <img src={user.photoURL} alt={user.displayName || 'User'} className="w-full h-full object-cover" />
+                    ) : (
+                      <User size={20} />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-white/40 uppercase tracking-widest">Bienvenue</p>
+                    <p className="font-serif font-bold text-white">{user?.displayName || (user ? 'Utilisateur' : 'Invité')}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex flex-col p-6 space-y-2 flex-grow">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2 px-2">Navigation Principale</p>
+                <div className="grid grid-cols-1 gap-1">
+                  <button
+                    onClick={() => { onNavigate('home'); setIsMenuOpen(false); }}
+                    className={`text-sm font-medium text-left p-3 rounded-xl transition-all flex items-center gap-3 ${currentView === 'home' ? 'bg-accent text-white' : 'text-white hover:bg-white/10'}`}
+                  >
+                    <Home size={18} /> Accueil
+                  </button>
+                  {mainNavLinks.map((link) => (
+                    <button
+                      key={link.name}
+                      onClick={() => {
+                        onNavigate(link.view);
+                        setIsMenuOpen(false);
+                      }}
+                      className={`text-lg font-serif text-left flex justify-between items-center p-4 rounded-2xl transition-all ${currentView === link.view ? 'bg-accent text-white font-bold shadow-lg' : 'text-white hover:bg-white/10'}`}
+                    >
+                      {link.name}
+                      <ChevronRight size={18} className={currentView === link.view ? 'opacity-100 text-white' : 'opacity-40'} />
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => { onNavigate('shop'); setIsMenuOpen(false); }}
+                    className={`text-sm font-medium text-left p-3 rounded-xl transition-all flex items-center gap-3 ${currentView === 'shop' ? 'bg-accent text-white' : 'text-white hover:bg-white/10'}`}
+                  >
+                    <Search size={18} /> Rechercher
+                  </button>
+                </div>
+
+                <hr className="border-white/10 my-6" />
+
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2 px-2">Outils & Services</p>
+                <div className="grid grid-cols-1 gap-2">
+                  <button
+                    onClick={() => { onNavigate('wishlist'); setIsMenuOpen(false); }}
+                    className="sm:hidden text-sm font-medium text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 text-white flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Heart size={18} /> Favoris
+                    </div>
+                    {wishlistCount > 0 && <span className="bg-accent text-[10px] px-2 py-0.5 rounded-full">{wishlistCount}</span>}
+                  </button>
+                  <button
+                    onClick={() => { onNavigate('comparison'); setIsMenuOpen(false); }}
+                    className="lg:hidden text-sm font-medium text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 text-white flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2">
+                      <ArrowRightLeft size={18} /> Comparateur
+                    </div>
+                    {comparisonList?.length > 0 && <span className="bg-accent text-[10px] px-2 py-0.5 rounded-full">{comparisonList.length}</span>}
+                  </button>
+                  {sidebarLinks.map((link) => (
+                    <button
+                      key={link.name}
+                      onClick={() => {
+                        onNavigate(link.view);
+                        setIsMenuOpen(false);
+                      }}
+                      className={`text-sm font-medium text-left p-3 rounded-xl transition-all flex items-center justify-between border border-white/5 ${
+                        currentView === link.view 
+                          ? 'bg-accent text-white font-bold shadow-md' 
+                          : 'bg-white/5 text-white hover:bg-white/10 hover:text-accent'
+                      }`}
+                    >
+                      <span>{link.name}</span>
+                      {link.name.includes('Générateur') || link.name.includes('Compagnon') ? (
+                        <span className="bg-white/20 text-white text-[10px] px-2 py-0.5 rounded-full">Nouveau</span>
+                      ) : (
+                        <ChevronRight size={14} className="opacity-40" />
+                      )}
+                    </button>
+                  ))}
+                  
+                  <button
+                    onClick={() => { onNavigate('faq'); setIsMenuOpen(false); }}
+                    className="text-sm font-medium text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 hover:text-accent transition-colors text-white border border-white/5"
+                  >
+                    Foire Aux Questions (FAQ)
+                  </button>
+                </div>
+
+                <hr className="border-white/10 my-6" />
+
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2 px-2">Catégories</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {CATEGORIES.map((cat) => (
+                    <button
+                      key={cat.id}
+                      onClick={() => {
+                        onNavigate('shop', undefined, cat.name);
+                        setIsMenuOpen(false);
+                      }}
+                      className="text-sm font-medium text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 hover:text-accent transition-colors text-white border border-white/5"
+                    >
+                      {cat.name}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mt-4">
+                    <button
+                      onClick={() => {
+                        onNavigate('packs');
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full text-left p-4 rounded-2xl bg-accent text-white font-bold hover:bg-accent/90 transition-colors flex justify-between items-center shadow-lg"
+                    >
+                      <span>Packs & Bundles</span>
+                      <ShoppingBag size={18} />
+                    </button>
+                </div>
+                
+                <hr className="border-white/10 my-6" />
+                
+                <div className="space-y-6">
+                  <div className="space-y-3">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 px-2">Préférences</p>
+                    <div className="flex gap-2 px-2">
+                       <button onClick={toggleDarkMode} className="flex-1 py-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center gap-2 text-white font-medium hover:bg-white/10 transition-colors">
+                          {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+                          <span className="text-xs">{isDarkMode ? 'Mode Clair' : 'Mode Sombre'}</span>
+                       </button>
+                    </div>
+                  </div>
+                </div>
+                
+                <hr className="border-white/10 my-6" />
+                
+                <div className="space-y-2">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2 px-2">Compte</p>
+                  <button onClick={() => { user ? onNavigate('customer-dashboard') : onNavigate('auth'); setIsMenuOpen(false); }} className="w-full p-4 rounded-2xl text-left flex items-center gap-3 text-white hover:bg-white/10 transition-colors font-medium">
+                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white"><User size={16} /></div>
+                    {user ? 'Mon Compte' : 'Se connecter'}
+                  </button>
+                  {user && (
+                    <button onClick={() => { auth && signOut(auth); setIsMenuOpen(false); }} className="w-full p-4 rounded-2xl text-left flex items-center gap-3 text-red-400 hover:bg-red-500/10 transition-colors font-medium">
+                      <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center text-red-500"><X size={16} /></div>
+                      Déconnexion
+                    </button>
+                  )}
+                  {user?.email === 'landrymouns@gmail.com' && (
+                    <>
+                      <button onClick={() => { onNavigate('admin-dashboard'); setIsMenuOpen(false); }} className="w-full p-4 rounded-2xl text-left flex items-center gap-3 text-white/40 hover:bg-white/10 hover:text-white transition-colors font-medium">
+                        <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center"><Shield size={16} /></div>
+                        Admin Panel
+                      </button>
+                      <button onClick={() => { onNavigate('qr-landing'); setIsMenuOpen(false); }} className="w-full p-4 rounded-2xl text-left flex items-center gap-3 text-white/40 hover:bg-white/10 hover:text-white transition-colors font-medium">
+                        <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center"><QrCode size={16} /></div>
+                        Aperçu QR Landing
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </>
+  );
+};
+
+interface FooterProps {
+  onNavigate: (view: string) => void;
+  user?: FirebaseUser | null;
+}
+
+export const Footer: React.FC<FooterProps> = ({ onNavigate, user }) => {
+  return (
+    <footer className="bg-primary text-white pt-16 pb-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+          <div className="space-y-4">
+            <div className="bg-white/10 p-4 rounded-2xl inline-block">
+              <img src="/logo.png" alt="Laine et Déco" className="h-16 object-contain" onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                e.currentTarget.nextElementSibling?.classList.remove('hidden');
+              }} />
+              <h2 className="hidden text-2xl font-serif font-bold">Atelier De Doleres</h2>
+            </div>
+            <p className="text-white/70 text-sm leading-relaxed">
+              Créer une atmosphère chaleureuse et authentique dans votre foyer avec nos laines sélectionnées et nos objets de décoration artisanaux.
+            </p>
+          </div>
+          <div>
+            <h3 className="font-bold mb-6 uppercase tracking-widest text-xs">Boutique</h3>
+            <ul className="space-y-3 text-sm text-white/70">
+              <li><button onClick={() => onNavigate('shop')} className="hover:text-white transition-colors">Toutes les laines</button></li>
+              <li><button onClick={() => onNavigate('shop')} className="hover:text-white transition-colors">Décoration</button></li>
+              <li><button onClick={() => onNavigate('shop')} className="hover:text-white transition-colors">Nouveautés</button></li>
+              <li><button onClick={() => onNavigate('shop')} className="hover:text-white transition-colors">Promotions</button></li>
+            </ul>
+          </div>
+            <div>
+              <h3 className="font-bold mb-6 uppercase tracking-widest text-xs">Aide & Outils</h3>
+              <ul className="space-y-3 text-sm text-white/70">
+                <li><button onClick={() => onNavigate('calculator')} className="hover:text-white transition-colors">Calculateur de Laine</button></li>
+                <li><button onClick={() => onNavigate('care-guide')} className="hover:text-white transition-colors">Guide d'Entretien</button></li>
+                <li><button onClick={() => onNavigate('faq')} className="hover:text-white transition-colors">FAQ</button></li>
+                <li><button onClick={() => onNavigate('contact')} className="hover:text-white transition-colors">Contact</button></li>
+              </ul>
+            </div>
+          <div>
+            <h3 className="font-bold mb-6 uppercase tracking-widest text-xs">Newsletter</h3>
+            <p className="text-white/70 text-sm mb-4">Inscrivez-vous pour recevoir nos inspirations déco et offres exclusives.</p>
+            <div className="flex">
+              <input
+                type="email"
+                placeholder="Votre email"
+                className="bg-white/10 border border-white/20 px-4 py-2 text-sm w-full focus:outline-none focus:border-white"
+              />
+              <button className="bg-white text-primary px-4 py-2 text-sm font-bold hover:bg-accent hover:text-white transition-colors">
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+        <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-white/40">
+          <div className="flex flex-col items-center md:items-start gap-2">
+            <p>© {new Date().getFullYear()} Atelier de Doleres. Tous droits réservés.</p>
+            <p>Site réalisé par <span className="font-bold text-white/60">Mouns avec amour</span> | Propriété de <span className="font-bold text-white/60">Atelier De Doleres</span></p>
+            <p className="font-bold opacity-50 mt-1">Version 1.0.0</p>
+          </div>
+          <div className="flex space-x-6 mt-4 md:mt-0">
+            <button onClick={() => onNavigate('team')} className="hover:text-white transition-colors">Équipe</button>
+            <button onClick={() => onNavigate('legal')} className="hover:text-white transition-colors">Mentions légales</button>
+            <button onClick={() => onNavigate('privacy')} className="hover:text-white transition-colors">Confidentialité</button>
+            <button onClick={() => onNavigate('terms')} className="hover:text-white transition-colors">CGV</button>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+};
