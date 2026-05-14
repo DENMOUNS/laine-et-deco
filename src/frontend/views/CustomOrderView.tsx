@@ -41,11 +41,14 @@ export const CustomOrderView: React.FC = () => {
       if (db && user) {
         await addDoc(collection(db, 'custom_order'), {
           userId: user.uid,
+          customer: name.trim() || (user.displayName || 'Client'),
+          customerName: name.trim() || (user.displayName || 'Client'),
           uuid: crypto.randomUUID(),
           userName: name.trim() || (user.displayName || 'Anonyme'),
           email: email.trim() || (user.email || ''),
           description: fullDescription,
           status: 'pending',
+          type: 'custom',
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         });

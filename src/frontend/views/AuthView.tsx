@@ -155,6 +155,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
           uid: user.uid,
           name: user.displayName || 'Utilisateur',
           email: user.email,
+          profileImage: user.photoURL || null,
           role: 'customer',
           points: 0,
           orders: 0,
@@ -163,6 +164,16 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
           referredBy: referralCode || null,
           createdAt: serverTimestamp()
         });
+      } else {
+        // Update photo if changed or missing
+        const existingData = userSnap.data();
+        if (user.photoURL && existingData?.profileImage !== user.photoURL) {
+          const { updateDoc } = await import('firebase/firestore');
+          await updateDoc(userDocRef, { 
+            profileImage: user.photoURL,
+            updatedAt: serverTimestamp()
+          });
+        }
       }
 
       // Log the login event
@@ -180,11 +191,15 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
       handleSuccessRedirect();
     } catch (error: any) {
       console.error("Google Auth Error:", error);
-      if (error.code === 'auth/popup-blocked') {
-        toast.error("Le popup a été bloqué. Veuillez autoriser les popups ou ouvrir l'application dans un nouvel onglet.");
+      let errorMessage = "";
+      if (error.code === 'auth/unauthorized-domain') {
+        errorMessage = `Domaine non autorisé. Veuillez ajouter ${window.location.hostname} aux domaines autorisés dans votre console Firebase (Authentification > Paramètres).`;
+      } else if (error.code === 'auth/popup-blocked') {
+        errorMessage = "Le popup a été bloqué. Veuillez autoriser les popups ou ouvrir l'application dans un nouvel onglet.";
       } else {
-        toast.error("Erreur lors de la connexion avec Google.");
+        errorMessage = "Erreur lors de la connexion avec Google.";
       }
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

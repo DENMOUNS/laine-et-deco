@@ -184,6 +184,23 @@ interface AdminDashboardProps {
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, siteConfig: propSiteConfig, setSiteConfig: propSetSiteConfig, user, isAuthLoading }) => {
   const { data: ORDERS, setData: setLocalOrders, isLoading: isLoadingOrders } = useEntity<Order>('order', INITIAL_ORDERS);
+  const { data: CUSTOM_ORDERS } = useEntity<any>('custom_order', []);
+  const allOrders = useMemo(() => {
+    const combined = [...ORDERS];
+    CUSTOM_ORDERS.forEach(co => {
+      if (!combined.find(o => o.id === co.id)) {
+        combined.push({
+          ...co,
+          total: co.total || 0,
+          date: co.date || (co.createdAt ? formatDate(co.createdAt).split(' ')[0] : 'N/A'),
+          items: co.items || 0,
+          customer: co.customer || co.userName || 'Client Sur Mesure'
+        } as Order);
+      }
+    });
+    return combined;
+  }, [ORDERS, CUSTOM_ORDERS]);
+
   const { products: fetchedProducts } = useProducts();
   const PRODUCTS = fetchedProducts.length > 0 ? fetchedProducts : INITIAL_PRODUCTS;
   const { data: USERS } = useEntity<UserType>('user', INITIAL_USERS);
@@ -372,8 +389,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
   const { data: SUBSCRIBERS, setData: setLocalSubscribers, isLoading: isLoadingSubscribers } = useEntity<NewsletterSubscriber>('subscriber', INITIAL_SUBSCRIBERS);
 
   const { data: localProducts, setData: setLocalProducts, updateEntity: updateProduct, isLoading: isLoadingProducts } = useEntity<Product>('product', INITIAL_PRODUCTS);
+  const localOrders = allOrders;
   const localCategories = CATEGORIES;
-  const localOrders = ORDERS;
 
   const [activeTab, setActiveTab] = useState('overview');
   const [customerDetailTab, setCustomerDetailTab] = useState<'profile' | 'orders' | 'loyalty' | 'messages'>('profile');
@@ -2392,7 +2409,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
             />
             <DataTable<Order>
               dateFilterKey="createdAt"
-              data={sortByDate(orderFilter === 'all' ? localOrders : localOrders.filter(o => o.status === orderFilter))}
+              data={sortByDate(orderFilter === 'all' ? allOrders : allOrders.filter(o => o.status === orderFilter))}
               onRowClick={(order) => {
                 setSelectedOrder(order);
                 setActiveTab('order-detail');
@@ -2423,51 +2440,59 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
                         
                         // Database update
                         try {
-                          // Find the actual doc in firestore
-                          const ordersRef = collection(db, 'order');
-                          const q = query(ordersRef, where('id', '==', order.id));
-                          const snap = await getDocs(q);
-                          if (!snap.empty) {
-                            const orderDoc = snap.docs[0];
-                            await updateDoc(doc(db, 'order', orderDoc.id), { 
+                          const isCustom = order.type === 'custom';
+                          const colName = isCustom ? 'custom_order' : 'order';
+                          
+                          if (isCustom) {
+                            // Custom orders use document ID as id
+                            await updateDoc(doc(db, colName, order.id), { 
                               status: newStatus,
                               updatedAt: new Date().toISOString()
                             });
+                          } else {
+                            // Standard orders search by custom 'id' field
+                            const ordersRef = collection(db, colName);
+                            const q = query(ordersRef, where('id', '==', order.id));
+                            const snap = await getDocs(q);
+                            if (!snap.empty) {
+                              const orderDoc = snap.docs[0];
+                              await updateDoc(doc(db, colName, orderDoc.id), { 
+                                status: newStatus,
+                                updatedAt: new Date().toISOString()
+                              });
+                            }
+                          }
 
-                            // Logic for Referral Reward when marked as DELIVERED
-                            if (newStatus === 'delivered' && oldStatus !== 'delivered' && order.userId) {
-                              const userRef = doc(db, 'user', order.userId);
-                              const userSnap = await getDoc(userRef);
+                          // Logic for Referral Reward when marked as DELIVERED
+                          if (newStatus === 'delivered' && oldStatus !== 'delivered' && order.userId) {
+                            const userRef = doc(db, 'user', order.userId);
+                            const userSnap = await getDoc(userRef);
+                            
+                            if (userSnap.exists()) {
+                              const userData = userSnap.data();
+                              const referralCode = userData.referredBy;
                               
-                              if (userSnap.exists()) {
-                                const userData = userSnap.data();
-                                const referralCode = userData.referredBy;
+                              if (referralCode) {
+                                // Check if this is the first delivered order
+                                const deliveredOrdersQuery = query(
+                                  collection(db, 'order'), 
+                                  where('userId', '==', order.userId), 
+                                  where('status', '==', 'delivered')
+                                );
+                                const deliveredSnap = await getDocs(deliveredOrdersQuery);
                                 
-                                if (referralCode) {
-                                  // Check if this is the first delivered order
-                                  const deliveredOrdersQuery = query(
-                                    collection(db, 'order'), 
-                                    where('userId', '==', order.userId), 
-                                    where('status', '==', 'delivered')
-                                  );
-                                  const deliveredSnap = await getDocs(deliveredOrdersQuery);
+                                if (deliveredSnap.size <= 1 && !userData.referralRewardGiven) {
+                                  // Find referrer by matching first 8 chars of their UID (referral code)
+                                  const usersRef = collection(db, 'user');
+                                  const allUsersSnap = await getDocs(usersRef);
+                                  const referrer = allUsersSnap.docs.find(d => d.id.substring(0, 8) === referralCode);
                                   
-                                  // If this is the only delivered order (size was 0 before this one was marked)
-                                  // Or if we check the user doc first-order-reward-given flag
-                                  if (deliveredSnap.size <= 1 && !userData.referralRewardGiven) {
-                                    // Find referrer by matching first 8 chars of their UID (referral code)
-                                    const usersRef = collection(db, 'user');
-                                    const allUsersSnap = await getDocs(usersRef);
-                                    const referrer = allUsersSnap.docs.find(d => d.id.substring(0, 8) === referralCode);
-                                    
-                                    if (referrer && referrer.id !== order.userId) {
-                                      await updateDoc(doc(db, 'user', referrer.id), {
-                                        points: increment(20)
-                                      });
-                                      // Mark that the reward was given to avoid double counting
-                                      await updateDoc(userRef, { referralRewardGiven: true });
-                                      toast.success('Récompense de parrainage (20 points) envoyée au parrain !');
-                                    }
+                                  if (referrer && referrer.id !== order.userId) {
+                                    await updateDoc(doc(db, referrer.id), {
+                                      points: increment(20)
+                                    });
+                                    await updateDoc(userRef, { referralRewardGiven: true });
+                                    toast.success('Récompense de parrainage (20 points) envoyée au parrain !');
                                   }
                                 }
                               }
@@ -5257,7 +5282,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
                       <div>
                         <h4 className="text-xs font-bold uppercase tracking-widest text-primary/60 mb-4">Informations Client</h4>
                         <div className="bg-secondary/30 p-6 rounded-3xl border border-primary/5 relative">
-                          <p className="font-bold text-lg text-primary mb-2">{selectedOrder.customer}</p>
+                          <div className="flex items-center gap-4 mb-4">
+                            {(() => {
+                              const customerUser = USERS.find(u => u.id === selectedOrder.userId || (u as any).uid === selectedOrder.userId || u.name === selectedOrder.customer);
+                              if (customerUser?.profileImage) {
+                                return <img src={customerUser.profileImage} className="w-14 h-14 rounded-2xl object-cover border-2 border-white shadow-sm" alt={selectedOrder.customer} />;
+                              }
+                              return (
+                                <div className="w-14 h-14 rounded-2xl bg-white/50 flex items-center justify-center border border-primary/10">
+                                  <User size={24} className="text-primary/30" />
+                                </div>
+                              );
+                            })()}
+                            <div>
+                               <p className="font-bold text-lg text-primary leading-tight">{selectedOrder.customer}</p>
+                               {selectedOrder.email && <p className="text-[10px] text-primary/40 font-mono">{selectedOrder.email}</p>}
+                            </div>
+                          </div>
                           
                           {isEditingOrder ? (
                             <div className="space-y-3">
@@ -5303,7 +5344,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
                           
                           <button 
                             onClick={() => {
-                              const user = USERS.find(u => u.name === selectedOrder.customer);
+                              const user = USERS.find(u => u.id === selectedOrder.userId || (u as any).uid === selectedOrder.userId || u.name === selectedOrder.customer);
                               if (user) {
                                 setSelectedCustomer(user);
                                 setActiveTab('customer-detail');
@@ -6017,8 +6058,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
                   header: 'Client',
                   accessor: (user: UserType) => (
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
-                        {user.name[0]}
+                      <div className="w-10 h-10 rounded-full overflow-hidden bg-primary/10 text-primary flex items-center justify-center font-bold border border-primary/5 shadow-sm">
+                        {user.profileImage ? (
+                          <img src={user.profileImage} alt={user.name} className="w-full h-full object-cover" />
+                        ) : (
+                          user.name[0]
+                        )}
                       </div>
                       <div>
                         <p className="font-medium text-primary">{user.name}</p>
@@ -6121,8 +6166,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
                   <div className="bg-card p-8 rounded-[2.5rem] shadow-sm border border-primary/10 space-y-6 h-fit">
                     <div className="flex flex-col items-center text-center">
                       <div className="relative">
-                        <div className="w-24 h-24 rounded-full bg-primary/10 text-primary flex items-center justify-center text-3xl font-bold mb-4 border-2 border-primary/20">
-                          {selectedCustomer.name[0]}
+                        <div className="w-24 h-24 rounded-full overflow-hidden bg-primary/10 text-primary flex items-center justify-center text-3xl font-bold mb-4 border-2 border-primary/20 shadow-md">
+                          {selectedCustomer.profileImage ? (
+                            <img src={selectedCustomer.profileImage} alt={selectedCustomer.name} className="w-full h-full object-cover" />
+                          ) : (
+                            selectedCustomer.name[0]
+                          )}
                         </div>
                         <div className={`absolute bottom-4 right-0 w-6 h-6 rounded-full border-4 border-card ${
                           (selectedCustomer.status || 'active') === 'active' ? 'bg-primary' : 'bg-accent'

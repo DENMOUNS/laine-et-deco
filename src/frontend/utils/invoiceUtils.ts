@@ -10,107 +10,180 @@ export const generateInvoicePDF = (order: Order, isDuplicata: boolean = false) =
       return;
     }
     const doc = new jsPDF();
-    const primaryColor = [26, 32, 44]; // Deep primary
-    const accentColor = [227, 24, 55]; // Accent red
+    const primaryColor = [44, 62, 53]; // Laine & Deco dark green
+    const textColor = [50, 50, 50]; 
+    const bgColor = [238, 238, 238]; // Light grey matching template
+    
+    // Page Background
+    doc.setFillColor(bgColor[0], bgColor[1], bgColor[2]);
+    doc.rect(0, 0, 210, 297, 'F');
 
     console.log('Generating invoice for order:', order.id);
 
     if (isDuplicata) {
-      doc.setTextColor(240, 240, 240);
-      doc.setFontSize(60);
+      doc.setTextColor(220, 220, 220);
+      doc.setFontSize(80);
       doc.setFont('helvetica', 'bold');
       doc.text('DUPLICATA', 105, 150, { align: 'center', angle: 45 });
     }
 
-    // Header with styling
-    doc.setFillColor(248, 250, 252);
-    doc.rect(0, 0, 210, 40, 'F');
-    
-    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    // Top Header: "FACTURE" and Logo
+    doc.setTextColor(20, 20, 20);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(24);
-    doc.text('LAINE & DECO', 20, 25);
-    
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100, 116, 139);
-    doc.text('Reçu de paiement officiel', 20, 32);
+    doc.setFontSize(36);
+    doc.text('FACTURE', 20, 30);
 
-    // Invoice Details Box
-    doc.setDrawColor(241, 245, 249);
-    doc.setFillColor(255, 255, 255);
-    try {
-      (doc as any).roundedRect(120, 15, 70, 25, 3, 3, 'FD');
-    } catch (e) {
-      doc.rect(120, 15, 70, 25, 'FD');
-    }
-    
+    // Modern simple logo simulation (right aligned)
     doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(28);
+    doc.text('L&D', 185, 25, { align: 'right' });
     doc.setFontSize(10);
-    doc.text(`NUMÉRO: ${order.id || 'N/A'}`, 125, 25);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`DATE: ${order.date || new Date().toLocaleDateString()}`, 125, 32);
+    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+    doc.text('Laine & Déco', 185, 32, { align: 'right' });
 
     // Client Info
-    doc.setFontSize(12);
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text('FACTURÉ À:', 20, 60);
+    doc.text('À :', 20, 50);
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text(order.customerName || order.customer || 'Client', 20, 57);
+    
     doc.setFont('helvetica', 'normal');
-    doc.text(order.customerName || order.customer || 'Client Laine & Deco', 20, 67);
-    doc.text(order.address || 'Douala, Cameroun', 20, 74);
-    doc.text(order.phone || '', 20, 81);
+    doc.setFontSize(10);
+    doc.text(order.address || 'Douala, Cameroun', 20, 62);
+    
+    // Middle Info (Phone / Email)
+    doc.text(order.phone || '+237 000 000 000', 90, 57);
+    doc.text('Client Email', 90, 62);
+
+    // Right Info (Company info & Date)
+    doc.text(`N° ${order.id || 'N/A'}`, 150, 57);
+    doc.text(order.date || new Date().toLocaleDateString(), 150, 62);
+    doc.text('contact@laine-deco.com', 150, 67);
 
     // Products Table
     const orderItems = order.orderDetails || (Array.isArray(order.items) ? order.items : []);
     const tableRows = orderItems.map((item: any) => [
       item.name || 'Article',
-      (item.quantity || 0).toString(),
       `${(item.price || 0).toLocaleString()} FCFA`,
+      (item.quantity || 0).toString(),
       `${((item.price || 0) * (item.quantity || 0)).toLocaleString()} FCFA`
     ]);
 
     if (tableRows.length === 0) {
-      tableRows.push(['Aucun article listé', '0', '0 FCFA', '0 FCFA']);
+      tableRows.push(['Aucun article listé', '0 FCFA', '0', '0 FCFA']);
     }
 
     autoTable(doc, {
-      startY: 100,
-      head: [['Désignation', 'Qté', 'Prix Unitaire', 'Total']],
+      startY: 85,
+      head: [['Description', 'Prix Unitaire', 'Qté', 'Total']],
       body: tableRows,
-      theme: 'grid',
+      theme: 'plain',
       headStyles: { 
-        fillColor: primaryColor as [number, number, number], 
-        textColor: [255, 255, 255],
+        textColor: [20, 20, 20],
         fontStyle: 'bold',
-        halign: 'center'
+        fontSize: 11,
+      },
+      alternateRowStyles: {
+        fillColor: [230, 230, 230]
+      },
+      bodyStyles: {
+        fillColor: [240, 240, 240],
+        textColor: textColor as [number, number, number],
+        fontSize: 10,
+        cellPadding: 8
       },
       columnStyles: {
-        0: { halign: 'left', cellWidth: 80 },
+        0: { halign: 'left', cellWidth: 80, fontStyle: 'bold', textColor: primaryColor as [number, number, number] },
         1: { halign: 'center' },
-        2: { halign: 'right' },
-        3: { halign: 'right' }
+        2: { halign: 'center' },
+        3: { halign: 'right', fontStyle: 'bold' }
       },
-      styles: { font: 'helvetica', fontSize: 10, cellPadding: 5 }
+      didDrawPage: function (data) {
+        // Draw the rounded border around the table structure
+        if (data.cursor && data.table) {
+          doc.setDrawColor(150, 150, 150);
+          doc.setLineWidth(0.5);
+          // (x, y, w, h, rx, ry, style)
+          const startY = data.settings.startY;
+          const endY = data.cursor.y;
+          // Approximate drawing a border for the table
+          try {
+            (doc as any).roundedRect(14, startY - 2, 182, endY - startY + 4, 3, 3, 'S');
+          } catch(e) {
+             doc.rect(14, startY - 2, 182, endY - startY + 4, 'S'); 
+          }
+        }
+      }
     });
 
-    // Totals
-    const finalY = ((doc as any).lastAutoTable?.finalY || 150) + 10;
-    doc.setDrawColor(241, 245, 249);
-    doc.line(120, finalY, 190, finalY);
+    const finalY = ((doc as any).lastAutoTable?.finalY || 150) + 15;
+
+    // Bottom Section
+    // Left: Payment & Terms
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.text('Paiement :', 20, finalY);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(20, 20, 20);
+    doc.text('Mobile Money / Orange Money :', 20, finalY + 8);
+    doc.setFont('helvetica', 'normal');
+    doc.text('+237 000 000 000 (Laine & Déco)', 20, finalY + 13);
     
+    if (order.paymentMethod) {
+      doc.setFont('helvetica', 'bold');
+      doc.text('Méthode :', 80, finalY + 8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(order.paymentMethod, 80, finalY + 13);
+    }
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(20, 20, 20);
+    doc.text('Conditions & Retours', 20, finalY + 30);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+    doc.text('Les articles faits sur-mesure ne sont ni repris ni échangés.', 20, finalY + 36);
+    doc.text('Merci de vérifier votre commande à la réception.', 20, finalY + 41);
+
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.text('TOTAL:', 120, finalY + 10);
-    doc.setTextColor(accentColor[0], accentColor[1], accentColor[2]);
-    doc.text(`${(order.total || 0).toLocaleString()} FCFA`, 190, finalY + 10, { align: 'right' });
+    doc.text('Merci pour votre confiance !', 20, finalY + 55);
 
-    // Footer
-    doc.setTextColor(150, 150, 150);
-    doc.setFontSize(8);
-    doc.text('Merci pour votre confiance chez Laine & Deco.', 105, 280, { align: 'center' });
-    doc.text('Site web conçu par Landry MOUTONGO', 105, 285, { align: 'center' });
+    // Right: Total Box
+    doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    try {
+      (doc as any).roundedRect(110, finalY - 5, 80, 12, 3, 3, 'F');
+    } catch(e) {
+      doc.rect(110, finalY - 5, 80, 12, 'F');
+    }
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(255, 255, 255);
+    doc.text('Total', 115, finalY + 3);
+    doc.text(`${(order.total || 0).toLocaleString()} FCFA`, 185, finalY + 3, { align: 'right' });
+
+    // Signature
+    doc.setFont('times', 'italic');
+    doc.setFontSize(20);
+    doc.setTextColor(50, 50, 50);
+    doc.text('Landry M.', 160, finalY + 45, { align: 'center' });
+    
+    doc.setDrawColor(100, 100, 100);
+    doc.setLineWidth(0.3);
+    doc.line(135, finalY + 48, 185, finalY + 48);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text('Direction Laine & Déco', 160, finalY + 53, { align: 'center' });
 
     doc.save(`Facture_Laine_Deco_${order.id || 'Order'}.pdf`);
     toast.success('Facture générée avec succès');

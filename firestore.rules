@@ -188,7 +188,7 @@ service cloud.firestore {
       allow create: if isEmailVerified() && isValidId(userId) && request.auth.uid == userId && isValidUser(incoming()) && 
                      (!('role' in incoming()) || incoming().role == 'customer');
       allow update: if (isSignedIn() && isValidId(userId) && request.auth.uid == userId && 
-                        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'updatedAt', 'profileImage'])) || isAdmin();
+                        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'updatedAt', 'profileImage', 'points', 'orders'])) || isAdmin();
       allow delete: if isAdmin() && isValidId(userId);
     }
 
@@ -228,6 +228,13 @@ service cloud.firestore {
       allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow create: if isSignedIn() && isValidId(docId) && incoming().userId == request.auth.uid;
       allow update, delete: if isSignedIn() && isValidId(docId) && (existing().userId == request.auth.uid || isAdmin());
+    }
+
+    match /custom_order/{docId} {
+      allow get: if isSignedIn() && isValidId(docId) && (resource == null || existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(docId);
+      allow update, delete: if isAdmin() && isValidId(docId);
     }
 
     match /login_log/{docId} {

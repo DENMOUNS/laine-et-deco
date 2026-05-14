@@ -4,7 +4,7 @@ import { Button } from '../components/ui/Button';
 import { toast } from 'sonner';
 import { MapPin, CreditCard, ShoppingBag, Truck, Package, Lock } from 'lucide-react';
 import { User as FirebaseUser } from 'firebase/auth';
-import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc, increment } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc, increment, setDoc } from 'firebase/firestore';
 import { db } from '../../backend/firebase';
 import { motion, AnimatePresence } from 'motion/react';
 import { useEntity } from '../hooks/useEntity';
@@ -156,7 +156,9 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
         id: orderId,
         uuid: crypto.randomUUID(),
         userId: user.uid,
+        customer: `${formData.firstName} ${formData.lastName}`,
         customerName: `${formData.firstName} ${formData.lastName}`,
+        type: 'standard',
         address: `${formData.address}, ${formData.city}`,
         phone: formData.phone,
         coordinates: formData.coordinates,
@@ -197,15 +199,34 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
       // Points awarding (1% of total)
       const pointsEarned = Math.floor(total * 0.01);
       
-      // Update current user points
-      const userRef = query(collection(db, 'user'), where('uid', '==', user.uid));
-      const userSnap = await getDocs(userRef);
-      if (!userSnap.empty) {
-        const userDoc = userSnap.docs[0];
-        await updateDoc(doc(db, 'user', userDoc.id), {
-          points: increment(pointsEarned),
-          orders: increment(1)
-        });
+      // Update current user points - Using direct doc reference with UID
+      try {
+        const { getDoc } = await import('firebase/firestore');
+        const userDocRef = doc(db, 'user', user.uid);
+        const userSnap = await getDoc(userDocRef);
+        
+        if (userSnap.exists()) {
+          await updateDoc(userDocRef, {
+            points: increment(pointsEarned),
+            orders: increment(1)
+          });
+        } else {
+          // If the profile doesn't exist yet, create it
+          await setDoc(userDocRef, {
+            uid: user.uid,
+            name: `${formData.firstName} ${formData.lastName}`.trim() || user.displayName || 'Utilisateur',
+            email: user.email,
+            role: 'customer',
+            points: pointsEarned,
+            orders: 1,
+            joinDate: new Date().toISOString().split('T')[0],
+            status: 'active',
+            createdAt: serverTimestamp()
+          });
+        }
+      } catch (userErr) {
+        console.warn("Failed to update user profile points:", userErr);
+        // Don't fail the whole order if profile update fails
       }
       
       toast.success(`Commande validée ! Vous avez gagné ${pointsEarned} points.`);
