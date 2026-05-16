@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   collection, 
   query, 
@@ -31,7 +31,11 @@ const PUBLIC_COLLECTIONS = [
   'badge',
   'city',
   'community_post',
-  'member_portfolio'
+  'member_portfolio',
+  'coupon',
+  'custom_order',
+  'nav_item',
+  'faq'
 ];
 
 interface UseEntityOptions {
@@ -41,15 +45,23 @@ interface UseEntityOptions {
 }
 
 export function useEntity<T>(entityType: string, initialData: T[] = [], options: UseEntityOptions = {}) {
-  const [data, setData] = useState<T[]>(initialData);
+  const [data, setData] = useState<T[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const isMounted = useRef(true);
   const { enabled = true, constraints = [], deps = [] } = options;
 
   useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!db) {
-      console.warn(`Firebase db is not initialized. Using initialData for ${entityType}.`);
-      setData(initialData);
+      console.warn(`Firebase db is not initialized for ${entityType}. Starting with empty data.`);
+      setData([]);
       setIsLoading(false);
       return;
     }
@@ -59,7 +71,7 @@ export function useEntity<T>(entityType: string, initialData: T[] = [], options:
       return;
     }
 
-    let unsubscribe: () => void = () => {};
+    let unsubscribe: (() => void) | null = null;
 
     const startSnapshotListener = () => {
       // Basic query with optional constraints and a default limit of 200 for performance
@@ -70,25 +82,33 @@ export function useEntity<T>(entityType: string, initialData: T[] = [], options:
       const q = query(collection(db, entityType), ...finalConstraints);
       
       unsubscribe = onSnapshot(q, (snapshot) => {
-        const items: T[] = [];
-        snapshot.forEach((doc) => {
-          items.push({ id: doc.id, ...doc.data() } as T);
-        });
-        
-        setData(items.length > 0 ? items : initialData);
-        setIsLoading(false);
-        setError(null);
+        try {
+          const items: T[] = [];
+          snapshot.forEach((doc) => {
+            items.push({ id: doc.id, ...doc.data() } as T);
+          });
+          
+          if (isMounted.current) {
+            setData(items);
+            setIsLoading(false);
+            setError(null);
+          }
+        } catch (e) {
+          console.error("Error processing snapshot in useEntity:", e);
+        }
       }, (err) => {
+        if (!isMounted.current) return;
+
         // If we get permission-denied but we were not logged in, just stay in loading or fallback silently
         if (err.code === 'permission-denied' && !auth.currentUser) {
           console.warn(`Permission denied for ${entityType} (unauthenticated). Waiting...`);
-          setData(initialData);
+          setData([]);
           setIsLoading(true);
           return;
         }
 
         console.error(`Error fetching ${entityType} from Firebase:`, err);
-        setData(initialData);
+        setData([]);
         setError(err as Error);
         setIsLoading(false);
         
@@ -101,24 +121,24 @@ export function useEntity<T>(entityType: string, initialData: T[] = [], options:
     };
 
     // If it's a protected collection, wait for auth to be initialized
+    let authUnsubscribe: (() => void) | null = null;
     if (!PUBLIC_COLLECTIONS.includes(entityType) && !auth.currentUser) {
-      const authUnsubscribe = onAuthStateChanged(auth, (user) => {
+      authUnsubscribe = onAuthStateChanged(auth, (user) => {
         if (user) {
-          authUnsubscribe(); // Stop listening for auth changes once we have a user
+          if (authUnsubscribe) authUnsubscribe();
           startSnapshotListener();
         } else {
-          // Still no user, if it's protected, we might want to stop loading or show empty
-          setIsLoading(false);
+          if (isMounted.current) setIsLoading(false);
         }
       });
-      return () => {
-        authUnsubscribe();
-        unsubscribe();
-      };
     } else {
       startSnapshotListener();
-      return () => unsubscribe();
     }
+
+    return () => {
+      if (authUnsubscribe) authUnsubscribe();
+      if (unsubscribe) unsubscribe();
+    };
   }, [entityType, enabled, auth.currentUser?.uid, ...deps]);
 
   const addEntity = async (newItem: any) => {

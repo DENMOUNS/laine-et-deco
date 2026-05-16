@@ -17,7 +17,10 @@ export const ChatBubble: React.FC = () => {
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const isMounted = useRef(true);
+  
   useEffect(() => {
+    isMounted.current = true;
     let unsubscribe = () => {};
     const unregisterAuth = auth.onAuthStateChanged((user) => {
       if (user) {
@@ -27,18 +30,29 @@ export const ChatBubble: React.FC = () => {
           orderBy('timestamp', 'asc')
         );
         unsubscribe = onSnapshot(q, (snapshot) => {
-          const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          setMessages(msgs);
+          try {
+            const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            if (isMounted.current) {
+              setMessages(msgs);
+            }
+          } catch (e) {
+            console.error("Error processing chat snapshot:", e);
+          }
         }, (error) => {
-          console.error("Error fetching chat messages:", error);
+          if (isMounted.current) {
+            console.error("Error fetching chat messages:", error);
+          }
         });
       } else {
-        setMessages([]);
+        if (isMounted.current) {
+          setMessages([]);
+        }
         unsubscribe();
       }
     });
 
     return () => {
+      isMounted.current = false;
       unregisterAuth();
       unsubscribe();
     };

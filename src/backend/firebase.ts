@@ -36,8 +36,9 @@ export interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const err = error as any;
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: err?.message || String(error),
     authInfo: {
       userId: auth?.currentUser?.uid,
       email: auth?.currentUser?.email,
@@ -52,8 +53,9 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path
   };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  
+  // LOGGING ONLY - Do NOT throw inside Firestore callbacks as it can crash the SDK internal state (ID: ca9)
+  console.error('Firestore Error details:', JSON.stringify(errInfo));
 }
 
 if (firebaseConfig && firebaseConfig.projectId) {
@@ -64,9 +66,7 @@ if (firebaseConfig && firebaseConfig.projectId) {
       ? firebaseConfig.firestoreDatabaseId 
       : '(default)';
     
-    db = initializeFirestore(app, {
-      experimentalAutoDetectLongPolling: true
-    }, databaseId);
+    db = initializeFirestore(app, {}, databaseId);
     auth = getAuth(app);
 
     // Validate Connection to Firestore (MANDATORY)

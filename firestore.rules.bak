@@ -1,0 +1,283 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // --- Helper Functions ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'landrymoutongo97@gmail.com' ||
+        (exists(/databases/$(database)/documents/user/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/user/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Entities Validation ---
+
+    function isValidProduct(data) {
+      return data.keys().hasAll(['name', 'price', 'category']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
+             data.price is number && data.price >= 0 &&
+             data.category is string && data.category.size() > 0 && data.category.size() <= 100;
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll(['userId', 'total', 'status']) &&
+             data.userId == request.auth.uid &&
+             data.total is number && data.total >= 0 &&
+             data.status in ['pending', 'processing', 'completed', 'cancelled'];
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['name', 'email']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.email is string && data.email.size() > 0 && data.email.size() <= 200;
+    }
+
+    function isValidFlashSale(data) {
+      return data.keys().hasAll(['name', 'endDate', 'status']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
+             data.endDate is string &&
+             data.status in ['active', 'inactive'];
+    }
+
+    function isValidLookbook(data) {
+      return data.keys().hasAll(['title', 'image', 'status']) &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+             data.image is string && data.image.size() > 0 && data.image.size() <= 2000 &&
+             data.status in ['active', 'inactive'];
+    }
+
+    function isValidLookbookPost(data) {
+      return data.keys().hasAll(['title', 'image']) &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+             data.image is string && data.image.size() > 0 && data.image.size() <= 2000;
+    }
+
+    // --- Collection Rules ---
+
+    // Public Read-Only Collections (Admin Write)
+    match /product/{productId} {
+      allow read: if true;
+      allow create: if isAdmin() && isValidId(productId) && isValidProduct(incoming());
+      allow update: if isAdmin() && isValidProduct(incoming());
+      allow delete: if isAdmin() && isValidId(productId);
+    }
+
+    match /category/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidId(categoryId);
+    }
+
+    match /blog_post/{postId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidId(postId);
+    }
+
+    match /pack/{packId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidId(packId);
+    }
+
+    match /city/{cityId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidId(cityId);
+    }
+
+    match /faq/{faqId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidId(faqId);
+    }
+
+    match /nav_item/{itemId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidId(itemId);
+    }
+
+    match /site_config/{configId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidId(configId);
+    }
+
+    match /flash_sale/{saleId} {
+      allow read: if true;
+      allow create: if isAdmin() && isValidId(saleId) && isValidFlashSale(incoming());
+      allow update: if isAdmin() && isValidFlashSale(incoming());
+      allow delete: if isAdmin() && isValidId(saleId);
+    }
+
+    match /lookbook/{lookbookId} {
+      allow read: if true;
+      allow create: if isAdmin() && isValidId(lookbookId) && isValidLookbook(incoming());
+      allow update: if isAdmin() && isValidLookbook(incoming());
+      allow delete: if isAdmin() && isValidId(lookbookId);
+    }
+
+    match /lookbook_post/{postId} {
+      allow read: if true;
+      allow create: if isAdmin() && isValidId(postId) && isValidLookbookPost(incoming());
+      allow update: if isAdmin() && isValidLookbookPost(incoming());
+      allow delete: if isAdmin() && isValidId(postId);
+    }
+
+    match /promo_event/{eventId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidId(eventId);
+    }
+
+    match /currency/{currencyId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidId(currencyId);
+    }
+
+    match /badge/{badgeId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidId(badgeId);
+    }
+
+    match /community_post/{postId} {
+      allow read: if true;
+      allow create: if isEmailVerified() && isValidId(postId);
+      allow update: if isEmailVerified() && (request.auth.uid == existing().userId || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /review/{reviewId} {
+      allow read: if true;
+      allow create: if isEmailVerified() && isValidId(reviewId);
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Authenticated Collections
+    match /order/{orderId} {
+      allow get: if isSignedIn() && isValidId(orderId) && (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(orderId) && isValidOrder(incoming());
+      allow update: if isSignedIn() && isValidId(orderId) && existing().userId == request.auth.uid && incoming().userId == existing().userId;
+      allow delete: if isAdmin() && isValidId(orderId);
+    }
+
+    match /chat_message/{messageId} {
+      allow read: if isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(messageId) && incoming().userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    match /user/{userId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if true;
+      allow update: if true;
+      allow delete: if isAdmin() && isValidId(userId);
+    }
+
+    // Public Read-Only Collections (Admin Write) - Extended
+    match /coupon/{docId} {
+      allow read: if true;
+      allow create: if isSignedIn() && isValidId(docId); // Users can generate coupons from loyalty points
+      allow update, delete: if isAdmin() && isValidId(docId);
+    }
+    match /shipping_rule/{docId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidId(docId);
+    }
+    match /tax_rule/{docId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidId(docId);
+    }
+    match /catalog_price_rule/{docId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidId(docId);
+    }
+    match /subscriber/{docId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if isAdmin() && isValidId(docId);
+    }
+
+    match /invoice/{docId} {
+      allow get: if isSignedIn() && isValidId(docId) && (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(docId) && incoming().userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    match /knitting_project/{docId} {
+      allow get: if isSignedIn() && isValidId(docId) && (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(docId) && incoming().userId == request.auth.uid;
+      allow update, delete: if isSignedIn() && isValidId(docId) && (existing().userId == request.auth.uid || isAdmin());
+    }
+
+    match /custom_order/{docId} {
+      allow get: if isSignedIn() && isValidId(docId) && (resource == null || existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(docId);
+      allow update, delete: if isAdmin() && isValidId(docId);
+    }
+
+    match /login_log/{docId} {
+      allow get: if isSignedIn() && isValidId(docId) && (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(docId); 
+      allow update, delete: if isAdmin();
+    }
+
+    // Admin Only
+    match /request_log/{docId} { allow read, write: if isAdmin(); }
+    match /notification/{docId} { allow read, write: if isAdmin(); }
+    match /sales_data/{docId} { allow read, write: if isAdmin(); }
+    match /category_distribution/{docId} { allow read, write: if isAdmin(); }
+    match /device_data/{docId} { allow read, write: if isAdmin(); }
+    match /traffic_source/{docId} { allow read, write: if isAdmin(); }
+    match /retention_data/{docId} { allow read, write: if isAdmin(); }
+    match /revenue_by_payment/{docId} { allow read, write: if isAdmin(); }
+    match /push_notification/{docId} { allow read, write: if isAdmin(); }
+    match /email/{docId} { allow read, write: if isAdmin(); }
+    match /expense/{docId} { allow read, write: if isAdmin(); }
+    match /abandoned_cart/{docId} { allow read, write: if isAdmin(); }
+    match /customer_group/{docId} { allow read, write: if isAdmin(); }
+    match /rma/{docId} { allow read, write: if isAdmin(); }
+    match /conversation/{docId} { allow read, write: if isAdmin(); }
+    match /admin_role/{docId} { allow read, write: if isAdmin(); }
+    match /member_portfolio/{docId} {
+      allow get, list: if true;
+      allow write: if isAdmin();
+    }
+
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // System/Internal
+    match /log/{logId} {
+      allow read: if isAdmin();
+      allow create: if true;
+      allow update, delete: if false;
+    }
+
+    // --- Global Safety Net ---
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

@@ -51,6 +51,20 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
             </div>
             <p className="text-primary/70 leading-relaxed">{product.description}</p>
             
+            {product.specs && Object.keys(product.specs).length > 0 && (
+              <div className="pt-6 border-t border-primary/5 space-y-4">
+                <h4 className="font-bold text-primary uppercase text-xs tracking-widest">Caractéristiques</h4>
+                <dl className="grid grid-cols-2 gap-4 text-sm">
+                  {Object.entries(product.specs).map(([key, value]) => (
+                    <div key={key}>
+                      <dt className="text-primary/50 uppercase text-[10px] tracking-wider mb-1 font-bold">{key}</dt>
+                      <dd className="font-medium text-primary">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            )}
+            
             <div className="space-y-4 pt-6 border-t border-primary/5">
               <div className="flex items-center w-32 bg-card border border-primary/10 rounded-full p-1">
                 <Button 

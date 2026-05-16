@@ -179,13 +179,13 @@ export interface Product {
   isAvailable: boolean; // Added for stock management toggle
   material?: string;
   colors?: string[];
+  specs?: Record<string, string>; // Technical specifications (weight, volume, electronics, etc)
   reviews?: Review[];
   views?: number;
   salesCount?: number;
   brand?: string;
   seo?: SEOMeta; // Added for SEO
   purchasePrice?: number; // Added for Finance Management
-  specs?: Record<string, string>; // Technical specifications for electronics
   warranty?: string; // Warranty information
   isElectronic?: boolean; // Flag for electronic products
   condition?: 'new' | 'second-hand'; // Added for condition distinction
@@ -312,6 +312,7 @@ export interface Order {
   customer: string;
   customerName?: string;
   phone?: string;
+  email?: string;
   userId: string;
   date: string;
   total: number;
@@ -367,6 +368,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  profileImage?: string;
   role: string; // 'admin', 'customer', or custom role ID
   joinDate: string;
   orders: number; // Only relevant for customers

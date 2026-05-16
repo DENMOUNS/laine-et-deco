@@ -183,7 +183,7 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, siteConfig: propSiteConfig, setSiteConfig: propSetSiteConfig, user, isAuthLoading }) => {
-  const { data: ORDERS, setData: setLocalOrders, isLoading: isLoadingOrders } = useEntity<Order>('order', INITIAL_ORDERS);
+  const { data: ORDERS, setData: setLocalOrders, deleteEntity: deleteOrder, isLoading: isLoadingOrders } = useEntity<Order>('order', INITIAL_ORDERS);
   const { data: CUSTOM_ORDERS } = useEntity<any>('custom_order', []);
   const allOrders = useMemo(() => {
     const combined = [...ORDERS];
@@ -203,16 +203,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
 
   const { products: fetchedProducts } = useProducts();
   const PRODUCTS = fetchedProducts.length > 0 ? fetchedProducts : INITIAL_PRODUCTS;
-  const { data: USERS } = useEntity<UserType>('user', INITIAL_USERS);
-  const { data: CATEGORIES, updateEntity: updateCategory, addEntity: addCategory, setData: setLocalCategories, isLoading: isLoadingCategories } = useEntity<Category>('category', INITIAL_CATEGORIES);
+  const { data: USERS, deleteEntity: deleteUser } = useEntity<UserType>('user', INITIAL_USERS);
+  const { data: CATEGORIES, updateEntity: updateCategory, addEntity: addCategory, deleteEntity: deleteCategory, setData: setLocalCategories, isLoading: isLoadingCategories } = useEntity<Category>('category', INITIAL_CATEGORIES);
   const { data: NAV_ITEMS, updateEntity: updateNavItem, addEntity: addNavItem, deleteEntity: deleteNavItem } = useEntity<NavItem>('nav_item', INITIAL_NAV_ITEMS);
   console.log('--- DEBUG --- NAV_ITEMS', NAV_ITEMS);
   const { data: FAQS, updateEntity: updateFAQ, addEntity: addFAQ, deleteEntity: deleteFAQ } = useEntity<FAQ>('faq', INITIAL_FAQ_ITEMS);
   const { data: LOGIN_LOGS, deleteEntity: deleteLoginLog } = useEntity<any>('login_log', INITIAL_LOGIN_LOGS);
   const { data: REQUEST_LOGS, deleteEntity: deleteRequestLog } = useEntity<any>('request_log', INITIAL_REQUEST_LOGS);
-  const { data: NOTIFICATIONS } = useEntity<any>('notification', INITIAL_NOTIFICATIONS);
+  const { data: NOTIFICATIONS, deleteEntity: deleteNotification } = useEntity<any>('notification', INITIAL_NOTIFICATIONS);
   const { data: SALES_DATA } = useEntity<any>('sales_data', INITIAL_SALES_DATA);
-  const { data: siteConfigs, updateEntity: updateSiteConfig } = useEntity<any>('site_config', [INITIAL_SITE_CONFIG]);
+  const { data: siteConfigs, updateEntity: updateSiteConfig, deleteEntity: deleteSiteConfig } = useEntity<any>('site_config', [INITIAL_SITE_CONFIG]);
   const rawSiteConfig = siteConfigs[0] || propSiteConfig || INITIAL_SITE_CONFIG;
   const siteConfig = {
     ...rawSiteConfig,
@@ -272,9 +272,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
     return getVal(b) - getVal(a);
   });
 
-  const { data: CHAT_MESSAGES } = useEntity<any>('chat_message', INITIAL_CHAT_MESSAGES);
-  const { data: CONVERSATIONS } = useEntity<any>('conversation', INITIAL_CONVERSATIONS);
-  const { data: COUPONS, updateEntity: updateCoupon, addEntity: addCoupon } = useEntity<Coupon>('coupon', INITIAL_COUPONS);
+  const { data: CHAT_MESSAGES, deleteEntity: deleteChatMessage } = useEntity<any>('chat_message', INITIAL_CHAT_MESSAGES);
+  const { data: CONVERSATIONS, deleteEntity: deleteConversation } = useEntity<any>('conversation', INITIAL_CONVERSATIONS);
+  const { data: COUPONS, updateEntity: updateCoupon, addEntity: addCoupon, deleteEntity: deleteCoupon } = useEntity<Coupon>('coupon', INITIAL_COUPONS);
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
   const [isCouponEditorOpen, setIsCouponEditorOpen] = useState(false);
 
@@ -371,24 +371,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
   const { data: TRAFFIC_SOURCES, isLoading: isLoadingTraffic } = useEntity<any>('traffic_source', INITIAL_TRAFFIC_SOURCES);
   const { data: RETENTION_DATA, isLoading: isLoadingRetention } = useEntity<any>('retention_data', INITIAL_RETENTION_DATA);
   const { data: REVENUE_BY_PAYMENT, isLoading: isLoadingRevenue } = useEntity<any>('revenue_by_payment', INITIAL_REVENUE_BY_PAYMENT);
-  const { data: PACKS, updateEntity: updatePack, addEntity: addPack, setData: setLocalPacks, isLoading: isLoadingPacks } = useEntity<Pack>('pack', INITIAL_PACKS);
+  const { data: PACKS, updateEntity: updatePack, addEntity: addPack, deleteEntity: deletePack, setData: setLocalPacks, isLoading: isLoadingPacks } = useEntity<Pack>('pack', INITIAL_PACKS);
   const localPacks = PACKS;
   const { data: PUSH_NOTIFICATIONS, setData: setLocalPushNotifications, isLoading: isLoadingPush } = useEntity<any>('push_notification', INITIAL_PUSH_NOTIFICATIONS);
   const { data: EMAILS, setData: setLocalEmails, isLoading: isLoadingEmails } = useEntity<any>('email', INITIAL_EMAILS);
   const { data: EXPENSES, isLoading: isLoadingExpenses } = useEntity<any>('expense', INITIAL_EXPENSES);
   const { data: LOOKBOOK_POSTS, setData: setLocalLookbook, isLoading: isLoadingLookbook } = useEntity<any>('lookbook_post', INITIAL_LOOKBOOK_POSTS);
   const { data: BLOG_POSTS, setData: setLocalBlogPosts, isLoading: isLoadingBlog } = useEntity<any>('blog_post', INITIAL_BLOG_POSTS);
-  const { data: REVIEWS, setData: setLocalReviews, isLoading: isLoadingReviews } = useEntity<any>('review', INITIAL_REVIEWS);
-  const { data: ABANDONED_CARTS, setData: setLocalAbandonedCarts, isLoading: isLoadingAbandoned } = useEntity<any>('abandoned_cart', INITIAL_ABANDONED_CARTS);
-  const { data: CUSTOMER_GROUPS, setData: setLocalCustomerGroups, isLoading: isLoadingGroups } = useEntity<any>('customer_group', INITIAL_CUSTOMER_GROUPS);
-  const { data: TAX_RULES, setData: setLocalTaxRules, isLoading: isLoadingTax } = useEntity<any>('tax_rule', INITIAL_TAX_RULES);
-  const { data: SHIPPING_RULES, setData: setLocalShippingRules, isLoading: isLoadingShipping } = useEntity<any>('shipping_rule', INITIAL_SHIPPING_RULES);
+  const { data: REVIEWS, setData: setLocalReviews, deleteEntity: deleteReview, isLoading: isLoadingReviews } = useEntity<any>('review', INITIAL_REVIEWS);
+  const { data: ABANDONED_CARTS, setData: setLocalAbandonedCarts, deleteEntity: deleteAbandonedCart, isLoading: isLoadingAbandoned } = useEntity<any>('abandoned_cart', INITIAL_ABANDONED_CARTS);
+  const { data: CUSTOMER_GROUPS, setData: setLocalCustomerGroups, deleteEntity: deleteCustomerGroup, isLoading: isLoadingGroups } = useEntity<any>('customer_group', INITIAL_CUSTOMER_GROUPS);
+  const { data: TAX_RULES, setData: setLocalTaxRules, deleteEntity: deleteTaxRule, isLoading: isLoadingTax } = useEntity<any>('tax_rule', INITIAL_TAX_RULES);
+  const { data: SHIPPING_RULES, setData: setLocalShippingRules, deleteEntity: deleteShippingRule, isLoading: isLoadingShipping } = useEntity<any>('shipping_rule', INITIAL_SHIPPING_RULES);
   const localNavItems = NAV_ITEMS; // Use the one from useEntity
   console.log('--- DEBUG --- localNavItems', localNavItems);
   // const { data: CATALOG_PRICE_RULES, isLoading: isLoadingCatalog } = useEntity<any>('catalog_price_rule', INITIAL_CATALOG_PRICE_RULES); // REMOVED DUPLICATE
-  const { data: SUBSCRIBERS, setData: setLocalSubscribers, isLoading: isLoadingSubscribers } = useEntity<NewsletterSubscriber>('subscriber', INITIAL_SUBSCRIBERS);
+  const { data: SUBSCRIBERS, setData: setLocalSubscribers, deleteEntity: deleteSubscriber, isLoading: isLoadingSubscribers } = useEntity<NewsletterSubscriber>('subscriber', INITIAL_SUBSCRIBERS);
 
-  const { data: localProducts, setData: setLocalProducts, updateEntity: updateProduct, isLoading: isLoadingProducts } = useEntity<Product>('product', INITIAL_PRODUCTS);
+  useEffect(() => {
+    // Self-healing: if current user is the super admin but their document doesn't say admin, fix it
+    if (user && user.email === 'landrymoutongo97@gmail.com') {
+      const myUserDoc = USERS.find(u => u.id === user.uid);
+      if (myUserDoc && myUserDoc.role !== 'admin') {
+        updateDoc(doc(db, 'user', user.uid), { role: 'admin' }).catch((err: any) => console.error("Self-heal error:", err));
+      }
+    }
+  }, [user, USERS]);
+
+  const { data: localProducts, setData: setLocalProducts, updateEntity: updateProduct, addEntity: addProduct, deleteEntity: deleteProduct, isLoading: isLoadingProducts } = useEntity<Product>('product', INITIAL_PRODUCTS);
   const localOrders = allOrders;
   const localCategories = CATEGORIES;
 
@@ -485,7 +495,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
 
   // Fallbacks for data to ensure fields exist
   const navItemsWithDefaults = useMemo(() => {
-    const data = (NAV_ITEMS && NAV_ITEMS.length > 0) ? NAV_ITEMS : INITIAL_NAV_ITEMS;
+    const data = NAV_ITEMS;
     return data.map(item => ({
       ...item,
       order: item.order ?? 1,
@@ -495,7 +505,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
   }, [NAV_ITEMS]);
   
   const catalogRulesWithDefaults = useMemo(() => {
-    const data = (localCatalogPriceRules && localCatalogPriceRules.length > 0) ? localCatalogPriceRules : INITIAL_CATALOG_PRICE_RULES;
+    const data = localCatalogPriceRules;
     return data.map(rule => ({
       ...rule,
       createdAt: rule.createdAt || new Date().toISOString()
@@ -544,8 +554,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
   useEffect(() => {
     if (editingItem && (modalType === 'category' || activeTab === 'product-edit')) {
       setCurrentSlug(editingItem.slug || '');
+      setCurrentImage(editingItem.image || '');
     } else {
       setCurrentSlug('');
+      setCurrentImage('');
     }
   }, [editingItem, modalType, activeTab]);
 
@@ -1019,6 +1031,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
   const [requestLogFilter, setRequestLogFilter] = useState('all');
   const [messageInput, setMessageInput] = useState('');
   const [currentSlug, setCurrentSlug] = useState('');
+  const [currentImage, setCurrentImage] = useState('');
   const [viewingCustomer, setViewingCustomer] = useState<UserType | null>(null);
 
   const handleNotificationClick = (notification: Notification) => {
@@ -1572,14 +1585,52 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Image de couverture (URL)</label>
-                  <input 
-                    name="image"
-                    type="text" 
-                    className="w-full px-6 py-4 bg-secondary/50 border border-primary/10 rounded-2xl focus:outline-none focus:border-primary" 
-                    placeholder="https://..." 
-                    defaultValue={editingItem?.image}
-                  />
+                  <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Image de couverture</label>
+                  <div className="relative w-full h-64 bg-secondary/30 rounded-[2rem] border-2 border-dashed border-primary/10 overflow-hidden flex flex-col items-center justify-center group cursor-pointer hover:border-primary/40 transition-all shadow-inner">
+                     {(currentImage || editingItem?.image) ? (
+                       <>
+                         <img src={currentImage || editingItem?.image} alt="Preview" className="w-full h-full object-cover" />
+                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                           <span className="bg-white text-primary px-6 py-2 rounded-xl font-bold text-sm shadow-xl">Changer l'image</span>
+                           <button 
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCurrentImage('');
+                              if (editingItem) editingItem.image = '';
+                            }}
+                            className="bg-rose-500 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-xl hover:bg-rose-600 transition-colors"
+                           >
+                             Supprimer
+                           </button>
+                         </div>
+                       </>
+                     ) : (
+                       <div className="text-center p-10 text-primary/40 group-hover:text-primary/60 transition-colors">
+                         <div className="w-16 h-16 bg-primary/5 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <ImageIcon size={32} />
+                         </div>
+                         <p className="text-sm font-bold uppercase tracking-widest">Sélectionner une photo</p>
+                         <p className="text-[10px] mt-2 italic">Format carré ou paysage recommandé</p>
+                       </div>
+                     )}
+                     <input 
+                       type="file" 
+                       accept="image/*"
+                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                       onChange={(e) => {
+                         const file = e.target.files?.[0];
+                         if (file) {
+                           const reader = new FileReader();
+                           reader.onloadend = () => {
+                             setCurrentImage(reader.result as string);
+                           };
+                           reader.readAsDataURL(file);
+                         }
+                       }}
+                     />
+                  </div>
+                  <input type="hidden" name="image" value={currentImage || editingItem?.image || ''} />
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Statut</label>
@@ -2414,6 +2465,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
                 setSelectedOrder(order);
                 setActiveTab('order-detail');
               }}
+              onDelete={(item) => deleteOrder(item.id!)}
               title="Liste des Commandes"
               columns={[
               { header: 'Client', accessor: 'customer', className: 'font-medium', sortable: true },
@@ -2918,9 +2970,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
               </button>
             </div>
             <DataTable<PromoEvent>
-              
               dateFilterKey="createdAt"
               data={sortByDate(PROMO_EVENTS)}
+              onRowClick={handleEditEvent}
+              onDelete={(item) => handleDeleteEvent(item.id!)}
               title="Évènements Promotionnels"
               columns={[
                 { header: 'Nom', accessor: 'name', className: 'font-bold', sortable: true },
@@ -3854,7 +3907,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
               </button>
             </div>
             <DataTable<Product>
-              
               dateFilterKey="createdAt"
               data={sortByDate(localProducts.filter(p => {
                   if (productFilter === 'all') return true;
@@ -3863,6 +3915,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
                   return p.category === productFilter;
               }))}
               onRowClick={(p) => { setEditingItem(p); setActiveTab('product-edit'); }}
+              onDelete={(item) => deleteProduct(item.id!)}
               title="Catalogue Produits"
               columns={[
                 {
@@ -4010,17 +4063,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
                     description: formData.get('seoDescription') as string
                 },
                 isAvailable: editingItem?.isAvailable ?? true,
-                rating: editingItem?.rating || 5
+                rating: editingItem?.rating || 5,
+                specs: editingItem?.specs || {}
               };
               const now = new Date().toISOString();
               if (editingItem) {
                   newProduct.updatedAt = now;
                   newProduct.createdAt = editingItem.createdAt || now;
+                  updateProduct(editingItem.id, newProduct);
                   setLocalProducts(prev => prev.map(p => p.id === editingItem.id ? { ...p, ...newProduct } : p));
                   toast.success('Produit mis à jour avec succès');
               } else {
                   newProduct.createdAt = now;
                   newProduct.updatedAt = now;
+                  addProduct(newProduct);
                   setLocalProducts(prev => [...prev, newProduct]);
                   toast.success('Produit créé avec succès');
               }
@@ -4133,6 +4189,70 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
                 </div>
 
                 <div className="bg-card p-8 rounded-3xl shadow-sm border border-primary/10 space-y-6">
+                  <div className="flex items-center justify-between border-b border-primary/5 pb-4">
+                    <h4 className="text-lg font-bold text-primary">Caractéristiques</h4>
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        const newSpecs = { ...(editingItem?.specs || {}) };
+                        newSpecs['Nouvelle_caracteristique_' + Date.now()] = '';
+                        setEditingItem(prev => ({ ...prev, specs: newSpecs }));
+                      }}
+                      className="text-xs font-bold uppercase tracking-widest text-primary/60 hover:text-primary transition-colors flex items-center gap-1"
+                    >
+                      <Plus size={14} /> Ajouter
+                    </button>
+                  </div>
+                  <div className="space-y-4">
+                    {Object.entries(editingItem?.specs || {}).map(([key, value], idx) => (
+                      <div key={idx} className="flex items-center gap-4">
+                        <input 
+                          type="text" 
+                          className="flex-grow w-1/3 px-4 py-3 bg-secondary/50 border border-primary/10 rounded-xl focus:outline-none focus:border-primary focus:bg-card text-primary text-sm font-bold" 
+                          placeholder="Nom (ex: Poids)"
+                          value={key}
+                          onChange={(e) => {
+                            const newKey = e.target.value;
+                            const newSpecs = { ...(editingItem?.specs || {}) };
+                            const oldVal = newSpecs[key];
+                            delete newSpecs[key];
+                            newSpecs[newKey] = oldVal;
+                            setEditingItem(prev => ({ ...prev, specs: newSpecs }));
+                          }}
+                        />
+                        <input 
+                          type="text" 
+                          className="flex-grow w-2/3 px-4 py-3 bg-secondary/50 border border-primary/10 rounded-xl focus:outline-none focus:border-primary focus:bg-card text-primary text-sm" 
+                          placeholder="Valeur (ex: 50g)"
+                          value={value as string}
+                          onChange={(e) => {
+                            const newSpecs = { ...(editingItem?.specs || {}) };
+                            newSpecs[key] = e.target.value;
+                            setEditingItem(prev => ({ ...prev, specs: newSpecs }));
+                          }}
+                        />
+                        <button 
+                          type="button" 
+                          onClick={() => {
+                            const newSpecs = { ...(editingItem?.specs || {}) };
+                            delete newSpecs[key];
+                            setEditingItem(prev => ({ ...prev, specs: newSpecs }));
+                          }}
+                          className="p-3 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                    {Object.keys(editingItem?.specs || {}).length === 0 && (
+                      <p className="text-sm text-primary/60 text-center italic py-4">
+                        Aucune caractéristique ajoutée. Parfait pour préciser le poids, les dimensions, la matière, etc.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-card p-8 rounded-3xl shadow-sm border border-primary/10 space-y-6">
                   <h4 className="text-lg font-bold text-primary border-b border-primary/5 pb-4">Optimisation SEO</h4>
                   <div className="space-y-6">
                     <div className="space-y-2">
@@ -4202,25 +4322,45 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
 
                 <div className="bg-card p-8 rounded-3xl shadow-sm border border-primary/10 space-y-6">
                   <h4 className="text-lg font-bold text-primary border-b border-primary/5 pb-4">Couleurs</h4>
-                  <div className="flex flex-wrap gap-3">
-                    {['#FFFFFF', '#000000', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#F5F5DC', '#8B4513'].map(color => (
-                      <button 
-                        key={color} 
-                        type="button" 
-                        onClick={() => {
-                          const currentColors = editingItem?.colors || [];
-                          const newColors = currentColors.includes(color) 
-                            ? currentColors.filter(c => c !== color)
-                            : [...currentColors, color];
-                          setEditingItem(prev => ({ ...prev, colors: newColors }));
-                        }}
-                        className={`w-10 h-10 rounded-full border-2 shadow-sm hover:scale-110 transition-all ${editingItem?.colors?.includes(color) ? 'border-primary ring-2 ring-primary/20' : 'border-card'}`} 
-                        style={{ backgroundColor: color }} 
-                      />
+                  <div className="flex flex-wrap gap-4 items-center">
+                    {(editingItem?.colors || []).map((color: string) => (
+                      <div key={color} className="relative group">
+                        <div 
+                          className="w-12 h-12 rounded-full border-2 border-primary ring-2 ring-primary/20 shadow-md transition-all group-hover:scale-105" 
+                          style={{ backgroundColor: color }} 
+                        />
+                        <button 
+                          type="button" 
+                          onClick={() => {
+                            setEditingItem((prev: any) => ({ 
+                              ...prev, 
+                              colors: (prev?.colors || []).filter((c: string) => c !== color) 
+                            }));
+                          }}
+                          className="absolute -top-2 -right-2 bg-rose-500 text-white rounded-full p-1 shadow-lg flex items-center justify-center transform hover:scale-110 active:scale-95 transition-all z-10"
+                          title="Supprimer cette couleur"
+                        >
+                          <X size={14} strokeWidth={3} />
+                        </button>
+                      </div>
                     ))}
-                    <button type="button" className="w-10 h-10 rounded-full border-2 border-dashed border-primary/10 flex items-center justify-center text-primary/60 hover:border-primary hover:text-primary transition-all">
-                      <Plus size={18} />
-                    </button>
+                    <div className="flex flex-col items-center gap-2">
+                       <label className="w-12 h-12 rounded-full border-2 border-dashed border-primary/20 flex items-center justify-center text-primary/40 hover:border-accent hover:text-accent transition-all cursor-pointer relative bg-secondary/30 group">
+                        <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" />
+                        <input 
+                          type="color" 
+                          className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" 
+                          onChange={(e) => {
+                            const newColor = e.target.value;
+                            const currentColors = editingItem?.colors || [];
+                            if (!currentColors.includes(newColor)) {
+                              setEditingItem((prev: any) => ({ ...prev, colors: [...currentColors, newColor] }));
+                            }
+                          }}
+                        />
+                      </label>
+                      <span className="text-[10px] font-bold uppercase tracking-tighter text-primary/30">Ajouter</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -4970,15 +5110,52 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
                  />
                </div>
                <div className="space-y-2">
-                 <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Image de couverture (URL)</label>
-                 <input 
-                   name="image"
-                   type="text" 
-                   className="w-full px-6 py-4 bg-secondary/50 border border-primary/10 rounded-2xl focus:outline-none focus:border-primary" 
-                   placeholder="https://..." 
-                   defaultValue={editingItem?.image}
-                   required
-                 />
+                 <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Image de couverture</label>
+                 <div className="relative w-full h-64 bg-secondary/30 rounded-[2rem] border-2 border-dashed border-primary/10 overflow-hidden flex flex-col items-center justify-center group cursor-pointer hover:border-primary/40 transition-all shadow-inner">
+                     {(currentImage || editingItem?.image) ? (
+                       <>
+                         <img src={currentImage || editingItem?.image} alt="Preview" className="w-full h-full object-cover" />
+                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                           <span className="bg-white text-primary px-6 py-2 rounded-xl font-bold text-sm shadow-xl">Changer l'image</span>
+                           <button 
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCurrentImage('');
+                              if (editingItem) editingItem.image = '';
+                            }}
+                            className="bg-rose-500 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-xl hover:bg-rose-600 transition-colors"
+                           >
+                             Supprimer
+                           </button>
+                         </div>
+                       </>
+                     ) : (
+                       <div className="text-center p-10 text-primary/40 group-hover:text-primary/60 transition-colors">
+                         <div className="w-16 h-16 bg-primary/5 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <ImageIcon size={32} />
+                         </div>
+                         <p className="text-sm font-bold uppercase tracking-widest">Sélectionner une photo</p>
+                         <p className="text-[10px] mt-2 italic">Format carré ou paysage recommandé</p>
+                       </div>
+                     )}
+                     <input 
+                       type="file" 
+                       accept="image/*"
+                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                       onChange={(e) => {
+                         const file = e.target.files?.[0];
+                         if (file) {
+                           const reader = new FileReader();
+                           reader.onloadend = () => {
+                             setCurrentImage(reader.result as string);
+                           };
+                           reader.readAsDataURL(file);
+                         }
+                       }}
+                     />
+                  </div>
+                  <input type="hidden" name="image" value={currentImage || editingItem?.image || ''} />
                </div>
                <div className="space-y-2">
                  <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Statut</label>
@@ -5822,9 +5999,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
               </button>
             </div>
             <DataTable<Coupon> 
-              
               dateFilterKey="createdAt"
               data={sortByDate(COUPONS)}
+              onRowClick={handleEditCoupon}
+              onDelete={(item) => deleteCoupon(item.id!)}
               title="Coupons de Réduction"
               columns={[
                 { header: 'Code', accessor: 'code', className: 'font-mono font-bold text-primary', sortable: true },
@@ -5922,9 +6100,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
               </div>
             </div>
             <DataTable<City> 
-              
               dateFilterKey="createdAt"
               data={sortByDate(CITIES)}
+              onRowClick={handleEditCity}
+              onDelete={(item) => deleteCity(item.id!)}
               title="Liste des Villes"
               columns={[
                 { header: 'Nom', accessor: 'name', className: 'font-bold text-primary', sortable: true },
@@ -5982,10 +6161,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
               </button>
             </div>
             <DataTable<Role>
-              
               dateFilterKey="createdAt"
               data={sortByDate(localRoles)}
               onRowClick={(role) => { setEditingItem(role); setModalType('role'); }}
+              onDelete={(role) => useEntity('admin_role').deleteEntity(role.id)}
               title="Gestion des Rôles"
               columns={[
                 { header: 'Nom', accessor: 'name', className: 'font-bold', sortable: true },
@@ -6048,10 +6227,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
               />
             </div>
             <DataTable<UserType>
-              
               dateFilterKey="createdAt"
               data={sortByDate(localUsers.filter(u => u.role === 'customer'))}
               onRowClick={(user) => { setSelectedCustomer(user); setActiveTab('customer-detail'); }}
+              onDelete={(item) => deleteUser(item.id!)}
               title="Liste des Clients"
               columns={[
                 {
@@ -6600,10 +6779,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
               </button>
             </div>
             <DataTable<Pack>
-              
               dateFilterKey="createdAt"
               data={sortByDate(localPacks)}
               onRowClick={(p) => { setEditingItem(p); setModalType('pack'); }}
+              onDelete={(item) => deletePack(item.id!)}
               title="Packs"
               columns={[
                 { header: 'Nom', accessor: 'name', className: 'font-bold', sortable: true },
@@ -7037,9 +7216,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
               </button>
             </div>
             <DataTable<FAQ> 
-              
               dateFilterKey="createdAt"
               data={FAQS}
+              onRowClick={handleEditFAQ}
+              onDelete={(item) => handleDeleteFAQ(item.id!)}
               title="FAQ"
               columns={[
                 { header: 'Ordre', accessor: 'order', sortable: true },
@@ -7072,7 +7252,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
                 },
                 { header: 'Créé le', accessor: (item: any) => formatDate(item.createdAt || item.date || item.subscribedAt || item.sentAt || new Date().toISOString()), className: 'text-primary/60 text-sm', sortable: true }
               ]}
-              onRowClick={handleEditFAQ}
             />
             {isFAQEditorOpen && (
               <FAQEditor 
@@ -7203,160 +7382,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
                    </button>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
-
-        {(activeTab === 'product-create' || activeTab === 'product-edit') && (
-          <div className="space-y-6">
-             <div className="flex items-center gap-4 mb-6">
-               <button onClick={() => { setActiveTab('products'); setEditingItem(null); }} className="p-2 hover:bg-secondary/50 rounded-full transition-colors">
-                 <ArrowUpRight className="rotate-180" size={24} />
-               </button>
-               <h2 className="text-2xl font-serif font-bold">{activeTab === 'product-create' ? 'Créer un Produit' : 'Modifier le Produit'}</h2>
-            </div>
-            
-            <div className="bg-card p-8 rounded-[2rem] border border-primary/10 shadow-sm max-w-4xl mx-auto">
-              <form className="space-y-8" onSubmit={(e) => {
-                  handleFormSubmit(e).then(() => {
-                      setActiveTab('products');
-                      setEditingItem(null);
-                  });
-              }}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-6">
-                    <h4 className="font-serif font-bold text-lg border-b border-primary/10 pb-2">Informations Générales</h4>
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Nom du produit</label>
-                      <input 
-                        name="name"
-                        type="text" 
-                        className="input-field" 
-                        placeholder="Laine Mérinos..." 
-                        defaultValue={editingItem?.name}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Catégorie</label>
-                      <select name="category" className="input-field" defaultValue={editingItem?.category || localCategories[0]?.name}>
-                        {localCategories.map(c => (
-                          <option key={c.id} value={c.name}>{c.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Description</label>
-                      <textarea 
-                        name="description" 
-                        className="input-field h-32" 
-                        placeholder="Description détaillée..."
-                        defaultValue={editingItem?.description}
-                        required
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-6">
-                    <h4 className="font-serif font-bold text-lg border-b border-primary/10 pb-2">Prix & Stock</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Prix (FCFA)</label>
-                          <input 
-                            name="price"
-                            type="number" 
-                            className="input-field" 
-                            placeholder="5000" 
-                            defaultValue={editingItem?.price}
-                            required
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Prix Promo</label>
-                          <input 
-                            name="promoPrice"
-                            type="number" 
-                            className="input-field" 
-                            placeholder="Optionnel" 
-                            defaultValue={editingItem?.promoPrice}
-                          />
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Prix d'achat (Marge)</label>
-                      <input 
-                        name="purchasePrice"
-                        type="number" 
-                        className="input-field" 
-                        placeholder="Coût revient" 
-                        defaultValue={editingItem?.purchasePrice}
-                      />
-                    </div>
-                    <div className="space-y-2 bg-secondary/50 p-4 rounded-xl border border-primary/10">
-                      <label className="text-xs font-bold uppercase tracking-widest text-primary/60 flex items-center gap-2">
-                        <Package size={14} /> Stock Disponible
-                      </label>
-                      <input 
-                        name="stock"
-                        type="number" 
-                        className="input-field text-lg font-bold text-primary" 
-                        placeholder="0" 
-                        defaultValue={editingItem?.stock}
-                        required
-                      />
-                      <p className="text-[10px] text-primary/60 mt-1">Gérez votre stock directement ici.</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-6">
-                    <h4 className="font-serif font-bold text-lg border-b border-primary/10 pb-2">SEO & Médias</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                              <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Titre SEO</label>
-                              <input name="seoTitle" type="text" className="input-field" defaultValue={editingItem?.seo?.title} />
-                            </div>
-                            <div className="space-y-2">
-                              <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Description SEO</label>
-                              <textarea name="seoDescription" className="input-field" defaultValue={editingItem?.seo?.description} />
-                            </div>
-                        </div>
-                         <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Image URL</label>
-                            <input name="image" type="text" className="input-field" defaultValue={editingItem?.image} placeholder="https://..." />
-                            {editingItem?.image && (
-                                <div className="mt-4 rounded-xl overflow-hidden border border-primary/10 h-40 w-full">
-                                    <img src={editingItem.image} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {editingItem && (
-                  <div className="flex gap-4 text-xs text-primary/60 font-mono bg-secondary/50 p-4 rounded-xl mb-4 border border-primary/10">
-                    <div><span className="font-bold text-primary/60">Créé le:</span> {formatDate(editingItem.createdAt)}</div>
-                    <div><span className="font-bold text-primary/60">Modifié le:</span> {formatDate(editingItem.updatedAt)}</div>
-                  </div>
-                )}
-                <div className="flex gap-4 pt-6 border-t border-primary/10">
-                  <button 
-                    type="button" 
-                    onClick={() => setActiveTab('products')}
-                    className="flex-grow py-4 bg-secondary/50 text-primary/60 rounded-2xl font-bold hover:bg-secondary/70 transition-all"
-                  >
-                    Annuler
-                  </button>
-                  <button 
-                    type="submit" 
-                    disabled={isSaving}
-                    className="flex-grow py-4 bg-primary text-primary-foreground rounded-2xl font-bold hover:bg-accent transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {isSaving ? <Loader text="" /> : (activeTab === 'product-edit' ? 'Enregistrer les modifications' : 'Créer le Produit')}
-                  </button>
-                </div>
-              </form>
             </div>
           </div>
         )}

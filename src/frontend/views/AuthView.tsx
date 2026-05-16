@@ -102,7 +102,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
           uid: user.uid,
           name: data.name || user.displayName || 'Utilisateur',
           email: user.email,
-          role: 'customer',
+          role: user.email === 'landrymoutongo97@gmail.com' ? 'admin' : 'customer',
           points: 0,
           orders: 0,
           joinDate: new Date().toISOString().split('T')[0],
@@ -156,7 +156,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
           name: user.displayName || 'Utilisateur',
           email: user.email,
           profileImage: user.photoURL || null,
-          role: 'customer',
+          role: user.email === 'landrymoutongo97@gmail.com' ? 'admin' : 'customer',
           points: 0,
           orders: 0,
           joinDate: new Date().toISOString().split('T')[0],
@@ -165,14 +165,19 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
           createdAt: serverTimestamp()
         });
       } else {
-        // Update photo if changed or missing
+        // Update photo if changed or missing, and ensure admin role for this specific user
         const existingData = userSnap.data();
+        let updates: any = {};
         if (user.photoURL && existingData?.profileImage !== user.photoURL) {
+          updates.profileImage = user.photoURL;
+        }
+        if (user.email === 'landrymoutongo97@gmail.com' && existingData?.role !== 'admin') {
+          updates.role = 'admin';
+        }
+        if (Object.keys(updates).length > 0) {
           const { updateDoc } = await import('firebase/firestore');
-          await updateDoc(userDocRef, { 
-            profileImage: user.photoURL,
-            updatedAt: serverTimestamp()
-          });
+          updates.updatedAt = serverTimestamp();
+          await updateDoc(userDocRef, updates);
         }
       }
 

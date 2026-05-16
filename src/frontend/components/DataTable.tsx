@@ -10,7 +10,8 @@ import {
   ChevronRight,
   FileText,
   FileSpreadsheet,
-  Calendar
+  Calendar,
+  Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Button } from './ui/Button';
@@ -33,6 +34,7 @@ interface DataTableProps<T> {
   columns: Column<T>[];
   title?: string;
   onRowClick?: (item: T) => void;
+  onDelete?: (item: T) => void;
   defaultItemsPerPage?: number;
   searchable?: boolean;
   defaultSort?: { key: string; direction: 'asc' | 'desc' } | null;
@@ -48,6 +50,7 @@ export function DataTable<T extends { id?: string | number }>({
   columns,
   title,
   onRowClick,
+  onDelete,
   defaultItemsPerPage = 5,
   searchable = true,
   defaultSort = null,
@@ -362,6 +365,7 @@ export function DataTable<T extends { id?: string | number }>({
                   </div>
                 </th>
               ))}
+              {onDelete && <th className="px-6 py-5 text-right text-[11px] font-bold uppercase tracking-[0.1em] text-primary/70 pr-8 border-b border-primary/5">Actions</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-primary/5">
@@ -393,12 +397,29 @@ export function DataTable<T extends { id?: string | number }>({
                         : (item[col.accessor] as any)}
                     </td>
                   ))}
+                  {onDelete && (
+                    <td className="px-6 py-5 text-right pr-8">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm('Voulez-vous vraiment supprimer cet élément ?')) {
+                            onDelete(item);
+                          }
+                        }}
+                        className="rounded-xl p-2 text-red-500 hover:text-red-600 hover:bg-red-50 border-red-100"
+                      >
+                        <Trash2 size={18} />
+                      </Button>
+                    </td>
+                  )}
                 </motion.tr>
               ))}
             </AnimatePresence>
             {paginatedData.length === 0 && (
               <tr>
-                <td colSpan={columns.length} className="px-8 py-32 text-center">
+                <td colSpan={columns.length + (onDelete ? 1 : 0)} className="px-8 py-32 text-center">
                   <div className="flex flex-col items-center gap-4 opacity-30">
                     <Filter size={64} />
                     <p className="font-serif text-2xl text-primary">Aucune donnée trouvée</p>
