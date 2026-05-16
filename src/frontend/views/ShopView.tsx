@@ -291,8 +291,8 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const materials = Array.from(new Set(PRODUCTS.map(p => p.material).filter(Boolean))) as string[];
-  const brands = Array.from(new Set(PRODUCTS.map(p => p.brand).filter(Boolean))) as string[];
+  const materials = Array.from(new Set(PRODUCTS.map(p => p.material).filter((m): m is string => !!m)));
+  const brands = Array.from(new Set(PRODUCTS.map(p => p.brand).filter((m): m is string => !!m)));
 
   const [isVoiceSearching, setIsVoiceSearching] = useState(false);
 
