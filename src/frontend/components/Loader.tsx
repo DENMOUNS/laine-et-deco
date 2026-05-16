@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { createPortal } from 'react-dom';
+import { Scissors } from 'lucide-react';
 
 interface LoaderProps {
   fullScreen?: boolean;
@@ -26,6 +27,9 @@ export const Loader: React.FC<LoaderProps> = ({ fullScreen = false, text = "Veui
            transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
            className="absolute inset-2 w-12 h-12 border-4 border-transparent border-b-accent rounded-full"
          />
+         <div className="absolute inset-0 flex items-center justify-center">
+            <Scissors className="h-6 w-6 text-primary" />
+         </div>
       </div>
       {text && <p className="text-primary font-bold tracking-widest uppercase text-sm animate-pulse">{text}</p>}
     </div>
