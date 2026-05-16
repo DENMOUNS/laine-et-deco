@@ -57,7 +57,7 @@ export const PortfolioDoleresView: React.FC<PortfolioDoleresViewProps> = ({ onNa
       <div className="min-h-screen flex items-center justify-center bg-stone-50 text-stone-900">
         <div className="text-center p-8">
           <h2 className="text-2xl font-serif mb-4">Oups, ce contenu est en préparation !</h2>
-          <p>Revenez bientôt pour découvrir le portfolio de Doleres.</p>
+          <p>Revenez bientôt pour découvrir le portfolio Laine et Déco.</p>
         </div>
       </div>
     );

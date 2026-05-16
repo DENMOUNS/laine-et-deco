@@ -724,10 +724,10 @@ export const SITE_CONFIG: SiteConfig = {
     { iconName: "Heart", title: "Fait avec Amour", description: "Sélection artisanale" },
   ],
   seo: {
-    home: { title: 'Laine et Déco - Concept Store', description: 'Découvrez notre sélection variée créations et de produits premium.' },
-    shop: { title: 'Boutique - Laine et Déco', description: 'Explorez notre catalogue complet.' },
-    contact: { title: 'Contactez-nous - Laine et Déco', description: 'Une question ? Notre équipe est à votre écoute.' },
-    about: { title: 'À Propos - Laine et Déco', description: 'L\'histoire de notre boutique.' }
+    home: { title: 'Laine et Déco - Boutique Artisanale', description: 'Découvrez notre sélection variée, laines de qualité et objets de décoration artisanaux.' },
+    shop: { title: 'Boutique Laine et Déco | Artisanat & Déco', description: 'Explorez notre catalogue de laines, kits et objets de décoration faits main.' },
+    contact: { title: 'Contactez Laine et Déco', description: 'Une question ? Notre équipe d\'artisans est à votre écoute.' },
+    about: { title: 'L\'aventure Laine et Déco', description: 'Découvrez l\'histoire et le savoir-faire de la boutique Laine et Déco.' }
   },
   hero: {
     title: 'Créez une atmosphère chic et authentique',
@@ -911,7 +911,7 @@ export const INITIAL_PORTFOLIOS: any[] = [
     id: 'doleres',
     profileType: 'manager',
     memberId: 'doleres',
-    name: 'Doleres',
+    name: 'Laine et Deco',
     role: 'Gestionnaire de Projet & Créatrice',
     bio: 'Experte en gestion de projet avec une touche créative. Je m\'assure que chaque projet Laine & Déco est une réussite.',
     avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=400',
