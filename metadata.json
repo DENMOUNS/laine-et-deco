@@ -1,6 +1,6 @@
 {
-  "name": "doleres-tricot",
-  "description": "Application waiting for user to upload a ZIP file for processing.",
+  "name": "Laine et Deco",
+  "description": "Laine & Déco - Artisanat, Tricot et Décoration. Découvrez nos produits faits main.",
   "requestFramePermissions": [
     "geolocation",
     "microphone"
