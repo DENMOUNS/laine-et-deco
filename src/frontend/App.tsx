@@ -4,6 +4,7 @@ import { MainContent } from './components/MainContent';
 import { InstallBanner } from './components/InstallBanner';
 import { ChatBubble } from './components/ChatBubble';
 import { useAppLogic } from './hooks/useAppLogic';
+import { useVisitorCounter } from './hooks/useVisitorCounter';
 import { Toaster } from 'sonner';
 import { QRLandingView } from './views/QRLandingView';
 
@@ -13,6 +14,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 
 export function App() {
   const appLogic = useAppLogic();
+  useVisitorCounter();
 
   if (appLogic.currentView === 'qr-landing') {
     return (

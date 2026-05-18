@@ -1,113 +1,372 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // --- Global Helpers ---
-    function isSignedIn() {
+
+    // ==========================================
+    // HELPERS DE BASE
+    // ==========================================
+    function isAuthenticated() {
       return request.auth != null;
     }
 
-    function isSuperAdmin() {
-      return isSignedIn() && (
-        request.auth.uid == 'lmFy8saTupTa8Lmk0oOGSxfPgc13' ||
-        (('email' in request.auth.token) && request.auth.token.email == 'landrymoutongo97@gmail.com')
-      );
+    function currentUserDoc() {
+      return get(/databases/$(database)/documents/user/$(request.auth.uid)).data;
     }
 
-    function isAdmin() {
-      return isSuperAdmin() || (
-        isSignedIn() &&
+    function hasRole(role) {
+      return isAuthenticated() &&
         exists(/databases/$(database)/documents/user/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/user/$(request.auth.uid)).data.role in ['admin', 'super-admin', 'editor', 'support-client', 'stock-manager']
-      ); 
+        currentUserDoc().get('role', '') == role;
     }
 
     // ==========================================
-    // ADMINS CAN DO ANYTHING, ANYWHERE
+    // FONCTIONS DE RÔLE
     // ==========================================
-    match /{document=**} {
-      allow read, write: if isAdmin();
+
+    // Peut tout faire, tout voir, tout créer, modifier, supprimer, gérer les users
+    function isSuperAdmin() {
+      return hasRole('super-admin');
     }
 
-    // ==========================================
-    // PUBLIC READABLE COLLECTIONS
-    // ==========================================
-    match /product/{docId} { allow read: if true; }
-    match /category/{docId} { allow read: if true; }
-    match /site_config/{docId} { allow read: if true; }
-    match /nav_item/{docId} { allow read: if true; }
-    match /faq/{docId} { allow read: if true; }
-    match /city/{docId} { allow read: if true; }
-    match /promo_event/{docId} { allow read: if true; }
-    match /blog_post/{docId} { allow read: if true; }
-    match /lookbook_post/{docId} { allow read: if true; }
-    match /currency/{docId} { allow read: if true; }
-    match /badge/{docId} { allow read: if true; }
-    match /pack/{docId} { allow read: if true; }
-    match /catalog_price_rule/{docId} { allow read: if true; }
-    match /settings/{docId} { allow read: if true; }
-    match /member_portfolio/{docId} { allow read: if true; }
+    // Peut tout faire SAUF créer/supprimer des users
+    function isAdmin() {
+      return hasRole('admin');
+    }
 
-    match /coupon/{docId} { 
-      allow read: if true; 
-      allow update: if (
-        // Allow anyone to increment usageCount during checkout
+    // Peut gérer les contenus éditoriaux (blog, lookbook, promo, catégories, produits)
+    function isEditor() {
+      return hasRole('editor');
+    }
+
+    // Peut gérer les stocks, produits, packs, villes, livraisons
+    function isStockManager() {
+      return hasRole('stock-manager');
+    }
+
+    // Peut lire et répondre aux tickets, conversations, messages clients
+    function isSupportClient() {
+      return hasRole('support-client');
+    }
+
+    // Résout le rôle d'un user authentifié — retourne false si le rôle est inconnu/invalide
+    function hasKnownRole() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/user/$(request.auth.uid)) &&
+        currentUserDoc().get('role', '') in [
+          'super-admin', 'admin', 'editor', 'stock-manager', 'support-client', 'customer'
+        ];
+    }
+
+    // Raccourci : est un membre du staff (n'importe quel rôle admin)
+    function isStaff() {
+      return isSuperAdmin() || isAdmin() || isEditor() || isStockManager() || isSupportClient();
+    }
+
+
+    // ==========================================
+    // COLLECTIONS PUBLIQUES (lecture libre)
+    // ==========================================
+    match /product/{docId} {
+      allow read: if true;
+      allow create, update: if isSuperAdmin() || isAdmin() || isEditor() || isStockManager();
+      allow delete: if isSuperAdmin() || isAdmin();
+    }
+
+    match /category/{docId} {
+      allow read: if true;
+      allow create, update: if isSuperAdmin() || isAdmin() || isEditor() || isStockManager();
+      allow delete: if isSuperAdmin() || isAdmin();
+    }
+
+    match /pack/{docId} {
+      allow read: if true;
+      allow create, update: if isSuperAdmin() || isAdmin() || isStockManager();
+      allow delete: if isSuperAdmin() || isAdmin();
+    }
+
+    match /blog_post/{docId} {
+      allow read: if true;
+      allow create, update: if isSuperAdmin() || isAdmin() || isEditor();
+      allow delete: if isSuperAdmin() || isAdmin();
+    }
+
+    match /lookbook_post/{docId} {
+      allow read: if true;
+      allow create, update: if isSuperAdmin() || isAdmin() || isEditor();
+      allow delete: if isSuperAdmin() || isAdmin();
+    }
+
+    match /promo_event/{docId} {
+      allow read: if true;
+      allow create, update: if isSuperAdmin() || isAdmin() || isEditor();
+      allow delete: if isSuperAdmin() || isAdmin();
+    }
+
+    match /faq/{docId} {
+      allow read: if true;
+      allow create, update: if isSuperAdmin() || isAdmin() || isEditor();
+      allow delete: if isSuperAdmin() || isAdmin();
+    }
+
+    match /nav_item/{docId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || isAdmin();
+    }
+
+    match /site_config/{docId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || isAdmin();
+    }
+
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || isAdmin();
+    }
+
+    match /currency/{docId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || isAdmin();
+    }
+
+    match /badge/{docId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || isAdmin();
+    }
+
+    match /catalog_price_rule/{docId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || isAdmin() || isStockManager();
+    }
+
+    match /member_portfolio/{docId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || isAdmin() || isEditor();
+    }
+
+    match /city/{docId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || isAdmin() || isStockManager();
+    }
+
+
+    // ==========================================
+    // ANALYTICS (écriture publique pour tracking frontend)
+    // ==========================================
+    match /analytics/{docId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+
+    // ==========================================
+    // COUPONS
+    // ==========================================
+    match /coupon/{docId} {
+      allow read: if isAuthenticated();
+      allow create, delete: if isSuperAdmin() || isAdmin();
+      allow update: if isSuperAdmin() || isAdmin() || (
+        // Checkout : incrément usageCount uniquement
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usageCount', 'updatedAt']) &&
         request.resource.data.usageCount == resource.data.usageCount + 1
       );
     }
 
-    match /review/{docId} { 
-      allow read: if true; 
-      allow create: if isSignedIn(); 
+
+    // ==========================================
+    // REVIEWS
+    // ==========================================
+    match /review/{docId} {
+      allow read: if true;
+      allow create: if isAuthenticated();
+      allow update, delete: if isSuperAdmin() || isAdmin() || isEditor();
     }
 
+
+    // ==========================================
+    // COMMUNITY POSTS
+    // ==========================================
     match /community_post/{docId} {
       allow read: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isSuperAdmin() || isAdmin() ||
+        (isAuthenticated() && resource.data.userId == request.auth.uid);
     }
 
+
     // ==========================================
-    // USER-OWNED COLLECTIONS (Clients can manage their own data)
+    // USERS
+    // super-admin : tout
+    // admin : read + update SAUF create/delete
+    // user : ses propres données SAUF changer son role
     // ==========================================
     match /user/{userId} {
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
+      allow read: if isSuperAdmin() || isAdmin() || isSupportClient() ||
+        (isAuthenticated() && request.auth.uid == userId);
+
+      allow create: if isSuperAdmin() ||
+        // Auto-création à l'inscription (role forcé à 'customer')
+        (isAuthenticated() && request.auth.uid == userId &&
+          request.resource.data.get('role', 'customer') == 'customer');
+
+      allow update: if isSuperAdmin() ||
+        (isAdmin() && request.resource.data.get('role', '') == resource.data.get('role', '')) ||
+        // Le user peut se mettre à jour mais ne peut PAS changer son role
+        (isAuthenticated() && request.auth.uid == userId &&
+          request.resource.data.get('role', '') == resource.data.get('role', ''));
+
+      allow delete: if isSuperAdmin();
     }
-    
+
+
+    // ==========================================
+    // COMMANDES
+    // ==========================================
     match /order/{docId} {
-      allow read, update: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow read: if isSuperAdmin() || isAdmin() || isStockManager() || isSupportClient() ||
+        (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSuperAdmin() || isAdmin() || isStockManager();
+      allow delete: if isSuperAdmin();
     }
 
-    match /custom_pack/{docId} {
-      allow read, update: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+
+    // ==========================================
+    // DONNÉES FINANCIÈRES (super-admin + admin seulement)
+    // ==========================================
+    match /expense/{docId} {
+      allow read, write: if isSuperAdmin() || isAdmin();
     }
 
+    match /sales_data/{docId} {
+      allow read, write: if isSuperAdmin() || isAdmin();
+    }
+
+    match /invoice/{docId} {
+      allow read: if isSuperAdmin() || isAdmin() ||
+        (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create, update: if isSuperAdmin() || isAdmin();
+      allow delete: if isSuperAdmin();
+    }
+
+
+    // ==========================================
+    // LOGS (lecture staff, écriture système libre)
+    // ==========================================
+    match /log/{docId} {
+      allow read: if isSuperAdmin() || isAdmin();
+      allow create: if true; // système/frontend peut logger
+      allow update, delete: if isSuperAdmin();
+    }
+
+    match /login_log/{docId} {
+      allow read: if isSuperAdmin() || isAdmin() ||
+        (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if true;
+      allow update, delete: if isSuperAdmin();
+    }
+
+    match /request_log/{docId} {
+      allow read: if isSuperAdmin() || isAdmin();
+      allow create: if true;
+      allow update, delete: if isSuperAdmin();
+    }
+
+
+    // ==========================================
+    // SUPPORT CLIENT : tickets, messages, conversations
+    // ==========================================
     match /ticket/{docId} {
-      allow read, update: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow read: if isSuperAdmin() || isAdmin() || isSupportClient() ||
+        (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSuperAdmin() || isAdmin() || isSupportClient() ||
+        (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow delete: if isSuperAdmin();
     }
 
-    match /wishlist/{docId} {
-      allow read, update: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-    }
-    
     match /message/{docId} {
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow read: if isSuperAdmin() || isAdmin() || isSupportClient() ||
+        (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isSuperAdmin() || isAdmin() || isSupportClient();
     }
 
     match /chat_message/{docId} {
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow read: if isSuperAdmin() || isAdmin() || isSupportClient() ||
+        (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isSuperAdmin() || isAdmin() || isSupportClient();
     }
 
     match /conversation/{docId} {
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create, update: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow read: if isSuperAdmin() || isAdmin() || isSupportClient() ||
+        (isAuthenticated() && resource.data.customerId == request.auth.uid);
+      allow create: if isAuthenticated() && request.resource.data.customerId == request.auth.uid;
+      allow update: if isSuperAdmin() || isAdmin() || isSupportClient() ||
+        (isAuthenticated() && resource.data.customerId == request.auth.uid);
+      allow delete: if isSuperAdmin();
+    }
+
+    match /notification/{docId} {
+      allow read: if isSuperAdmin() || isAdmin() ||
+        (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create, update: if isSuperAdmin() || isAdmin() || isSupportClient();
+      allow delete: if isSuperAdmin();
+    }
+
+
+    // ==========================================
+    // DONNÉES UTILISATEUR PERSONNELLES
+    // ==========================================
+    match /wishlist/{docId} {
+      allow read, update: if isSuperAdmin() || isAdmin() ||
+        (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isSuperAdmin() || isAdmin() ||
+        (isAuthenticated() && resource.data.userId == request.auth.uid);
+    }
+
+    match /custom_pack/{docId} {
+      allow read, update: if isSuperAdmin() || isAdmin() || isStockManager() ||
+        (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isSuperAdmin() || isAdmin();
+    }
+
+    match /rma/{docId} {
+      allow read: if isSuperAdmin() || isAdmin() || isStockManager() || isSupportClient() ||
+        (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSuperAdmin() || isAdmin() || isStockManager();
+      allow delete: if isSuperAdmin();
+    }
+
+    match /knitting_project/{docId} {
+      allow read: if isSuperAdmin() || isAdmin() ||
+        (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isSuperAdmin() || isAdmin() ||
+        (isAuthenticated() && resource.data.userId == request.auth.uid);
+    }
+
+    match /user_profile/{docId} {
+      allow read: if isSuperAdmin() || isAdmin() ||
+        (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSuperAdmin() || isAdmin() ||
+        (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow delete: if isSuperAdmin();
+    }
+
+    match /log/{docId} {
+      allow create: if true;
+    }
+
+    // ==========================================
+    // CATCH-ALL : deny par défaut, sauf super-admin
+    // ==========================================
+    match /{document=**} {
+      allow read, write: if isSuperAdmin();
     }
   }
 }

@@ -1,9 +1,0 @@
-{
-  "name": "ATELIER DOLERES",
-  "description": "Boutique en ligne d'artisanat et de décoration d'intérieur au Cameroun.",
-  "requestFramePermissions": [
-    "geolocation",
-    "microphone"
-  ],
-  "majorCapabilities": []
-}

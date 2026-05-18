@@ -34,7 +34,8 @@ export const seedFirebase = async () => {
     { name: 'city', data: constants.INITIAL_CITIES },
     { name: 'nav_item', data: constants.NAV_ITEMS },
     { name: 'member_portfolio', data: constants.INITIAL_PORTFOLIOS },
-    { name: 'admin_role', data: constants.ADMIN_ROLES }
+    { name: 'admin_role', data: constants.ADMIN_ROLES },
+    { name: 'analytics', data: constants.ANALYTICS }
   ];
 
   for (const col of collectionsToSeed) {

@@ -86,6 +86,10 @@ export const FAQ_ITEMS: FAQ[] = [
   }
 ];
 
+export const ANALYTICS = [
+  { id: 'visitors', count: 1250 }
+];
+
 export const PRODUCTS: Product[] = [
   {
     id: 'p-tech1',
@@ -457,10 +461,11 @@ export const ORDERS: Order[] = [
 ];
 
 export const USERS: User[] = [
-  { id: 'u1', name: 'Landry M.', email: 'landrymoutongo97@gmail.com', role: 'admin', joinDate: '2023-01-15', orders: 5, status: 'active', points: 10000, loyaltyTier: 'Platinum' },
-  { id: 'u2', name: 'Marie T.', email: 'marie@test.fr', role: 'customer', joinDate: '2023-05-20', orders: 2, status: 'active', points: 450, loyaltyTier: 'Bronze' },
-  { id: 'u3', name: 'Jean K.', email: 'jean@gmail.com', role: 'customer', joinDate: '2023-11-02', orders: 0, status: 'inactive', points: 0, loyaltyTier: 'Bronze' },
-  { id: 'u4', name: 'Paul Martin', email: 'paul@martin.com', role: 'customer', joinDate: '2024-01-10', orders: 1, status: 'active', points: 150, loyaltyTier: 'Bronze' }
+  { id: 'u1', name: 'Landry M.', email: 'landrymoutongo97@gmail.com', role: 'super-admin', joinDate: '2023-01-15', orders: 5, status: 'active', points: 10000, loyaltyTier: 'Platinum' },
+  { id: 'u2', name: 'Marie T.', email: 'marie@test.fr', role: 'editor', joinDate: '2023-05-20', orders: 2, status: 'active', points: 450, loyaltyTier: 'Bronze' },
+  { id: 'u3', name: 'Jean K.', email: 'jean@gmail.com', role: 'stock-manager', joinDate: '2023-11-02', orders: 0, status: 'inactive', points: 0, loyaltyTier: 'Bronze' },
+  { id: 'u4', name: 'Paul Martin', email: 'paul@martin.com', role: 'support-client', joinDate: '2024-01-10', orders: 1, status: 'active', points: 150, loyaltyTier: 'Bronze' },
+  { id: 'u5', name: 'Alice Client', email: 'alice@client.com', role: 'customer', joinDate: '2024-02-10', orders: 3, status: 'active', points: 300, loyaltyTier: 'Silver' }
 ];
 
 export const LOGIN_LOGS: LoginLog[] = [
@@ -770,6 +775,7 @@ export const COUPONS: Coupon[] = [
 
 export const ADMIN_ROLES: AdminRole[] = [
   { id: 'super-admin', slug: 'super-admin', name: 'Super Admin', permissions: ['all'], description: 'Contrôle total du système', status: 'active' },
+  { id: 'admin', slug: 'admin', name: 'Administrateur', permissions: ['dashboard.view', 'orders.view', 'products.view', 'categories.view', 'users.view', 'marketing.view', 'finance.view', 'content.view', 'reports.view', 'system.view'], description: 'Gestion complète sauf privilèges super-admin (création users, logs)', status: 'active' },
   { id: 'stock-manager', slug: 'stock-manager', name: 'Gestionnaire Stock', permissions: ['dashboard.view', 'products.view', 'products.edit', 'stock.view'], description: 'Gestion des produits et du stock', status: 'active' },
   { id: 'editor', slug: 'editor', name: 'Editeur', permissions: ['dashboard.view', 'blog.view', 'blog.edit', 'lookbook.view', 'lookbook.edit'], description: 'Gestion du contenu éditorial (Blog, Lookbook)', status: 'active' },
   { id: 'support-client', slug: 'support-client', name: 'Support Client', permissions: ['dashboard.view', 'messages.view', 'messages.reply', 'orders.view'], description: 'Gestion des commandes, des retours et de la messagerie.', status: 'active' },

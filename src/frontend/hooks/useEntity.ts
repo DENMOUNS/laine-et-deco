@@ -34,7 +34,8 @@ const PUBLIC_COLLECTIONS = [
   'member_portfolio',
   'coupon',
   'nav_item',
-  'faq'
+  'faq',
+  'analytics'
 ];
 
 interface UseEntityOptions {

@@ -200,6 +200,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
   const { data: REQUEST_LOGS, deleteEntity: deleteRequestLog } = useEntity<any>('request_log', INITIAL_REQUEST_LOGS);
   const { data: NOTIFICATIONS, deleteEntity: deleteNotification } = useEntity<any>('notification', INITIAL_NOTIFICATIONS);
   const { data: SALES_DATA } = useEntity<any>('sales_data', INITIAL_SALES_DATA);
+  const { data: ANALYTICS } = useEntity<any>('analytics', [{ id: 'visitors', count: 0 }]);
   const { data: siteConfigs, updateEntity: updateSiteConfig, deleteEntity: deleteSiteConfig } = useEntity<any>('site_config', [INITIAL_SITE_CONFIG]);
   const rawSiteConfig = siteConfigs[0] || propSiteConfig || INITIAL_SITE_CONFIG;
   const siteConfig = {
@@ -442,8 +443,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
         setIsSaving(false);
       }
     };
-    if (user && user.email === 'landrymoutongo97@gmail.com') {
-      autoSeed();
+    if (user) {
+      const currentUserDoc = USERS.find(u => u.id === user.uid);
+      if (currentUserDoc?.role === 'super-admin') {
+        autoSeed();
+      }
     }
   }, [user]);
 
@@ -1154,33 +1158,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
   const totalSales = ORDERS.reduce((sum, o) => sum + (o.total || 0), 0);
   const totalOrdersCount = ORDERS.length;
   const totalCustomers = localUsers.length;
+  const totalVisitors = ANALYTICS.find(a => a.id === 'visitors')?.count || 0;
   const averageOrderValue = totalOrdersCount > 0 ? Math.round(totalSales / totalOrdersCount) : 0;
 
   const stats = [
     { label: 'Ventes Totales', value: `${totalSales.toLocaleString('fr-FR')} FCFA`, change: '+12.5%', isUp: true, icon: <TrendingUp size={20} /> },
     { label: 'Commandes', value: totalOrdersCount.toString(), change: '+5.2%', isUp: true, icon: <ShoppingBag size={20} /> },
-    { label: 'Nouveaux Clients', value: totalCustomers.toString(), change: '+2.4%', isUp: true, icon: <Users size={20} /> },
+    { label: 'Visiteurs Unique', value: totalVisitors.toLocaleString('fr-FR'), change: '+18.4%', isUp: true, icon: <Users size={20} /> },
     { label: 'Panier Moyen', value: `${averageOrderValue.toLocaleString('fr-FR')} FCFA`, change: '+8.1%', isUp: true, icon: <BarChart3 size={20} /> },
   ];
 
   const menuItems = getAdminMenuItems();
 
-  const isAdminEmail = user?.email === 'landrymoutongo97@gmail.com';
   const currentUserDoc = USERS.find(u => u.id === user?.uid);
-  const userRoleSlug = isAdminEmail ? 'admin' : (currentUserDoc?.role || 'customer');
+  const userRoleSlug = currentUserDoc?.role || 'customer';
   
-  // Le rôle "admin" est considéré comme un super-administrateur par défaut s'il n'est pas trouvé dans les rôles configurés
   const roleData = localRoles.find((r: any) => 
-    (r.slug || r.id) === userRoleSlug || 
-    (userRoleSlug === 'admin' && (r.slug === 'super-admin' || r.id === 'super-admin'))
+    (r.slug || r.id) === userRoleSlug
   );
   
-  const permissions = roleData?.permissions || (userRoleSlug === 'admin' ? ['all'] : []);
-  const isSuperAdmin = permissions.includes('all') || userRoleSlug === 'admin';
+  const permissions = roleData?.permissions || [];
+  const isSuperAdmin = userRoleSlug === 'super-admin' || permissions.includes('all');
 
   const hasPermission = (permission?: string) => {
     if (isSuperAdmin) return true;
     if (!permission) return true;
+    if (permission === 'super-admin') return isSuperAdmin;
     return permissions.includes(permission);
   };
 
@@ -6394,12 +6397,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
                   onChange={setCustomerFilter}
                   className="mb-0"
                 />
-                <button 
-                  onClick={() => { setModalType('user'); setIsAddModalOpen(true); }}
-                  className="bg-primary text-primary-foreground px-4 py-2 rounded-xl font-bold hover:bg-primary/90 transition-all text-sm h-[40px]"
-                >
-                  + Ajouter Utilisateur
-                </button>
+                {isSuperAdmin && (
+                  <button 
+                    onClick={() => { setModalType('user'); setIsAddModalOpen(true); }}
+                    className="bg-primary text-primary-foreground px-4 py-2 rounded-xl font-bold hover:bg-primary/90 transition-all text-sm h-[40px]"
+                  >
+                    + Ajouter Utilisateur
+                  </button>
+                )}
               </div>
             </div>
             <DataTable<UserType>

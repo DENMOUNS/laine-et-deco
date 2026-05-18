@@ -370,6 +370,14 @@ export const useAppLogic = () => {
     navigate(`/product/${product.id}`);
   };
 
+  const { data: USERS } = useEntity<any>('user', []);
+  const currentUserDoc = useMemo(() => {
+    if (!user) return null;
+    return USERS.find(u => u.id === user.uid || u.email === user.email);
+  }, [USERS, user]);
+
+  const userRole = currentUserDoc?.role || 'customer';
+
   return {
     showInstallBanner,
     setShowInstallBanner,
@@ -402,6 +410,7 @@ export const useAppLogic = () => {
     setWishlist,
     setComparisonList,
     user,
+    userRole,
     isAuthLoading
   };
 };

@@ -1,176 +1,309 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { db, auth } from '../firebaseAdmin';
 
 const router = Router();
 
-// Middleware to verify Firebase Auth Token
-const verifyToken = async (req: any, res: any, next: any) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized: Missing or invalid token' });
-  }
+type UserRole =
+  | 'super-admin'
+  | 'admin'
+  | 'editor'
+  | 'stock-manager'
+  | 'support-client'
+  | 'customer';
 
-  const token = authHeader.split('Bearer ')[1];
-  
-  if (!auth) {
-    // If Firebase Admin is not initialized, we mock authentication for development
-    console.warn('Simulating auth verification because Firebase Admin is not initialized.');
-    req.user = { uid: 'mock-user-id', email: 'mock@example.com' };
-    return next();
-  }
+interface AuthenticatedRequest extends Request {
+  user?: {
+    uid: string;
+    email?: string;
+    role?: UserRole | null;
+  };
+}
 
+const STAFF_READ_COLLECTIONS = [
+  'product',
+  'category',
+  'order',
+  'user',
+  'knitting_tool',
+  'lookbook',
+  'blog_post',
+];
+
+const OWNER_COLLECTIONS = [
+  'order',
+  'review',
+  'community_post',
+  'conversation',
+  'chat_message',
+  'wishlist',
+  'rma',
+];
+
+// ==========================
+// ROLE
+// ==========================
+
+async function getUserRole(uid: string): Promise<UserRole | null> {
+  if (!db) return null;
+
+  const userSnap = await db.collection('user').doc(uid).get();
+  if (!userSnap.exists) return null;
+
+  const role = userSnap.data()?.role;
+  if (!role) return null;
+
+  const roleSnap = await db.collection('role').doc(role).get();
+  if (!roleSnap.exists) return null;
+
+  return role;
+}
+
+const isSuperAdmin = (r: UserRole | null) => r === 'super-admin';
+const isAdmin = (r: UserRole | null) => r === 'admin';
+const isEditor = (r: UserRole | null) => r === 'editor';
+const isStockManager = (r: UserRole | null) => r === 'stock-manager';
+const isSupport = (r: UserRole | null) => r === 'support-client';
+
+const isAdminLevel = (r: UserRole | null) =>
+  isSuperAdmin(r) || isAdmin(r);
+
+// ==========================
+// AUTH
+// ==========================
+
+const verifyToken = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    if (token === 'anonymous') {
-      req.user = { uid: 'anonymous' };
-      return next();
+    const bearer = req.headers.authorization;
+
+    if (!bearer?.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Unauthorized' });
     }
-    const decodedToken = await auth.verifyIdToken(token);
-    req.user = decodedToken;
+
+    const token = bearer.replace('Bearer ', '');
+
+    const decoded = await auth.verifyIdToken(token);
+    req.user = decoded as any;
+
     next();
-  } catch (error) {
-    console.error('Error verifying token:', error);
-    return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+  } catch {
+    return res.status(401).json({ error: 'Unauthorized' });
   }
 };
 
-// Generic validation function
-const validateEntity = (entityType: string, data: any, user: any) => {
-  // Enforce authentication for specific entities
-  const requiresAuth = ['review', 'community_post', 'user_profile', 'rma'];
-  if (requiresAuth.includes(entityType) && user.uid === 'anonymous') {
-    throw new Error('Authentication required for this entity');
-  }
-
-  // Add specific validation rules per entity
-  switch (entityType) {
-    case 'review':
-      if (!data.comment || data.comment.length > 1000) throw new Error('Invalid comment length');
-      if (data.rating < 1 || data.rating > 5) throw new Error('Invalid rating');
-      data.userId = user.uid; // Force the userId to be the authenticated user
-      break;
-    case 'community_post':
-      if (!data.content || data.content.length > 2000) throw new Error('Invalid content length');
-      data.userId = user.uid;
-      break;
-    case 'order':
-      if (data.total < 0) throw new Error('Invalid total amount');
-      data.userId = user.uid;
-      break;
-    case 'rma':
-      if (!data.reason || data.reason.length > 1000) throw new Error('Invalid reason length');
-      data.userId = user.uid;
-      break;
-    case 'chat_message':
-      if (!data.text || data.text.length > 1000) throw new Error('Invalid message length');
-      if (data.senderId !== 'ai') {
-        data.senderId = user.uid;
-      }
-      break;
-    case 'user_profile':
-      data.userId = user.uid;
-      break;
-    default:
-      // For admin-only entities, we might want to check if the user is an admin here
-      // But for now, we just pass the data through if it's not explicitly validated
-      break;
-  }
-  
-  return data;
+const resolveRole = async (
+  req: AuthenticatedRequest,
+  _: Response,
+  next: NextFunction
+) => {
+  req.user!.role = await getUserRole(req.user!.uid);
+  next();
 };
 
-// CREATE Entity
-router.post('/:entityType', verifyToken, async (req: any, res: any) => {
-  const { entityType } = req.params;
-  
-  try {
-    const validatedData = validateEntity(entityType, req.body, req.user);
-    const dataToSave = {
-      ...validatedData,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+// ==========================
+// CREATE
+// ==========================
 
-    if (!db) {
-      console.log(`[MOCK] Created ${entityType}:`, dataToSave);
-      return res.status(201).json({ id: `mock-id-${Date.now()}`, message: 'Simulated creation successful' });
+router.post('/:entity', verifyToken, resolveRole, async (req: any, res) => {
+  const { entity } = req.params;
+  const role = req.user.role;
+  const uid = req.user.uid;
+
+  try {
+    // admin + super-admin
+    if (isAdminLevel(role)) {
+      const ref = await db.collection(entity).add({
+        ...req.body,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      return res.status(201).json({ id: ref.id });
     }
 
-    const docRef = await db.collection(entityType).add(dataToSave);
-    res.status(201).json({ id: docRef.id, message: 'Entity created successfully' });
-  } catch (error: any) {
-    res.status(400).json({ error: error.message || 'Error creating entity' });
+    // owner
+    if (OWNER_COLLECTIONS.includes(entity)) {
+      const ref = await db.collection(entity).add({
+        ...req.body,
+        userId: uid,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      return res.status(201).json({ id: ref.id });
+    }
+
+    return res.status(403).json({ error: 'Forbidden' });
+  } catch (e: any) {
+    return res.status(400).json({ error: e.message });
   }
 });
 
-// UPDATE Entity
-router.put('/:entityType/:id', verifyToken, async (req: any, res: any) => {
-  const { entityType, id } = req.params;
-  
+// ==========================
+// UPDATE
+// ==========================
+
+router.put('/:entity/:id', verifyToken, resolveRole, async (req: any, res) => {
+  const { entity, id } = req.params;
+  const role = req.user.role;
+  const uid = req.user.uid;
+
   try {
-    // For updates, we also validate, but we might only validate provided fields
-    const validatedData = validateEntity(entityType, req.body, req.user);
-    const dataToUpdate = {
-      ...validatedData,
-      updatedAt: new Date(),
-    };
+    const ref = db.collection(entity).doc(id);
+    const snap = await ref.get();
 
-    if (!db) {
-      console.log(`[MOCK] Updated ${entityType}/${id}:`, dataToUpdate);
-      return res.status(200).json({ message: 'Simulated update successful' });
+    if (!snap.exists) {
+      return res.status(404).json({ error: 'Introuvable' });
     }
 
-    // Additional security: Check if the user owns the document before updating
-    const docRef = db.collection(entityType).doc(id);
-    const docSnap = await docRef.get();
-    
-    if (!docSnap.exists) {
-      return res.status(404).json({ error: 'Entity not found' });
+    const data = snap.data()!;
+    const isOwner =
+      data.userId === uid || data.customerId === uid;
+
+    // super admin + admin
+    if (isAdminLevel(role)) {
+      await ref.update({
+        ...req.body,
+        updatedAt: new Date(),
+      });
+
+      return res.json({ message: 'Updated' });
     }
-    
-    const existingData = docSnap.data();
-    // Allow update if user is owner OR if it's an admin (in a real app, check custom claims)
-    if (existingData?.userId && existingData.userId !== req.user.uid) {
-      // Allow admins to bypass (mocking admin check for now)
-      if (req.user.email !== 'landrymoutongo97@gmail.com') {
-        return res.status(403).json({ error: 'Forbidden: You do not own this document' });
+
+    // stock manager
+    if (isStockManager(role)) {
+
+      // produit -> pas prix
+      if (entity === 'product') {
+        if ('price' in req.body || 'salePrice' in req.body) {
+          return res.status(403).json({
+            error: 'Le prix est interdit',
+          });
+        }
+
+        await ref.update({
+          ...req.body,
+          updatedAt: new Date(),
+        });
+
+        return res.json({ message: 'Produit modifié' });
+      }
+
+      // commande -> status seulement
+      if (entity === 'order') {
+        const keys = Object.keys(req.body);
+
+        if (keys.some((k) => k !== 'status')) {
+          return res.status(403).json({
+            error: 'Seulement status',
+          });
+        }
+
+        await ref.update({
+          status: req.body.status,
+          updatedAt: new Date(),
+        });
+
+        return res.json({ message: 'Status changé' });
       }
     }
 
-    await docRef.update(dataToUpdate);
-    res.status(200).json({ message: 'Entity updated successfully' });
-  } catch (error: any) {
-    res.status(400).json({ error: error.message || 'Error updating entity' });
+    // owner
+    if (OWNER_COLLECTIONS.includes(entity) && isOwner) {
+      await ref.update({
+        ...req.body,
+        updatedAt: new Date(),
+      });
+
+      return res.json({ message: 'Updated' });
+    }
+
+    return res.status(403).json({ error: 'Forbidden' });
+  } catch (e: any) {
+    return res.status(400).json({ error: e.message });
   }
 });
 
-// DELETE Entity
-router.delete('/:entityType/:id', verifyToken, async (req: any, res: any) => {
-  const { entityType, id } = req.params;
-  
+// ==========================
+// DELETE
+// ==========================
+
+router.delete('/:entity/:id', verifyToken, resolveRole, async (req: any, res) => {
+  const { entity, id } = req.params;
+  const role = req.user.role;
+
   try {
-    if (!db) {
-      console.log(`[MOCK] Deleted ${entityType}/${id}`);
-      return res.status(200).json({ message: 'Simulated deletion successful' });
+    const ref = db.collection(entity).doc(id);
+
+    if (isAdminLevel(role)) {
+      await ref.delete();
+      return res.json({ message: 'Deleted' });
     }
 
-    const docRef = db.collection(entityType).doc(id);
-    const docSnap = await docRef.get();
-    
-    if (!docSnap.exists) {
-      return res.status(404).json({ error: 'Entity not found' });
-    }
-    
-    const existingData = docSnap.data();
-    if (existingData?.userId && existingData.userId !== req.user.uid) {
-      if (req.user.email !== 'landrymoutongo97@gmail.com') {
-        return res.status(403).json({ error: 'Forbidden: You do not own this document' });
+    return res.status(403).json({ error: 'Forbidden' });
+  } catch (e: any) {
+    return res.status(400).json({ error: e.message });
+  }
+});
+
+// ==========================
+// READ
+// ==========================
+
+router.get('/:entity/:id?', verifyToken, resolveRole, async (req: any, res) => {
+  const { entity, id } = req.params;
+  const role = req.user.role;
+  const uid = req.user.uid;
+
+  try {
+    // admin
+    if (isAdminLevel(role)) {
+      if (id) {
+        const snap = await db.collection(entity).doc(id).get();
+        return res.json(snap.data());
       }
+
+      const snap = await db.collection(entity).get();
+      return res.json(snap.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+      })));
     }
 
-    await docRef.delete();
-    res.status(200).json({ message: 'Entity deleted successfully' });
-  } catch (error: any) {
-    res.status(400).json({ error: error.message || 'Error deleting entity' });
+    // stock manager
+    if (isStockManager(role) && STAFF_READ_COLLECTIONS.includes(entity)) {
+      if (id) {
+        const snap = await db.collection(entity).doc(id).get();
+        return res.json(snap.data());
+      }
+
+      const snap = await db.collection(entity).get();
+      return res.json(snap.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+      })));
+    }
+
+    // owner
+    if (OWNER_COLLECTIONS.includes(entity)) {
+      const snap = await db.collection(entity)
+        .where('userId', '==', uid)
+        .get();
+
+      return res.json(
+        snap.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        }))
+      );
+    }
+
+    return res.status(403).json({ error: 'Forbidden' });
+  } catch (e: any) {
+    return res.status(400).json({ error: e.message });
   }
 });
 

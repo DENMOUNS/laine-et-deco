@@ -238,6 +238,15 @@
         "value": { "type": "object" }
       },
       "required": ["key", "value"]
+    },
+    "analytics": {
+      "title": "Analytics",
+      "description": "Visitor and usage statistics",
+      "type": "object",
+      "properties": {
+        "count": { "type": "number" },
+        "updatedAt": { "type": "string" }
+      }
     }
   },
   "firestore": {
@@ -260,6 +269,7 @@
     "promo_event": { "schema": "promo_event", "description": "Promo events collection" },
     "badge": { "schema": "badge", "description": "Badges collection" },
     "community_post": { "schema": "community_post", "description": "Community posts collection" },
-    "coupon": { "schema": "coupon", "description": "Discount coupons collection" }
+    "coupon": { "schema": "coupon", "description": "Discount coupons collection" },
+    "analytics": { "schema": "analytics", "description": "Global analytics and visitor counts" }
   }
 }

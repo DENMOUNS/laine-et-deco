@@ -78,6 +78,7 @@ interface MainContentProps {
   removeFromComparison: (id: string) => void;
   setComparisonList: React.Dispatch<React.SetStateAction<Product[]>>;
   user: FirebaseUser | null;
+  userRole: string;
   isAuthLoading: boolean;
 }
 
@@ -119,29 +120,38 @@ export const MainContent: React.FC<MainContentProps> = ({
   removeFromComparison,
   setComparisonList,
   user,
+  userRole,
   isAuthLoading
 }) => {
   const { products: fetchedProducts } = useProducts();
   const PRODUCTS = fetchedProducts.length > 0 ? fetchedProducts : INITIAL_PRODUCTS;
   const { data: PACKS } = useEntity<any>('pack', INITIAL_PACKS);
   
-  const isAuthorizedAdmin = user?.email === 'landrymoutongo97@gmail.com';
-  const orderQueryConstraints = isAuthorizedAdmin ? [] : [where('userId', '==', user?.uid || 'guest')];
+  const backofficeRoles = ['super-admin', 'admin', 'editor', 'stock-manager', 'support-client'];
+  const hasBackofficeAccess = backofficeRoles.includes(userRole);
+  const isSuperAdminOrAdmin = ['super-admin', 'admin'].includes(userRole);
+
+  const orderQueryConstraints = isSuperAdminOrAdmin ? [] : [where('userId', '==', user?.uid || 'guest')];
   
   const { data: ORDERS } = useEntity<any>('order', INITIAL_ORDERS, {
     enabled: !isAuthLoading,
     constraints: orderQueryConstraints,
-    deps: [user?.uid, isAuthorizedAdmin]
+    deps: [user?.uid, userRole]
   });
   
   const isAdminView = currentView.startsWith('admin');
 
   React.useEffect(() => {
-    if (isAdminView && !isAuthLoading && !user) {
-      handleNavigate('auth');
-      toast.error('Veuillez vous connecter pour accéder à l\'administration.');
+    if (isAdminView && !isAuthLoading && !hasBackofficeAccess) {
+      if (!user) {
+        handleNavigate('auth');
+        toast.error('Veuillez vous connecter pour accéder à l\'administration.');
+      } else {
+        handleNavigate('home');
+        toast.error('Vous n\'avez pas les permissions nécessaires pour accéder à cette page.');
+      }
     }
-  }, [isAdminView, isAuthLoading, user, handleNavigate]);
+  }, [isAdminView, isAuthLoading, user, userRole, handleNavigate, hasBackofficeAccess]);
 
   if (isAdminView && isAuthLoading) {
     return <Loader fullScreen text="Vérification des accès admin..." />;
