@@ -9,7 +9,6 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
     
     const formData = new FormData(e.currentTarget);
     
-    // Simulate server delay
     await new Promise(resolve => setTimeout(resolve, 1500));
 
     try {
