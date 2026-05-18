@@ -14,6 +14,7 @@ interface NavbarProps {
   cartCount: number;
   wishlistCount: number;
   user: FirebaseUser | null;
+  userRole: string;
   comparisonList?: Product[];
   navItems?: NavItem[];
 }
@@ -24,6 +25,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   cartCount, 
   wishlistCount,
   user,
+  userRole,
   comparisonList = [],
   navItems = INITIAL_NAV_ITEMS
 }) => {
@@ -70,6 +72,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const navLinks = [
     ...mainNavLinks,
   ];
+  const hasBackofficeAccess = ['super-admin', 'admin', 'editor', 'stock-manager', 'support-client'].includes(userRole);
 
   return (
     <>
@@ -149,7 +152,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </span>
                 )}
               </button>
-              {user?.email === 'landrymoutongo97@gmail.com' && (
+              {hasBackofficeAccess && (
                 <button 
                   aria-label="Tableau de bord Admin"
                   onClick={() => onNavigate('admin-dashboard')} 
@@ -359,7 +362,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       Déconnexion
                     </button>
                   )}
-                  {user?.email === 'landrymoutongo97@gmail.com' && (
+                  {hasBackofficeAccess && (
                     <>
                       <button onClick={() => { onNavigate('admin-dashboard'); setIsMenuOpen(false); }} className="w-full p-4 rounded-2xl text-left flex items-center gap-3 text-white/70 hover:bg-white/10 hover:text-white transition-colors font-medium">
                         <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center"><Shield size={16} /></div>

@@ -18,7 +18,6 @@ export const generateInvoicePDF = (order: Order, isDuplicata: boolean = false) =
     doc.setFillColor(bgColor[0], bgColor[1], bgColor[2]);
     doc.rect(0, 0, 210, 297, 'F');
 
-    console.log('Generating invoice for order:', order.id);
 
     if (isDuplicata) {
       doc.setTextColor(220, 220, 220);

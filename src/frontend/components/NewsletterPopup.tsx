@@ -46,7 +46,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({ config }) => {
   return (
     <AnimatePresence>
       {isVisible && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-primary/40 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] overflow-y-auto flex min-h-screen items-start sm:items-center justify-center p-4 bg-primary/40 backdrop-blur-sm">
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}

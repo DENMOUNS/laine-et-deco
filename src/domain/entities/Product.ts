@@ -1,7 +1,7 @@
 import { Review, SEOMeta } from "../../types";
+import { BaseEntity } from "./BaseEntity";
 
-export interface Product {
-  id: string;
+export interface Product extends BaseEntity {
   name: string;
   price: number;
   oldPrice?: number;

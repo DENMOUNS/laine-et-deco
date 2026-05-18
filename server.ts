@@ -1,4 +1,5 @@
 import express from "express";
+import dotenv from "dotenv";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import path from "path";
@@ -6,9 +7,16 @@ import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import DOMPurify from "isomorphic-dompurify";
 
+dotenv.config({ path: [".env", "env"] });
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
+
+  app.use((_req, res, next) => {
+    res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+    next();
+  });
 
   app.use(express.json());
 
@@ -96,6 +104,24 @@ async function startServer() {
       }
       console.error("Error analyzing image:", error);
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/analytics/visit", async (_req, res) => {
+    try {
+      const { db, firebaseAdmin } = await import("./server/firebaseAdmin");
+      await db.collection("analytics").doc("visitors").set(
+        {
+          count: firebaseAdmin.firestore.FieldValue.increment(1),
+          updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      return res.json({ ok: true });
+    } catch (error: any) {
+      console.error("Error tracking visitor:", error);
+      return res.status(500).json({ error: "Unable to track visitor" });
     }
   });
 

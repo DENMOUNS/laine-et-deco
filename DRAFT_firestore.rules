@@ -20,10 +20,8 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isEmailVerified() && (
-        get(/databases/$(database)/documents/user/$(request.auth.uid)).data.role == 'admin' ||
-        request.auth.token.email == 'landrymoutongo97@gmail.com'
-      );
+      return isEmailVerified() &&
+        get(/databases/$(database)/documents/user/$(request.auth.uid)).data.role in ['super-admin', 'admin'];
     }
 
     function incoming() {
@@ -103,6 +101,19 @@ service cloud.firestore {
     match /site_config/{configId} {
       allow read: if true;
       allow write: if isAdmin();
+    }
+
+    // Admin Roles
+    match /admin_role/{roleId} {
+      allow read: if isAdmin();
+      allow write: if isEmailVerified() &&
+        get(/databases/$(database)/documents/user/$(request.auth.uid)).data.role == 'super-admin';
+    }
+
+    // Analytics
+    match /analytics/{analyticsId} {
+      allow read: if isAdmin();
+      allow write: if false;
     }
 
     // Test Connection

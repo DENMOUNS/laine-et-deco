@@ -8,8 +8,10 @@ import { useProducts } from './useProducts';
 import { updateSEOMeta } from '../utils/siteUtils';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '../../backend/firebase';
+import { readCache, removeCache, writeCache } from '../utils/cacheStorage';
 
-import { logActivity } from '../utils/logger';
+const CART_CACHE_KEY = 'cart:v1';
+const userProfileCacheKey = (uid: string) => `user-profile:${uid}:v1`;
 
 export const useAppLogic = () => {
   const navigate = useNavigate();
@@ -21,6 +23,7 @@ export const useAppLogic = () => {
   const SITE_CONFIG = siteConfigs[0] || INITIAL_SITE_CONFIG;
   const { products: fetchedProducts } = useProducts();
   const PRODUCTS = fetchedProducts.length > 0 ? fetchedProducts : INITIAL_PRODUCTS;
+  const { data: PROMO_EVENTS } = useEntity<PromoEvent>('promo_event', []);
   const { data: PACKS } = useEntity<any>('pack', INITIAL_PACKS);
   const { data: rawNavItems } = useEntity<any>('nav_item', NAV_ITEMS);
   const navItems = useMemo(() => {
@@ -82,7 +85,7 @@ export const useAppLogic = () => {
   const selectedId = derivedId;
   const initialSearchQuery = derivedQuery;
 
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>(() => readCache<CartItem[]>(CART_CACHE_KEY) || []);
   const [wishlist, setWishlist] = useState<Product[]>([]);
   const [comparisonList, setComparisonList] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -161,7 +164,15 @@ export const useAppLogic = () => {
   useEffect(() => {
     setSiteConfig(SITE_CONFIG);
   }, [SITE_CONFIG]);
-  const [events, setEvents] = useState<PromoEvent[]>([]);
+  const events = PROMO_EVENTS;
+
+  useEffect(() => {
+    if (cart.length > 0) {
+      writeCache(CART_CACHE_KEY, cart);
+    } else {
+      removeCache(CART_CACHE_KEY);
+    }
+  }, [cart]);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     if (type === 'success') sonnerToast.success(message);
@@ -180,7 +191,6 @@ export const useAppLogic = () => {
 
   const handleNavigate = (view: string, id?: string, query?: string) => {
     setIsLoading(true);
-    const start = Date.now();
     setTimeout(() => {
       let newPath = '/';
       if (view === 'home') newPath = '/';
@@ -207,9 +217,6 @@ export const useAppLogic = () => {
       }
 
       setIsLoading(false);
-      
-      // Log activity to Firestore
-      logActivity('GET', view, 200, Date.now() - start, user?.uid);
     }, 600);
   };
 
@@ -371,10 +378,27 @@ export const useAppLogic = () => {
   };
 
   const { data: USERS } = useEntity<any>('user', []);
+  const [cachedUserProfile, setCachedUserProfile] = useState<any>(null);
+
+  useEffect(() => {
+    if (!user) {
+      setCachedUserProfile(null);
+      return;
+    }
+
+    setCachedUserProfile(readCache(userProfileCacheKey(user.uid)));
+  }, [user?.uid]);
+
   const currentUserDoc = useMemo(() => {
     if (!user) return null;
-    return USERS.find(u => u.id === user.uid || u.email === user.email);
-  }, [USERS, user]);
+    return USERS.find(u => u.id === user.uid || u.email === user.email) || cachedUserProfile;
+  }, [USERS, user, cachedUserProfile]);
+
+  useEffect(() => {
+    if (user?.uid && currentUserDoc) {
+      writeCache(userProfileCacheKey(user.uid), currentUserDoc);
+    }
+  }, [user?.uid, currentUserDoc]);
 
   const userRole = currentUserDoc?.role || 'customer';
 

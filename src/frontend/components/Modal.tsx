@@ -35,7 +35,7 @@ export const Modal: React.FC<ModalProps> = ({
     md: 'max-w-xl',
     lg: 'max-w-3xl',
     xl: 'max-w-5xl',
-    full: 'max-w-[95%] h-[95vh]'
+    full: 'max-w-[95%] max-h-[95vh] h-[95vh]'
   };
 
   return (
@@ -49,7 +49,7 @@ export const Modal: React.FC<ModalProps> = ({
             onClick={onClose}
             className="fixed inset-0 bg-primary/40 backdrop-blur-sm z-[500]"
           />
-          <div className="fixed inset-0 flex items-center justify-center z-[501] p-4 pointer-events-none">
+          <div className="fixed inset-0 z-[501] flex min-h-screen items-start sm:items-center justify-center p-4 overflow-y-auto text-center pointer-events-none">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}

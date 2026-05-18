@@ -6,21 +6,25 @@ import { DataTable } from '../DataTable';
 import { Invoice, Order } from '../../../types';
 import { generateInvoicePDF } from '../../utils/invoiceUtils';
 import { Button } from '../ui/Button';
-import { auth } from '../../../backend/firebase';
+import { StatusBadge } from '../ui/StatusBadge';
 
 interface DashboardPaymentsProps {
   invoices: Invoice[];
   orders: Order[];
   paymentFilter: string;
   setPaymentFilter: (filter: string) => void;
+  userRole: string;
 }
 
 export const DashboardPayments: React.FC<DashboardPaymentsProps> = ({
   invoices,
   orders,
   paymentFilter,
-  setPaymentFilter
+  setPaymentFilter,
+  userRole
 }) => {
+  const canManagePayments = ['super-admin', 'admin'].includes(userRole);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
@@ -59,9 +63,7 @@ export const DashboardPayments: React.FC<DashboardPaymentsProps> = ({
           { 
             header: 'Statut', 
             accessor: (invoice) => (
-              <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${invoice.status === 'paid' ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600'}`}>
-                {invoice.status === 'paid' ? 'Payé' : 'En attente'}
-              </span>
+              <StatusBadge status={invoice.status} />
             ),
             exportValue: (invoice) => invoice.status
           },
@@ -70,8 +72,7 @@ export const DashboardPayments: React.FC<DashboardPaymentsProps> = ({
             accessor: (invoice) => {
               const order = orders.find(o => o.id === invoice.orderId);
               const isDelivered = order?.status === 'delivered';
-              const userIsAdmin = auth.currentUser?.email === 'landrymoutongo97@gmail.com';
-              const canDownload = isDelivered || userIsAdmin;
+              const canDownload = isDelivered || canManagePayments;
               
               return (
                 <Button 

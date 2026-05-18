@@ -62,9 +62,7 @@ export const DashboardProjects: React.FC<DashboardProjectsProps> = ({
                                 <h4 className="text-xl font-bold text-primary mb-1">{project.name}</h4>
                                 <p className="text-xs text-primary/70">Démarré le {new Date(project.startDate).toLocaleDateString()}</p>
                             </div>
-                            <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${project.status === 'completed' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
-                                {project.status === 'completed' ? 'Terminé' : 'En cours'}
-                            </span>
+                            <StatusBadge status={project.status} />
                         </div>
                         
                         <div className="space-y-4 mb-8">

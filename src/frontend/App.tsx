@@ -52,6 +52,7 @@ export function App() {
           cartCount={cartCount}
           wishlistCount={appLogic.wishlist.length}
           user={appLogic.user}
+          userRole={appLogic.userRole}
           comparisonList={appLogic.comparisonList}
           navItems={appLogic.navItems}
         />

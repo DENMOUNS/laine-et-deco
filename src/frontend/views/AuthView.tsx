@@ -15,7 +15,7 @@ import {
   updateProfile
 } from 'firebase/auth';
 import { auth, db } from '../../backend/firebase';
-import { collection, addDoc, serverTimestamp, setDoc, doc } from 'firebase/firestore';
+import { serverTimestamp, setDoc, doc } from 'firebase/firestore';
 
 const authSchema = z.object({
   name: z.string().min(2, 'Le nom est trop court').optional(),
@@ -73,19 +73,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
     }
     try {
       if (mode === 'login') {
-        const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
-        const user = userCredential.user;
-        
-        // Log the login event
-        await addDoc(collection(db, 'login_log'), {
-          userId: user.uid,
-          userName: user.displayName || user.email?.split('@')[0] || 'Utilisateur',
-          email: user.email,
-          timestamp: new Date().toISOString(),
-          ip: 'client-side',
-          device: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop',
-          browser: navigator.userAgent
-        });
+        await signInWithEmailAndPassword(auth, data.email, data.password);
 
         toast.success('Connexion réussie !');
         handleSuccessRedirect();
@@ -102,7 +90,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
           uid: user.uid,
           name: data.name || user.displayName || 'Utilisateur',
           email: user.email,
-          role: user.email === 'landrymoutongo97@gmail.com' ? 'admin' : 'customer',
+          role: 'customer',
           points: 0,
           orders: 0,
           joinDate: new Date().toISOString().split('T')[0],
@@ -156,7 +144,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
           name: user.displayName || 'Utilisateur',
           email: user.email,
           profileImage: user.photoURL || null,
-          role: user.email === 'landrymoutongo97@gmail.com' ? 'admin' : 'customer',
+          role: 'customer',
           points: 0,
           orders: 0,
           joinDate: new Date().toISOString().split('T')[0],
@@ -165,14 +153,11 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
           createdAt: serverTimestamp()
         });
       } else {
-        // Update photo if changed or missing, and ensure admin role for this specific user
+        // Update profile metadata without changing the role managed in Firestore.
         const existingData = userSnap.data();
         let updates: any = {};
         if (user.photoURL && existingData?.profileImage !== user.photoURL) {
           updates.profileImage = user.photoURL;
-        }
-        if (user.email === 'landrymoutongo97@gmail.com' && existingData?.role !== 'admin') {
-          updates.role = 'admin';
         }
         if (Object.keys(updates).length > 0) {
           const { updateDoc } = await import('firebase/firestore');
@@ -180,17 +165,6 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
           await updateDoc(userDocRef, updates);
         }
       }
-
-      // Log the login event
-      await addDoc(collection(db, 'login_log'), {
-        userId: user.uid,
-        userName: user.displayName || user.email?.split('@')[0] || 'Utilisateur',
-        email: user.email,
-        timestamp: new Date().toISOString(),
-        ip: 'client-side',
-        device: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop',
-        browser: navigator.userAgent
-      });
       
       toast.success('Connexion Google réussie !');
       handleSuccessRedirect();
@@ -401,3 +375,4 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
     </div>
   );
 };
+

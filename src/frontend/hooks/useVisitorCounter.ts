@@ -1,19 +1,8 @@
 import { useEffect } from 'react';
-import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  updateDoc, 
-  increment, 
-  serverTimestamp 
-} from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../../backend/firebase';
 
 export const useVisitorCounter = () => {
   useEffect(() => {
     const trackVisit = async () => {
-      if (!db) return;
-
       const VISIT_KEY = 'last_visit_timestamp';
       const now = new Date().getTime();
       const lastVisit = localStorage.getItem(VISIT_KEY);
@@ -22,33 +11,24 @@ export const useVisitorCounter = () => {
       const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
       
       if (!lastVisit || (now - parseInt(lastVisit)) > TWENTY_FOUR_HOURS) {
-        let currentPath = 'analytics/visitors';
         try {
-          const visitorDocRef = doc(db, 'analytics', 'visitors');
-          const docSnap = await getDoc(visitorDocRef);
+          const response = await fetch('/api/analytics/visit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          });
 
-          if (docSnap.exists()) {
-            await updateDoc(visitorDocRef, {
-              count: increment(1),
-              updatedAt: serverTimestamp()
-            });
-          } else {
-            // First time initializer
-            await setDoc(visitorDocRef, {
-              count: 1,
-              updatedAt: serverTimestamp()
-            });
+          if (!response.ok) {
+            throw new Error(`Visitor tracking failed with status ${response.status}`);
+          }
+
+          const result = await response.json();
+          if (!result?.ok) {
+            throw new Error('Visitor tracking endpoint returned an invalid response');
           }
           
           localStorage.setItem(VISIT_KEY, now.toString());
-          console.log('Visitor count incremented');
         } catch (error) {
           console.error('Error tracking visitor:', error);
-          try {
-            handleFirestoreError(error, OperationType.WRITE, currentPath);
-          } catch (e) {
-            // Error with context thrown
-          }
         }
       }
     };

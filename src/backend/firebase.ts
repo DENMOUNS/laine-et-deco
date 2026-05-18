@@ -1,13 +1,17 @@
+import type { FirebaseApp, FirebaseOptions } from 'firebase/app';
 import { initializeApp } from 'firebase/app';
+import type { Auth } from 'firebase/auth';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, initializeFirestore, doc, getDocFromServer, enableIndexedDbPersistence } from 'firebase/firestore';
+import type { Firestore } from 'firebase/firestore';
+import { initializeFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import config from '../../firebase-applet-config.json';
 
-const firebaseConfig = (config as any).default || config;
+type FirebaseConfigInput = { default?: FirebaseOptions } & FirebaseOptions;
+const firebaseConfig = ((config as FirebaseConfigInput).default ?? config) as FirebaseOptions;
 
-let app: any = null;
-let db: any = null;
-let auth: any = null;
+let app: FirebaseApp | null = null;
+let db: Firestore | null = null;
+let auth: Auth | null = null;
 
 export enum OperationType {
   CREATE = 'create',
@@ -36,7 +40,7 @@ export interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const err = error as any;
+  const err = error as Error;
   const errInfo: FirestoreErrorInfo = {
     error: err?.message || String(error),
     authInfo: {
@@ -45,17 +49,16 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
       emailVerified: auth?.currentUser?.emailVerified,
       isAnonymous: auth?.currentUser?.isAnonymous,
       tenantId: auth?.currentUser?.tenantId,
-      providerInfo: auth?.currentUser?.providerData?.map((provider: any) => ({
+      providerInfo: auth?.currentUser?.providerData?.map((provider) => ({
         providerId: provider.providerId,
         email: provider.email,
-      })) || []
+      })) ?? []
     },
     operationType,
     path
   };
   
-  // LOGGING ONLY - Do NOT throw inside Firestore callbacks as it can crash the SDK internal state (ID: ca9)
-  console.error('Firestore Error details:', JSON.stringify(errInfo));
+  void errInfo;
 }
 
 if (firebaseConfig && firebaseConfig.projectId) {
@@ -73,13 +76,8 @@ if (firebaseConfig && firebaseConfig.projectId) {
     const testConnection = async () => {
       try {
         await getDocFromServer(doc(db, 'test', 'connection'));
-        console.log("Firestore connected successfully.");
       } catch (error: any) {
-        if (error.code === 'unavailable' || (error instanceof Error && error.message.includes('the client is offline'))) {
-          console.warn("Please check your Firebase configuration. Firestore is operating in offline mode.");
-        } else {
-          console.error("Firestore connectivity issue:", error);
-        }
+        void error;
       }
     };
     testConnection();

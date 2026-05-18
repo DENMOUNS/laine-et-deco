@@ -55,10 +55,8 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, onNa
     deps: [user?.uid]
   });
 
-  const { data: userLogs, isLoading: isLogsLoading } = useEntity<LoginLog>('login_log', [], {
-    constraints: [where('userId', '==', user?.uid || 'guest')],
-    deps: [user?.uid]
-  });
+  const userLogs: LoginLog[] = [];
+  const isLogsLoading = false;
 
   const { data: invoices, isLoading: isInvoicesLoading } = useEntity<Invoice>('invoice', [], {
     constraints: [where('userId', '==', user?.uid || 'guest')],
@@ -144,22 +142,6 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, onNa
 
   const handleLogout = async () => {
     try {
-      // Log the logout event before signing out
-      if (user) {
-        const { collection, addDoc } = await import('firebase/firestore');
-        const { db } = await import('../../backend/firebase');
-        await addDoc(collection(db, 'log'), {
-          userId: user.uid,
-          method: 'LOGOUT',
-          path: 'auth',
-          statusCode: 200,
-          duration: 0,
-          timestamp: new Date().toISOString(),
-          device: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop',
-          browser: navigator.userAgent
-        });
-      }
-
       await signOut(auth);
       onNavigate('home');
       toast.success('Déconnexion réussie');
@@ -225,6 +207,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, onNa
             invoices={invoices} 
             paymentFilter="all" 
             setPaymentFilter={() => {}} 
+            userRole={userProfile.role}
           />
         );
       case 'tools':

@@ -118,6 +118,11 @@ service cloud.firestore {
       allow write: if isSuperAdmin() || isAdmin();
     }
 
+    match /admin_role/{docId} {
+      allow read: if isStaff();
+      allow create, update, delete: if isSuperAdmin();
+    }
+
     match /settings/{docId} {
       allow read: if true;
       allow write: if isSuperAdmin() || isAdmin();
@@ -150,11 +155,11 @@ service cloud.firestore {
 
 
     // ==========================================
-    // ANALYTICS (écriture publique pour tracking frontend)
+    // ANALYTICS (lecture staff, écriture backend Firebase Admin uniquement)
     // ==========================================
     match /analytics/{docId} {
-      allow read: if true;
-      allow write: if true;
+      allow read: if isStaff();
+      allow write: if false;
     }
 
 

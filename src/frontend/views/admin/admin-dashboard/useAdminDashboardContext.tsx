@@ -1,0 +1,1153 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  Legend
+} from 'recharts';
+import { 
+  LayoutDashboard, 
+  Package, 
+  ShoppingBag, 
+  Users, 
+  BarChart3, 
+  Settings, 
+  LogOut,
+  TrendingUp,
+  ArrowUpRight,
+  ArrowDownRight,
+  Search,
+  Bell,
+  Plus,
+  Menu,
+  X,
+  History,
+  Coins,
+  Globe,
+  Shield,
+  Activity,
+  Smartphone,
+  Monitor,
+  Star,
+  CheckCircle2,
+  AlertCircle,
+  MessageSquare,
+  Palette,
+  Award,
+  Download,
+  FileText,
+  Send,
+  Table as TableIcon,
+  Ticket,
+  Lock,
+  Eye,
+  MousePointer2,
+  Calendar as CalendarIcon,
+  Image as ImageIcon,
+  Type as TypeIcon,
+  MonitorOff,
+  Info,
+  User,
+  Edit,
+  Trash2,
+  ShoppingCart,
+  RefreshCcw,
+  Tag,
+  Mail,
+  Percent,
+  Truck,
+  ChevronLeft,
+  MapPin,
+  Route,
+  QrCode,
+  Save,
+  HelpCircle,
+  Phone
+} from 'lucide-react';
+import { useEntity } from '../../../hooks/useEntity';
+import { useProducts } from '../../../hooks/useProducts';
+
+
+const formatDate = (date: any) => {
+  if (!date) return 'N/A';
+  // Handle Firestore Timestamp
+  if (typeof date.toDate === 'function') {
+    return date.toDate().toLocaleString('fr-FR');
+  }
+  if (typeof date === 'object' && date.seconds !== undefined) {
+    return new Date(date.seconds * 1000).toLocaleString('fr-FR');
+  }
+  // Handle Date object
+  if (date instanceof Date) {
+    return date.toLocaleString('fr-FR');
+  }
+  // Handle ISO string or other string
+  if (typeof date === 'string') {
+    try {
+      const d = new Date(date);
+      if (isNaN(d.getTime())) return date;
+      return d.toLocaleString('fr-FR');
+    } catch (e) {
+      return date;
+    }
+  }
+  return 'N/A';
+};
+
+import { productSearch, orderSearch, userSearch, getStatusText, getActionDescription } from '../../../utils/searchUtils';
+import { 
+  ORDERS as INITIAL_ORDERS, 
+  PRODUCTS as INITIAL_PRODUCTS, 
+  USERS as INITIAL_USERS, 
+  CATEGORIES as INITIAL_CATEGORIES, 
+  LOGIN_LOGS as INITIAL_LOGIN_LOGS, 
+  REQUEST_LOGS as INITIAL_REQUEST_LOGS, 
+  NOTIFICATIONS as INITIAL_NOTIFICATIONS, 
+  SALES_DATA as INITIAL_SALES_DATA, 
+  SITE_CONFIG as INITIAL_SITE_CONFIG, 
+  CHAT_MESSAGES as INITIAL_CHAT_MESSAGES, 
+  CONVERSATIONS as INITIAL_CONVERSATIONS, 
+  COUPONS as INITIAL_COUPONS, 
+  ADMIN_ROLES as INITIAL_ADMIN_ROLES, 
+  PROMO_EVENTS as INITIAL_PROMO_EVENTS,
+  CATEGORY_DISTRIBUTION as INITIAL_CATEGORY_DISTRIBUTION,
+  DEVICE_DATA as INITIAL_DEVICE_DATA,
+  TRAFFIC_SOURCES as INITIAL_TRAFFIC_SOURCES,
+  RETENTION_DATA as INITIAL_RETENTION_DATA,
+  REVENUE_BY_PAYMENT as INITIAL_REVENUE_BY_PAYMENT,
+  PACKS as INITIAL_PACKS,
+  PUSH_NOTIFICATIONS as INITIAL_PUSH_NOTIFICATIONS,
+  EMAILS as INITIAL_EMAILS,
+  EXPENSES as INITIAL_EXPENSES,
+  LOOKBOOK_POSTS as INITIAL_LOOKBOOK_POSTS,
+  BLOG_POSTS as INITIAL_BLOG_POSTS,
+  REVIEWS as INITIAL_REVIEWS,
+  RMAS as INITIAL_RMAS,
+  ABANDONED_CARTS as INITIAL_ABANDONED_CARTS,
+  CUSTOMER_GROUPS as INITIAL_CUSTOMER_GROUPS,
+  TAX_RULES as INITIAL_TAX_RULES,
+  SHIPPING_RULES as INITIAL_SHIPPING_RULES,
+  CATALOG_PRICE_RULES as INITIAL_CATALOG_PRICE_RULES,
+  SUBSCRIBERS as INITIAL_SUBSCRIBERS,
+  BADGES,
+  INITIAL_CITIES,
+  NAV_ITEMS as INITIAL_NAV_ITEMS,
+  FAQ_ITEMS as INITIAL_FAQ_ITEMS,
+  CURRENCIES as INITIAL_CURRENCIES
+} from '../../../../constants';
+import { CouponEditor } from '../../../components/dashboard/CouponEditor';
+import { CityEditor } from '../../../components/dashboard/CityEditor';
+import { FAQEditor } from '../../../components/dashboard/FAQEditor';
+import { PromoEventEditor } from '../../../components/dashboard/PromoEventEditor';
+import { CatalogPriceRuleEditor } from '../../../components/dashboard/CatalogPriceRuleEditor';
+import { Modal } from '../../../components/Modal';
+import { AdminHeader } from '../../../components/dashboard/AdminHeader';
+import { AdminSidebar } from '../../../components/dashboard/AdminSidebar';
+import { getAdminMenuItems } from '../../../components/dashboard/AdminMenu';
+import { DataTable } from '../../../components/DataTable';
+import { TabFilter } from '../../../components/TabFilter';
+import { Notification, Product, Category, SiteConfig, ChatMessage, HomeSection, Conversation, Coupon, AdminRole, PromoEvent, Order, User as UserType, LoginLog, RequestLog, Pack, PushNotification, Email, Role, Expense, Review, RMA, AbandonedCart, CustomerGroup, TaxRule, ShippingRule, CatalogPriceRule, NewsletterSubscriber, City, NavItem, FAQ, Currency } from '../../../../types';
+import { StatusBadge, getStatusStyles } from '../../../components/ui/StatusBadge';
+import { cn } from '../../../utils/utils';
+import { OrderMap } from '../../../components/OrderMap';
+import { generateInvoicePDF } from '../../../utils/invoiceUtils';
+import { User as FirebaseUser, signOut } from 'firebase/auth';
+import { QRCodeSVG } from 'qrcode.react';
+import { collection, getDocs, doc, updateDoc, increment, query, where, getDoc, writeBatch, serverTimestamp, addDoc, setDoc } from 'firebase/firestore';
+import { auth, db } from '../../../../backend/firebase';
+
+import { toast } from 'sonner';
+import { Loader } from '../../../components/Loader';
+import { seedFirebase } from '../../../utils/firebaseSeed';
+import { AdminSearchResults } from './AdminSearchResults';
+import { AdminOverview } from './AdminOverview';
+import { AdminInventory } from './AdminInventory';
+import { AdminLoyalty } from './AdminLoyalty';
+import { AdminCustomerGroups } from './AdminCustomerGroups';
+import { AdminOrders } from './AdminOrders';
+import { AdminLogs } from './AdminLogs';
+import { AdminStats } from './AdminStats';
+import { AdminAnalytics } from './AdminAnalytics';
+import { AdminEvents } from './AdminEvents';
+import { AdminSite } from './AdminSite';
+import { AdminProducts } from './AdminProducts';
+import { AdminProductForm } from './AdminProductForm';
+import { AdminPayments } from './AdminPayments';
+import { AdminExpenses } from './AdminExpenses';
+import { AdminRmas } from './AdminRmas';
+import { AdminAbandonedCarts } from './AdminAbandonedCarts';
+import { AdminPromoRules } from './AdminPromoRules';
+import { AdminTaxes } from './AdminTaxes';
+import { AdminShipping } from './AdminShipping';
+import { AdminImportExport } from './AdminImportExport';
+import { AdminCategories } from './AdminCategories';
+import { AdminCategoryForm } from './AdminCategoryForm';
+import { AdminReviews } from './AdminReviews';
+import { AdminMessages } from './AdminMessages';
+import { AdminNavItems } from './AdminNavItems';
+import { AdminQr } from './AdminQr';
+import { AdminCoupons } from './AdminCoupons';
+import { AdminCities } from './AdminCities';
+import { AdminRoles } from './AdminRoles';
+import { AdminFlashSalesTab } from './AdminFlashSalesTab';
+import { AdminLookbooksTab } from './AdminLookbooksTab';
+import { AdminPortfoliosTab } from './AdminPortfoliosTab';
+import { AdminCustomers } from './AdminCustomers';
+import { AdminPacks } from './AdminPacks';
+import { AdminLookbook } from './AdminLookbook';
+import { AdminBlog } from './AdminBlog';
+import { AdminNotifications } from './AdminNotifications';
+import { AdminNewsletter } from './AdminNewsletter';
+import { AdminPushNotifications } from './AdminPushNotifications';
+import { AdminFaq } from './AdminFaq';
+import { AdminEmails } from './AdminEmails';
+import { AdminUserProfile } from './AdminUserProfile';
+import { AdminDashboardModals } from './AdminDashboardModals';
+
+import { AdminOrderDetail } from './AdminOrderDetail';
+import { AdminCustomerDetail } from './AdminCustomerDetail';
+import { AdminRmaDetail } from './AdminRmaDetail';
+import { createAdminFormSubmitHandler } from './createAdminFormSubmitHandler';
+
+interface AdminDashboardProps {
+  onNavigate: (view: string, id?: string, query?: string) => void;
+  siteConfig: SiteConfig;
+  setSiteConfig: React.Dispatch<React.SetStateAction<SiteConfig>>;
+  user: FirebaseUser | null;
+  isAuthLoading: boolean;
+}
+
+
+interface AdminDashboardProps {
+  onNavigate: (view: string, id?: string, query?: string) => void;
+  siteConfig: SiteConfig;
+  setSiteConfig: React.Dispatch<React.SetStateAction<SiteConfig>>;
+  user: FirebaseUser | null;
+  isAuthLoading: boolean;
+}
+
+
+export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfig, setSiteConfig: propSetSiteConfig, user, isAuthLoading }: AdminDashboardProps) {
+  const { data: ORDERS, setData: setLocalOrders, deleteEntity: deleteOrder, isLoading: isLoadingOrders } = useEntity<Order>('order', INITIAL_ORDERS);
+  const allOrders = useMemo(() => {
+    return ORDERS;
+  }, [ORDERS]);
+
+  const { products: fetchedProducts } = useProducts();
+  const PRODUCTS = fetchedProducts.length > 0 ? fetchedProducts : INITIAL_PRODUCTS;
+  const { data: USERS, deleteEntity: deleteUser } = useEntity<UserType>('user', INITIAL_USERS);
+  const { data: CATEGORIES, updateEntity: updateCategory, addEntity: addCategory, deleteEntity: deleteCategory, setData: setLocalCategories, isLoading: isLoadingCategories } = useEntity<Category>('category', INITIAL_CATEGORIES);
+  const { data: NAV_ITEMS, updateEntity: updateNavItem, addEntity: addNavItem, deleteEntity: deleteNavItem } = useEntity<NavItem>('nav_item', INITIAL_NAV_ITEMS);
+  const { data: FAQS, updateEntity: updateFAQ, addEntity: addFAQ, deleteEntity: deleteFAQ } = useEntity<FAQ>('faq', INITIAL_FAQ_ITEMS);
+  const { data: LOGIN_LOGS, deleteEntity: deleteLoginLog } = useEntity<any>('login_log', [], { enabled: false });
+  const { data: REQUEST_LOGS, deleteEntity: deleteRequestLog } = useEntity<any>('request_log', [], { enabled: false });
+  const { data: NOTIFICATIONS, deleteEntity: deleteNotification } = useEntity<any>('notification', INITIAL_NOTIFICATIONS);
+  const { data: SALES_DATA } = useEntity<any>('sales_data', INITIAL_SALES_DATA);
+  const { data: ANALYTICS } = useEntity<any>('analytics', [{ id: 'visitors', count: 0 }]);
+  const { data: siteConfigs, updateEntity: updateSiteConfig, deleteEntity: deleteSiteConfig } = useEntity<any>('site_config', [INITIAL_SITE_CONFIG]);
+  const rawSiteConfig = siteConfigs[0] || propSiteConfig || INITIAL_SITE_CONFIG;
+  const siteConfig = {
+    ...rawSiteConfig,
+    loyaltyConfig: {
+      pointsPerPurchase: rawSiteConfig.loyaltyConfig?.pointsPerPurchase ?? 10,
+      pointsPerReview: rawSiteConfig.loyaltyConfig?.pointsPerReview ?? 50,
+      badges: rawSiteConfig.loyaltyConfig?.badges?.length > 0 ? rawSiteConfig.loyaltyConfig.badges : BADGES
+    }
+  };
+  
+  const setSiteConfig = (newConfig: any) => {
+    if (typeof newConfig === 'function') {
+      const updated = newConfig(siteConfig);
+      propSetSiteConfig(updated);
+      // No automatic DB update
+    } else {
+      propSetSiteConfig(newConfig);
+      // No automatic DB update
+    }
+  };
+
+  const saveSiteSection = async (keys: string[], label: string) => {
+    try {
+      if (siteConfig.id) {
+        const updateData: any = { updatedAt: new Date().toISOString() };
+        keys.forEach(k => {
+          updateData[k] = (siteConfig as any)[k];
+        });
+        await updateDoc(doc(db, 'site_config', siteConfig.id), updateData);
+        toast.success(`${label} : Enregistré avec succès`);
+      }
+    } catch (err) {
+      toast.error('Erreur lors de l’enregistrement');
+    }
+  };
+
+  const saveAllSiteConfig = async () => {
+    try {
+      if (siteConfig.id) {
+        await updateDoc(doc(db, 'site_config', siteConfig.id), {
+          ...siteConfig,
+          updatedAt: new Date().toISOString()
+        });
+        toast.success('Toute la configuration a été enregistrée');
+      }
+    } catch (err) {
+      toast.error('Erreur lors de l’enregistrement global');
+    }
+  };
+
+  const sortByDate = (data: any[]) => [...data].sort((a, b) => {
+    const getVal = (item: any) => {
+        if (!item.createdAt) return 0;
+        if (item.createdAt.toDate) return item.createdAt.toDate().getTime();
+        return new Date(item.createdAt).getTime();
+    };
+    return getVal(b) - getVal(a);
+  });
+
+  const { data: CHAT_MESSAGES, deleteEntity: deleteChatMessage } = useEntity<any>('chat_message', INITIAL_CHAT_MESSAGES);
+  const { data: CONVERSATIONS, deleteEntity: deleteConversation } = useEntity<any>('conversation', INITIAL_CONVERSATIONS);
+  const { data: COUPONS, updateEntity: updateCoupon, addEntity: addCoupon, deleteEntity: deleteCoupon } = useEntity<Coupon>('coupon', INITIAL_COUPONS);
+  const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
+  const [isCouponEditorOpen, setIsCouponEditorOpen] = useState(false);
+
+  const { data: CITIES, updateEntity: updateCity, addEntity: addCity, deleteEntity: deleteCity } = useEntity<City>('city', INITIAL_CITIES);
+  const [selectedCity, setSelectedCity] = useState<City | null>(null);
+  const [isCityEditorOpen, setIsCityEditorOpen] = useState(false);
+
+  const handleEditCity = (city: City) => {
+    setSelectedCity(city);
+    setIsCityEditorOpen(true);
+  };
+
+  const handleSaveCity = (city: City) => {
+    if (CITIES.find(c => c.id === city.id)) {
+      updateCity(city.id!, city);
+    } else {
+      addCity(city);
+    }
+    setIsCityEditorOpen(false);
+  };
+
+  const handleDeleteCity = (id: string) => {
+    if (window.confirm('Voulez-vous vraiment supprimer cette ville ?')) {
+      deleteCity(id);
+      toast.success('Ville supprimée');
+    }
+  };
+
+  const handleEditCoupon = (coupon: Coupon) => {
+    setSelectedCoupon(coupon);
+    setIsCouponEditorOpen(true);
+  };
+
+  const handleSaveCoupon = (coupon: Coupon) => {
+    if (COUPONS.find(c => c.id === coupon.id)) {
+      updateCoupon(coupon.id, coupon);
+    } else {
+      addCoupon(coupon);
+    }
+    setIsCouponEditorOpen(false);
+  };
+
+  const [selectedFAQ, setSelectedFAQ] = useState<FAQ | null>(null);
+  const [isFAQEditorOpen, setIsFAQEditorOpen] = useState(false);
+
+  const handleEditFAQ = (faq: FAQ) => {
+    setSelectedFAQ(faq);
+    setIsFAQEditorOpen(true);
+  };
+
+  const handleSaveFAQ = (faq: FAQ) => {
+    if (FAQS.find(f => f.id === faq.id)) {
+      updateFAQ(faq.id!, faq);
+    } else {
+      addFAQ(faq);
+    }
+    setIsFAQEditorOpen(false);
+  };
+
+  const handleDeleteFAQ = (id: string) => {
+    if (window.confirm('Voulez-vous vraiment supprimer cette question ?')) {
+      deleteFAQ(id);
+      toast.success('Question supprimée');
+    }
+  };
+
+  const { data: localRoles, updateEntity: updateLocalRole, addEntity: addLocalRole, setEntity: setLocalRole, deleteEntity: deleteLocalRole, setData: setLocalRoles, isLoading: isLoadingRoles } = useEntity<any>('admin_role', []);
+  const { data: PROMO_EVENTS, updateEntity: updateEvent, addEntity: addEvent, deleteEntity: deleteEvent } = useEntity<PromoEvent>('promo_event', INITIAL_PROMO_EVENTS);
+  const [selectedEvent, setSelectedEvent] = useState<PromoEvent | null>(null);
+  const [isEventEditorOpen, setIsEventEditorOpen] = useState(false);
+
+  const handleEditEvent = (event: PromoEvent) => {
+    setSelectedEvent(event);
+    setIsEventEditorOpen(true);
+  };
+
+  const handleSaveEvent = (event: PromoEvent) => {
+    if (PROMO_EVENTS.find(e => e.id === event.id)) {
+      updateEvent(event.id, event);
+    } else {
+      addEvent(event);
+    }
+    setIsEventEditorOpen(false);
+  };
+
+  const handleDeleteEvent = (id: string) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer cet évènement ?')) {
+      deleteEvent(id);
+      toast.success('Évènement supprimé');
+    }
+  };
+  const { data: CATEGORY_DISTRIBUTION, isLoading: isLoadingCategoryDist } = useEntity<any>('category_distribution', INITIAL_CATEGORY_DISTRIBUTION);
+  const { data: DEVICE_DATA, isLoading: isLoadingDevice } = useEntity<any>('device_data', INITIAL_DEVICE_DATA);
+  const { data: TRAFFIC_SOURCES, isLoading: isLoadingTraffic } = useEntity<any>('traffic_source', INITIAL_TRAFFIC_SOURCES);
+  const { data: RETENTION_DATA, isLoading: isLoadingRetention } = useEntity<any>('retention_data', INITIAL_RETENTION_DATA);
+  const { data: REVENUE_BY_PAYMENT, isLoading: isLoadingRevenue } = useEntity<any>('revenue_by_payment', INITIAL_REVENUE_BY_PAYMENT);
+  const { data: PACKS, updateEntity: updatePack, addEntity: addPack, deleteEntity: deletePack, setData: setLocalPacks, isLoading: isLoadingPacks } = useEntity<Pack>('pack', INITIAL_PACKS);
+  const localPacks = PACKS;
+  const { data: PUSH_NOTIFICATIONS, setData: setLocalPushNotifications, isLoading: isLoadingPush } = useEntity<any>('push_notification', INITIAL_PUSH_NOTIFICATIONS);
+  const { data: EMAILS, setData: setLocalEmails, isLoading: isLoadingEmails } = useEntity<any>('email', INITIAL_EMAILS);
+  const { data: EXPENSES, isLoading: isLoadingExpenses } = useEntity<any>('expense', INITIAL_EXPENSES);
+  const { data: LOOKBOOK_POSTS, setData: setLocalLookbook, isLoading: isLoadingLookbook } = useEntity<any>('lookbook_post', INITIAL_LOOKBOOK_POSTS);
+  const { data: BLOG_POSTS, setData: setLocalBlogPosts, isLoading: isLoadingBlog } = useEntity<any>('blog_post', INITIAL_BLOG_POSTS);
+  const { data: REVIEWS, setData: setLocalReviews, deleteEntity: deleteReview, isLoading: isLoadingReviews } = useEntity<any>('review', INITIAL_REVIEWS);
+  const { data: ABANDONED_CARTS, setData: setLocalAbandonedCarts, deleteEntity: deleteAbandonedCart, isLoading: isLoadingAbandoned } = useEntity<any>('abandoned_cart', INITIAL_ABANDONED_CARTS);
+  const { data: CUSTOMER_GROUPS, setData: setLocalCustomerGroups, deleteEntity: deleteCustomerGroup, isLoading: isLoadingGroups } = useEntity<any>('customer_group', INITIAL_CUSTOMER_GROUPS);
+  const { data: TAX_RULES, setData: setLocalTaxRules, deleteEntity: deleteTaxRule, isLoading: isLoadingTax } = useEntity<any>('tax_rule', INITIAL_TAX_RULES);
+  const { data: SHIPPING_RULES, setData: setLocalShippingRules, deleteEntity: deleteShippingRule, isLoading: isLoadingShipping } = useEntity<any>('shipping_rule', INITIAL_SHIPPING_RULES);
+  const localNavItems = NAV_ITEMS; // Use the one from useEntity
+  // const { data: CATALOG_PRICE_RULES, isLoading: isLoadingCatalog } = useEntity<any>('catalog_price_rule', INITIAL_CATALOG_PRICE_RULES); // REMOVED DUPLICATE
+  const { data: SUBSCRIBERS, setData: setLocalSubscribers, deleteEntity: deleteSubscriber, isLoading: isLoadingSubscribers } = useEntity<NewsletterSubscriber>('subscriber', INITIAL_SUBSCRIBERS);
+
+
+  const { data: localProducts, setData: setLocalProducts, updateEntity: updateProduct, addEntity: addProduct, deleteEntity: deleteProduct, isLoading: isLoadingProducts } = useEntity<Product>('product', INITIAL_PRODUCTS);
+  const localOrders = allOrders;
+  const localCategories = CATEGORIES;
+
+  const [activeTab, setActiveTab] = useState('overview');
+  const [customerDetailTab, setCustomerDetailTab] = useState<'profile' | 'orders' | 'loyalty' | 'messages'>('profile');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const [modalType, setModalType] = useState<string>('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [isEditingOrder, setIsEditingOrder] = useState(false);
+  const [editedOrder, setEditedOrder] = useState<Order | null>(null);
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<UserType | null>(null);
+  const [selectedCustomerGroup, setSelectedCustomerGroup] = useState<CustomerGroup | null>(null);
+  const [newNote, setNewNote] = useState('');
+  const [events, setEvents] = useState<PromoEvent[]>(INITIAL_PROMO_EVENTS);
+
+  useEffect(() => {
+    const autoSeed = async () => {
+      if (!db) return;
+      try {
+        // Data Migration for missing createdAt
+        const migrateCollection = async (collectionName: string) => {
+          const snapshot = await getDocs(collection(db, collectionName));
+          snapshot.docs.forEach(async (docSnap) => {
+            const data = docSnap.data();
+            if (!data.createdAt) {
+               await updateDoc(doc(db, collectionName, docSnap.id), { createdAt: new Date().toISOString() });
+               console.log(`Migrated ${collectionName}/${docSnap.id}`);
+            }
+          });
+        };
+        await migrateCollection('nav_item');
+        await migrateCollection('catalog_price_rule');
+
+        // Seed roles if empty
+        const rolesSnapshot = await getDocs(collection(db, 'admin_role'));
+        if (rolesSnapshot.empty) {
+          console.log("Seeding roles...");
+          for (const role of INITIAL_ADMIN_ROLES) {
+            await setDoc(doc(db, 'admin_role', role.id), {
+              ...role,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp()
+            });
+          }
+        }
+
+        const snapshot = await getDocs(collection(db, 'product'));
+        if (snapshot.empty) {
+          toast.info('Initialisation automatique des données en cours...');
+          setIsSaving(true);
+          await seedFirebase();
+          toast.success('Base de données initialisée avec succès !');
+          setIsSaving(false);
+        }
+      } catch (e) {
+        console.error("Auto-seed failed", e);
+        setIsSaving(false);
+      }
+    };
+    if (user) {
+      const currentUserDoc = USERS.find(u => u.id === user.uid);
+      if (currentUserDoc?.role === 'super-admin') {
+        autoSeed();
+      }
+    }
+  }, [user]);
+
+  const handleSeed = async () => {
+    if (!db) {
+      toast.error("Firebase n'est pas configuré.");
+      return;
+    }
+    try {
+      setIsSaving(true);
+      await seedFirebase();
+      toast.success('Base de données initialisée avec succès !');
+    } catch (error) {
+      console.error('Error seeding database:', error);
+      toast.error(`Erreur lors de l'initialisation de la base de données: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const { data: localSystemNotifications, setData: setLocalSystemNotifications } = useEntity<Notification>('notification', INITIAL_NOTIFICATIONS);
+  const { data: localUsers, setData: setLocalUsers, updateEntity: updateLocalUser, setEntity: setLocalUser } = useEntity<UserType>('user', INITIAL_USERS);
+  const { data: localExpenses, addEntity: addExpense, updateEntity: updateExpense, setData: setLocalExpenses } = useEntity<Expense>('expense', INITIAL_EXPENSES);
+  const { data: localLookbook, addEntity: addLookbook, updateEntity: updateLookbook, setData: setLocalLookbook2 } = useEntity<any>('lookbook_post', INITIAL_LOOKBOOK_POSTS);
+  const { data: localBlogPosts, addEntity: addBlogPost, updateEntity: updateBlogPost, setData: setLocalBlogPosts2 } = useEntity<any>('blog_post', INITIAL_BLOG_POSTS);
+  const { data: realLogs, isLoading: isLogsLoading } = useEntity<any>('log', []);
+  
+  // New Magento-like states
+  const [newRMANote, setNewRMANote] = useState('');
+  const { data: localReviews, updateEntity: updateReview, addEntity: addReview, setData: setLocalReviews2 } = useEntity<Review>('review', INITIAL_REVIEWS);
+  const { data: localRMAs, updateEntity: updateRMA, addEntity: addRMA } = useEntity<RMA>('rma', INITIAL_RMAS);
+  const { data: localAbandonedCarts, setData: setLocalAbandonedCarts2 } = useEntity<AbandonedCart>('abandoned_cart', INITIAL_ABANDONED_CARTS);
+  const { data: localCustomerGroups, addEntity: addCustomerGroup, updateEntity: updateCustomerGroup, setData: setLocalCustomerGroups2 } = useEntity<CustomerGroup>('customer_group', INITIAL_CUSTOMER_GROUPS);
+  const { data: localTaxRules, addEntity: addTaxRule, updateEntity: updateTaxRule, setData: setLocalTaxRules2 } = useEntity<TaxRule>('tax_rule', INITIAL_TAX_RULES);
+  const { data: localShippingRules, addEntity: addShippingRule, updateEntity: updateShippingRule, setData: setLocalShippingRules2 } = useEntity<ShippingRule>('shipping_rule', INITIAL_SHIPPING_RULES);
+  const { data: localCurrencies, addEntity: addCurrency, updateEntity: updateCurrency, deleteEntity: deleteCurrency, setData: setLocalCurrencies } = useEntity<Currency>('currency', INITIAL_CURRENCIES);
+  const { data: localCatalogPriceRules, updateEntity: updateCatalogRule, addEntity: addCatalogRule, deleteEntity: deleteCatalogRule, isLoading: isLoadingCatalog } = useEntity<CatalogPriceRule>('catalog_price_rule', INITIAL_CATALOG_PRICE_RULES);                
+  const [selectedCatalogRule, setSelectedCatalogRule] = useState<CatalogPriceRule | null>(null);
+  const [isCatalogRuleEditorOpen, setIsCatalogRuleEditorOpen] = useState(false);
+
+  // Fallbacks for data to ensure fields exist
+  const navItemsWithDefaults = useMemo(() => {
+    const data = NAV_ITEMS;
+    return data.map(item => ({
+      ...item,
+      order: item.order ?? 1,
+      status: item.status ?? 'active',
+      createdAt: item.createdAt || new Date().toISOString()
+    }));
+  }, [NAV_ITEMS]);
+  
+  const catalogRulesWithDefaults = useMemo(() => {
+    const data = localCatalogPriceRules;
+    return data.map(rule => ({
+      ...rule,
+      createdAt: rule.createdAt || new Date().toISOString()
+    }));
+  }, [localCatalogPriceRules]);
+
+  const handleEditCatalogRule = (rule: CatalogPriceRule) => {
+    setSelectedCatalogRule(rule);
+    setIsCatalogRuleEditorOpen(true);
+  };
+
+  const handleSaveCatalogRule = (rule: CatalogPriceRule) => {
+    if (localCatalogPriceRules.find(r => r.id === rule.id)) {
+      updateCatalogRule(rule.id, rule);
+    } else {
+      addCatalogRule(rule);
+    }
+    setIsCatalogRuleEditorOpen(false);
+  };
+
+  const handleDeleteCatalogRule = (id: string) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer cette règle de prix ?')) {
+      deleteCatalogRule(id);
+      toast.success('Règle de prix supprimée');
+    }
+  };
+
+  const [selectedPackProducts, setSelectedPackProducts] = useState<{productId: string, quantity: number}[]>([]);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+
+  // Index items for Lucene-like search in Admin Dashboard
+  useEffect(() => {
+    if (localProducts.length > 0) productSearch.indexItems(localProducts);
+    if (localOrders.length > 0) orderSearch.indexItems(localOrders);
+    if (localUsers.length > 0) userSearch.indexItems(localUsers);
+  }, [localProducts, localOrders, localUsers]);
+
+  useEffect(() => {
+    if (editingItem && modalType === 'pack') {
+        setSelectedPackProducts(editingItem.products || []);
+    } else {
+        setSelectedPackProducts([]);
+    }
+  }, [editingItem, modalType]);
+
+  useEffect(() => {
+    if (editingItem && (modalType === 'category' || activeTab === 'product-edit')) {
+      setCurrentSlug(editingItem.slug || '');
+      setCurrentImage(editingItem.image || '');
+    } else {
+      setCurrentSlug('');
+      setCurrentImage('');
+    }
+  }, [editingItem, modalType, activeTab]);
+
+  // Filter states
+  const handleFormSubmit = createAdminFormSubmitHandler(() => dashboardContext);
+  const [orderFilter, setOrderFilter] = useState('all');
+  const [productFilter, setProductFilter] = useState('all');
+  const [customerFilter, setCustomerFilter] = useState('all');
+  const [notificationFilter, setNotificationFilter] = useState('all');
+  const [reviewFilter, setReviewFilter] = useState('all');
+  const [logFilter, setLogFilter] = useState('all');
+  const [requestLogFilter, setRequestLogFilter] = useState('all');
+  const [messageInput, setMessageInput] = useState('');
+  const [currentSlug, setCurrentSlug] = useState('');
+  const [currentImage, setCurrentImage] = useState('');
+  const [viewingCustomer, setViewingCustomer] = useState<UserType | null>(null);
+
+  const handleNotificationClick = (notification: Notification) => {
+    // Mark as read
+    setLocalSystemNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, read: true } : n));
+    
+    // Redirect based on type
+    if (notification.type === 'order') {
+        if (notification.relatedId) {
+            const order = localOrders.find(o => o.id === notification.relatedId);
+            if (order) {
+                setSelectedOrder(order);
+                setActiveTab('order-detail');
+            } else {
+                setActiveTab('orders');
+            }
+        } else {
+            setActiveTab('orders');
+        }
+    } else if (notification.type === 'stock') {
+        if (notification.relatedId) {
+            onNavigate('admin-product-detail', notification.relatedId);
+        } else {
+            setActiveTab('inventory');
+        }
+    } else if (notification.type === 'inquiry') {
+        setActiveTab('messages');
+        if (notification.relatedId) {
+            const conv = CONVERSATIONS.find(c => c.userId === notification.relatedId);
+            if (conv) {
+                setSelectedConversation(conv);
+            }
+        }
+    } else if (notification.type === 'customer') {
+        if (notification.relatedId) {
+            const customer = USERS.find(u => u.id === notification.relatedId);
+            if (customer) {
+                setSelectedCustomer(customer);
+                setActiveTab('customers');
+            } else {
+                setActiveTab('customers');
+            }
+        } else {
+            setActiveTab('customers');
+        }
+    }
+  };
+
+  useEffect(() => {
+    const handleClientMessage = (event: CustomEvent) => {
+      const msg = event.detail;
+      if (selectedConversation && selectedConversation.userId === msg.senderId) {
+        setSelectedConversation(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            messages: [...prev.messages, msg],
+            lastMessage: msg.message,
+            timestamp: msg.timestamp
+          };
+        });
+      }
+    };
+    window.addEventListener('client-message', handleClientMessage as any);
+    return () => window.removeEventListener('client-message', handleClientMessage as any);
+  }, [selectedConversation]);
+
+  const handleSendMessage = () => {
+    if (!messageInput.trim() || !selectedConversation) return;
+
+    const newMessage: ChatMessage = {
+      id: `m${Date.now()}`,
+      senderId: 'u2', // Admin ID
+      senderName: 'Admin Laine',
+      message: messageInput,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isAdmin: true
+    };
+
+    setSelectedConversation(prev => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        messages: [...prev.messages, newMessage],
+        lastMessage: messageInput,
+        timestamp: 'À l\'instant'
+      };
+    });
+
+    // Dispatch event for client to see
+    window.dispatchEvent(new CustomEvent('admin-message', { detail: newMessage }));
+
+    setMessageInput('');
+    toast.success('Message envoyé');
+  };
+  const [categoryPage, setCategoryPage] = useState(1);
+  const [notificationPage, setNotificationPage] = useState(1);
+  const itemsPerPage = 5;
+  const [overviewOrderFilter, setOverviewOrderFilter] = useState('all');
+
+  const totalSales = ORDERS.reduce((sum, o) => sum + (o.total || 0), 0);
+  const totalOrdersCount = ORDERS.length;
+  const totalCustomers = localUsers.length;
+  const totalVisitors = ANALYTICS.find(a => a.id === 'visitors')?.count || 0;
+  const averageOrderValue = totalOrdersCount > 0 ? Math.round(totalSales / totalOrdersCount) : 0;
+
+  const stats = [
+    { label: 'Ventes Totales', value: `${totalSales.toLocaleString('fr-FR')} FCFA`, change: '+12.5%', isUp: true, icon: <TrendingUp size={20} /> },
+    { label: 'Commandes', value: totalOrdersCount.toString(), change: '+5.2%', isUp: true, icon: <ShoppingBag size={20} /> },
+    { label: 'Visiteurs Unique', value: totalVisitors.toLocaleString('fr-FR'), change: '+18.4%', isUp: true, icon: <Users size={20} /> },
+    { label: 'Panier Moyen', value: `${averageOrderValue.toLocaleString('fr-FR')} FCFA`, change: '+8.1%', isUp: true, icon: <BarChart3 size={20} /> },
+  ];
+
+  const menuItems = getAdminMenuItems();
+
+  const currentUserDoc = USERS.find(u => u.id === user?.uid);
+  const userRoleSlug = currentUserDoc?.role || 'customer';
+  
+  const roleData = localRoles.find((r: any) => 
+    (r.slug || r.id) === userRoleSlug
+  );
+  
+  const permissions = roleData?.permissions || [];
+  const isSuperAdmin = userRoleSlug === 'super-admin' || permissions.includes('all');
+
+  const hasPermission = (permission?: string) => {
+    if (isSuperAdmin) return true;
+    if (!permission) return true;
+    if (permission === 'super-admin') return isSuperAdmin;
+    return permissions.includes(permission);
+  };
+
+  const filteredMenuItems = menuItems.filter(item => {
+    if (item.isHeader) {
+      const index = menuItems.indexOf(item);
+      let hasPermittedChild = false;
+      for (let i = index + 1; i < menuItems.length; i++) {
+        if (menuItems[i].isHeader) break;
+        if (hasPermission(menuItems[i].permission)) {
+          hasPermittedChild = true;
+          break;
+        }
+      }
+      return hasPermittedChild;
+    }
+    return hasPermission(item.permission);
+  });
+
+  const activeMenuItem = menuItems.find(item => item.id === activeTab);
+  const isTabAllowed = activeMenuItem ? hasPermission(activeMenuItem.permission) : true;
+  const isUserCustomer = userRoleSlug === 'customer';
+
+  const isDataLoading = isLoadingOrders || isLoadingProducts || isLoadingCategories || isLoadingRoles;
+
+  // Redirection automatique vers le premier onglet autorisé si l'onglet actuel est interdit
+  useEffect(() => {
+    if (!isDataLoading && !isTabAllowed && filteredMenuItems.length > 0) {
+      const firstAllowedTab = filteredMenuItems.find(item => !item.isHeader);
+      if (firstAllowedTab) {
+        setActiveTab(firstAllowedTab.id);
+      }
+    }
+  }, [isTabAllowed, filteredMenuItems, isDataLoading, activeTab]);
+
+  const handleSearch = (query: string) => {
+    if (!query) return;
+
+    const matchedOrders = orderSearch.search(query);
+    const matchedProducts = productSearch.search(query);
+    const matchedUsers = userSearch.search(query);
+
+    const totalMatches = matchedOrders.length + matchedProducts.length + matchedUsers.length;
+
+    if (totalMatches === 0) {
+      setSearchResults([]);
+      setActiveTab('search-results');
+      toast.info("Aucun résultat trouvé");
+      return;
+    }
+
+    // If exactly one match across all types, navigate directly
+    if (totalMatches === 1) {
+      if (matchedOrders.length === 1) {
+        setSelectedOrder(matchedOrders[0]);
+        setActiveTab('order-detail');
+        toast.success(`Commande ${matchedOrders[0].id} trouvée`);
+        return;
+      }
+      if (matchedUsers.length === 1) {
+        setActiveTab('customers');
+        setSelectedCustomer(matchedUsers[0]);
+        toast.success(`Client trouvé: ${matchedUsers[0].name}`);
+        return;
+      }
+      if (matchedProducts.length === 1) {
+        setSearchResults(matchedProducts.map(p => ({ ...p, _searchType: 'product' })));
+        setActiveTab('search-results');
+        toast.success(`Produit trouvé: ${matchedProducts[0].name}`);
+        return;
+      }
+    }
+
+    // Multiple matches or multiple products, show unified results
+    const allResults = [
+      ...matchedProducts.map(p => ({ ...p, _searchType: 'product' })),
+      ...matchedOrders.map(o => ({ ...o, _searchType: 'order' })),
+      ...matchedUsers.map(u => ({ ...u, _searchType: 'user' }))
+    ];
+
+    setSearchResults(allResults);
+    setActiveTab('search-results');
+    toast.success(`${allResults.length} résultat(s) trouvé(s)`);
+  };
+
+  const dashboardContext = {
+    ABANDONED_CARTS,
+    ANALYTICS,
+    BLOG_POSTS,
+    CATEGORIES,
+    CATEGORY_DISTRIBUTION,
+    CHAT_MESSAGES,
+    CITIES,
+    CONVERSATIONS,
+    COUPONS,
+    CUSTOMER_GROUPS,
+    DEVICE_DATA,
+    EMAILS,
+    EXPENSES,
+    FAQS,
+    LOGIN_LOGS,
+    LOOKBOOK_POSTS,
+    NAV_ITEMS,
+    NOTIFICATIONS,
+    ORDERS,
+    PACKS,
+    PRODUCTS,
+    PROMO_EVENTS,
+    PUSH_NOTIFICATIONS,
+    REQUEST_LOGS,
+    RETENTION_DATA,
+    REVENUE_BY_PAYMENT,
+    REVIEWS,
+    SALES_DATA,
+    SHIPPING_RULES,
+    SUBSCRIBERS,
+    TAX_RULES,
+    TRAFFIC_SOURCES,
+    USERS,
+    activeMenuItem,
+    activeTab,
+    addBlogPost,
+    addCatalogRule,
+    addCategory,
+    addCity,
+    addCoupon,
+    addCurrency,
+    addCustomerGroup,
+    addEvent,
+    addExpense,
+    addFAQ,
+    addLocalRole,
+    addLookbook,
+    addNavItem,
+    addPack,
+    addProduct,
+    addRMA,
+    addReview,
+    addShippingRule,
+    addTaxRule,
+    allOrders,
+    averageOrderValue,
+    catalogRulesWithDefaults,
+    categoryPage,
+    currentImage,
+    currentSlug,
+    currentUserDoc,
+    customerDetailTab,
+    customerFilter,
+    deleteAbandonedCart,
+    deleteCatalogRule,
+    deleteCategory,
+    deleteChatMessage,
+    deleteCity,
+    deleteConversation,
+    deleteCoupon,
+    deleteCurrency,
+    deleteCustomerGroup,
+    deleteEvent,
+    deleteFAQ,
+    deleteLocalRole,
+    deleteLoginLog,
+    deleteNavItem,
+    deleteNotification,
+    deleteOrder,
+    deletePack,
+    deleteProduct,
+    deleteRequestLog,
+    deleteReview,
+    deleteShippingRule,
+    deleteSiteConfig,
+    deleteSubscriber,
+    deleteTaxRule,
+    deleteUser,
+    editedOrder,
+    editingItem,
+    events,
+    fetchedProducts,
+    filteredMenuItems,
+    formatDate,
+    handleDeleteCatalogRule,
+    handleDeleteCity,
+    handleDeleteEvent,
+    handleDeleteFAQ,
+    handleEditCatalogRule,
+    handleEditCity,
+    handleEditCoupon,
+    handleEditEvent,
+    handleEditFAQ,
+    handleFormSubmit,
+    handleNotificationClick,
+    handleSaveCatalogRule,
+    handleSaveCity,
+    handleSaveCoupon,
+    handleSaveEvent,
+    handleSaveFAQ,
+    handleSearch,
+    handleSeed,
+    handleSendMessage,
+    hasPermission,
+    isAddModalOpen,
+    isAuthLoading,
+    isCatalogRuleEditorOpen,
+    isCityEditorOpen,
+    isCouponEditorOpen,
+    isDataLoading,
+    isEditingOrder,
+    isEventEditorOpen,
+    isFAQEditorOpen,
+    isLoadingAbandoned,
+    isLoadingBlog,
+    isLoadingCatalog,
+    isLoadingCategories,
+    isLoadingCategoryDist,
+    isLoadingDevice,
+    isLoadingEmails,
+    isLoadingExpenses,
+    isLoadingGroups,
+    isLoadingLookbook,
+    isLoadingOrders,
+    isLoadingPacks,
+    isLoadingProducts,
+    isLoadingPush,
+    isLoadingRetention,
+    isLoadingRevenue,
+    isLoadingReviews,
+    isLoadingRoles,
+    isLoadingShipping,
+    isLoadingSubscribers,
+    isLoadingTax,
+    isLoadingTraffic,
+    isLogsLoading,
+    isSaving,
+    isSidebarOpen,
+    isSuperAdmin,
+    isTabAllowed,
+    isUserCustomer,
+    itemsPerPage,
+    localAbandonedCarts,
+    localBlogPosts,
+    localCatalogPriceRules,
+    localCategories,
+    localCurrencies,
+    localCustomerGroups,
+    localExpenses,
+    localLookbook,
+    localNavItems,
+    localOrders,
+    localPacks,
+    localProducts,
+    localRMAs,
+    localReviews,
+    localRoles,
+    localShippingRules,
+    localSystemNotifications,
+    localTaxRules,
+    localUsers,
+    logFilter,
+    menuItems,
+    messageInput,
+    modalType,
+    navItemsWithDefaults,
+    newNote,
+    newRMANote,
+    notificationFilter,
+    notificationPage,
+    onNavigate,
+    orderFilter,
+    overviewOrderFilter,
+    permissions,
+    productFilter,
+    propSetSiteConfig,
+    propSiteConfig,
+    rawSiteConfig,
+    realLogs,
+    requestLogFilter,
+    reviewFilter,
+    roleData,
+    saveAllSiteConfig,
+    saveSiteSection,
+    searchResults,
+    selectedCatalogRule,
+    selectedCity,
+    selectedConversation,
+    selectedCoupon,
+    selectedCustomer,
+    selectedCustomerGroup,
+    selectedEvent,
+    selectedFAQ,
+    selectedOrder,
+    selectedPackProducts,
+    setActiveTab,
+    setCategoryPage,
+    setCurrentImage,
+    setCurrentSlug,
+    setCustomerDetailTab,
+    setCustomerFilter,
+    setEditedOrder,
+    setEditingItem,
+    setEvents,
+    setIsAddModalOpen,
+    setIsCatalogRuleEditorOpen,
+    setIsCityEditorOpen,
+    setIsCouponEditorOpen,
+    setIsEditingOrder,
+    setIsEventEditorOpen,
+    setIsFAQEditorOpen,
+    setIsSaving,
+    setIsSidebarOpen,
+    setLocalAbandonedCarts,
+    setLocalAbandonedCarts2,
+    setLocalBlogPosts,
+    setLocalBlogPosts2,
+    setLocalCategories,
+    setLocalCurrencies,
+    setLocalCustomerGroups,
+    setLocalCustomerGroups2,
+    setLocalEmails,
+    setLocalExpenses,
+    setLocalLookbook,
+    setLocalLookbook2,
+    setLocalOrders,
+    setLocalPacks,
+    setLocalProducts,
+    setLocalPushNotifications,
+    setLocalReviews,
+    setLocalReviews2,
+    setLocalRole,
+    setLocalRoles,
+    setLocalShippingRules,
+    setLocalShippingRules2,
+    setLocalSubscribers,
+    setLocalSystemNotifications,
+    setLocalTaxRules,
+    setLocalTaxRules2,
+    setLocalUser,
+    setLocalUsers,
+    setLogFilter,
+    setMessageInput,
+    setModalType,
+    setNewNote,
+    setNewRMANote,
+    setNotificationFilter,
+    setNotificationPage,
+    setOrderFilter,
+    setOverviewOrderFilter,
+    setProductFilter,
+    setRequestLogFilter,
+    setReviewFilter,
+    setSearchResults,
+    setSelectedCatalogRule,
+    setSelectedCity,
+    setSelectedConversation,
+    setSelectedCoupon,
+    setSelectedCustomer,
+    setSelectedCustomerGroup,
+    setSelectedEvent,
+    setSelectedFAQ,
+    setSelectedOrder,
+    setSelectedPackProducts,
+    setShowNotifications,
+    setSiteConfig,
+    setViewingCustomer,
+    showNotifications,
+    siteConfig,
+    siteConfigs,
+    sortByDate,
+    stats,
+    totalCustomers,
+    totalOrdersCount,
+    totalSales,
+    totalVisitors,
+    updateBlogPost,
+    updateCatalogRule,
+    updateCategory,
+    updateCity,
+    updateCoupon,
+    updateCurrency,
+    updateCustomerGroup,
+    updateEvent,
+    updateExpense,
+    updateFAQ,
+    updateLocalRole,
+    updateLocalUser,
+    updateLookbook,
+    updateNavItem,
+    updatePack,
+    updateProduct,
+    updateRMA,
+    updateReview,
+    updateShippingRule,
+    updateSiteConfig,
+    updateTaxRule,
+    user,
+    userRoleSlug,
+    viewingCustomer
+  };
+
+  return dashboardContext;
+}

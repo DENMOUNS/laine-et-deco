@@ -32,7 +32,7 @@ export const FAQEditor: React.FC<FAQEditorProps> = ({ faq, onSave, onClose }) =>
   const categories = ['Livraison', 'Commandes', 'Paiements', 'Produits', 'Sur Mesure'];
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] overflow-y-auto flex min-h-screen items-start sm:items-center justify-center p-4">
       <div className="bg-white rounded-[2rem] w-full max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
         <div className="p-6 md:p-8 flex justify-between items-center border-b border-slate-100">
           <h2 className="text-2xl font-serif text-primary">

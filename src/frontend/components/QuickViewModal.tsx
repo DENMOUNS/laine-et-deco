@@ -16,7 +16,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
     <AnimatePresence>
       {product && (
         <div className="fixed inset-0 z-[100] overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4 text-center">
+          <div className="flex min-h-screen items-start sm:items-center justify-center p-4 text-center">
             <motion.div
               key="backdrop"
               initial={{ opacity: 0 }}
@@ -30,7 +30,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative bg-white w-full max-w-4xl rounded-[2rem] md:rounded-[3rem] shadow-2xl flex flex-col md:flex-row text-left overflow-hidden my-8"
+              className="relative bg-white w-full max-w-4xl max-h-[95vh] rounded-[2rem] md:rounded-[3rem] shadow-2xl flex flex-col md:flex-row text-left overflow-hidden my-8"
             >
               <Button 
                 variant="ghost"

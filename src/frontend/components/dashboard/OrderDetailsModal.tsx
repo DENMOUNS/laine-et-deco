@@ -5,6 +5,7 @@ import { Order, Product } from '../../../types';
 import { generateInvoicePDF } from '../../utils/invoiceUtils';
 import { toast } from 'sonner';
 import { Button } from '../ui/Button';
+import { StatusBadge } from '../ui/StatusBadge';
 import { OrderMap } from '../OrderMap';
 
 interface OrderDetailsModalProps {
@@ -41,7 +42,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] overflow-y-auto flex min-h-screen items-start sm:items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -121,11 +122,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                 </div>
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-primary/70 mb-2">Statut</p>
-                  <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
-                    selectedOrder.status === 'delivered' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
-                  }`}>
-                    {selectedOrder.status}
-                  </span>
+                  <StatusBadge status={selectedOrder.status} />
                 </div>
               </div>
 

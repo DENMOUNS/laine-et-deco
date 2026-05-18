@@ -4,7 +4,6 @@ import * as constants from '../../constants';
 
 export const seedFirebase = async () => {
   if (!db) {
-    console.warn("Firebase db is not initialized. Cannot seed database.");
     return;
   }
   const collectionsToSeed = [
@@ -40,10 +39,8 @@ export const seedFirebase = async () => {
 
   for (const col of collectionsToSeed) {
     try {
-      console.log(`Checking collection: ${col.name}`);
       const snapshot = await getDocs(collection(db, col.name));
       if (snapshot.empty) {
-        console.log(`Seeding collection: ${col.name}`);
         const batch = writeBatch(db);
         col.data.forEach((item: any) => {
           try {
@@ -54,15 +51,12 @@ export const seedFirebase = async () => {
               updatedAt: serverTimestamp()
             });
           } catch (err) {
-            console.error(`Error creating docRef for item in ${col.name}:`, item, err);
             throw err;
           }
         });
         await batch.commit();
-        console.log(`Successfully seeded ${col.name}`);
       }
     } catch (err) {
-      console.error(`Error processing collection ${col.name}:`, err);
       throw err;
     }
   }

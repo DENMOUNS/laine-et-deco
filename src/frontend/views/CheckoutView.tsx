@@ -216,7 +216,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
             uid: user.uid,
             name: `${formData.firstName} ${formData.lastName}`.trim() || user.displayName || 'Utilisateur',
             email: user.email,
-            role: user.email === 'landrymoutongo97@gmail.com' ? 'admin' : 'customer',
+            role: 'customer',
             points: pointsEarned,
             orders: 1,
             joinDate: new Date().toISOString().split('T')[0],

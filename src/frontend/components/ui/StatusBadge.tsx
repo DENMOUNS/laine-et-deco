@@ -5,6 +5,8 @@ import { cn } from '../../utils/utils';
 interface StatusBadgeProps {
   status: string;
   className?: string;
+  onClick?: React.MouseEventHandler<HTMLButtonElement | HTMLSpanElement>;
+  as?: 'span' | 'button';
 }
 
 /**
@@ -21,6 +23,7 @@ export const STATUS_CONFIG: Record<string, { bg: string, text: string, label: st
   'shipped': { bg: 'bg-sky-100', text: 'text-sky-900', label: 'EXPÉDIÉ' },
   'livré': { bg: 'bg-emerald-100', text: 'text-emerald-900', label: 'LIVRÉ' },
   'delivered': { bg: 'bg-emerald-100', text: 'text-emerald-900', label: 'LIVRÉ' },
+  'completed': { bg: 'bg-emerald-100', text: 'text-emerald-900', label: 'TERMINÉ' },
   'annulé': { bg: 'bg-rose-100', text: 'text-rose-900', label: 'ANNULÉ' },
   'cancelled': { bg: 'bg-rose-100', text: 'text-rose-900', label: 'ANNULÉ' },
   
@@ -37,6 +40,14 @@ export const STATUS_CONFIG: Record<string, { bg: string, text: string, label: st
   'sent': { bg: 'bg-emerald-100', text: 'text-emerald-900', label: 'ENVOYÉ' },
   'scheduled': { bg: 'bg-indigo-100', text: 'text-indigo-900', label: 'PLANIFIÉ' },
   'unsubscribed': { bg: 'bg-rose-100', text: 'text-rose-900', label: 'DÉSABONNÉ' },
+  'paid': { bg: 'bg-emerald-100', text: 'text-emerald-900', label: 'PAYÉ' },
+  'unpaid': { bg: 'bg-amber-100', text: 'text-amber-900', label: 'EN ATTENTE' },
+  'in-progress': { bg: 'bg-indigo-100', text: 'text-indigo-900', label: 'EN COURS' },
+  'expired': { bg: 'bg-rose-100', text: 'text-rose-900', label: 'EXPIRÉ' },
+  'used': { bg: 'bg-slate-100', text: 'text-slate-900', label: 'UTILISÉ' },
+  'abandoned': { bg: 'bg-amber-100', text: 'text-amber-900', label: 'ABANDONNÉ' },
+  'recovered': { bg: 'bg-emerald-100', text: 'text-emerald-900', label: 'RÉCUPÉRÉ' },
+  'reminded': { bg: 'bg-sky-100', text: 'text-sky-900', label: 'RELANCÉ' },
   
   // RMA statuses
   'approved': { bg: 'bg-indigo-100', text: 'text-indigo-900', label: 'APPROUVÉ' },
@@ -55,7 +66,6 @@ export const StatusColor = {
     if (config) {
       return cn(config.bg, config.text, 'border-current/10 font-black shadow-sm ring-1 ring-inset ring-current/5');
     }
-    console.log('Status not found:', status);
     return 'bg-slate-100 text-slate-900 border-slate-200 font-black';
   },
   getLabel: (status: string) => {
@@ -66,17 +76,23 @@ export const StatusColor = {
 
 export const getStatusStyles = StatusColor.getStyle;
 
-export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className }) => {
+export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className, onClick, as }) => {
   const styles = StatusColor.getStyle(status);
   const label = StatusColor.getLabel(status);
+  const Component = as === 'button' || onClick ? 'button' : 'span';
 
   return (
-    <span className={cn(
-      "px-3 py-1 rounded-full text-[10px] uppercase font-black border transition-all duration-300",
-      styles,
-      className
-    )}>
+    <Component
+      type={Component === 'button' ? 'button' : undefined}
+      onClick={onClick}
+      className={cn(
+        "px-3 py-1 rounded-full text-[10px] uppercase font-black border transition-all duration-300",
+        styles,
+        onClick && 'cursor-pointer',
+        className
+      )}
+    >
       {label}
-    </span>
+    </Component>
   );
 };
