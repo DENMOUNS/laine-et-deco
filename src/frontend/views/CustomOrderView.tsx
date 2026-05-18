@@ -39,7 +39,7 @@ export const CustomOrderView: React.FC = () => {
       const fullDescription = `Idée / Projet:\n${idea}\n\nMatériaux:\n${materials}\n\nDimensions:\n${dimensions || 'Non précisées'}`;
       
       if (db && user) {
-        await addDoc(collection(db, 'custom_order'), {
+        await addDoc(collection(db, 'order'), {
           userId: user.uid,
           customer: name.trim() || (user.displayName || 'Client'),
           customerName: name.trim() || (user.displayName || 'Client'),
@@ -49,6 +49,11 @@ export const CustomOrderView: React.FC = () => {
           description: fullDescription,
           status: 'pending',
           type: 'custom',
+          materials: materials,
+          dimensions: dimensions,
+          total: 0,
+          items: [],
+          date: new Date().toISOString(),
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         });

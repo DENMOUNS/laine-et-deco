@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { toast as sonnerToast } from 'sonner';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Product, SiteConfig, PromoEvent, CartItem, Pack } from '../../types';
@@ -22,7 +22,24 @@ export const useAppLogic = () => {
   const { products: fetchedProducts } = useProducts();
   const PRODUCTS = fetchedProducts.length > 0 ? fetchedProducts : INITIAL_PRODUCTS;
   const { data: PACKS } = useEntity<any>('pack', INITIAL_PACKS);
-  const { data: navItems } = useEntity<any>('nav_item', NAV_ITEMS);
+  const { data: rawNavItems } = useEntity<any>('nav_item', NAV_ITEMS);
+  const navItems = useMemo(() => {
+    let items = [...rawNavItems];
+    
+    // Fix legacy name for 'about'
+    const aboutItem = items.find(i => i.view === 'about');
+    if (aboutItem && aboutItem.name === 'Notre Équipe') {
+      aboutItem.name = 'À propos';
+    }
+
+    // Ensure 'team' exists in sidebar
+    if (!items.find(i => i.view === 'team')) {
+      items.push({ id: 'nav-11-5', name: 'Équipe', view: 'team', order: 11.5, status: 'active', position: 'side', createdAt: '2024-01-01T00:00:00Z' });
+    }
+    
+    return items;
+  }, [rawNavItems]);
+
   
   const [user, setUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
@@ -198,18 +215,16 @@ export const useAppLogic = () => {
 
   // SEO & Meta Tags
   useEffect(() => {
-    if (currentView === 'home') {
-      updateSEOMeta(siteConfig.seo.home.title, siteConfig.seo.home.description, siteConfig.seo.home.ogImage);
-    } else if (currentView === 'shop') {
-      updateSEOMeta(siteConfig.seo.shop.title, siteConfig.seo.shop.description, siteConfig.seo.shop.ogImage);
-    } else if (currentView === 'contact') {
-      updateSEOMeta(siteConfig.seo.contact.title, siteConfig.seo.contact.description, siteConfig.seo.contact.ogImage);
-    } else if (currentView === 'about') {
-      updateSEOMeta(siteConfig.seo.about.title, siteConfig.seo.about.description, siteConfig.seo.about.ogImage);
-    } else if (currentView === 'product-detail' && selectedProduct) {
+    if (currentView === 'product-detail' && selectedProduct) {
       const title = selectedProduct.seo?.title || `${selectedProduct.name} - Laine et Déco`;
       const desc = selectedProduct.seo?.description || selectedProduct.description;
       updateSEOMeta(title, desc, selectedProduct.image);
+      return;
+    }
+
+    const seoConfig = (siteConfig.seo as any)[currentView] || siteConfig.seo.home;
+    if (seoConfig) {
+      updateSEOMeta(seoConfig.title, seoConfig.description, seoConfig.ogImage);
     }
   }, [currentView, selectedProduct, siteConfig]);
 

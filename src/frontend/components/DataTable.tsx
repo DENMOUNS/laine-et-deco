@@ -373,7 +373,7 @@ export function DataTable<T extends { id?: string | number }>({
               {paginatedData.map((item, i) => (
                 <motion.tr
                   layout
-                  key={item.id || i}
+                  key={`${item.id || i}-${i}`}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
@@ -404,9 +404,7 @@ export function DataTable<T extends { id?: string | number }>({
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (window.confirm('Voulez-vous vraiment supprimer cet élément ?')) {
-                            onDelete(item);
-                          }
+                          onDelete(item);
                         }}
                         className="rounded-xl p-2 text-red-500 hover:text-red-600 hover:bg-red-50 border-red-100"
                       >

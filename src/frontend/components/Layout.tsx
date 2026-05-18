@@ -298,12 +298,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                     </button>
                   ))}
                   
-                  <button
-                    onClick={() => { onNavigate('faq'); setIsMenuOpen(false); }}
-                    className="text-sm font-medium text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 hover:text-accent transition-colors text-white border border-white/5"
-                  >
-                    Foire Aux Questions (FAQ)
-                  </button>
                 </div>
 
                 <hr className="border-white/10 my-6" />

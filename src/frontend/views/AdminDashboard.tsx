@@ -81,6 +81,7 @@ import { useProducts } from '../hooks/useProducts';
 
 import { AdminFlashSales } from './admin/AdminFlashSales';
 import { AdminLookbooks } from './admin/AdminLookbooks';
+import { AdminPortfolios } from './admin/AdminPortfolios';
 
 const formatDate = (date: any) => {
   if (!date) return 'N/A';
@@ -184,22 +185,9 @@ interface AdminDashboardProps {
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, siteConfig: propSiteConfig, setSiteConfig: propSetSiteConfig, user, isAuthLoading }) => {
   const { data: ORDERS, setData: setLocalOrders, deleteEntity: deleteOrder, isLoading: isLoadingOrders } = useEntity<Order>('order', INITIAL_ORDERS);
-  const { data: CUSTOM_ORDERS } = useEntity<any>('custom_order', []);
   const allOrders = useMemo(() => {
-    const combined = [...ORDERS];
-    CUSTOM_ORDERS.forEach(co => {
-      if (!combined.find(o => o.id === co.id)) {
-        combined.push({
-          ...co,
-          total: co.total || 0,
-          date: co.date || (co.createdAt ? formatDate(co.createdAt).split(' ')[0] : 'N/A'),
-          items: co.items || 0,
-          customer: co.customer || co.userName || 'Client Sur Mesure'
-        } as Order);
-      }
-    });
-    return combined;
-  }, [ORDERS, CUSTOM_ORDERS]);
+    return ORDERS;
+  }, [ORDERS]);
 
   const { products: fetchedProducts } = useProducts();
   const PRODUCTS = fetchedProducts.length > 0 ? fetchedProducts : INITIAL_PRODUCTS;
@@ -341,7 +329,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
     }
   };
 
-  const { data: ADMIN_ROLES } = useEntity<any>('admin_role', INITIAL_ADMIN_ROLES);
+  const { data: localRoles, updateEntity: updateLocalRole, addEntity: addLocalRole, setEntity: setLocalRole, deleteEntity: deleteLocalRole, setData: setLocalRoles, isLoading: isLoadingRoles } = useEntity<any>('admin_role', []);
   const { data: PROMO_EVENTS, updateEntity: updateEvent, addEntity: addEvent, deleteEntity: deleteEvent } = useEntity<PromoEvent>('promo_event', INITIAL_PROMO_EVENTS);
   const [selectedEvent, setSelectedEvent] = useState<PromoEvent | null>(null);
   const [isEventEditorOpen, setIsEventEditorOpen] = useState(false);
@@ -388,15 +376,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
   // const { data: CATALOG_PRICE_RULES, isLoading: isLoadingCatalog } = useEntity<any>('catalog_price_rule', INITIAL_CATALOG_PRICE_RULES); // REMOVED DUPLICATE
   const { data: SUBSCRIBERS, setData: setLocalSubscribers, deleteEntity: deleteSubscriber, isLoading: isLoadingSubscribers } = useEntity<NewsletterSubscriber>('subscriber', INITIAL_SUBSCRIBERS);
 
-  useEffect(() => {
-    // Self-healing: if current user is the super admin but their document doesn't say admin, fix it
-    if (user && user.email === 'landrymoutongo97@gmail.com') {
-      const myUserDoc = USERS.find(u => u.id === user.uid);
-      if (myUserDoc && myUserDoc.role !== 'admin') {
-        updateDoc(doc(db, 'user', user.uid), { role: 'admin' }).catch((err: any) => console.error("Self-heal error:", err));
-      }
-    }
-  }, [user, USERS]);
 
   const { data: localProducts, setData: setLocalProducts, updateEntity: updateProduct, addEntity: addProduct, deleteEntity: deleteProduct, isLoading: isLoadingProducts } = useEntity<Product>('product', INITIAL_PRODUCTS);
   const localOrders = allOrders;
@@ -437,6 +416,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
         await migrateCollection('nav_item');
         await migrateCollection('catalog_price_rule');
 
+        // Seed roles if empty
+        const rolesSnapshot = await getDocs(collection(db, 'admin_role'));
+        if (rolesSnapshot.empty) {
+          console.log("Seeding roles...");
+          for (const role of INITIAL_ADMIN_ROLES) {
+            await setDoc(doc(db, 'admin_role', role.id), {
+              ...role,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp()
+            });
+          }
+        }
+
         const snapshot = await getDocs(collection(db, 'product'));
         if (snapshot.empty) {
           toast.info('Initialisation automatique des données en cours...');
@@ -474,7 +466,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
 
   const { data: localSystemNotifications, setData: setLocalSystemNotifications } = useEntity<Notification>('notification', INITIAL_NOTIFICATIONS);
   const { data: localUsers, setData: setLocalUsers, updateEntity: updateLocalUser, setEntity: setLocalUser } = useEntity<UserType>('user', INITIAL_USERS);
-  const { data: localRoles, setData: setLocalRoles } = useEntity<any>('admin_role', INITIAL_ADMIN_ROLES);
   const { data: localExpenses, addEntity: addExpense, updateEntity: updateExpense, setData: setLocalExpenses } = useEntity<Expense>('expense', INITIAL_EXPENSES);
   const { data: localLookbook, addEntity: addLookbook, updateEntity: updateLookbook, setData: setLocalLookbook2 } = useEntity<any>('lookbook_post', INITIAL_LOOKBOOK_POSTS);
   const { data: localBlogPosts, addEntity: addBlogPost, updateEntity: updateBlogPost, setData: setLocalBlogPosts2 } = useEntity<any>('blog_post', INITIAL_BLOG_POSTS);
@@ -687,25 +678,44 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
               toast.success('Utilisateur créé');
           }
       } else if (modalType === 'role') {
+           const name = formData.get('name') as string;
+           const slug = formData.get('slug') as string || name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+           
+           // Check for uniqueness of name and slug
+           const nameExists = localRoles.some((r: any) => r.name.toLowerCase() === name.toLowerCase() && r.id !== editingItem?.id);
+           const slugExists = localRoles.some((r: any) => (r.slug || r.id) === slug && r.id !== editingItem?.id);
+           
+           if (nameExists) {
+               toast.error('Un rôle avec ce nom existe déjà.');
+               return;
+           }
+           if (slugExists) {
+               toast.error('Cet identifiant (slug) est déjà utilisé par un autre rôle.');
+               return;
+           }
+
            const newRole: any = {
-              id: editingItem ? editingItem.id : `role-${Date.now()}`,
-              name: formData.get('name') as string,
+              name: name,
+              slug: slug,
               description: formData.get('description') as string,
               status: editingItem?.status || 'active'
-          };
-          const now = new Date().toISOString();
-          if (editingItem) {
-              newRole.updatedAt = now;
-              newRole.createdAt = editingItem.createdAt || now;
-          } else {
-              newRole.createdAt = now;
-              newRole.updatedAt = now;
-          }
-          if (editingItem) {
-              setLocalRoles(prev => prev.map(r => r.id === editingItem.id ? { ...r, ...newRole } : r));
-          } else {
-              setLocalRoles(prev => [...prev, newRole]);
-          }
+           };
+
+           // ID to use for the document
+           const roleId = editingItem ? editingItem.id : slug;
+           const now = new Date().toISOString();
+
+           if (editingItem) {
+               newRole.updatedAt = now;
+               newRole.createdAt = editingItem.createdAt || now;
+               await updateLocalRole(roleId, newRole);
+               toast.success('Rôle mis à jour');
+           } else {
+               newRole.createdAt = now;
+               newRole.updatedAt = now;
+               await setLocalRole(roleId, newRole);
+               toast.success('Rôle créé');
+           }
       } else if (modalType === 'notification') {
           const sendNow = formData.get('sendNow') === 'on';
           const status = formData.get('status') as string;
@@ -758,31 +768,40 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
           } else {
               setLocalEmails(prev => [newEmail, ...prev]);
           }
-      } else if (modalType === 'customer') {
+       } else if (modalType === 'customer' || modalType === 'user') {
+           const email = formData.get('email') as string;
+           
+           // Check for email uniqueness
+           const emailExists = localUsers.some(u => u.email.toLowerCase() === email.toLowerCase() && u.id !== editingItem?.id);
+           if (emailExists) {
+               toast.error('Cette adresse email est déjà utilisée par un autre utilisateur.');
+               return;
+           }
+
            const newUser: any = {
-              id: editingItem ? editingItem.id : `user-${Date.now()}`,
               name: formData.get('name') as string,
-              email: formData.get('email') as string,
+              email: email,
               role: formData.get('role') as string,
-              joinDate: new Date().toISOString().split('T')[0],
-              orders: 0,
-              totalSpent: 0,
-              avatar: 'https://i.pravatar.cc/150?u=' + Date.now(),
+              joinDate: editingItem ? editingItem.joinDate : new Date().toISOString().split('T')[0],
+              orders: editingItem?.orders || 0,
+              totalSpent: editingItem?.totalSpent || 0,
+              avatar: editingItem?.avatar || 'https://i.pravatar.cc/150?u=' + Date.now(),
               status: editingItem?.status || 'active'
-          };
-          const now = new Date().toISOString();
-          if (editingItem) {
-              newUser.updatedAt = now;
-              newUser.createdAt = editingItem.createdAt || now;
-          } else {
-              newUser.createdAt = now;
-              newUser.updatedAt = now;
-          }
-          if (editingItem) {
-              setLocalUsers(prev => prev.map(u => u.id === editingItem.id ? { ...u, ...newUser } : u));
-          } else {
-              setLocalUsers(prev => [...prev, newUser]);
-          }
+           };
+           const now = new Date().toISOString();
+           const userId = editingItem ? editingItem.id : `user-${Date.now()}`;
+
+           if (editingItem) {
+               newUser.updatedAt = now;
+               newUser.createdAt = editingItem.createdAt || now;
+               await updateLocalUser(userId, newUser);
+               toast.success('Utilisateur mis à jour');
+           } else {
+               newUser.createdAt = now;
+               newUser.updatedAt = now;
+               await setLocalUser(userId, newUser);
+               toast.success('Utilisateur créé');
+           }
       } else if (modalType === 'event') {
            const newEvent: any = {
               id: editingItem ? editingItem.id : `evt-${Date.now()}`,
@@ -1146,7 +1165,56 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
 
   const menuItems = getAdminMenuItems();
 
-  const isDataLoading = isLoadingOrders || isLoadingProducts || isLoadingCategories;
+  const isAdminEmail = user?.email === 'landrymoutongo97@gmail.com';
+  const currentUserDoc = USERS.find(u => u.id === user?.uid);
+  const userRoleSlug = isAdminEmail ? 'admin' : (currentUserDoc?.role || 'customer');
+  
+  // Le rôle "admin" est considéré comme un super-administrateur par défaut s'il n'est pas trouvé dans les rôles configurés
+  const roleData = localRoles.find((r: any) => 
+    (r.slug || r.id) === userRoleSlug || 
+    (userRoleSlug === 'admin' && (r.slug === 'super-admin' || r.id === 'super-admin'))
+  );
+  
+  const permissions = roleData?.permissions || (userRoleSlug === 'admin' ? ['all'] : []);
+  const isSuperAdmin = permissions.includes('all') || userRoleSlug === 'admin';
+
+  const hasPermission = (permission?: string) => {
+    if (isSuperAdmin) return true;
+    if (!permission) return true;
+    return permissions.includes(permission);
+  };
+
+  const filteredMenuItems = menuItems.filter(item => {
+    if (item.isHeader) {
+      const index = menuItems.indexOf(item);
+      let hasPermittedChild = false;
+      for (let i = index + 1; i < menuItems.length; i++) {
+        if (menuItems[i].isHeader) break;
+        if (hasPermission(menuItems[i].permission)) {
+          hasPermittedChild = true;
+          break;
+        }
+      }
+      return hasPermittedChild;
+    }
+    return hasPermission(item.permission);
+  });
+
+  const activeMenuItem = menuItems.find(item => item.id === activeTab);
+  const isTabAllowed = activeMenuItem ? hasPermission(activeMenuItem.permission) : true;
+  const isUserCustomer = userRoleSlug === 'customer';
+
+  const isDataLoading = isLoadingOrders || isLoadingProducts || isLoadingCategories || isLoadingRoles;
+
+  // Redirection automatique vers le premier onglet autorisé si l'onglet actuel est interdit
+  useEffect(() => {
+    if (!isDataLoading && !isTabAllowed && filteredMenuItems.length > 0) {
+      const firstAllowedTab = filteredMenuItems.find(item => !item.isHeader);
+      if (firstAllowedTab) {
+        setActiveTab(firstAllowedTab.id);
+      }
+    }
+  }, [isTabAllowed, filteredMenuItems, isDataLoading, activeTab]);
 
   if (isDataLoading) {
     return (
@@ -1154,7 +1222,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
         <AdminSidebar 
           isSidebarOpen={isSidebarOpen}
           setIsSidebarOpen={setIsSidebarOpen}
-          menuItems={menuItems}
+          menuItems={filteredMenuItems}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           user={user}
@@ -1163,7 +1231,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
         <main className="flex-grow overflow-y-auto bg-[#fbf9f6] flex flex-col">
           <AdminHeader 
             activeTab={activeTab}
-            menuItems={menuItems}
+            menuItems={filteredMenuItems}
             isSidebarOpen={isSidebarOpen}
             setIsSidebarOpen={setIsSidebarOpen}
             showNotifications={showNotifications}
@@ -1236,7 +1304,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
       <AdminSidebar 
         isSidebarOpen={isSidebarOpen}
         setIsSidebarOpen={setIsSidebarOpen}
-        menuItems={menuItems}
+        menuItems={filteredMenuItems}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         user={user}
@@ -1260,7 +1328,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
       <main className="flex-grow overflow-y-auto bg-[#fbf9f6] custom-scrollbar">
         <AdminHeader 
           activeTab={activeTab}
-          menuItems={menuItems}
+          menuItems={filteredMenuItems}
           isSidebarOpen={isSidebarOpen}
           setIsSidebarOpen={setIsSidebarOpen}
           showNotifications={showNotifications}
@@ -1272,6 +1340,57 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
         />
 
         <div className="px-6 lg:px-10 pb-10">
+        {/* Global Access Control Check */}
+        {userRoleSlug === 'customer' && (
+          <div className="flex-grow flex items-center justify-center p-10 mt-20">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white p-12 rounded-[3rem] shadow-2xl border border-primary/10 max-w-md text-center"
+            >
+              <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Lock size={40} />
+              </div>
+              <h2 className="text-3xl font-serif font-bold text-primary mb-4">Accès Refusé</h2>
+              <p className="text-primary/60 mb-8 leading-relaxed">
+                Désolé, votre rôle actuel ("{userRoleSlug}") ne dispose pas des permissions nécessaires pour accéder au panneau d'administration. 
+                Seuls les administrateurs et gestionnaires peuvent accéder à cette section.
+              </p>
+              <button 
+                onClick={() => onNavigate('/')}
+                className="w-full py-4 bg-primary text-white rounded-2xl font-bold hover:bg-accent transition-all shadow-lg"
+              >
+                Retour à la boutique
+              </button>
+            </motion.div>
+          </div>
+        )}
+
+        {(userRoleSlug !== 'customer' && !isTabAllowed) && (
+          <div className="flex-grow flex flex-col items-center justify-center p-10 mt-20 h-full">
+            <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mb-6">
+              <Lock size={32} />
+            </div>
+            <h3 className="text-2xl font-bold text-primary mb-2">Section non autorisée</h3>
+            <p className="text-primary/60 text-center max-w-sm mb-6">
+              Votre rôle actuel ne vous permet pas d'accéder à l'onglet "<b>{activeMenuItem?.label}</b>".
+            </p>
+            {filteredMenuItems.length > 0 && (
+              <button 
+                onClick={() => {
+                  const firstTab = filteredMenuItems.find(i => !i.isHeader);
+                  if (firstTab) setActiveTab(firstTab.id);
+                }}
+                className="px-8 py-3 bg-primary text-white rounded-xl font-bold hover:bg-accent transition-all"
+              >
+                Aller au Tableau de Bord
+              </button>
+            )}
+          </div>
+        )}
+
+        {(userRoleSlug !== 'customer' && isTabAllowed) && (
+          <div className="admin-dashboard-content-area">
             {/* Modals */}
         <Modal 
           isOpen={(isAddModalOpen || !!editingItem) && !['rma-detail', 'product-edit', 'product-create', 'category-create', 'category-edit'].includes(activeTab)} 
@@ -1287,7 +1406,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
             modalType === 'currency' ? 'Ajouter une Devise' :
             modalType === 'notification' ? 'Nouvelle Notification' :
             modalType === 'lookbook' ? 'Ajouter au Lookbook' :
-            modalType === 'blog' ? 'Nouvel Article' : 'Nouvel Email'
+            modalType === 'blog' ? 'Nouvel Article' :
+            modalType === 'role' ? 'Nouveau Rôle' :
+            modalType === 'user' ? 'Nouvel Utilisateur' : 'Nouvel Email'
           }
         >
           <form className="space-y-6" onSubmit={handleFormSubmit}>
@@ -1445,8 +1566,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Rôle</label>
                   <select name="role" className="input-field" defaultValue={editingItem?.role}>
-                    {localRoles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                    <option value="customer">Client</option>
+                    {Array.from(new Map(localRoles.map((r: any) => [r.id, r])).values()).map((r: any) => (
+                      <option key={r.id} value={r.id}>{r.name}</option>
+                    ))}
+                    {!localRoles.some((r: any) => r.id === 'customer' || r.name?.toLowerCase() === 'client') && (
+                      <option value="customer">Client</option>
+                    )}
                   </select>
                 </div>
                 <div className="space-y-2">
@@ -1459,11 +1584,40 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
               <div className="grid grid-cols-1 gap-6">
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Nom du rôle</label>
-                  <input name="name" type="text" className="input-field" defaultValue={editingItem?.name} required />
+                  <input 
+                    name="name" 
+                    type="text" 
+                    className="input-field" 
+                    defaultValue={editingItem?.name} 
+                    onChange={(e) => {
+                      if (!editingItem) {
+                        const slugInput = (e.target.form as HTMLFormElement).elements.namedItem('slug') as HTMLInputElement;
+                        if (slugInput) {
+                          slugInput.value = e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+                        }
+                      }
+                    }}
+                    required 
+                  />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Description</label>
-                  <textarea name="description" className="input-field" defaultValue={editingItem?.description} required />
+                  <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Slug (ID unique)</label>
+                  <input 
+                    name="slug" 
+                    type="text" 
+                    className="input-field" 
+                    defaultValue={editingItem?.slug || editingItem?.id} 
+                    placeholder="ex: redacteur-web"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Description (Optionnelle)</label>
+                  <textarea 
+                    name="description" 
+                    className="input-field min-h-[100px]" 
+                    defaultValue={editingItem?.description} 
+                  />
                 </div>
               </div>
             )}
@@ -2492,27 +2646,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
                         
                         // Database update
                         try {
-                          const isCustom = order.type === 'custom';
-                          const colName = isCustom ? 'custom_order' : 'order';
+                          const colName = 'order';
                           
-                          if (isCustom) {
-                            // Custom orders use document ID as id
-                            await updateDoc(doc(db, colName, order.id), { 
+                          // Custom orders use document ID as id, but wait, both are now 'order'. 
+                          // Standard orders search by custom 'id' field
+                          const ordersRef = collection(db, colName);
+                          const q = query(ordersRef, where('id', '==', order.id));
+                          const snap = await getDocs(q);
+                          if (!snap.empty) {
+                            const orderDoc = snap.docs[0];
+                            await updateDoc(doc(db, colName, orderDoc.id), { 
                               status: newStatus,
                               updatedAt: new Date().toISOString()
                             });
                           } else {
-                            // Standard orders search by custom 'id' field
-                            const ordersRef = collection(db, colName);
-                            const q = query(ordersRef, where('id', '==', order.id));
-                            const snap = await getDocs(q);
-                            if (!snap.empty) {
-                              const orderDoc = snap.docs[0];
-                              await updateDoc(doc(db, colName, orderDoc.id), { 
-                                status: newStatus,
-                                updatedAt: new Date().toISOString()
-                              });
-                            }
+                            // document ID
+                            await updateDoc(doc(db, colName, order.id), { 
+                              status: newStatus,
+                              updatedAt: new Date().toISOString()
+                            });
                           }
 
                           // Logic for Referral Reward when marked as DELIVERED
@@ -2627,7 +2779,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
                       if (user) {
                         return (
                           <button 
-                            onClick={() => onNavigate(`admin-user-detail:${user.id}`)}
+                            onClick={() => {
+                              setSelectedCustomer(user);
+                              setActiveTab('customer-detail');
+                            }}
                             className="text-primary font-bold hover:underline flex items-center gap-2"
                           >
                             <User size={12} /> {user.name}
@@ -6161,13 +6316,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
               </button>
             </div>
             <DataTable<Role>
-              dateFilterKey="createdAt"
-              data={sortByDate(localRoles)}
+              data={sortByDate(Array.from(new Map(localRoles.map((r: any) => [r.id, r])).values()))}
               onRowClick={(role) => { setEditingItem(role); setModalType('role'); }}
-              onDelete={(role) => useEntity('admin_role').deleteEntity(role.id)}
+              onDelete={async (role) => {
+                try {
+                  await deleteLocalRole(role.id);
+                  setLocalRoles(prev => prev.filter(r => r.id !== role.id));
+                  toast.success(`Rôle "${role.name}" supprimé`);
+                } catch (err) {
+                  console.error("Erreur lors de la suppression du rôle:", err);
+                  toast.error("Erreur lors de la suppression du rôle. Vérifiez vos permissions.");
+                }
+              }}
               title="Gestion des Rôles"
               columns={[
                 { header: 'Nom', accessor: 'name', className: 'font-bold', sortable: true },
+                { header: 'Slug/ID', accessor: 'id', className: 'text-xs font-mono text-primary/40' },
                 { header: 'Description', accessor: 'description', className: 'text-primary/60', sortable: true },
                 { 
                   header: 'Statut', 
@@ -6210,31 +6374,46 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
         {activeTab === 'lookbooks' && (
           <AdminLookbooks products={localProducts} />
         )}
+        
+        {activeTab === 'portfolios' && (
+          <AdminPortfolios />
+        )}
 
         {activeTab === 'customers' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-serif">Gestion des Clients</h2>
-              <TabFilter 
-                options={[
-                  { id: 'all', label: 'Tous' },
-                  { id: 'active', label: 'Actifs' },
-                  { id: 'inactive', label: 'Inactifs' },
-                ]}
-                active={customerFilter}
-                onChange={setCustomerFilter}
-                className="mb-0"
-              />
+              <h2 className="text-2xl font-serif">Gestion des Utilisateurs</h2>
+              <div className="flex gap-4">
+                <TabFilter 
+                  options={[
+                    { id: 'all', label: 'Tous' },
+                    { id: 'customer', label: 'Clients' },
+                    { id: 'admin', label: 'Admins' },
+                  ]}
+                  active={customerFilter}
+                  onChange={setCustomerFilter}
+                  className="mb-0"
+                />
+                <button 
+                  onClick={() => { setModalType('user'); setIsAddModalOpen(true); }}
+                  className="bg-primary text-primary-foreground px-4 py-2 rounded-xl font-bold hover:bg-primary/90 transition-all text-sm h-[40px]"
+                >
+                  + Ajouter Utilisateur
+                </button>
+              </div>
             </div>
             <DataTable<UserType>
               dateFilterKey="createdAt"
-              data={sortByDate(localUsers.filter(u => u.role === 'customer'))}
-              onRowClick={(user) => { setSelectedCustomer(user); setActiveTab('customer-detail'); }}
+              data={sortByDate(localUsers.filter(u => customerFilter === 'all' ? true : customerFilter === 'admin' ? u.role !== 'customer' : u.role === 'customer'))}
+              onRowClick={(user) => {
+                setSelectedCustomer(user); 
+                setActiveTab('customer-detail'); 
+              }}
               onDelete={(item) => deleteUser(item.id!)}
-              title="Liste des Clients"
+              title="Liste des Utilisateurs"
               columns={[
                 {
-                  header: 'Client',
+                  header: 'Utilisateur',
                   accessor: (user: UserType) => (
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-full overflow-hidden bg-primary/10 text-primary flex items-center justify-center font-bold border border-primary/5 shadow-sm">
@@ -6286,7 +6465,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
                   <ChevronLeft size={20} />
                 </button>
                 <div>
-                  <h2 className="text-2xl font-serif font-bold text-primary">Détails du Client</h2>
+                  <h2 className="text-2xl font-serif font-bold text-primary">
+                    {selectedCustomer.role === 'customer' ? 'Détails du Client' : 'Détails de l\'Utilisateur'}
+                  </h2>
                   <p className="text-sm text-primary/60">ID: {selectedCustomer.id}</p>
                 </div>
               </div>
@@ -6296,7 +6477,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
                     const newStatus = (selectedCustomer.status || 'active') === 'active' ? 'inactive' : 'active';
                     setLocalUsers(prev => prev.map(u => u.id === selectedCustomer.id ? { ...u, status: newStatus } : u));
                     setSelectedCustomer(prev => prev ? { ...prev, status: newStatus } : null);
-                    toast.success(`Client ${newStatus === 'active' ? 'activé' : 'désactivé'}`);
+                    toast.success(`${selectedCustomer.role === 'customer' ? 'Client' : 'Utilisateur'} ${newStatus === 'active' ? 'activé' : 'désactivé'}`);
                   }}
                   className={`px-4 py-2 rounded-xl font-bold text-sm transition-all border ${
                     (selectedCustomer.status || 'active') === 'active' 
@@ -6365,7 +6546,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
                           {selectedCustomer.status || 'active'}
                         </span>
                         <span className="px-4 py-1.5 bg-primary/15 text-primary rounded-full text-[10px] font-bold uppercase tracking-widest">
-                          Client
+                          {selectedCustomer.role === 'customer' ? 'Client' : 'Administrateur'}
                         </span>
                       </div>
                     </div>
@@ -6390,7 +6571,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
                         <p className="text-xs font-bold uppercase tracking-widest text-primary/60 mb-2">Note Interne</p>
                         <textarea 
                           className="w-full bg-transparent border-none focus:ring-0 text-sm text-primary/60 resize-none h-20"
-                          placeholder="Ajouter une note sur ce client..."
+                          placeholder={selectedCustomer.role === 'customer' ? 'Ajouter une note sur ce client...' : 'Ajouter une note sur cet utilisateur...'}
                           value={selectedCustomer.internalNotes || ''}
                           onChange={(e) => {
                             const newNotes = e.target.value;
@@ -6445,6 +6626,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
                           placeholder="+225 07..."
                           className="w-full px-4 py-3 bg-secondary/50 border border-primary/10 rounded-xl focus:outline-none focus:border-primary font-medium text-primary"
                         />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Rôle</label>
+                        <select
+                          value={selectedCustomer.role}
+                          onChange={(e) => {
+                            const newRole = e.target.value;
+                            setSelectedCustomer(prev => prev ? { ...prev, role: newRole } : null);
+                            setLocalUsers(prev => prev.map(u => u.id === selectedCustomer.id ? { ...u, role: newRole } : u));
+                            updateLocalUser(selectedCustomer.id, { role: newRole } as any);
+                          }}
+                          className="w-full px-4 py-3 bg-secondary/50 border border-primary/10 rounded-xl focus:outline-none focus:border-primary font-medium text-primary"
+                        >
+                           {!localRoles.some((r: any) => r.id === 'customer') && <option value="customer">Client (customer)</option>}
+                           {!localRoles.some((r: any) => r.id === 'admin') && <option value="admin">Administrateur système (admin)</option>}
+                           {Array.from(new Map(localRoles.map((r: any) => [r.id, r])).values()).map((r: any) => (
+                              <option key={r.id} value={r.id}>{r.name} ({r.id})</option>
+                           ))}
+                        </select>
                       </div>
                       <div className="space-y-2">
                         <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Adresse de Livraison</label>
@@ -6669,7 +6869,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
                     ) : (
                       <div className="h-full flex flex-col items-center justify-center text-primary/60 space-y-4">
                         <MessageSquare size={48} className="opacity-20" />
-                        <p>Aucune conversation trouvée avec ce client.</p>
+                        <p>Aucune conversation trouvée avec cet {selectedCustomer.role === 'customer' ? 'client' : 'utilisateur'}.</p>
                         <button 
                           onClick={() => toast.info('Nouvelle conversation initiée')}
                           className="px-6 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm"
@@ -6705,66 +6905,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
                 );
               })()}
             </div>
-          </div>
-        )}
-
-        {activeTab === 'users' && (
-          <div className="space-y-6">
-            <div className="flex justify-end">
-              <button 
-                onClick={() => { setModalType('user'); setIsAddModalOpen(true); }}
-                className="bg-primary text-primary-foreground px-6 py-3 rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg"
-              >
-                + Ajouter un Utilisateur
-              </button>
-            </div>
-            <DataTable<UserType>
-              
-              dateFilterKey="createdAt"
-              data={sortByDate(localUsers.filter(u => u.role !== 'customer'))}
-              onRowClick={(user) => onNavigate('admin-user-detail', user.id)}
-              title="Liste des Utilisateurs"
-              columns={[
-                {
-                  header: 'Utilisateur',
-                  accessor: (user: UserType) => (
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-primary/5 text-accent flex items-center justify-center font-bold">
-                        {user.name[0]}
-                      </div>
-                      <span className="font-medium text-primary">{user.name}</span>
-                    </div>
-                  ),
-                },
-                { header: 'Email', accessor: 'email', className: 'text-primary/60' },
-                { 
-                  header: 'Points', 
-                  accessor: (u: UserType) => (
-                    <div className="flex items-center gap-2">
-                        <span className="font-bold text-accent">{(u.points || 0).toLocaleString()}</span>
-                        <span className="text-[10px] text-primary/40 uppercase font-bold tracking-tighter">pts</span>
-                    </div>
-                  ),
-                  sortable: true,
-                  sortKey: 'points'
-                },
-                { 
-                  header: 'Rôle', 
-                  accessor: (u: UserType) => localRoles.find(r => r.id === u.role)?.name || (u.role === 'customer' ? 'Client' : u.role), 
-                  className: 'font-bold uppercase text-xs tracking-widest text-primary' 
-                },
-                { header: 'Date d\'ajout', accessor: 'joinDate', className: 'text-primary/60' },
-                {
-                    header: 'Actions',
-                    accessor: (user: UserType) => (
-                        <div className="flex gap-2">
-                            <button onClick={(e) => { e.stopPropagation(); setEditingItem(user); setModalType('user'); }} className="text-primary hover:text-accent font-bold text-sm">Modifier</button>
-                        </div>
-                    )
-                },
-                { header: 'Créé le', accessor: (item: any) => formatDate(item.createdAt || item.date || item.subscribedAt || item.sentAt || new Date().toISOString()), className: 'text-primary/60 text-sm', sortable: true }
-              ]}
-            />
           </div>
         )}
 
@@ -7668,7 +7808,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, site
             </div>
           </div>
         )}
-
+      </div>
+    )}
+        
         <footer className="mt-12 pt-8 border-t border-primary/10 flex flex-col md:flex-row justify-between items-center text-xs text-primary/60">
           <p>© {new Date().getFullYear()} Laine et Déco Admin. Tous droits réservés.</p>
           <div className="flex gap-6 mt-4 md:mt-0">

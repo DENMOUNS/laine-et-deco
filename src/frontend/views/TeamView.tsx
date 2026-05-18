@@ -97,13 +97,15 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate }) => {
               <p className="text-primary/70 text-sm leading-relaxed px-4 mb-8">
                 {member.bio}
               </p>
-              <Button 
-                variant="outline"
-                onClick={() => onNavigate?.(member.id === 'landry' ? 'portfolio-landry' : 'portfolio-doleres')}
-                className="rounded-full px-8 hover:bg-primary hover:text-white transition-all group-hover:border-primary"
-              >
-                Voir le portfolio
-              </Button>
+              {member.externalPortfolioUrl && (
+                <Button 
+                  variant="outline"
+                  onClick={() => window.open(member.externalPortfolioUrl, '_blank')}
+                  className="rounded-full px-8 hover:bg-primary hover:text-white transition-all group-hover:border-primary"
+                >
+                  Voir le portfolio
+                </Button>
+              )}
             </div>
           </motion.div>
         ))}

@@ -21,7 +21,8 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'nav-8', name: 'Calculateur de Laine', view: 'calculator', order: 8, status: 'active', position: 'side', createdAt: '2024-01-01T00:00:00Z' },
   { id: 'nav-9', name: 'Calculateur de Volume', view: 'volume-calculator', order: 9, status: 'active', position: 'side', createdAt: '2024-01-01T00:00:00Z' },
   { id: 'nav-10', name: 'FAQ', view: 'faq', order: 10, status: 'active', position: 'side', createdAt: '2024-01-01T00:00:00Z' },
-  { id: 'nav-11', name: 'Notre Équipe', view: 'about', order: 11, status: 'active', position: 'side', createdAt: '2024-01-01T00:00:00Z' },
+  { id: 'nav-11', name: 'À propos', view: 'about', order: 11, status: 'active', position: 'side', createdAt: '2024-01-01T00:00:00Z' },
+  { id: 'nav-11-5', name: 'Équipe', view: 'team', order: 11.5, status: 'active', position: 'side', createdAt: '2024-01-01T00:00:00Z' },
   { id: 'nav-12', name: 'Points VIP', view: 'loyalty', order: 12, status: 'active', position: 'side', createdAt: '2024-01-01T00:00:00Z' },
   { id: 'nav-13', name: 'Contactez-nous', view: 'contact', order: 13, status: 'active', position: 'side', createdAt: '2024-01-01T00:00:00Z' }
 ];
@@ -727,7 +728,20 @@ export const SITE_CONFIG: SiteConfig = {
     home: { title: 'Laine et Déco - Boutique Artisanale', description: 'Découvrez notre sélection variée, laines de qualité et objets de décoration artisanaux.' },
     shop: { title: 'Boutique Laine et Déco | Artisanat & Déco', description: 'Explorez notre catalogue de laines, kits et objets de décoration faits main.' },
     contact: { title: 'Contactez Laine et Déco', description: 'Une question ? Notre équipe d\'artisans est à votre écoute.' },
-    about: { title: 'L\'aventure Laine et Déco', description: 'Découvrez l\'histoire et le savoir-faire de la boutique Laine et Déco.' }
+    about: { title: 'À propos de Laine et Déco', description: 'Découvrez notre passion pour l\'artisanat et notre engagement.' },
+    team: { title: 'Notre Équipe - Laine et Déco', description: 'Découvrez les talents derrière Laine et Déco.' },
+    cart: { title: 'Mon Panier - Laine et Déco', description: 'Finalisez votre commande.' },
+    wishlist: { title: 'Ma Wishlist - Laine et Déco', description: 'Retrouvez vos articles favoris.' },
+    comparison: { title: 'Comparateur - Laine et Déco', description: 'Comparez nos produits.' },
+    lookbook: { title: 'Lookbook - Laine et Déco', description: 'Inspirations et styles.' },
+    'custom-order': { title: 'Sur Mesure - Laine et Déco', description: 'Votre projet personnalisé.' },
+    'knitting-companion': { title: 'Compagnon Tricot - Laine et Déco', description: 'Aide à vos projets.' },
+    'pattern-generator': { title: 'Générateur IA - Laine et Déco', description: 'Créez vos motifs uniques.' },
+    blog: { title: 'Blog - Laine et Déco', description: 'Inspirations et conseils.' },
+    calculator: { title: 'Calculateur - Laine et Déco', description: 'Calculez vos besoins.' },
+    'volume-calculator': { title: 'Calculateur Volume - Laine et Déco', description: 'Calculez vos volumes.' },
+    faq: { title: 'FAQ - Laine et Déco', description: 'Questions fréquentes.' },
+    loyalty: { title: 'Points VIP - Laine et Déco', description: 'Votre programme fidélité.' }
   },
   hero: {
     title: 'Créez une atmosphère chic et authentique',
@@ -755,9 +769,10 @@ export const COUPONS: Coupon[] = [
 ];
 
 export const ADMIN_ROLES: AdminRole[] = [
-  { id: 'r1', name: 'Super Admin', permissions: ['all'] },
-  { id: 'r2', name: 'Gestionnaire Stock', permissions: ['products.view', 'products.edit', 'stock.view'] },
-  { id: 'r3', name: 'Support Client', permissions: ['messages.view', 'messages.reply', 'orders.view'] },
+  { id: 'super-admin', slug: 'super-admin', name: 'Super Admin', permissions: ['all'], description: 'Contrôle total du système', status: 'active' },
+  { id: 'stock-manager', slug: 'stock-manager', name: 'Gestionnaire Stock', permissions: ['dashboard.view', 'products.view', 'products.edit', 'stock.view'], description: 'Gestion des produits et du stock', status: 'active' },
+  { id: 'editor', slug: 'editor', name: 'Editeur', permissions: ['dashboard.view', 'blog.view', 'blog.edit', 'lookbook.view', 'lookbook.edit'], description: 'Gestion du contenu éditorial (Blog, Lookbook)', status: 'active' },
+  { id: 'support-client', slug: 'support-client', name: 'Support Client', permissions: ['dashboard.view', 'messages.view', 'messages.reply', 'orders.view'], description: 'Gestion des commandes, des retours et de la messagerie.', status: 'active' },
 ];
 
 export const PUSH_NOTIFICATIONS: PushNotification[] = [
@@ -908,9 +923,9 @@ export const INITIAL_PORTFOLIOS: any[] = [
     ]
   },
   {
-    id: 'doleres',
+    id: 'laine-et-deco',
     profileType: 'manager',
-    memberId: 'doleres',
+    memberId: 'laine-et-deco',
     name: 'Laine et Deco',
     role: 'Gestionnaire de Projet & Créatrice',
     bio: 'Experte en gestion de projet avec une touche créative. Je m\'assure que chaque projet Laine & Déco est une réussite.',

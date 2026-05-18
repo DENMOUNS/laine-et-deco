@@ -307,6 +307,13 @@ export interface InternalNote {
   author: string;
 }
 
+export enum OrderType {
+  NORMAL = 'normal',
+  CUSTOM = 'custom',
+  BUNDLE = 'bundle',
+  B2B = 'b2b'
+}
+
 export interface Order {
   id: string;
   customer: string;
@@ -318,7 +325,7 @@ export interface Order {
   total: number;
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'completed';
   items: any;
-  type?: 'standard' | 'custom' | 'bundle' | 'b2b';
+  type?: OrderType | string;
   paymentMethod?: string;
   address?: string;
   orderDetails?: OrderItem[];
@@ -332,11 +339,16 @@ export interface Order {
   invoiceUrl?: string;
   createdAt?: any;
   updatedAt?: any;
+  description?: string;
+  material?: string;
+  dimensions?: string;
+  budget?: number;
 }
 
 export interface Role {
   id: string;
   name: string;
+  slug?: string;
   description: string;
   status?: 'active' | 'inactive';
   createdAt?: string;
@@ -524,6 +536,19 @@ export interface SiteConfig {
     shop: SEOMeta;
     contact: SEOMeta;
     about: SEOMeta;
+    team: SEOMeta;
+    cart: SEOMeta;
+    wishlist: SEOMeta;
+    comparison: SEOMeta;
+    lookbook: SEOMeta;
+    'custom-order': SEOMeta;
+    'knitting-companion': SEOMeta;
+    'pattern-generator': SEOMeta;
+    blog: SEOMeta;
+    calculator: SEOMeta;
+    'volume-calculator': SEOMeta;
+    faq: SEOMeta;
+    loyalty: SEOMeta;
   };
   hero: {
     title: string;
@@ -580,6 +605,9 @@ export interface Coupon {
 export interface AdminRole {
   id: string;
   name: string;
+  slug?: string;
+  description?: string;
+  status?: string;
   permissions: string[]; // e.g., ['products.view', 'products.edit', 'orders.view']
   createdAt?: string;
   updatedAt?: string;
@@ -666,16 +694,7 @@ export interface Lookbook {
   updatedAt?: string;
 }
 
-export interface CustomOrder {
-  id: string;
-  userId: string;
-  userName: string;
-  email: string;
-  description: string;
-  status: 'pending' | 'reviewed' | 'responded' | 'completed';
-  createdAt?: string;
-  updatedAt?: string;
-}
+
 
 export interface PortfolioProject {
   id: string;
@@ -735,6 +754,7 @@ export interface MemberPortfolio {
   experience: PortfolioExperience[];
   education: PortfolioEducation[];
   certifications: PortfolioCertification[];
+  externalPortfolioUrl?: string;
   updatedAt?: any;
 }
 

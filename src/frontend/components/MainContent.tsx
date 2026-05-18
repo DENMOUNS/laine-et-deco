@@ -40,8 +40,7 @@ const Error403View = lazy(() => import('../views/Error403View').then(m => ({ def
 const Error404View = lazy(() => import('../views/Error404View').then(m => ({ default: m.Error404View })));
 const Error500View = lazy(() => import('../views/Error500View').then(m => ({ default: m.Error500View })));
 
-const PortfolioLandryView = lazy(() => import('../views/PortfolioLandryView').then(m => ({ default: m.PortfolioLandryView })));
-const PortfolioDoleresView = lazy(() => import('../views/PortfolioDoleresView').then(m => ({ default: m.PortfolioDoleresView })));
+
 
 import { StaticPageView } from './StaticPageView';
 import { ComparisonTool } from './ComparisonTool';
@@ -137,22 +136,19 @@ export const MainContent: React.FC<MainContentProps> = ({
   
   const isAdminView = currentView.startsWith('admin');
 
+  React.useEffect(() => {
+    if (isAdminView && !isAuthLoading && !user) {
+      handleNavigate('auth');
+      toast.error('Veuillez vous connecter pour accéder à l\'administration.');
+    }
+  }, [isAdminView, isAuthLoading, user, handleNavigate]);
+
   if (isAdminView && isAuthLoading) {
     return <Loader fullScreen text="Vérification des accès admin..." />;
   }
 
-  if (isAdminView && !isAuthorizedAdmin) {
-    if (!user) {
-      handleNavigate('auth');
-      toast.error('Veuillez vous connecter pour accéder à l\'administration.');
-      return null;
-    } else {
-      return (
-        <Suspense fallback={<Loader fullScreen text="Accès refusé..." />}>
-          <Error403View onNavigate={handleNavigate} />
-        </Suspense>
-      );
-    }
+  if (isAdminView && !user) {
+    return null;
   }
 
   return (
@@ -208,12 +204,7 @@ export const MainContent: React.FC<MainContentProps> = ({
         {currentView === 'team' && (
           <TeamView onNavigate={handleNavigate} />
         )}
-        {currentView === 'portfolio-landry' && (
-          <PortfolioLandryView onNavigate={handleNavigate} />
-        )}
-        {currentView === 'portfolio-doleres' && (
-          <PortfolioDoleresView onNavigate={handleNavigate} />
-        )}
+
         {currentView === 'calculator' && (
           <CalculatorView onNavigate={handleNavigate} onAddToCart={addToCart} />
         )}
@@ -433,7 +424,7 @@ export const MainContent: React.FC<MainContentProps> = ({
                 <p>Nous nous engageons à promouvoir l'artisanat local et international en sélectionnant rigoureusement des produits qui allient esthétique moderne et techniques traditionnelles.</p>
                 <div className="mt-12 p-8 bg-primary/5 rounded-3xl border border-primary/10">
                   <h2 className="text-2xl font-serif font-bold mb-4 text-primary">L'Équipe Fondatrice</h2>
-                  <p className="mb-4">Ce projet est né de la vision commune de <strong>Landry et Doleres</strong>, passionnés par l'artisanat et la décoration.</p>
+                  <p className="mb-4">Ce projet est né de la vision commune de <strong>Landry et Laine et Déco</strong>, passionnés par l'artisanat et la décoration.</p>
                   <p className="text-sm text-primary/70"><em>Le site web a été entièrement conçu et développé par <strong>Landry MOUTONGO</strong>.</em></p>
                 </div>
               </div>
@@ -491,7 +482,7 @@ export const MainContent: React.FC<MainContentProps> = ({
               <div className="space-y-6">
                 <p><strong>Éditeur du site :</strong> Laine et Déco SARL</p>
                 <p><strong>Siège social :</strong> Douala, Cameroun</p>
-                <p><strong>Propriétaires :</strong> Landry et Doleres</p>
+                <p><strong>Propriétaires :</strong> Landry et Laine et Déco</p>
                 <p><strong>Développement Web :</strong> Landry MOUTONGO</p>
                 <p><strong>Hébergement :</strong> Google Cloud Platform</p>
                 <div className="mt-8 p-6 bg-red-50 border border-red-100 rounded-2xl">

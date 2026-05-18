@@ -29,9 +29,8 @@ export function App() {
   }
 
   const cartCount = appLogic.cart.reduce((acc, item) => acc + item.quantity, 0);
-  const isPortfolio = appLogic.currentView?.startsWith('portfolio-');
   const isAdmin = appLogic.currentView?.startsWith('admin-');
-  const hideGlobalNav = isPortfolio || isAdmin;
+  const hideGlobalNav = isAdmin;
 
   return (
     <div 

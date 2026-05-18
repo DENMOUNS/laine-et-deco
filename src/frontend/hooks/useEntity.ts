@@ -33,7 +33,6 @@ const PUBLIC_COLLECTIONS = [
   'community_post',
   'member_portfolio',
   'coupon',
-  'custom_order',
   'nav_item',
   'faq'
 ];
@@ -45,7 +44,7 @@ interface UseEntityOptions {
 }
 
 export function useEntity<T>(entityType: string, initialData: T[] = [], options: UseEntityOptions = {}) {
-  const [data, setData] = useState<T[]>([]);
+  const [data, setData] = useState<T[]>(initialData);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const isMounted = useRef(true);
