@@ -50,7 +50,7 @@ export const Error500View: React.FC<Error500ViewProps> = ({ onNavigate, error })
         className="text-primary/60 max-w-md mx-auto mb-10"
       >
         Désolé, quelque chose s'est mal passé de notre côté. 
-        Nos techniciens (et peut-être quelques chats) travaillent déjà dessus.
+        Nos techniciens (et peut-être quelques esprits) travaillent déjà dessus.
       </motion.p>
       
       {error && process.env.NODE_ENV !== 'production' && (
