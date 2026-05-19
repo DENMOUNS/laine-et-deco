@@ -1,4 +1,4 @@
-import { Product, Category, Order, User, Review, BlogPost, LoginLog, RequestLog, Notification, SalesStat, Invoice, SiteConfig, ChatMessage, Conversation, Coupon, AdminRole, PromoEvent, Pack, PushNotification, Email, Expense, RMA, AbandonedCart, CustomerGroup, TaxRule, ShippingRule, CatalogPriceRule, NewsletterSubscriber, CommunityPost, Badge, UserProfile, City, NavItem, FAQ, Currency } from './types';
+import { Product, Category, Order, User, Review, BlogPost, LoginLog, RequestLog, Notification, SalesStat, SiteConfig, ChatMessage, Conversation, Coupon, AdminRole, PromoEvent, Pack, PushNotification, Email, Expense, RMA, AbandonedCart, CustomerGroup, TaxRule, ShippingRule, CatalogPriceRule, NewsletterSubscriber, CommunityPost, Badge, UserProfile, City, NavItem, FAQ, Currency } from './types';
 
 export const CATEGORIES: Category[] = [
   { id: '1', name: 'Laine', slug: 'laine', image: 'https://images.unsplash.com/photo-1584992236310-6edddc08acff?auto=format&fit=crop&q=80&w=600', count: 45, status: 'active' },
@@ -523,11 +523,6 @@ export const REVENUE_BY_PAYMENT = [
   { name: 'OM', value: 45 },
   { name: 'Momo', value: 35 },
   { name: 'Card', value: 20 }
-];
-
-export const INVOICES: Invoice[] = [
-  { id: 'INV-001', orderId: 'ORD-2024-001', date: '2024-03-10', amount: 17000, status: 'paid' },
-  { id: 'INV-002', orderId: 'ORD-2024-002', date: '2024-03-12', amount: 32500, status: 'unpaid' }
 ];
 
 export const COMMUNITY_POSTS: CommunityPost[] = [

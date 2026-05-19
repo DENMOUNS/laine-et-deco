@@ -18,7 +18,7 @@ import { FAQEditor } from '../../../components/dashboard/FAQEditor';
 import { PromoEventEditor } from '../../../components/dashboard/PromoEventEditor';
 import { CatalogPriceRuleEditor } from '../../../components/dashboard/CatalogPriceRuleEditor';
 import { cn } from '../../../utils/utils';
-import { generateInvoicePDF } from '../../../utils/invoiceUtils';
+
 import { AdminFlashSales } from '../AdminFlashSales';
 import { AdminLookbooks } from '../AdminLookbooks';
 import { AdminPortfolios } from '../AdminPortfolios';

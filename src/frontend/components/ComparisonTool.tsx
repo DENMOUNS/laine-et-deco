@@ -51,13 +51,14 @@ export const ComparisonTool: React.FC<ComparisonToolProps> = ({ comparisonList, 
           >
             <Trash2 size={14} /> Tout effacer
           </Button>
-          <Button 
+          <Button
             variant="ghost"
             size="icon"
-            onClick={() => setIsDismissed(true)} 
+            aria-label="Masquer le comparateur"
+            onClick={() => setIsDismissed(true)}
             className="p-2 hover:bg-secondary rounded-full"
           >
-            <X size={20} />
+            <X size={20} aria-hidden="true" />
           </Button>
         </div>
       </div>
@@ -65,22 +66,31 @@ export const ComparisonTool: React.FC<ComparisonToolProps> = ({ comparisonList, 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {comparisonList.map((product) => (
           <div key={product.id} className="relative group bg-secondary/10 rounded-2xl p-4 border border-primary/5">
-            <Button 
+            <Button
               variant="danger"
               size="icon"
+              aria-label={`Retirer ${product.name} du comparateur`}
               onClick={() => onRemove(product.id)}
               className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10 p-0"
             >
-              <X size={14} />
+              <X size={14} aria-hidden="true" />
             </Button>
-            <div className="flex gap-4">
-              <img src={product.image} alt={product.name} className="w-16 h-16 rounded-xl object-cover" referrerPolicy="no-referrer" />
+            <motion.div className="flex gap-4">
+              <img
+                src={product.image}
+                alt={product.name}
+                className="w-16 h-16 rounded-xl object-cover"
+                referrerPolicy="no-referrer"
+                loading="lazy"
+                width={64}
+                height={64}
+              />
               <div>
                 <h4 className="font-bold text-sm line-clamp-1">{product.name}</h4>
                 <p className="text-accent font-bold text-xs">{product.price.toLocaleString()} FCFA</p>
-                <p className="text-[10px] text-primary/70 uppercase tracking-widest mt-1">{product.category}</p>
+                <p className="text-[10px] text-primary uppercase tracking-widest mt-1">{product.category}</p>
               </div>
-            </div>
+            </motion.div>
             
             <div className="mt-4 pt-4 border-t border-primary/5 space-y-2">
               {product.material && (

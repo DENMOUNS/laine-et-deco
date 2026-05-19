@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Filter, Search, ChevronDown, Grid, List as ListIcon, Loader2, Camera, X, Mic, SlidersHorizontal, Sparkles, Recycle } from 'lucide-react';
 import { toast as sonnerToast } from 'sonner';
-import { CATEGORIES as INITIAL_CATEGORIES, PRODUCTS as INITIAL_PRODUCTS } from '../../constants';
+
 import { useEntity } from '../hooks/useEntity';
 import { ProductCard } from '../components/ProductCard';
 import { Product, PromoEvent } from '../../types';
@@ -219,8 +219,8 @@ const FilterContent: React.FC<FilterContentProps> = ({
 
 export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist, onQuickView, onAddToComparison, onProductClick, events = [], initialSearchQuery = '' }) => {
   const { products: fetchedProducts, isLoading: isInitialLoading } = useProducts();
-  const PRODUCTS = fetchedProducts.length > 0 ? fetchedProducts : INITIAL_PRODUCTS;
-  const { data: CATEGORIES } = useEntity<any>('category', INITIAL_CATEGORIES);
+  const PRODUCTS = fetchedProducts;
+  const { data: CATEGORIES } = useEntity<any>('category');
   const [selectedCategory, setSelectedCategory] = useState('Tous');
   const [selectedMaterial, setSelectedMaterial] = useState('Tous');
   const [selectedBrand, setSelectedBrand] = useState('Tous');

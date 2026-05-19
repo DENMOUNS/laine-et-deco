@@ -78,33 +78,24 @@ import {
 } from 'lucide-react';
 import { useEntity } from '../../../hooks/useEntity';
 import { useProducts } from '../../../hooks/useProducts';
-
-
-const formatDate = (date: any) => {
-  if (!date) return 'N/A';
-  // Handle Firestore Timestamp
-  if (typeof date.toDate === 'function') {
-    return date.toDate().toLocaleString('fr-FR');
-  }
-  if (typeof date === 'object' && date.seconds !== undefined) {
-    return new Date(date.seconds * 1000).toLocaleString('fr-FR');
-  }
-  // Handle Date object
-  if (date instanceof Date) {
-    return date.toLocaleString('fr-FR');
-  }
-  // Handle ISO string or other string
-  if (typeof date === 'string') {
-    try {
-      const d = new Date(date);
-      if (isNaN(d.getTime())) return date;
-      return d.toLocaleString('fr-FR');
-    } catch (e) {
-      return date;
-    }
-  }
-  return 'N/A';
-};
+import { useAdminStore } from '../../../../stores/adminStore';
+import {
+  formatFirestoreDate as formatDate,
+  sortByDate,
+  normalizeSiteConfig,
+  saveSiteSection as saveSiteSectionFn,
+  saveAllSiteConfig as saveAllSiteConfigFn,
+  calculateAdminStats,
+  getUserPermissions,
+  filterMenuByPermissions,
+  autoSeedIfEmpty,
+  handleEntityEdit,
+  handleEntitySave,
+  handleEntityDelete,
+  applyNavItemDefaults,
+  applyCatalogRuleDefaults
+} from '../../../../services/adminService';
+import { updateEntity as updateEntityBackend } from '../../../services/dashboardApi';
 
 import { productSearch, orderSearch, userSearch, getStatusText, getActionDescription } from '../../../utils/searchUtils';
 import { 
@@ -162,15 +153,14 @@ import { Notification, Product, Category, SiteConfig, ChatMessage, HomeSection, 
 import { StatusBadge, getStatusStyles } from '../../../components/ui/StatusBadge';
 import { cn } from '../../../utils/utils';
 import { OrderMap } from '../../../components/OrderMap';
-import { generateInvoicePDF } from '../../../utils/invoiceUtils';
+
 import { User as FirebaseUser, signOut } from 'firebase/auth';
 import { QRCodeSVG } from 'qrcode.react';
 import { collection, getDocs, doc, updateDoc, increment, query, where, getDoc, writeBatch, serverTimestamp, addDoc, setDoc } from 'firebase/firestore';
-import { auth, db } from '../../../../backend/firebase';
 
 import { toast } from 'sonner';
 import { Loader } from '../../../components/Loader';
-import { seedFirebase } from '../../../utils/firebaseSeed';
+import { seedDashboardData } from '../../../services/dashboardApi';
 import { AdminSearchResults } from './AdminSearchResults';
 import { AdminOverview } from './AdminOverview';
 import { AdminInventory } from './AdminInventory';
@@ -285,10 +275,11 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
         keys.forEach(k => {
           updateData[k] = (siteConfig as any)[k];
         });
-        await updateDoc(doc(db, 'site_config', siteConfig.id), updateData);
+        await updateEntityBackend('site_config', siteConfig.id, updateData);
         toast.success(`${label} : Enregistré avec succès`);
       }
     } catch (err) {
+      console.error(err);
       toast.error('Erreur lors de l’enregistrement');
     }
   };
@@ -296,25 +287,19 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
   const saveAllSiteConfig = async () => {
     try {
       if (siteConfig.id) {
-        await updateDoc(doc(db, 'site_config', siteConfig.id), {
+        await updateEntityBackend('site_config', siteConfig.id, {
           ...siteConfig,
           updatedAt: new Date().toISOString()
         });
         toast.success('Toute la configuration a été enregistrée');
       }
     } catch (err) {
+      console.error(err);
       toast.error('Erreur lors de l’enregistrement global');
     }
   };
 
-  const sortByDate = (data: any[]) => [...data].sort((a, b) => {
-    const getVal = (item: any) => {
-        if (!item.createdAt) return 0;
-        if (item.createdAt.toDate) return item.createdAt.toDate().getTime();
-        return new Date(item.createdAt).getTime();
-    };
-    return getVal(b) - getVal(a);
-  });
+  // sortByDate is now imported from adminService
 
   const { data: CHAT_MESSAGES, deleteEntity: deleteChatMessage } = useEntity<any>('chat_message', INITIAL_CHAT_MESSAGES);
   const { data: CONVERSATIONS, deleteEntity: deleteConversation } = useEntity<any>('conversation', INITIAL_CONVERSATIONS);
@@ -436,64 +421,49 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
   const localOrders = allOrders;
   const localCategories = CATEGORIES;
 
-  const [activeTab, setActiveTab] = useState('overview');
-  const [customerDetailTab, setCustomerDetailTab] = useState<'profile' | 'orders' | 'loyalty' | 'messages'>('profile');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<any>(null);
-  const [modalType, setModalType] = useState<string>('');
-  const [isSaving, setIsSaving] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [isEditingOrder, setIsEditingOrder] = useState(false);
-  const [editedOrder, setEditedOrder] = useState<Order | null>(null);
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
-  const [selectedCustomer, setSelectedCustomer] = useState<UserType | null>(null);
-  const [selectedCustomerGroup, setSelectedCustomerGroup] = useState<CustomerGroup | null>(null);
-  const [newNote, setNewNote] = useState('');
+  // ── UI State from Zustand adminStore ──
+  const activeTab = useAdminStore((s) => s.activeTab);
+  const setActiveTab = useAdminStore((s) => s.setActiveTab);
+  const customerDetailTab = useAdminStore((s) => s.customerDetailTab);
+  const setCustomerDetailTab = useAdminStore((s) => s.setCustomerDetailTab);
+  const isSidebarOpen = useAdminStore((s) => s.isSidebarOpen);
+  const setIsSidebarOpen = useAdminStore((s) => s.setIsSidebarOpen);
+  const isAddModalOpen = useAdminStore((s) => s.isAddModalOpen);
+  const setIsAddModalOpen = useAdminStore((s) => s.setIsAddModalOpen);
+  const editingItem = useAdminStore((s) => s.editingItem);
+  const setEditingItem = (item: any) => useAdminStore.setState({ editingItem: item });
+  const modalType = useAdminStore((s) => s.modalType);
+  const setModalType = (type: string) => useAdminStore.setState({ modalType: type });
+  const isSaving = useAdminStore((s) => s.isSaving);
+  const setIsSaving = useAdminStore((s) => s.setIsSaving);
+  const showNotifications = useAdminStore((s) => s.showNotifications);
+  const setShowNotifications = useAdminStore((s) => s.setShowNotifications);
+  const selectedOrder = useAdminStore((s) => s.selectedOrder);
+  const setSelectedOrder = useAdminStore((s) => s.setSelectedOrder);
+  const isEditingOrder = useAdminStore((s) => s.isEditingOrder);
+  const setIsEditingOrder = useAdminStore((s) => s.setIsEditingOrder);
+  const editedOrder = useAdminStore((s) => s.editedOrder);
+  const setEditedOrder = useAdminStore((s) => s.setEditedOrder);
+  const selectedConversation = useAdminStore((s) => s.selectedConversation);
+  const setSelectedConversation = useAdminStore((s) => s.setSelectedConversation);
+  const selectedCustomer = useAdminStore((s) => s.selectedCustomer);
+  const setSelectedCustomer = useAdminStore((s) => s.setSelectedCustomer);
+  const selectedCustomerGroup = useAdminStore((s) => s.selectedCustomerGroup);
+  const setSelectedCustomerGroup = useAdminStore((s) => s.setSelectedCustomerGroup);
+  const newNote = useAdminStore((s) => s.newNote);
+  const setNewNote = useAdminStore((s) => s.setNewNote);
   const [events, setEvents] = useState<PromoEvent[]>(INITIAL_PROMO_EVENTS);
 
   useEffect(() => {
     const autoSeed = async () => {
-      if (!db) return;
       try {
-        // Data Migration for missing createdAt
-        const migrateCollection = async (collectionName: string) => {
-          const snapshot = await getDocs(collection(db, collectionName));
-          snapshot.docs.forEach(async (docSnap) => {
-            const data = docSnap.data();
-            if (!data.createdAt) {
-               await updateDoc(doc(db, collectionName, docSnap.id), { createdAt: new Date().toISOString() });
-               console.log(`Migrated ${collectionName}/${docSnap.id}`);
-            }
-          });
-        };
-        await migrateCollection('nav_item');
-        await migrateCollection('catalog_price_rule');
-
-        // Seed roles if empty
-        const rolesSnapshot = await getDocs(collection(db, 'admin_role'));
-        if (rolesSnapshot.empty) {
-          console.log("Seeding roles...");
-          for (const role of INITIAL_ADMIN_ROLES) {
-            await setDoc(doc(db, 'admin_role', role.id), {
-              ...role,
-              createdAt: serverTimestamp(),
-              updatedAt: serverTimestamp()
-            });
-          }
-        }
-
-        const snapshot = await getDocs(collection(db, 'product'));
-        if (snapshot.empty) {
-          toast.info('Initialisation automatique des données en cours...');
-          setIsSaving(true);
-          await seedFirebase();
-          toast.success('Base de données initialisée avec succès !');
-          setIsSaving(false);
-        }
+        toast.info('Initialisation automatique des données en cours...');
+        setIsSaving(true);
+        await seedDashboardData();
+        toast.success('Base de données initialisée avec succès !');
       } catch (e) {
-        console.error("Auto-seed failed", e);
+        console.error('Auto-seed failed', e);
+      } finally {
         setIsSaving(false);
       }
     };
@@ -506,13 +476,9 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
   }, [user]);
 
   const handleSeed = async () => {
-    if (!db) {
-      toast.error("Firebase n'est pas configuré.");
-      return;
-    }
     try {
       setIsSaving(true);
-      await seedFirebase();
+      await seedDashboardData();
       toast.success('Base de données initialisée avec succès !');
     } catch (error) {
       console.error('Error seeding database:', error);
@@ -529,8 +495,9 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
   const { data: localBlogPosts, addEntity: addBlogPost, updateEntity: updateBlogPost, setData: setLocalBlogPosts2 } = useEntity<any>('blog_post', INITIAL_BLOG_POSTS);
   const { data: realLogs, isLoading: isLogsLoading } = useEntity<any>('log', []);
   
-  // New Magento-like states
-  const [newRMANote, setNewRMANote] = useState('');
+  // New Magento-like states (UI state from store)
+  const newRMANote = useAdminStore((s) => s.newRMANote);
+  const setNewRMANote = useAdminStore((s) => s.setNewRMANote);
   const { data: localReviews, updateEntity: updateReview, addEntity: addReview, setData: setLocalReviews2 } = useEntity<Review>('review', INITIAL_REVIEWS);
   const { data: localRMAs, updateEntity: updateRMA, addEntity: addRMA } = useEntity<RMA>('rma', INITIAL_RMAS);
   const { data: localAbandonedCarts, setData: setLocalAbandonedCarts2 } = useEntity<AbandonedCart>('abandoned_cart', INITIAL_ABANDONED_CARTS);
@@ -539,8 +506,10 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
   const { data: localShippingRules, addEntity: addShippingRule, updateEntity: updateShippingRule, setData: setLocalShippingRules2 } = useEntity<ShippingRule>('shipping_rule', INITIAL_SHIPPING_RULES);
   const { data: localCurrencies, addEntity: addCurrency, updateEntity: updateCurrency, deleteEntity: deleteCurrency, setData: setLocalCurrencies } = useEntity<Currency>('currency', INITIAL_CURRENCIES);
   const { data: localCatalogPriceRules, updateEntity: updateCatalogRule, addEntity: addCatalogRule, deleteEntity: deleteCatalogRule, isLoading: isLoadingCatalog } = useEntity<CatalogPriceRule>('catalog_price_rule', INITIAL_CATALOG_PRICE_RULES);                
-  const [selectedCatalogRule, setSelectedCatalogRule] = useState<CatalogPriceRule | null>(null);
-  const [isCatalogRuleEditorOpen, setIsCatalogRuleEditorOpen] = useState(false);
+  const selectedCatalogRule = useAdminStore((s) => s.selectedCatalogRule);
+  const setSelectedCatalogRule = useAdminStore((s) => s.setSelectedCatalogRule);
+  const isCatalogRuleEditorOpen = useAdminStore((s) => s.isCatalogRuleEditorOpen);
+  const setIsCatalogRuleEditorOpen = useAdminStore((s) => s.setIsCatalogRuleEditorOpen);
 
   // Fallbacks for data to ensure fields exist
   const navItemsWithDefaults = useMemo(() => {
@@ -582,8 +551,10 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
     }
   };
 
-  const [selectedPackProducts, setSelectedPackProducts] = useState<{productId: string, quantity: number}[]>([]);
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const selectedPackProducts = useAdminStore((s) => s.selectedPackProducts);
+  const setSelectedPackProducts = useAdminStore((s) => s.setSelectedPackProducts);
+  const searchResults = useAdminStore((s) => s.searchResults);
+  const setSearchResults = useAdminStore((s) => s.setSearchResults);
 
   // Index items for Lucene-like search in Admin Dashboard
   useEffect(() => {
@@ -610,19 +581,32 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
     }
   }, [editingItem, modalType, activeTab]);
 
-  // Filter states
+  // Filter states (from Zustand store)
   const handleFormSubmit = createAdminFormSubmitHandler(() => dashboardContext);
-  const [orderFilter, setOrderFilter] = useState('all');
-  const [productFilter, setProductFilter] = useState('all');
-  const [customerFilter, setCustomerFilter] = useState('all');
-  const [notificationFilter, setNotificationFilter] = useState('all');
-  const [reviewFilter, setReviewFilter] = useState('all');
-  const [logFilter, setLogFilter] = useState('all');
-  const [requestLogFilter, setRequestLogFilter] = useState('all');
-  const [messageInput, setMessageInput] = useState('');
-  const [currentSlug, setCurrentSlug] = useState('');
-  const [currentImage, setCurrentImage] = useState('');
-  const [viewingCustomer, setViewingCustomer] = useState<UserType | null>(null);
+  const orderFilter = useAdminStore((s) => s.orderFilter);
+  const setOrderFilter = useAdminStore((s) => s.setOrderFilter);
+  const productFilter = useAdminStore((s) => s.productFilter);
+  const setProductFilter = useAdminStore((s) => s.setProductFilter);
+  const customerFilter = useAdminStore((s) => s.customerFilter);
+  const setCustomerFilter = useAdminStore((s) => s.setCustomerFilter);
+  const notificationFilter = useAdminStore((s) => s.notificationFilter);
+  const setNotificationFilter = useAdminStore((s) => s.setNotificationFilter);
+  const reviewFilter = useAdminStore((s) => s.reviewFilter);
+  const setReviewFilter = useAdminStore((s) => s.setReviewFilter);
+  const logFilter = useAdminStore((s) => s.logFilter);
+  const setLogFilter = useAdminStore((s) => s.setLogFilter);
+  const requestLogFilter = useAdminStore((s) => s.requestLogFilter);
+  const setRequestLogFilter = useAdminStore((s) => s.setRequestLogFilter);
+  const messageInput = useAdminStore((s) => s.messageInput);
+  const setMessageInput = useAdminStore((s) => s.setMessageInput);
+  const currentSlug = useAdminStore((s) => s.currentSlug);
+  const setCurrentSlug = useAdminStore((s) => s.setCurrentSlug);
+  const currentImage = useAdminStore((s) => s.currentImage);
+  const setCurrentImage = useAdminStore((s) => s.setCurrentImage);
+  const viewingCustomer = useAdminStore((s) => s.viewingCustomer);
+  const setViewingCustomer = useAdminStore((s) => s.setViewingCustomer);
+  const overviewOrderFilter = useAdminStore((s) => s.overviewOrderFilter);
+  const setOverviewOrderFilter = useAdminStore((s) => s.setOverviewOrderFilter);
 
   const handleNotificationClick = (notification: Notification) => {
     // Mark as read
@@ -717,10 +701,11 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
     setMessageInput('');
     toast.success('Message envoyé');
   };
-  const [categoryPage, setCategoryPage] = useState(1);
-  const [notificationPage, setNotificationPage] = useState(1);
-  const itemsPerPage = 5;
-  const [overviewOrderFilter, setOverviewOrderFilter] = useState('all');
+  const categoryPage = useAdminStore((s) => s.categoryPage);
+  const setCategoryPage = useAdminStore((s) => s.setCategoryPage);
+  const notificationPage = useAdminStore((s) => s.notificationPage);
+  const setNotificationPage = useAdminStore((s) => s.setNotificationPage);
+  const itemsPerPage = useAdminStore((s) => s.itemsPerPage);
 
   const totalSales = ORDERS.reduce((sum, o) => sum + (o.total || 0), 0);
   const totalOrdersCount = ORDERS.length;

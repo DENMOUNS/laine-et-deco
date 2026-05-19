@@ -2,16 +2,19 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MessageCircle, X, Send, Sparkles, Loader2, Palette, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import { PRODUCTS as INITIAL_PRODUCTS } from '../../constants';
-import { useProducts } from '../hooks/useProducts';
-import { db, auth } from '../../backend/firebase';
+import { useEntity } from '../hooks/useEntity';
+import { Product } from '../../types';
+import { initFirebase } from '../../backend/firebase';
 import { collection, addDoc, onSnapshot, query, orderBy, where } from 'firebase/firestore';
 
-export const ChatBubble: React.FC = () => {
-  const { products: fetchedProducts } = useProducts();
-  const PRODUCTS = fetchedProducts.length > 0 ? fetchedProducts : INITIAL_PRODUCTS;
-  
-  const [isOpen, setIsOpen] = useState(false);
+interface ChatBubbleProps {
+  startOpen?: boolean;
+}
+
+export const ChatBubble: React.FC<ChatBubbleProps> = ({ startOpen = false }) => {
+  const [isOpen, setIsOpen] = useState(startOpen);
+  const { data: productsData } = useEntity<Product>('product', [], { enabled: isOpen });
+  const PRODUCTS = productsData ?? [];
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<any[]>([]);
   const [isTyping, setIsTyping] = useState(false);
@@ -22,31 +25,32 @@ export const ChatBubble: React.FC = () => {
   useEffect(() => {
     isMounted.current = true;
     let unsubscribe = () => {};
+    const { auth, db } = initFirebase();
+    if (!auth || !db) return () => { isMounted.current = false; };
+
     const unregisterAuth = auth.onAuthStateChanged((user) => {
       if (user) {
         const q = query(
-          collection(db, 'chat_message'), 
+          collection(db, 'chat_message'),
           where('userId', '==', user.uid),
           orderBy('timestamp', 'asc')
         );
-        unsubscribe = onSnapshot(q, (snapshot) => {
-          try {
-            const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            if (isMounted.current) {
-              setMessages(msgs);
+        unsubscribe = onSnapshot(
+          q,
+          (snapshot) => {
+            try {
+              const msgs = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
+              if (isMounted.current) setMessages(msgs);
+            } catch (e) {
+              console.error('Error processing chat snapshot:', e);
             }
-          } catch (e) {
-            console.error("Error processing chat snapshot:", e);
+          },
+          (error) => {
+            if (isMounted.current) console.error('Error fetching chat messages:', error);
           }
-        }, (error) => {
-          if (isMounted.current) {
-            console.error("Error fetching chat messages:", error);
-          }
-        });
+        );
       } else {
-        if (isMounted.current) {
-          setMessages([]);
-        }
+        if (isMounted.current) setMessages([]);
         unsubscribe();
       }
     });
@@ -64,23 +68,9 @@ export const ChatBubble: React.FC = () => {
     }
   }, [messages, isTyping]);
 
-  const sendMessage = async () => {
-    if (!auth.currentUser) {
-      toast.error("Vous devez être connecté pour envoyer un message.");
-      return;
-    }
-    if (!message.trim()) return;
-
-    const msg = message;
-    setMessage('');
-    
-    await addDoc(collection(db, 'chat_message'), {
-      userId: auth.currentUser.uid,
-      senderId: auth.currentUser.uid,
-      senderName: auth.currentUser.displayName || 'Utilisateur',
-      text: msg,
-      timestamp: Date.now()
-    });
+  const getFirebaseUser = () => {
+    const { auth, db } = initFirebase();
+    return { auth, db, user: auth?.currentUser ?? null };
   };
     const getAIResponse = async (userMessage: string) => {
     try {
@@ -143,12 +133,15 @@ export const ChatBubble: React.FC = () => {
     const prompt = `Aujourd'hui nous sommes le ${today}. Donne-moi 3 conseils de lifestyle ou d'aménagement uniques et thématiques pour aujourd'hui. Sois créatif, varie les styles chaque jour et mentionne des produits spécifiques de notre catalogue Laine et Déco.`;
     const responseText = await getAIResponse(prompt);
 
+    const { db, user } = getFirebaseUser();
+    if (!db || !user) return;
+
     await addDoc(collection(db, 'chat_message'), {
-      userId: auth.currentUser?.uid,
+      userId: user.uid,
       senderId: 'ai',
       senderName: 'Laine et Déco AI',
       text: responseText,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     setIsTyping(false);
@@ -173,14 +166,17 @@ export const ChatBubble: React.FC = () => {
     ];
     const selectedPalette = palettes[seed % palettes.length];
 
+    const { db, user } = getFirebaseUser();
+    if (!db || !user) return;
+
     await addDoc(collection(db, 'chat_message'), {
-      userId: auth.currentUser?.uid,
+      userId: user.uid,
       senderId: 'ai',
       senderName: 'Laine et Déco AI',
       text: responseText,
       timestamp: Date.now(),
       isMoodboard: true,
-      palette: selectedPalette
+      palette: selectedPalette,
     });
 
     setIsTyping(false);
@@ -189,34 +185,33 @@ export const ChatBubble: React.FC = () => {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth.currentUser) {
-      toast.error("Vous devez être connecté pour envoyer un message.");
+    const { auth, db, user } = getFirebaseUser();
+    if (!user || !db) {
+      toast.error('Vous devez être connecté pour envoyer un message.');
       return;
     }
     if (!message.trim()) return;
 
     const userMsg = message;
     setMessage('');
-    
-    // Save user message
+
     await addDoc(collection(db, 'chat_message'), {
-      userId: auth.currentUser.uid,
-      senderId: auth.currentUser.uid,
-      senderName: auth.currentUser.displayName || 'Utilisateur',
+      userId: user.uid,
+      senderId: user.uid,
+      senderName: user.displayName || 'Utilisateur',
       text: userMsg,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     setIsTyping(true);
     const aiResponseText = await getAIResponse(userMsg);
 
-    // Save AI response
     await addDoc(collection(db, 'chat_message'), {
-      userId: auth.currentUser.uid,
+      userId: user.uid,
       senderId: 'ai',
       senderName: 'Laine et Déco AI',
       text: aiResponseText,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     setIsTyping(false);
@@ -227,6 +222,9 @@ export const ChatBubble: React.FC = () => {
       <AnimatePresence>
         {isOpen && (
           <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="chat-assistant-title"
             initial={{ opacity: 0, scale: 0.8, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 20 }}
@@ -235,16 +233,21 @@ export const ChatBubble: React.FC = () => {
             {/* Header */}
             <div className="bg-primary p-6 text-white flex justify-between items-center shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-accent rounded-full flex items-center justify-center shadow-inner">
-                  <Sparkles size={20} className="text-white" />
+                <div className="w-10 h-10 bg-[#2a3529] rounded-full flex items-center justify-center shadow-inner">
+                  <Sparkles size={20} className="text-white" aria-hidden="true" />
                 </div>
                 <div>
-                  <h3 className="font-serif text-lg leading-tight">Assistant IA</h3>
-                  <p className="text-[10px] text-white/70 uppercase tracking-widest font-bold">Expert Shopping</p>
+                  <h3 id="chat-assistant-title" className="font-serif text-lg leading-tight">Assistant IA</h3>
+                  <p className="text-[10px] text-white uppercase tracking-widest font-bold">Expert Shopping</p>
                 </div>
               </div>
-              <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-                <X size={20} />
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                aria-label="Fermer le chat"
+                className="p-2 hover:bg-white/10 rounded-full transition-colors"
+              >
+                <X size={20} aria-hidden="true" />
               </button>
             </div>
 
@@ -261,11 +264,11 @@ export const ChatBubble: React.FC = () => {
                     <div className={`max-w-[85%] p-4 rounded-2xl text-sm shadow-sm ${
                       isAI 
                         ? 'bg-white text-primary rounded-tl-none border border-primary/5' 
-                        : 'bg-accent text-white rounded-tr-none'
+                        : 'bg-primary text-white rounded-tr-none'
                     }`}>
                       <p className="leading-relaxed">{msg.text}</p>
                       
-                      <span className={`text-[10px] mt-2 block font-medium ${isAI ? 'text-primary/70' : 'text-white/70'}`}>
+                      <span className={`text-[10px] mt-2 block font-medium ${isAI ? 'text-primary' : 'text-white/90'}`}>
                         {formattedTime}
                       </span>
                     </div>
@@ -276,7 +279,7 @@ export const ChatBubble: React.FC = () => {
                 <div className="flex justify-start">
                   <div className="bg-white p-4 rounded-2xl rounded-tl-none border border-primary/5 shadow-sm flex items-center gap-2">
                     <Loader2 size={14} className="animate-spin text-accent" />
-                    <span className="text-xs text-primary/70 font-medium italic">L'expert réfléchit...</span>
+                    <span className="text-xs text-primary font-medium italic">L'expert réfléchit...</span>
                   </div>
                 </div>
               )}
@@ -311,14 +314,16 @@ export const ChatBubble: React.FC = () => {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Posez votre question créative..."
-                className="flex-grow bg-secondary/30 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all"
+                aria-label="Votre message"
+                className="flex-grow bg-secondary/30 rounded-2xl px-5 py-3 text-sm text-primary placeholder:text-primary/80 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
               />
-              <button 
+              <button
                 type="submit"
                 disabled={isTyping || !message.trim()}
-                className="bg-primary text-white p-3 rounded-2xl hover:bg-accent transition-all duration-300 disabled:opacity-50 disabled:hover:bg-primary shadow-lg shadow-primary/20"
+                aria-label="Envoyer le message"
+                className="bg-primary text-white p-3 rounded-2xl hover:bg-[#2a3529] transition-all duration-300 disabled:opacity-50 disabled:hover:bg-primary shadow-lg shadow-primary/20"
               >
-                <Send size={20} />
+                <Send size={20} aria-hidden="true" />
               </button>
             </form>
           </motion.div>
@@ -326,13 +331,16 @@ export const ChatBubble: React.FC = () => {
       </AnimatePresence>
 
       <motion.button
+        type="button"
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        onClick={() => setIsOpen(!isOpen)}
-        className="bg-primary text-white p-5 rounded-full shadow-2xl hover:bg-accent transition-all duration-500 group relative"
+        onClick={() => setIsOpen((open) => !open)}
+        aria-label={isOpen ? 'Fermer le chat' : 'Ouvrir l’assistant de chat'}
+        aria-expanded={isOpen}
+        className="bg-primary text-white p-5 rounded-full shadow-2xl hover:bg-[#2a3529] transition-all duration-500 group relative"
       >
-        <div className="absolute -top-1 -right-1 w-4 h-4 bg-accent rounded-full border-2 border-white animate-pulse" />
-        {isOpen ? <X size={28} /> : <MessageCircle size={28} />}
+        <div className="absolute -top-1 -right-1 w-4 h-4 bg-[#c45c3e] rounded-full border-2 border-white animate-pulse" aria-hidden="true" />
+        {isOpen ? <X size={28} aria-hidden="true" /> : <MessageCircle size={28} aria-hidden="true" />}
       </motion.button>
     </div>
   );

@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { ArrowLeft, Recycle, Sparkles } from 'lucide-react';
-import { PRODUCTS as INITIAL_PRODUCTS } from '../../constants';
+
 import { useProducts } from '../hooks/useProducts';
 import { ProductCard } from '../components/ProductCard';
 import { Product } from '../../types';
@@ -20,7 +20,7 @@ export const SecondHandView: React.FC<SecondHandViewProps> = ({
   onQuickView 
 }) => {
   const { products: fetchedProducts } = useProducts();
-  const PRODUCTS = fetchedProducts.length > 0 ? fetchedProducts : INITIAL_PRODUCTS;
+  const PRODUCTS = fetchedProducts;
   
   const secondHandProducts = PRODUCTS.filter(p => p.condition === 'second-hand');
 

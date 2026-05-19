@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ShoppingBag, Search, User, Heart, Menu, X, ChevronRight, ArrowRight, Moon, Sun, Home, Shield, ArrowRightLeft, QrCode, Scissors } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { PRODUCTS as INITIAL_PRODUCTS, CATEGORIES as INITIAL_CATEGORIES, PACKS as INITIAL_PACKS, NAV_ITEMS as INITIAL_NAV_ITEMS } from '../../constants';
-import { useProducts } from '../hooks/useProducts';
-import { useEntity } from '../hooks/useEntity';
+
+import { initialsAvatarDataUri } from '../utils/avatarFallback';
+import { useStaticEntity } from '../hooks/useStaticEntity';
 import { Product, NavItem } from '../../types';
-import { User as FirebaseUser, signOut } from 'firebase/auth';
-import { auth } from '../../backend/firebase';
+import type { User as FirebaseUser } from 'firebase/auth';
 
 interface NavbarProps {
   onNavigate: (view: string, id?: string, query?: string) => void;
@@ -27,14 +26,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   user,
   userRole,
   comparisonList = [],
-  navItems = INITIAL_NAV_ITEMS
+  navItems = []
 }) => {
-  const { products: fetchedProducts } = useProducts();
-  const PRODUCTS = fetchedProducts.length > 0 ? fetchedProducts : INITIAL_PRODUCTS;
-  const { data: CATEGORIES } = useEntity<any>('category', INITIAL_CATEGORIES);
-  const { data: PACKS } = useEntity<any>('pack', INITIAL_PACKS);
-  
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { data: CATEGORIES } = useStaticEntity<any>('category', [], { enabled: isMenuOpen });
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {
@@ -98,7 +93,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 key={link.name}
                 onClick={() => onNavigate(link.view)}
                 className={`text-sm font-bold uppercase tracking-widest transition-all hover:text-accent relative py-2 ${
-                  currentView === link.view ? 'text-accent' : 'text-primary/70'
+                  currentView === link.view ? 'text-accent' : 'text-primary'
                 }`}
               >
                 {link.name}
@@ -168,7 +163,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className={`flex p-2 transition-colors rounded-full hover:bg-primary/5 ${currentView === 'customer-dashboard' ? 'text-accent' : 'text-primary'} items-center gap-2`}
               >
                 {user?.photoURL ? (
-                  <img src={user.photoURL} alt={user.displayName || 'User'} className="w-6 h-6 rounded-full border border-primary/10" width="24" height="24" onError={(e) => { e.currentTarget.src = 'https://ui-avatars.com/api/?name=User&background=random'; }} />
+                  <img
+                    src={user.photoURL}
+                    alt={user.displayName || 'Profil'}
+                    className="w-6 h-6 rounded-full border border-primary/10"
+                    width="24"
+                    height="24"
+                    loading="lazy"
+                    decoding="async"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      e.currentTarget.src = initialsAvatarDataUri(user?.displayName, 48);
+                    }}
+                  />
                 ) : (
                   <User size={20} />
                 )}
@@ -215,20 +222,32 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <div className="flex items-center gap-3 p-3 bg-white/10 rounded-2xl shadow-sm border border-white/5">
                   <div className="w-10 h-10 rounded-full bg-accent text-white flex items-center justify-center overflow-hidden">
                     {user?.photoURL ? (
-                      <img src={user.photoURL} alt={user.displayName || 'User'} className="w-full h-full object-cover" width="48" height="48" onError={(e) => { e.currentTarget.src = 'https://ui-avatars.com/api/?name=User&background=random'; }} />
+                      <img
+                        src={user.photoURL}
+                        alt={user.displayName || 'Profil'}
+                        className="w-full h-full object-cover"
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                        decoding="async"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          e.currentTarget.src = initialsAvatarDataUri(user?.displayName, 96);
+                        }}
+                      />
                     ) : (
                       <User size={20} />
                     )}
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-white/70 uppercase tracking-widest">Bienvenue</p>
+                    <p className="text-xs font-bold text-white uppercase tracking-widest">Bienvenue</p>
                     <p className="font-serif font-bold text-white">{user?.displayName || (user ? 'Utilisateur' : 'Invité')}</p>
                   </div>
                 </div>
               </div>
               
               <div className="flex flex-col p-6 space-y-2 flex-grow">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-white/70 mb-2 px-2">Navigation Principale</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white mb-2 px-2">Navigation Principale</p>
                 <div className="grid grid-cols-1 gap-1">
                   <button
                     onClick={() => { onNavigate('home'); setIsMenuOpen(false); }}
@@ -259,7 +278,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
                 <hr className="border-white/10 my-6" />
 
-                <p className="text-[10px] font-bold uppercase tracking-widest text-white/70 mb-2 px-2">Outils & Services</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white mb-2 px-2">Outils & Services</p>
                 <div className="grid grid-cols-1 gap-2">
                   <button
                     onClick={() => { onNavigate('wishlist'); setIsMenuOpen(false); }}
@@ -357,7 +376,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                     {user ? 'Mon Compte' : 'Se connecter'}
                   </button>
                   {user && (
-                    <button onClick={() => { auth && signOut(auth); setIsMenuOpen(false); }} className="w-full p-4 rounded-2xl text-left flex items-center gap-3 text-red-400 hover:bg-red-500/10 transition-colors font-medium">
+                    <button
+                      type="button"
+                      aria-label="Se déconnecter"
+                      onClick={async () => {
+                        const { initFirebase } = await import('../../backend/firebase');
+                        const { signOut } = await import('firebase/auth');
+                        const { auth: firebaseAuth } = initFirebase();
+                        if (firebaseAuth) await signOut(firebaseAuth);
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full p-4 rounded-2xl text-left flex items-center gap-3 text-red-400 hover:bg-red-500/10 transition-colors font-medium"
+                    >
                       <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center text-red-500"><X size={16} /></div>
                       Déconnexion
                     </button>

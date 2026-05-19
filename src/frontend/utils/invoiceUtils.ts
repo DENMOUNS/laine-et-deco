@@ -1,14 +1,17 @@
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { Order } from '../../types';
 import { toast } from 'sonner';
 
-export const generateInvoicePDF = (order: Order, isDuplicata: boolean = false) => {
+export async function generateInvoicePDF(order: Order, isDuplicata: boolean = false) {
   try {
     if (!order) {
-      console.error('generateInvoicePDF called with null order');
       return;
     }
+
+    const [{ jsPDF }, autoTableModule] = await Promise.all([
+      import('jspdf'),
+      import('jspdf-autotable'),
+    ]);
+    const autoTable = autoTableModule.default;
     const doc = new jsPDF();
     const primaryColor = [44, 62, 53]; // Laine & Deco dark green
     const textColor = [50, 50, 50]; 

@@ -1,14 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import type { QueryConstraint } from 'firebase/firestore';
-import {
-  createFirestoreEntity,
-  deleteFirestoreEntity,
-  EntityPayload,
-  EntityServiceOptions,
-  setFirestoreEntity,
-  subscribeToEntityCollection,
-  updateFirestoreEntity
-} from '../services/firestoreEntityService';
+import type { EntityPayload } from '../services/firestoreEntityService';
 import type { BaseEntity } from '../../domain/entities/BaseEntity';
 
 interface UseEntityOptions {
@@ -41,48 +33,54 @@ export function useEntity<T extends BaseEntity = BaseEntity>(
       return;
     }
 
-    const unsubscribe = subscribeToEntityCollection<T>(
-      entityType,
-      { constraints },
-      (items) => {
-        if (!isMounted.current) {
-          return;
-        }
+    setIsLoading(true);
+    let cancelled = false;
+    let unsubscribe = () => {};
 
-        setData(items);
-        setIsLoading(false);
-        setError(null);
-      },
-      (err) => {
-        if (!isMounted.current) {
-          return;
-        }
+    void import('../services/firestoreEntityService').then(({ subscribeToEntityCollection }) => {
+      if (cancelled) return;
 
-        setError(err);
-        setIsLoading(false);
-      }
-    );
+      unsubscribe = subscribeToEntityCollection<T>(
+        entityType,
+        { constraints },
+        (items) => {
+          if (!isMounted.current) return;
+          setData(items);
+          setIsLoading(false);
+          setError(null);
+        },
+        (err) => {
+          if (!isMounted.current) return;
+          setError(err);
+          setIsLoading(false);
+        }
+      );
+    });
 
     return () => {
+      cancelled = true;
       unsubscribe();
     };
   }, [entityType, enabled, ...deps]);
 
-  const addEntity = async (newItem: EntityPayload<T>) => {
-    return createFirestoreEntity<T>(entityType, newItem);
+  const withService = async <R>(
+    fn: (svc: typeof import('../services/firestoreEntityService')) => Promise<R>
+  ): Promise<R> => {
+    const svc = await import('../services/firestoreEntityService');
+    return fn(svc);
   };
 
-  const updateEntity = async (id: string, updates: Partial<T>) => {
-    return updateFirestoreEntity<T>(entityType, id, updates);
-  };
+  const addEntity = async (newItem: EntityPayload<T>) =>
+    withService((svc) => svc.createFirestoreEntity<T>(entityType, newItem));
 
-  const setEntity = async (id: string, data: Partial<T>) => {
-    return setFirestoreEntity<T>(entityType, id, data);
-  };
+  const updateEntity = async (id: string, updates: Partial<T>) =>
+    withService((svc) => svc.updateFirestoreEntity<T>(entityType, id, updates));
 
-  const deleteEntity = async (id: string) => {
-    return deleteFirestoreEntity(entityType, id);
-  };
+  const setEntity = async (id: string, entityData: Partial<T>) =>
+    withService((svc) => svc.setFirestoreEntity<T>(entityType, id, entityData));
+
+  const deleteEntity = async (id: string) =>
+    withService((svc) => svc.deleteFirestoreEntity(entityType, id));
 
   return {
     data,

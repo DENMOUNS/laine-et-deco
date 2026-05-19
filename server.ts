@@ -1,22 +1,22 @@
+import './server/loadEnv.js';
 import express from "express";
-import dotenv from "dotenv";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import path from "path";
+import fs from "node:fs";
 import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import DOMPurify from "isomorphic-dompurify";
-
-dotenv.config({ path: [".env", "env"] });
+import entityRoutes from './server/routes/entityRoutes';
+import dashboardRoutes from './server/routes/dashboardRoutes';
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use((_req, res, next) => {
-    res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
-    next();
-  });
+  /** Vite middleware (dev) sauf si NODE_ENV=production (npm run start après build). */
+  const useViteDevServer =
+    process.env.SERVE_WITH_VITE === 'true' || process.env.NODE_ENV !== 'production';
 
   app.use(express.json());
 
@@ -32,7 +32,9 @@ async function startServer() {
   app.use("/api/", apiLimiter);
 
   // --- API Routes ---
-  
+  app.use('/api/entity', entityRoutes);
+  app.use('/api/dashboard', dashboardRoutes);
+
   // Initialize AI safely on backend
   let ai: GoogleGenAI | null = null;
   if (process.env.GEMINI_API_KEY) {
@@ -126,7 +128,7 @@ async function startServer() {
   });
 
   // --- Vite Middleware (Development) or Static Serve (Production) ---
-  if (process.env.NODE_ENV !== "production") {
+  if (useViteDevServer) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
@@ -134,14 +136,38 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    const indexHtml = path.join(distPath, 'index.html');
+    if (!fs.existsSync(indexHtml)) {
+      console.error(
+        'Aucun fichier dist/index.html. Lancez « npm run build » avant « npm run start ».'
+      );
+      process.exit(1);
+    }
+    app.use(
+      express.static(distPath, {
+        maxAge: '1y',
+        immutable: true,
+        setHeaders: (res, filePath) => {
+          if (filePath.endsWith('index.html')) {
+            res.setHeader('Cache-Control', 'no-cache');
+          }
+        },
+      })
+    );
+    app.get('*', (_req, res) => {
+      res.setHeader('Cache-Control', 'no-cache');
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    const mode = useViteDevServer ? "développement (Vite)" : "production (fichiers dist/)";
+    console.log(`Server running on http://localhost:${PORT} — mode ${mode}`);
+    if (useViteDevServer) {
+      console.log(
+        "Astuce Lighthouse : exécutez « npm run build » puis « npm run start » pour mesurer la perf réelle."
+      );
+    }
   });
 }
 

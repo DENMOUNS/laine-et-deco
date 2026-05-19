@@ -1,10 +1,11 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { BookOpen, Calendar, User, ArrowRight } from 'lucide-react';
-import { BLOG_POSTS } from '../../constants';
+import { useStaticEntity } from '../hooks/useStaticEntity';
 import { Button } from '../components/ui/Button';
 
 export const BlogIndexView: React.FC = () => {
+  const { data: BLOG_POSTS } = useStaticEntity<any>('blog_post');
   return (
     <div className="max-w-7xl mx-auto px-4 py-12">
       <div className="text-center mb-20">

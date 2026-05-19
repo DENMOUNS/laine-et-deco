@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, ChevronDown, MessageCircle, Truck, CreditCard, Package, Settings, Info, ChevronRight, HelpCircle } from 'lucide-react';
 import { cn } from '../utils/utils';
-import { useEntity } from '../hooks/useEntity';
-import { FAQ_ITEMS as INITIAL_FAQ_ITEMS } from '../../constants';
+import { useStaticEntity } from '../hooks/useStaticEntity';
 import { FAQ } from '../../types';
 
 const CATEGORIES = [
@@ -16,7 +15,7 @@ const CATEGORIES = [
 ];
 
 export const FAQView: React.FC<{ onNavigate: (view: string) => void }> = ({ onNavigate }) => {
-  const { data: FAQ_DATA } = useEntity<FAQ>('faq', INITIAL_FAQ_ITEMS);
+  const { data: FAQ_DATA, isLoading } = useStaticEntity<FAQ>('faq');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [openIndex, setOpenIndex] = useState<number | null>(0);

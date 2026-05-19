@@ -1,3 +1,4 @@
+import './loadEnv.js';
 import firebaseAdmin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 import config from '../firebase-applet-config.json';

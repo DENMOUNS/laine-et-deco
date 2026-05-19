@@ -25,24 +25,26 @@ export const InstallBanner: React.FC<InstallBannerProps> = ({ showInstallBanner,
               </div>
               <div>
                 <p className="text-sm font-bold">Laine et Déco App</p>
-                <p className="text-[10px] text-white/70">Profitez d'une meilleure expérience</p>
+                <p className="text-[10px] text-white">Profitez d'une meilleure expérience</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Button 
+              <Button
                 variant="secondary"
                 size="sm"
+                aria-label="Installer l'application"
                 className="text-xs font-bold bg-white text-primary px-4 py-2 rounded-full h-auto"
               >
                 Installer
               </Button>
-              <Button 
+              <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setShowInstallBanner(false)} 
-                className="text-white/70 hover:text-white"
+                aria-label="Fermer la bannière d'installation"
+                onClick={() => setShowInstallBanner(false)}
+                className="text-white hover:text-white"
               >
-                <X size={20} />
+                <X size={20} aria-hidden="true" />
               </Button>
             </div>
           </div>

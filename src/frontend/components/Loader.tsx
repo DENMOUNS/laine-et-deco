@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'motion/react';
 import { createPortal } from 'react-dom';
 import { Scissors } from 'lucide-react';
 
@@ -8,30 +7,19 @@ interface LoaderProps {
   text?: string;
 }
 
-export const Loader: React.FC<LoaderProps> = ({ fullScreen = false, text = "Veuillez patienter..." }) => {
+export const Loader: React.FC<LoaderProps> = ({ fullScreen = false, text = 'Veuillez patienter...' }) => {
   const content = (
     <div className="flex flex-col items-center justify-center space-y-8">
       <div className="relative flex items-center justify-center scale-125">
-         <motion.div
-           animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
-           transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
-           className="w-16 h-16 border-4 border-primary/30 rounded-full"
-         />
-         <motion.div
-           animate={{ rotate: 360 }}
-           transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
-           className="absolute inset-0 w-16 h-16 border-4 border-transparent border-t-primary rounded-full"
-         />
-         <motion.div
-           animate={{ rotate: -360 }}
-           transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-           className="absolute inset-2 w-12 h-12 border-4 border-transparent border-b-accent rounded-full"
-         />
-         <div className="absolute inset-0 flex items-center justify-center">
-            <Scissors className="h-6 w-6 text-primary" />
-         </div>
+        <div className="w-16 h-16 border-4 border-primary/30 rounded-full animate-pulse" />
+        <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-t-primary rounded-full animate-spin" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Scissors className="h-6 w-6 text-primary" aria-hidden="true" />
+        </div>
       </div>
-      {text && <p className="text-primary font-bold tracking-widest uppercase text-sm animate-pulse">{text}</p>}
+      {text && (
+        <p className="text-primary font-bold tracking-widest uppercase text-sm animate-pulse">{text}</p>
+      )}
     </div>
   );
 
@@ -44,5 +32,9 @@ export const Loader: React.FC<LoaderProps> = ({ fullScreen = false, text = "Veui
     );
   }
 
-  return <div className="flex-1 flex w-full h-full min-h-[400px] items-center justify-center p-12">{content}</div>;
+  return (
+    <div className="flex-1 flex w-full h-full min-h-[400px] items-center justify-center p-12">
+      {content}
+    </div>
+  );
 };

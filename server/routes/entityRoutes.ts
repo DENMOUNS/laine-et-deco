@@ -253,7 +253,7 @@ router.delete('/:entity/:id', verifyToken, resolveRole, async (req: any, res) =>
 // READ
 // ==========================
 
-router.get('/:entity/:id?', verifyToken, resolveRole, async (req: any, res) => {
+const readEntity = async (req: any, res: any) => {
   const { entity, id } = req.params;
   const role = req.user.role;
   const uid = req.user.uid;
@@ -305,6 +305,9 @@ router.get('/:entity/:id?', verifyToken, resolveRole, async (req: any, res) => {
   } catch (e: any) {
     return res.status(400).json({ error: e.message });
   }
-});
+};
+
+router.get('/:entity', verifyToken, resolveRole, readEntity);
+router.get('/:entity/:id', verifyToken, resolveRole, readEntity);
 
 export default router;

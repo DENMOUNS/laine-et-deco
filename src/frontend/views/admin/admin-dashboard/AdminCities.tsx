@@ -4,8 +4,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { LayoutDashboard, Package, ShoppingBag, Users, BarChart3, Settings, LogOut, TrendingUp, ArrowUpRight, ArrowDownRight, Search, Bell, Plus, Menu, X, History, Coins, Globe, Shield, Activity, Smartphone, Monitor, Star, CheckCircle2, AlertCircle, MessageSquare, Palette, Award, Download, FileText, Send, Table as TableIcon, Ticket, Lock, Eye, MousePointer2, Calendar as CalendarIcon, Image as ImageIcon, Type as TypeIcon, MonitorOff, Info, User, Edit, Trash2, ShoppingCart, RefreshCcw, Tag, Mail, Percent, Truck, ChevronLeft, MapPin, Route, QrCode, Save, HelpCircle, Phone } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
-import { doc, updateDoc, increment, query, where, getDoc, writeBatch, addDoc } from 'firebase/firestore';
-import { auth, db } from '../../../../backend/firebase';
+import { resetCities } from '../../../services/dashboardApi';
 import { BADGES, ADMIN_ROLES as INITIAL_ADMIN_ROLES } from '../../../../constants';
 import { DataTable } from '../../../components/DataTable';
 import { TabFilter } from '../../../components/TabFilter';
@@ -18,7 +17,7 @@ import { FAQEditor } from '../../../components/dashboard/FAQEditor';
 import { PromoEventEditor } from '../../../components/dashboard/PromoEventEditor';
 import { CatalogPriceRuleEditor } from '../../../components/dashboard/CatalogPriceRuleEditor';
 import { cn } from '../../../utils/utils';
-import { generateInvoicePDF } from '../../../utils/invoiceUtils';
+
 import { AdminFlashSales } from '../AdminFlashSales';
 import { AdminLookbooks } from '../AdminLookbooks';
 import { AdminPortfolios } from '../AdminPortfolios';
@@ -36,14 +35,10 @@ export function AdminCities({ ctx }: { ctx: any }) {
                   onClick={async () => {
                     if (window.confirm('Voulez-vous réinitialiser toutes les villes aux valeurs par défaut ?')) {
                       try {
-                        const batch = writeBatch(db!);
-                        INITIAL_CITIES.forEach(city => {
-                          const docRef = doc(db!, 'city', city.id!);
-                          batch.set(docRef, { ...city, updatedAt: serverTimestamp() });
-                        });
-                        await batch.commit();
+                        await resetCities();
                         toast.success('Villes réinitialisées');
                       } catch (err) {
+                        console.error('Cities reset error:', err);
                         toast.error('Erreur lors de la réinitialisation');
                       }
                     }

@@ -14,8 +14,9 @@ import {
   Activity,
   User as UserIcon
 } from 'lucide-react';
-import { Order, KnittingProject, LoginLog, UserProfile, User, Invoice, Product, Coupon } from '../../types';
+import { Order, KnittingProject, LoginLog, UserProfile, User, Product, Coupon } from '../../types';
 import { useEntity } from '../hooks/useEntity';
+import type { EntityPayload } from '../services/firestoreEntityService';
 import { where } from 'firebase/firestore';
 import { User as FirebaseUser, signOut } from 'firebase/auth';
 import { auth } from '../../backend/firebase';
@@ -31,6 +32,7 @@ import { DashboardPayments } from '../components/dashboard/DashboardPayments';
 import { DashboardTools } from '../components/dashboard/DashboardTools';
 import { OrderDetailsModal } from '../components/dashboard/OrderDetailsModal';
 import { Loader } from '../components/Loader';
+import { initialsAvatarDataUri } from '../utils/avatarFallback';
 
 interface CustomerDashboardProps {
   user: FirebaseUser | null;
@@ -57,11 +59,6 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, onNa
 
   const userLogs: LoginLog[] = [];
   const isLogsLoading = false;
-
-  const { data: invoices, isLoading: isInvoicesLoading } = useEntity<Invoice>('invoice', [], {
-    constraints: [where('userId', '==', user?.uid || 'guest')],
-    deps: [user?.uid]
-  });
 
   const { data: allProducts } = useEntity<Product>('product', []);
 
@@ -99,29 +96,30 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, onNa
       const shortId = userProfile.id.substring(0, 5).toUpperCase();
       const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
       const code = `LOYAL-${rewardId.toUpperCase()}-${shortId}-${randomSuffix}`;
-      
-      const newCoupon: Partial<Coupon> = {
+
+      let reward: { type: Coupon['type']; discount: number; freeShipping: boolean };
+      if (rewardId === 'free-shipping') {
+        reward = { type: 'free_shipping', discount: 0, freeShipping: true };
+      } else if (rewardId === '10k-coupon') {
+        reward = { type: 'fixed', discount: 10000, freeShipping: false };
+      } else if (rewardId === 'mega-reward') {
+        reward = { type: 'fixed', discount: 15000, freeShipping: true };
+      } else {
+        toast.error('Récompense inconnue');
+        return;
+      }
+
+      const newCoupon: EntityPayload<Coupon> = {
         code,
         status: 'active',
         usageLimit: 1,
         usageCount: 0,
         restrictedToUserId: user?.uid,
-        expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
+        expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        type: reward.type,
+        discount: reward.discount,
+        freeShipping: reward.freeShipping,
       };
-
-      if (rewardId === 'free-shipping') {
-        newCoupon.type = 'free_shipping';
-        newCoupon.discount = 0;
-        newCoupon.freeShipping = true;
-      } else if (rewardId === '10k-coupon') {
-        newCoupon.type = 'fixed';
-        newCoupon.discount = 10000;
-        newCoupon.freeShipping = false;
-      } else if (rewardId === 'mega-reward') {
-        newCoupon.type = 'fixed';
-        newCoupon.discount = 15000;
-        newCoupon.freeShipping = true;
-      }
 
       await addCoupon(newCoupon);
       toast.success(`Récompense échangée ! Votre code : ${code}. Il est disponible uniquement pour votre compte.`);
@@ -160,7 +158,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, onNa
     );
   }
 
-  const isDataLoading = isOrdersLoading || isProjectsLoading || isLogsLoading || isProfileLoading || isInvoicesLoading;
+  const isDataLoading = isOrdersLoading || isProjectsLoading || isLogsLoading || isProfileLoading;
 
   const renderContent = () => {
     if (isDataLoading) return <Loader fullScreen text="Chargement de vos données..." />;
@@ -202,11 +200,10 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, onNa
         return <DashboardProfile user={dashboardUser} onUpdateUser={() => {}} />;
       case 'payments':
         return (
-          <DashboardPayments 
-            orders={orders} 
-            invoices={invoices} 
-            paymentFilter="all" 
-            setPaymentFilter={() => {}} 
+          <DashboardPayments
+            orders={orders}
+            paymentFilter="all"
+            setPaymentFilter={() => {}}
             userRole={userProfile.role}
           />
         );
@@ -234,7 +231,19 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, onNa
             <div className="bg-card p-8 rounded-[3rem] shadow-sm border border-primary/5 text-center">
               <div className="w-24 h-24 mx-auto bg-gradient-to-br from-primary to-accent rounded-full mb-6 flex items-center justify-center text-white text-3xl font-serif italic shadow-xl overflow-hidden border-4 border-white">
                 {user.photoURL ? (
-                  <img src={user.photoURL} alt={user.displayName || 'Profile'} className="w-full h-full object-cover" width="128" height="128" referrerPolicy="no-referrer" onError={(e) => { e.currentTarget.src = 'https://ui-avatars.com/api/?name=User&background=random'; }} />
+                  <img
+                    src={user.photoURL}
+                    alt={user.displayName || 'Profile'}
+                    className="w-full h-full object-cover"
+                    width="128"
+                    height="128"
+                    loading="lazy"
+                    decoding="async"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      e.currentTarget.src = initialsAvatarDataUri(user.displayName, 128);
+                    }}
+                  />
                 ) : (
                   <UserIcon size={36} className="text-white/80" />
                 )}

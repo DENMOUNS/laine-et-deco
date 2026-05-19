@@ -18,7 +18,6 @@ import { FAQEditor } from '../../../components/dashboard/FAQEditor';
 import { PromoEventEditor } from '../../../components/dashboard/PromoEventEditor';
 import { CatalogPriceRuleEditor } from '../../../components/dashboard/CatalogPriceRuleEditor';
 import { cn } from '../../../utils/utils';
-import { generateInvoicePDF } from '../../../utils/invoiceUtils';
 import { AdminFlashSales } from '../AdminFlashSales';
 import { AdminLookbooks } from '../AdminLookbooks';
 import { AdminPortfolios } from '../AdminPortfolios';
@@ -81,8 +80,9 @@ export function AdminOrderDetail({ ctx }: { ctx: any }) {
                   </div>
                 )}
                 <button 
-                  onClick={() => {
-                    generateInvoicePDF(selectedOrder);
+                  onClick={async () => {
+                    const { generateInvoicePDF } = await import('../../../utils/invoiceUtils');
+                    void generateInvoicePDF(selectedOrder);
                   }}
                   className={`px-4 py-2 rounded-xl font-bold transition-all shadow-md text-sm flex items-center gap-2 bg-primary text-white hover:bg-accent`}
                 >

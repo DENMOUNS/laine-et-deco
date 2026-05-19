@@ -1,3 +1,5 @@
+import type { BaseEntity } from './domain/entities/BaseEntity';
+
 export interface Currency {
   id: string;
   code: string;
@@ -9,7 +11,7 @@ export interface Currency {
   updatedAt?: string;
 }
 
-export interface NavItem {
+export interface NavItem extends BaseEntity {
   id: string;
   name: string;
   view: string;
@@ -132,7 +134,7 @@ export interface SEOMeta {
   updatedAt?: string;
 }
 
-export interface PromoEvent {
+export interface PromoEvent extends BaseEntity {
   id: string;
   name: string;
   startDate: string; // ISO string
@@ -412,16 +414,6 @@ export interface Notification {
   updatedAt?: string;
 }
 
-export interface Invoice {
-  id: string;
-  orderId: string;
-  date: string;
-  amount: number;
-  status: 'paid' | 'unpaid';
-  createdAt?: string;
-  updatedAt?: string;
-}
-
 export interface SalesStat {
   name: string;
   sales: number;
@@ -512,7 +504,7 @@ export interface LoyaltyConfig {
   levels: LoyaltyLevel[];
 }
 
-export interface SiteConfig {
+export interface SiteConfig extends BaseEntity {
   id?: string;
   primaryColor: string;
   accentColor: string;

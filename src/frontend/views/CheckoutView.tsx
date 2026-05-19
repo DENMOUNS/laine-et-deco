@@ -8,7 +8,8 @@ import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, 
 import { db } from '../../backend/firebase';
 import { motion, AnimatePresence } from 'motion/react';
 import { useEntity } from '../hooks/useEntity';
-import { SHIPPING_RULES as INITIAL_SHIPPING_RULES, INITIAL_CITIES } from '../../constants';
+import { useStaticEntity } from '../hooks/useStaticEntity';
+
 
 interface CheckoutViewProps {
   cart: CartItem[];
@@ -34,9 +35,9 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
   const [discount, setDiscount] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { data: shippingRules } = useEntity<ShippingRule>('shipping_rule', INITIAL_SHIPPING_RULES);
+  const { data: shippingRules } = useStaticEntity<ShippingRule>('shipping_rule');
   const { data: allCoupons } = useEntity<any>('coupon');
-  const { data: allCities } = useEntity<City>('city', INITIAL_CITIES);
+  const { data: allCities } = useStaticEntity<City>('city');
 
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
 

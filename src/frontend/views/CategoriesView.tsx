@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { CATEGORIES as INITIAL_CATEGORIES } from '../../constants';
-import { useEntity } from '../hooks/useEntity';
+import { useStaticEntity } from '../hooks/useStaticEntity';
 import { ChevronRight, ShoppingBag } from 'lucide-react';
 
 interface CategoriesViewProps {
@@ -9,7 +8,7 @@ interface CategoriesViewProps {
 }
 
 export const CategoriesView: React.FC<CategoriesViewProps> = ({ onNavigate }) => {
-  const { data: CATEGORIES } = useEntity<any>('category', INITIAL_CATEGORIES);
+  const { data: CATEGORIES } = useStaticEntity<any>('category');
 
   return (
     <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">

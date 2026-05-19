@@ -1,9 +1,8 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Heart, MessageSquare, Share2, Camera, Plus } from 'lucide-react';
-import { useEntity } from '../hooks/useEntity';
+import { useStaticEntity } from '../hooks/useStaticEntity';
 import { CommunityPost } from '../../types';
-import { COMMUNITY_POSTS as INITIAL_POSTS } from '../../constants';
 import { Button } from '../components/ui/Button';
 
 interface CommunityGalleryViewProps {
@@ -12,7 +11,7 @@ interface CommunityGalleryViewProps {
 }
 
 export const CommunityGalleryView: React.FC<CommunityGalleryViewProps> = ({ onNavigate, user }) => {
-  const { data: posts, isLoading } = useEntity<CommunityPost>('community_post', INITIAL_POSTS);
+  const { data: posts, isLoading } = useStaticEntity<CommunityPost>('community_post');
 
   if (isLoading) {
     return (

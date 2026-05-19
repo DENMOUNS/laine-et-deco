@@ -4,8 +4,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { LayoutDashboard, Package, ShoppingBag, Users, BarChart3, Settings, LogOut, TrendingUp, ArrowUpRight, ArrowDownRight, Search, Bell, Plus, Menu, X, History, Coins, Globe, Shield, Activity, Smartphone, Monitor, Star, CheckCircle2, AlertCircle, MessageSquare, Palette, Award, Download, FileText, Send, Table as TableIcon, Ticket, Lock, Eye, MousePointer2, Calendar as CalendarIcon, Image as ImageIcon, Type as TypeIcon, MonitorOff, Info, User, Edit, Trash2, ShoppingCart, RefreshCcw, Tag, Mail, Percent, Truck, ChevronLeft, MapPin, Route, QrCode, Save, HelpCircle, Phone } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
-import { doc, updateDoc, increment, query, where, getDoc, writeBatch, addDoc } from 'firebase/firestore';
-import { auth, db } from '../../../../backend/firebase';
+import { updateOrderStatus } from '../../../services/dashboardApi';
 import { BADGES, ADMIN_ROLES as INITIAL_ADMIN_ROLES } from '../../../../constants';
 import { DataTable } from '../../../components/DataTable';
 import { TabFilter } from '../../../components/TabFilter';
@@ -18,7 +17,7 @@ import { FAQEditor } from '../../../components/dashboard/FAQEditor';
 import { PromoEventEditor } from '../../../components/dashboard/PromoEventEditor';
 import { CatalogPriceRuleEditor } from '../../../components/dashboard/CatalogPriceRuleEditor';
 import { cn } from '../../../utils/utils';
-import { generateInvoicePDF } from '../../../utils/invoiceUtils';
+
 import { AdminFlashSales } from '../AdminFlashSales';
 import { AdminLookbooks } from '../AdminLookbooks';
 import { AdminPortfolios } from '../AdminPortfolios';
@@ -70,71 +69,16 @@ export function AdminOrders({ ctx }: { ctx: any }) {
                     onChange={async (e) => {
                         const newStatus = e.target.value as any;
                         const oldStatus = order.status;
-                        
-                        setLocalOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: newStatus } : o));
-                        
-                        // Database update
-                        try {
-                          const colName = 'order';
-                          
-                          // Custom orders use document ID as id, but wait, both are now 'order'. 
-                          // Standard orders search by custom 'id' field
-                          const ordersRef = collection(db, colName);
-                          const q = query(ordersRef, where('id', '==', order.id));
-                          const snap = await getDocs(q);
-                          if (!snap.empty) {
-                            const orderDoc = snap.docs[0];
-                            await updateDoc(doc(db, colName, orderDoc.id), { 
-                              status: newStatus,
-                              updatedAt: new Date().toISOString()
-                            });
-                          } else {
-                            // document ID
-                            await updateDoc(doc(db, colName, order.id), { 
-                              status: newStatus,
-                              updatedAt: new Date().toISOString()
-                            });
-                          }
 
-                          // Logic for Referral Reward when marked as DELIVERED
-                          if (newStatus === 'delivered' && oldStatus !== 'delivered' && order.userId) {
-                            const userRef = doc(db, 'user', order.userId);
-                            const userSnap = await getDoc(userRef);
-                            
-                            if (userSnap.exists()) {
-                              const userData = userSnap.data();
-                              const referralCode = userData.referredBy;
-                              
-                              if (referralCode) {
-                                // Check if this is the first delivered order
-                                const deliveredOrdersQuery = query(
-                                  collection(db, 'order'), 
-                                  where('userId', '==', order.userId), 
-                                  where('status', '==', 'delivered')
-                                );
-                                const deliveredSnap = await getDocs(deliveredOrdersQuery);
-                                
-                                if (deliveredSnap.size <= 1 && !userData.referralRewardGiven) {
-                                  // Find referrer by matching first 8 chars of their UID (referral code)
-                                  const usersRef = collection(db, 'user');
-                                  const allUsersSnap = await getDocs(usersRef);
-                                  const referrer = allUsersSnap.docs.find(d => d.id.substring(0, 8) === referralCode);
-                                  
-                                  if (referrer && referrer.id !== order.userId) {
-                                    await updateDoc(doc(db, referrer.id), {
-                                      points: increment(20)
-                                    });
-                                    await updateDoc(userRef, { referralRewardGiven: true });
-                                    toast.success('Récompense de parrainage (20 points) envoyée au parrain !');
-                                  }
-                                }
-                              }
-                            }
-                          }
+                        setLocalOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: newStatus } : o));
+
+                        try {
+                          await updateOrderStatus(order.id, newStatus);
                           toast.success(`Statut de la commande ${order.id} mis à jour : ${newStatus}`);
                         } catch (err) {
-                          console.error(err);
-                          toast.error('Erreur lors de la mise à jour en base de données');
+                          setLocalOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: oldStatus } : o));
+                          console.error('Order status update failed:', err);
+                          toast.error(err instanceof Error ? err.message : 'Erreur lors de la mise à jour en base de données');
                         }
                     }}
                     className={cn(

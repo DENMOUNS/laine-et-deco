@@ -1,7 +1,8 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Package, ShoppingBag, Check, ArrowLeft, Sparkles } from 'lucide-react';
-import { PACKS, PRODUCTS } from '../../constants';
+import { useStaticEntity } from '../hooks/useStaticEntity';
+import { useProducts } from '../hooks/useProducts';
 import { Button } from '../components/ui/Button';
 import { Pack, Product } from '../../types';
 
@@ -14,6 +15,8 @@ interface PackDetailViewProps {
 
 export const PackDetailView: React.FC<PackDetailViewProps> = ({ packId, onNavigate, onAddToCart, onAddPackToCart }) => {
   const [packQuantity, setPackQuantity] = React.useState(1);
+  const { data: PACKS } = useStaticEntity<Pack>('pack');
+  const { products: PRODUCTS } = useProducts();
   const pack = PACKS.find(p => p.id === packId);
   
   if (!pack) {

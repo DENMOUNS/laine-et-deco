@@ -16,9 +16,6 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { Button } from './ui/Button';
 import { cn } from '../utils/utils';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
 
 interface Column<T> {
   header: string;
@@ -192,7 +189,8 @@ export function DataTable<T extends { id?: string | number }>({
     URL.revokeObjectURL(url);
   };
 
-  const exportExcel = () => {
+  const exportExcel = async () => {
+    const XLSX = await import('xlsx');
     const { headers, rows } = getExportData();
     const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
     const workbook = XLSX.utils.book_new();
@@ -200,7 +198,12 @@ export function DataTable<T extends { id?: string | number }>({
     XLSX.writeFile(workbook, `${title || 'export'}.xlsx`);
   };
 
-  const exportPDF = () => {
+  const exportPDF = async () => {
+    const [{ default: jsPDF }, autoTableModule] = await Promise.all([
+      import('jspdf'),
+      import('jspdf-autotable'),
+    ]);
+    const autoTable = autoTableModule.default;
     const { headers, rows } = getExportData();
     const doc = new jsPDF();
     if (title) {
@@ -325,10 +328,10 @@ export function DataTable<T extends { id?: string | number }>({
             <Button variant="outline" size="sm" onClick={exportCSV} title="Exporter en CSV" className="rounded-xl">
               CSV
             </Button>
-            <Button variant="outline" size="sm" onClick={exportExcel} title="Exporter en Excel" className="rounded-xl">
+            <Button variant="outline" size="sm" onClick={() => void exportExcel()} title="Exporter en Excel" className="rounded-xl">
               <FileSpreadsheet size={16} className="mr-1" /> XLS
             </Button>
-            <Button variant="outline" size="sm" onClick={exportPDF} title="Exporter en PDF" className="rounded-xl">
+            <Button variant="outline" size="sm" onClick={() => void exportPDF()} title="Exporter en PDF" className="rounded-xl">
               <FileText size={16} className="mr-1" /> PDF
             </Button>
           </div>

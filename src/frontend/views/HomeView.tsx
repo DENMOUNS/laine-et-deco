@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { ArrowRight, Package, Truck, ShieldCheck, Heart, Calendar, User, Search, Camera, Zap, Clock, Loader2, Mic, X as CloseIcon, HelpCircle, Star, Sparkles } from 'lucide-react';
-import { CATEGORIES as INITIAL_CATEGORIES, PRODUCTS as INITIAL_PRODUCTS, BLOG_POSTS as INITIAL_BLOG_POSTS, PACKS as INITIAL_PACKS } from '../../constants';
-import { useEntity } from '../hooks/useEntity';
+
+import { useStaticEntity } from '../hooks/useStaticEntity';
 import { useProducts } from '../hooks/useProducts';
+import { limit } from 'firebase/firestore';
 import { ProductCard } from '../components/ProductCard';
 import { Button } from '../components/ui/Button';
 import { Product, SiteConfig, PromoEvent, Pack, FlashSale, Lookbook } from '../../types';
 import { AdBanner } from '../components/AdBanner';
-import { analyzeProductImage } from '../utils/aiUtils';
 import { productSearch } from '../utils/searchUtils';
+import { useDeferUntilInteraction } from '../hooks/useAfterIdle';
+import { optimizeImageUrl } from '../utils/imageUtils';
 import { toast } from 'sonner';
 
 const CountdownTimer: React.FC<{ endDate: string }> = ({ endDate }) => {
@@ -69,13 +71,26 @@ interface HomeViewProps {
 }
 
 export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onAddToWishlist, onQuickView, onAddToComparison, onProductClick, siteConfig, events = [] }) => {
-  const { products: fetchedProducts, isLoading: isProductsLoading } = useProducts();
-  const PRODUCTS = fetchedProducts.length > 0 ? fetchedProducts : INITIAL_PRODUCTS;
-  const { data: CATEGORIES } = useEntity<any>('category', INITIAL_CATEGORIES);
-  const { data: BLOG_POSTS } = useEntity<any>('blog_post', INITIAL_BLOG_POSTS);
-  const { data: PACKS } = useEntity<any>('pack', INITIAL_PACKS);
-  const { data: RECENT_FLASH_SALES } = useEntity<FlashSale>('flash_sale', []);
-  const { data: LOOKBOOKS } = useEntity<Lookbook>('lookbook', []);
+  const dataReady = useDeferUntilInteraction(20_000);
+  const [secondaryReady, setSecondaryReady] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!dataReady) return;
+    const t = setTimeout(() => setSecondaryReady(true), 5000);
+    return () => clearTimeout(t);
+  }, [dataReady]);
+
+  const { products: fetchedProducts, isLoading: isProductsLoading } = useProducts({
+    enabled: dataReady,
+    constraints: [limit(24)],
+  });
+  const PRODUCTS = fetchedProducts;
+  const secondaryOpts = { enabled: secondaryReady };
+  const { data: CATEGORIES } = useStaticEntity<any>('category', [], secondaryOpts);
+  const { data: BLOG_POSTS } = useStaticEntity<any>('blog_post', [], secondaryOpts);
+  const { data: PACKS } = useStaticEntity<any>('pack', [], secondaryOpts);
+  const { data: RECENT_FLASH_SALES } = useStaticEntity<FlashSale>('flash_sale', [], secondaryOpts);
+  const { data: LOOKBOOKS } = useStaticEntity<Lookbook>('lookbook', [], secondaryOpts);
   const activeFlashSales = RECENT_FLASH_SALES.filter(fs => fs.status === 'active' && new Date(fs.endDate) > new Date());
   const activeLookbooks = LOOKBOOKS.filter(lb => lb.status === 'active');
 
@@ -92,14 +107,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
   const [liveSearchResults, setLiveSearchResults] = React.useState<Product[]>([]);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
-  const heroRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: heroRef,
-    offset: ["start start", "end start"]
-  });
-  const heroY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
-  const heroOpacity = useTransform(scrollYProgress, [0, 1], [1, 0.5]);
-
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
@@ -133,18 +140,20 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
   
   const HERO_SLIDES = (siteConfig.showSlider && siteConfig.sliderItems && siteConfig.sliderItems.length > 0) 
     ? siteConfig.sliderItems.map(item => ({
-        image: item.image,
+        image: optimizeImageUrl(item.image, 960),
         title: item.title,
         subtitle: item.subtitle,
         link: 'shop'
       }))
     : heroImages.map(image => ({
-        image,
+        image: optimizeImageUrl(image, 960),
         title: siteConfig.hero.title,
         subtitle: siteConfig.hero.description || "Bienvenue chez Laine et Déco",
         ctaText: siteConfig.hero.ctaText || "Découvrir la collection",
         link: "shop"
       }));
+
+  const HERO_SLIDES_OPTIMIZED = HERO_SLIDES;
 
   useEffect(() => {
     if (HERO_SLIDES.length <= 1) return;
@@ -159,8 +168,8 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
 
   const activeFlashSale = activeFlashSales[0];
   const flashSaleEndDate = activeFlashSale ? activeFlashSale.endDate : new Date(Date.now() + 1000 * 60 * 60 * 5).toISOString();
-  const flashSaleProduct = PRODUCTS.find(p => activeFlashSale?.items?.some(i => i.productId === p.id)) || PRODUCTS.find(p => p.isSale) || PRODUCTS[0];
-  const flashSalePrice = activeFlashSale?.items?.find(i => i.productId === flashSaleProduct.id)?.flashPrice || (flashSaleProduct.price * 0.8);
+  const flashSaleProduct = PRODUCTS.find(p => activeFlashSale?.items?.some(i => i.productId === p.id)) || PRODUCTS.find(p => p.isSale) || PRODUCTS[0] || null;
+  const flashSalePrice = flashSaleProduct ? (activeFlashSale?.items?.find(i => i.productId === flashSaleProduct.id)?.flashPrice || (flashSaleProduct.price * 0.8)) : 0;
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -178,6 +187,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
       const base64 = reader.result as string;
       setIsAnalyzingImage(true);
       
+      const { analyzeProductImage } = await import('../utils/aiUtils');
       const keywords = await analyzeProductImage(base64);
       if (keywords) {
         onNavigate('shop', undefined, keywords);
@@ -268,102 +278,91 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
   };
 
   return (
-    <div className="space-y-24 pb-24">
-      {/* Search Overlay */}
-      <AnimatePresence>
-        {isSearchFocused && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[40]"
-            onClick={() => setIsSearchFocused(false)}
-          />
-        )}
-      </AnimatePresence>
+    <motion.div className="relative space-y-24 pb-24">
+      {isSearchFocused && (
+        <button
+          type="button"
+          aria-label="Fermer la recherche"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[40] cursor-default animate-in fade-in duration-200"
+          onClick={() => setIsSearchFocused(false)}
+        />
+      )}
       <AdBanner />
       
       {/* Hero Section Slider */}
-      <section ref={heroRef} className="relative min-h-[90vh] flex items-center py-20 overflow-hidden">
-        {/* Background Animation */}
-        <motion.div 
-          style={{ y: heroY, opacity: heroOpacity }}
-          className="absolute inset-0 z-0"
-        >
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentSlide}
-              initial={{ opacity: 0, scale: 1.1 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 1.5 }}
-              className="absolute inset-0"
-            >
-              {HERO_SLIDES[currentSlide].image.endsWith('.mp4') ? (
-                <video 
-                  src={HERO_SLIDES[currentSlide].image} 
-                  autoPlay 
-                  muted 
-                  loop 
-                  playsInline 
-                  className="w-full h-full object-cover pointer-events-none"
+      <section className="relative min-h-[90vh] flex items-center py-20 overflow-hidden">
+        {/* Background */}
+        <motion.div className="absolute inset-0 z-0">
+          {(() => {
+            const slide = HERO_SLIDES_OPTIMIZED[currentSlide];
+            if (!slide) return null;
+            if (slide.image.endsWith('.mp4')) {
+              return (
+                <video
+                  key={slide.image}
+                  src={slide.image}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  className="absolute inset-0 w-full h-full object-cover pointer-events-none"
                 />
-              ) : (
-                <img
-                  src={HERO_SLIDES[currentSlide].image}
-                  alt="Hero"
-                  className="w-full h-full object-cover pointer-events-none"
-                  referrerPolicy="no-referrer"
-                  fetchPriority="high"
-                  loading="eager"
-                  width="1920"
-                  height="1080"
-                />
-              )}
-              <div className="absolute inset-0 bg-black/40 pointer-events-none" />
-            </motion.div>
-          </AnimatePresence>
+              );
+            }
+            return (
+              <img
+                key={`${currentSlide}-${slide.image}`}
+                src={slide.image}
+                alt={slide.title || 'Collection Laine et Déco'}
+                className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                referrerPolicy="no-referrer"
+                fetchPriority="high"
+                loading="eager"
+                decoding="async"
+                width={960}
+                height={540}
+                sizes="100vw"
+              />
+            );
+          })()}
+          <motion.div className="absolute inset-0 bg-black/40 pointer-events-none" aria-hidden />
         </motion.div>
         
         {/* Content Overlay */}
         <div className={`relative ${isSearchFocused ? 'z-[50]' : 'z-10'} max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full`}>
           <div className="max-w-3xl text-white">
             {/* Animated Title/Subtitle */}
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentSlide}
-                initial={{ opacity: 0, x: -50 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 50 }}
-                transition={{ duration: 0.8 }}
-                className="mb-10"
-              >
-                <span className="inline-block text-xs font-bold uppercase tracking-[0.3em] mb-6 text-accent">
-                  {HERO_SLIDES[currentSlide].subtitle}
-                </span>
-                <h1 className="text-4xl sm:text-6xl md:text-8xl font-serif leading-[1.1]">
-                  {HERO_SLIDES[currentSlide].title}
-                </h1>
-              </motion.div>
-            </AnimatePresence>
+            <motion.div key={currentSlide} className="mb-10 animate-hero-fade-in">
+              <span className="inline-block text-xs font-bold uppercase tracking-[0.3em] mb-6 text-accent">
+                {HERO_SLIDES_OPTIMIZED[currentSlide].subtitle}
+              </span>
+              <h1 className="text-4xl sm:text-6xl md:text-8xl font-serif leading-[1.1]">
+                {HERO_SLIDES_OPTIMIZED[currentSlide].title}
+              </h1>
+            </motion.div>
 
             {/* Static Controls */}
             <div className="max-w-3xl mb-12 relative z-50" ref={searchContainerRef}>
               <form onSubmit={handleSearch} className="relative group">
                 {/* ... search input ... */}
-                <div className={`absolute left-6 top-1/2 -translate-y-1/2 transition-colors z-10 ${isSearchFocused ? 'text-accent' : 'text-white/70'}`}>
+                <label htmlFor="home-search" className="sr-only">
+                  Rechercher un produit
+                </label>
+                <div className={`absolute left-6 top-1/2 -translate-y-1/2 transition-colors z-10 ${isSearchFocused ? 'text-accent' : 'text-white'}`} aria-hidden="true">
                   <Search size={24} />
                 </div>
                 <input
-                  type="text"
+                  id="home-search"
+                  type="search"
                   placeholder="Rechercher un produit"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => setIsSearchFocused(true)}
-                  className={`w-full backdrop-blur-2xl border rounded-full py-4 sm:py-6 pl-14 sm:pl-16 pr-32 sm:pr-48 text-base sm:text-lg focus:outline-none transition-all shadow-2xl relative z-0 ${
+                  autoComplete="off"
+                  className={`w-full backdrop-blur-2xl border rounded-full py-4 sm:py-6 pl-14 sm:pl-16 pr-32 sm:pr-48 text-base sm:text-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-white transition-all shadow-2xl relative z-0 ${
                     isSearchFocused 
-                      ? 'bg-white/95 border-white text-primary placeholder:text-primary/70' 
-                      : 'bg-white/10 border-white/20 text-white placeholder:text-white/70 hover:bg-white/15'
+                      ? 'bg-white/95 border-white text-primary placeholder:text-primary' 
+                      : 'bg-white/10 border-white/20 text-white placeholder:text-white hover:bg-white/15'
                   }`}
                 />
                 <div className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 sm:gap-2 z-10">
@@ -389,8 +388,9 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                   >
                     {isAnalyzingImage ? <Loader2 size={18} className="animate-spin" /> : <Camera size={18} />}
                   </button>
-                  <button 
+                  <button
                     type="submit"
+                    aria-label="Lancer la recherche"
                     className="bg-accent text-white px-4 sm:px-6 py-2 sm:py-3 rounded-full font-bold hover:bg-primary transition-all shadow-lg text-sm sm:text-base"
                   >
                     Go
@@ -575,7 +575,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                 <ArrowRight className="ml-3 group-hover:translate-x-1 transition-transform" size={24} />
               </button>
               <div className="flex gap-2 items-center ml-auto">
-                {HERO_SLIDES.map((_, i) => (
+                {HERO_SLIDES_OPTIMIZED.map((_, i) => (
                   <button
                     key={i}
                     aria-label={`Aller à la diapositive ${i + 1}`}
@@ -590,6 +590,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
       </section>
 
       {/* Flash Sale Section */}
+      {flashSaleProduct && (
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-primary rounded-[3rem] overflow-hidden relative">
           <div className="absolute top-0 right-0 w-1/2 h-full bg-primary/10 skew-x-12 translate-x-1/4" />
@@ -602,12 +603,12 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
               <h2 className="text-4xl md:text-6xl font-serif text-white leading-tight">
                 Offre limitée sur la <span className="italic text-accent">Collection Hiver</span>
               </h2>
-              <p className="text-white/70 text-lg max-w-md">
+              <p className="text-white text-lg max-w-md">
                 Profitez de remises allant jusqu'à -40% sur une sélection exclusive de laines et objets déco.
               </p>
               
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-white/70 text-xs font-bold uppercase tracking-widest">
+                <div className="flex items-center gap-2 text-white text-xs font-bold uppercase tracking-widest">
                   <Clock size={14} />
                   <span>Se termine dans :</span>
                 </div>
@@ -630,7 +631,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                   className="absolute inset-0 border-2 border-dashed border-primary/30 rounded-full"
                 />
                 <img 
-                  src={flashSaleProduct.image} 
+                  src={flashSaleProduct?.image} 
                   alt="Flash Sale" 
                   className="w-full h-full object-cover rounded-full p-8 relative z-10"
                   referrerPolicy="no-referrer"
@@ -647,6 +648,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
           </div>
         </div>
       </section>
+      )}
 
       {/* Wool Calculator Teaser */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1252,6 +1254,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
           </div>
         </div>
       </section>
-    </div>
+    </motion.div>
   );
 };

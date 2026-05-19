@@ -1,6 +1,16 @@
-import { addDoc, collection, deleteDoc, doc, DocumentData, limit, onSnapshot, query, QueryConstraint, QuerySnapshot, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  DocumentData,
+  limit,
+  onSnapshot,
+  query,
+  QueryConstraint,
+  QuerySnapshot,
+  type Firestore,
+} from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth, db, handleFirestoreError, OperationType } from '../../backend/firebase';
+import { initFirebase, handleFirestoreError, OperationType } from '../../backend/firebase';
 import { readCache, writeCache } from '../utils/cacheStorage';
 import type { BaseEntity } from '../../domain/entities/BaseEntity';
 
@@ -27,7 +37,7 @@ const PUBLIC_COLLECTIONS = [
 ];
 
 const CACHEABLE_COLLECTIONS = new Set(['product', 'promo_event']);
-const DEFAULT_LIMIT = 200;
+const DEFAULT_LIMIT = 80;
 
 export interface EntityServiceOptions {
   constraints?: QueryConstraint[];
@@ -42,13 +52,18 @@ const hasLimitConstraint = (constraints: QueryConstraint[]) => {
   return constraints.some((constraint) => (constraint as { type?: string }).type === 'limit');
 };
 
-const buildEntityQuery = (entityType: string, constraints: QueryConstraint[], defaultLimit = DEFAULT_LIMIT) => {
+const buildEntityQuery = (
+  firestore: Firestore,
+  entityType: string,
+  constraints: QueryConstraint[],
+  defaultLimit = DEFAULT_LIMIT
+) => {
   const finalConstraints = [...constraints];
   if (!hasLimitConstraint(finalConstraints)) {
     finalConstraints.push(limit(defaultLimit));
   }
 
-  return query(collection(db, entityType), ...finalConstraints);
+  return query(collection(firestore, entityType), ...finalConstraints);
 };
 
 const parseSnapshot = <T extends BaseEntity>(snapshot: QuerySnapshot<DocumentData>) => {
@@ -65,6 +80,7 @@ export const subscribeToEntityCollection = <T extends BaseEntity>(
   onData: (items: T[]) => void,
   onError: (error: Error) => void
 ) => {
+  const { db, auth } = initFirebase();
   if (!db) {
     onError(new Error('Firestore is not initialized')); 
     return () => {};
@@ -74,7 +90,7 @@ export const subscribeToEntityCollection = <T extends BaseEntity>(
   let authUnsubscribe: (() => void) | null = null;
 
   const startSnapshotListener = () => {
-    const snapshotQuery = buildEntityQuery(entityType, options.constraints ?? [], options.defaultLimit);
+    const snapshotQuery = buildEntityQuery(db, entityType, options.constraints ?? [], options.defaultLimit);
 
     unsubscribe = onSnapshot(
       snapshotQuery,
@@ -101,6 +117,10 @@ export const subscribeToEntityCollection = <T extends BaseEntity>(
   };
 
   if (!PUBLIC_COLLECTIONS.includes(entityType) && !auth?.currentUser) {
+    if (!auth) {
+      onError(new Error('Firebase Auth is not initialized'));
+      return () => {};
+    }
     authUnsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         authUnsubscribe?.();
@@ -120,30 +140,59 @@ export const subscribeToEntityCollection = <T extends BaseEntity>(
 };
 
 const requireAuth = () => {
-  if (!auth?.currentUser) {
+  const { auth: firebaseAuth } = initFirebase();
+  if (!firebaseAuth?.currentUser) {
     window.dispatchEvent(new CustomEvent('auth-required'));
     throw new Error('Authentication is required.');
   }
+};
+
+const getAuthToken = async () => {
+  const { auth: firebaseAuth } = initFirebase();
+  if (!firebaseAuth?.currentUser) {
+    window.dispatchEvent(new CustomEvent('auth-required'));
+    throw new Error('Authentication is required.');
+  }
+
+  return firebaseAuth.currentUser.getIdToken();
+};
+
+const entityApiRequest = async (entityType: string, method: string, id?: string, payload?: any) => {
+  const token = await getAuthToken();
+  const url = id
+    ? `/api/entity/${encodeURIComponent(entityType)}/${encodeURIComponent(id)}`
+    : `/api/entity/${encodeURIComponent(entityType)}`;
+
+  const response = await fetch(url, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'same-origin',
+    ...(payload ? { body: JSON.stringify(payload) } : {}),
+  });
+
+  const body = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message = body?.error || response.statusText || 'Erreur API';
+    const error = new Error(message);
+    handleFirestoreError(error, OperationType.WRITE, `${entityType}${id ? `/${id}` : ''}`);
+    throw error;
+  }
+
+  return body;
 };
 
 export const createFirestoreEntity = async <T extends BaseEntity>(
   entityType: string,
   newItem: EntityPayload<T>
 ): Promise<string> => {
-  if (!db) {
-    throw new Error('Firestore is not initialized');
-  }
-
   requireAuth();
 
   try {
-    const docRef = await addDoc(collection(db, entityType), {
-      ...newItem,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-
-    return docRef.id;
+    const result = await entityApiRequest(entityType, 'POST', undefined, newItem);
+    return result.id;
   } catch (err) {
     handleFirestoreError(err, OperationType.CREATE, entityType);
     throw err;
@@ -155,17 +204,10 @@ export const updateFirestoreEntity = async <T extends BaseEntity>(
   id: string,
   updates: Partial<T>
 ): Promise<void> => {
-  if (!db) {
-    throw new Error('Firestore is not initialized');
-  }
-
   requireAuth();
 
   try {
-    await updateDoc(doc(db, entityType, String(id)), {
-      ...updates,
-      updatedAt: serverTimestamp(),
-    });
+    await entityApiRequest(entityType, 'PUT', id, updates);
   } catch (err) {
     handleFirestoreError(err, OperationType.UPDATE, `${entityType}/${id}`);
     throw err;
@@ -177,17 +219,10 @@ export const setFirestoreEntity = async <T extends BaseEntity>(
   id: string,
   data: Partial<T>
 ): Promise<void> => {
-  if (!db) {
-    throw new Error('Firestore is not initialized');
-  }
-
   requireAuth();
 
   try {
-    await setDoc(doc(db, entityType, String(id)), {
-      ...data,
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
+    await entityApiRequest(entityType, 'PUT', id, data);
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, `${entityType}/${id}`);
     throw err;
@@ -195,14 +230,10 @@ export const setFirestoreEntity = async <T extends BaseEntity>(
 };
 
 export const deleteFirestoreEntity = async (entityType: string, id: string): Promise<void> => {
-  if (!db) {
-    throw new Error('Firestore is not initialized');
-  }
-
   requireAuth();
 
   try {
-    await deleteDoc(doc(db, entityType, String(id)));
+    await entityApiRequest(entityType, 'DELETE', id);
   } catch (err) {
     handleFirestoreError(err, OperationType.DELETE, `${entityType}/${id}`);
     throw err;

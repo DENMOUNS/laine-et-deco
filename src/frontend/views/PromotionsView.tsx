@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { ArrowLeft, Tag, Percent } from 'lucide-react';
-import { PRODUCTS as INITIAL_PRODUCTS } from '../../constants';
+
 import { useProducts } from '../hooks/useProducts';
 import { ProductCard } from '../components/ProductCard';
 import { Product } from '../../types';
@@ -20,7 +20,7 @@ export const PromotionsView: React.FC<PromotionsViewProps> = ({
   onQuickView 
 }) => {
   const { products: fetchedProducts } = useProducts();
-  const PRODUCTS = fetchedProducts.length > 0 ? fetchedProducts : INITIAL_PRODUCTS;
+  const PRODUCTS = fetchedProducts;
   
   const promoProducts = PRODUCTS.filter(p => p.isSale || (p.promoPrice && p.promoPrice < p.price));
 

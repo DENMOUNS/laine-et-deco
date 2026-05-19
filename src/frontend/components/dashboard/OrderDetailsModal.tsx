@@ -322,7 +322,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
           <div className="p-8 bg-slate-50 border-t border-primary/5 flex gap-4">
             {selectedOrder.status === 'delivered' && (
               <Button 
-                onClick={() => generateInvoicePDF(selectedOrder, true)}
+                onClick={() => void generateInvoicePDF(selectedOrder, true)}
                 className="flex-grow bg-primary text-white py-4 rounded-2xl font-bold hover:bg-accent transition-all shadow-lg h-auto"
               >
                 Télécharger la Facture

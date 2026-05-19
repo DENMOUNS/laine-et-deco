@@ -246,14 +246,6 @@ service cloud.firestore {
       allow read, write: if isSuperAdmin() || isAdmin();
     }
 
-    match /invoice/{docId} {
-      allow read: if isSuperAdmin() || isAdmin() ||
-        (isAuthenticated() && resource.data.userId == request.auth.uid);
-      allow create, update: if isSuperAdmin() || isAdmin();
-      allow delete: if isSuperAdmin();
-    }
-
-
     // ==========================================
     // LOGS (lecture staff, écriture système libre)
     // ==========================================
