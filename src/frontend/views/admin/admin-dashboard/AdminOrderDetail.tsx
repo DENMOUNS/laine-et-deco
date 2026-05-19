@@ -10,6 +10,7 @@ import { BADGES, ADMIN_ROLES as INITIAL_ADMIN_ROLES } from '../../../../constant
 import { DataTable } from '../../../components/DataTable';
 import { TabFilter } from '../../../components/TabFilter';
 import { StatusBadge, getStatusStyles } from '../../../components/ui/StatusBadge';
+import { updateEntity, updateOrderStatus } from '../../../services/dashboardApi';
 import { Loader } from '../../../components/Loader';
 import { OrderMap } from '../../../components/OrderMap';
 import { CouponEditor } from '../../../components/dashboard/CouponEditor';
@@ -25,6 +26,126 @@ import { AdminPortfolios } from '../AdminPortfolios';
 
 export function AdminOrderDetail({ ctx }: { ctx: any }) {
   const { ABANDONED_CARTS, ANALYTICS, BLOG_POSTS, CATEGORIES, CATEGORY_DISTRIBUTION, CHAT_MESSAGES, CITIES, CONVERSATIONS, COUPONS, CUSTOMER_GROUPS, DEVICE_DATA, EMAILS, EXPENSES, FAQS, LOGIN_LOGS, LOOKBOOK_POSTS, NAV_ITEMS, NOTIFICATIONS, ORDERS, PACKS, PRODUCTS, PROMO_EVENTS, PUSH_NOTIFICATIONS, REQUEST_LOGS, RETENTION_DATA, REVENUE_BY_PAYMENT, REVIEWS, SALES_DATA, SHIPPING_RULES, SUBSCRIBERS, TAX_RULES, TRAFFIC_SOURCES, USERS, activeMenuItem, activeTab, addBlogPost, addCatalogRule, addCategory, addCity, addCoupon, addCurrency, addCustomerGroup, addEvent, addExpense, addFAQ, addLocalRole, addLookbook, addNavItem, addPack, addProduct, addRMA, addReview, addShippingRule, addTaxRule, allOrders, averageOrderValue, catalogRulesWithDefaults, categoryPage, currentImage, currentSlug, currentUserDoc, customerDetailTab, customerFilter, deleteAbandonedCart, deleteCatalogRule, deleteCategory, deleteChatMessage, deleteCity, deleteConversation, deleteCoupon, deleteCurrency, deleteCustomerGroup, deleteEvent, deleteFAQ, deleteLocalRole, deleteLoginLog, deleteNavItem, deleteNotification, deleteOrder, deletePack, deleteProduct, deleteRequestLog, deleteReview, deleteShippingRule, deleteSiteConfig, deleteSubscriber, deleteTaxRule, deleteUser, editedOrder, editingItem, events, fetchedProducts, filteredMenuItems, formatDate, handleDeleteCatalogRule, handleDeleteCity, handleDeleteEvent, handleDeleteFAQ, handleEditCatalogRule, handleEditCity, handleEditCoupon, handleEditEvent, handleEditFAQ, handleFormSubmit, handleNotificationClick, handleSaveCatalogRule, handleSaveCity, handleSaveCoupon, handleSaveEvent, handleSaveFAQ, handleSearch, handleSeed, handleSendMessage, hasPermission, isAddModalOpen, isAuthLoading, isCatalogRuleEditorOpen, isCityEditorOpen, isCouponEditorOpen, isDataLoading, isEditingOrder, isEventEditorOpen, isFAQEditorOpen, isLoadingAbandoned, isLoadingBlog, isLoadingCatalog, isLoadingCategories, isLoadingCategoryDist, isLoadingDevice, isLoadingEmails, isLoadingExpenses, isLoadingGroups, isLoadingLookbook, isLoadingOrders, isLoadingPacks, isLoadingProducts, isLoadingPush, isLoadingRetention, isLoadingRevenue, isLoadingReviews, isLoadingRoles, isLoadingShipping, isLoadingSubscribers, isLoadingTax, isLoadingTraffic, isLogsLoading, isSaving, isSidebarOpen, isSuperAdmin, isTabAllowed, isUserCustomer, itemsPerPage, localAbandonedCarts, localBlogPosts, localCatalogPriceRules, localCategories, localCurrencies, localCustomerGroups, localExpenses, localLookbook, localNavItems, localOrders, localPacks, localProducts, localRMAs, localReviews, localRoles, localShippingRules, localSystemNotifications, localTaxRules, localUsers, logFilter, menuItems, messageInput, modalType, navItemsWithDefaults, newNote, newRMANote, notificationFilter, notificationPage, onNavigate, orderFilter, overviewOrderFilter, permissions, productFilter, propSetSiteConfig, propSiteConfig, rawSiteConfig, realLogs, requestLogFilter, reviewFilter, roleData, saveAllSiteConfig, saveSiteSection, searchResults, selectedCatalogRule, selectedCity, selectedConversation, selectedCoupon, selectedCustomer, selectedCustomerGroup, selectedEvent, selectedFAQ, selectedOrder, selectedPackProducts, setActiveTab, setCategoryPage, setCurrentImage, setCurrentSlug, setCustomerDetailTab, setCustomerFilter, setEditedOrder, setEditingItem, setEvents, setIsAddModalOpen, setIsCatalogRuleEditorOpen, setIsCityEditorOpen, setIsCouponEditorOpen, setIsEditingOrder, setIsEventEditorOpen, setIsFAQEditorOpen, setIsSaving, setIsSidebarOpen, setLocalAbandonedCarts, setLocalAbandonedCarts2, setLocalBlogPosts, setLocalBlogPosts2, setLocalCategories, setLocalCurrencies, setLocalCustomerGroups, setLocalCustomerGroups2, setLocalEmails, setLocalExpenses, setLocalLookbook, setLocalLookbook2, setLocalOrders, setLocalPacks, setLocalProducts, setLocalPushNotifications, setLocalReviews, setLocalReviews2, setLocalRole, setLocalRoles, setLocalShippingRules, setLocalShippingRules2, setLocalSubscribers, setLocalSystemNotifications, setLocalTaxRules, setLocalTaxRules2, setLocalUser, setLocalUsers, setLogFilter, setMessageInput, setModalType, setNewNote, setNewRMANote, setNotificationFilter, setNotificationPage, setOrderFilter, setOverviewOrderFilter, setProductFilter, setRequestLogFilter, setReviewFilter, setSearchResults, setSelectedCatalogRule, setSelectedCity, setSelectedConversation, setSelectedCoupon, setSelectedCustomer, setSelectedCustomerGroup, setSelectedEvent, setSelectedFAQ, setSelectedOrder, setSelectedPackProducts, setShowNotifications, setSiteConfig, setViewingCustomer, showNotifications, siteConfig, siteConfigs, sortByDate, stats, totalCustomers, totalOrdersCount, totalSales, totalVisitors, updateBlogPost, updateCatalogRule, updateCategory, updateCity, updateCoupon, updateCurrency, updateCustomerGroup, updateEvent, updateExpense, updateFAQ, updateLocalRole, updateLocalUser, updateLookbook, updateNavItem, updatePack, updateProduct, updateRMA, updateReview, updateShippingRule, updateSiteConfig, updateTaxRule, user, userRoleSlug, viewingCustomer } = ctx;
+
+  const orderStatusNotes: Record<string, string> = {
+    pending: 'Commande passée',
+    processing: 'Commande en cours de traitement',
+    shipped: 'Commande expédiée',
+    delivered: 'Commande livrée',
+    cancelled: 'Commande annulée',
+    completed: 'Commande complétée',
+  };
+
+  const getOrderStatusNote = (status: string) => orderStatusNotes[status] || `Statut mis à jour : ${status}`;
+  const getOrderNotificationTitle = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'Commande passée';
+      case 'processing':
+        return 'Commande en traitement';
+      case 'shipped':
+        return 'Commande expédiée';
+      case 'delivered':
+        return 'Commande livrée';
+      case 'cancelled':
+        return 'Commande annulée';
+      case 'completed':
+        return 'Commande complétée';
+      default:
+        return 'Statut de commande mis à jour';
+    }
+  };
+  const getOrderNotificationMessage = (orderId: string, status: string) => {
+    const label = getOrderStatusNote(status).toLowerCase();
+    return `Commande ${orderId} ${label}`;
+  };
+
+  const persistOrderUpdate = async (order: any, updates: any, note?: any, notification?: any) => {
+    try {
+      setIsSaving(true);
+      if (note) {
+        updates.internalNotes = [...(order.internalNotes || []), note];
+      }
+
+      await updateEntity('order', order.id, updates);
+
+      const updatedOrder = {
+        ...order,
+        ...updates,
+        updatedAt: new Date().toISOString(),
+      };
+
+      setLocalOrders((prev: any[]) => prev.map((o: any) => (o.id === order.id ? updatedOrder : o)));
+      setSelectedOrder(updatedOrder);
+
+      if (notification) {
+        setLocalSystemNotifications((prev: any[]) => [...prev, notification]);
+      }
+
+      return updatedOrder;
+    } catch (error) {
+      toast.error(`Impossible de sauvegarder la commande : ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const addInternalOrderNote = async (note: any) => {
+    const noteWithMetadata = {
+      ...note,
+      id: note.id || `note-${Date.now()}`,
+      date: note.date || new Date().toISOString(),
+      author: note.author || 'Admin',
+    };
+
+    await persistOrderUpdate(selectedOrder, { internalNotes: [...(selectedOrder.internalNotes || []), noteWithMetadata] });
+    toast.success('Note ajoutée');
+  };
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (!selectedOrder) return;
+    const oldStatus = selectedOrder.status;
+    if (oldStatus === newStatus) return;
+
+    const noteText = getOrderStatusNote(newStatus);
+    const noteObj = {
+      id: `note-${Date.now()}`,
+      date: new Date().toISOString(),
+      note: noteText,
+      author: 'Système',
+    };
+
+    const notification = {
+      id: `notif-${Date.now()}`,
+      type: 'order',
+      title: getOrderNotificationTitle(newStatus),
+      message: getOrderNotificationMessage(selectedOrder.id, newStatus),
+      timestamp: new Date().toISOString(),
+      read: false,
+      relatedId: selectedOrder.id,
+    };
+
+    try {
+      setIsSaving(true);
+      await updateOrderStatus(selectedOrder.id, newStatus);
+      const updatedOrder = {
+        ...selectedOrder,
+        status: newStatus,
+        updatedAt: new Date().toISOString(),
+        internalNotes: [...(selectedOrder.internalNotes || []), noteObj],
+      };
+      setLocalOrders((prev: any[]) => prev.map((o: any) => (o.id === selectedOrder.id ? updatedOrder : o)));
+      setSelectedOrder(updatedOrder);
+      setLocalSystemNotifications((prev: any[]) => [...prev, notification]);
+      toast.success('Statut de commande mis à jour');
+    } catch (error) {
+      toast.error(`Erreur lors de la mise à jour du statut : ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <>
 {activeTab === 'order-detail' && selectedOrder && (
@@ -65,12 +186,15 @@ export function AdminOrderDetail({ ctx }: { ctx: any }) {
                       Annuler
                     </button>
                     <button 
-                      onClick={() => {
-                        if (editedOrder) {
-                          setLocalOrders(prev => prev.map(o => o.id === editedOrder.id ? { ...editedOrder, updatedAt: new Date().toISOString() } : o));
-                          setSelectedOrder(editedOrder);
+                      onClick={async () => {
+                        if (!editedOrder) return;
+                        try {
+                          await persistOrderUpdate(selectedOrder, editedOrder);
                           setIsEditingOrder(false);
+                          setEditedOrder(null);
                           toast.success('Commande mise à jour avec succès');
+                        } catch {
+                          // Error already handled in persistOrderUpdate
                         }
                       }}
                       className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-accent transition-colors text-sm font-bold shadow-md"
@@ -337,10 +461,7 @@ export function AdminOrderDetail({ ctx }: { ctx: any }) {
                                   if (isEditingOrder) {
                                     setEditedOrder(prev => prev ? { ...prev, status: newStatus } : null);
                                   } else {
-                                    const updatedOrder = { ...selectedOrder, status: newStatus, updatedAt: new Date().toISOString() };
-                                    setLocalOrders(prev => prev.map(o => o.id === selectedOrder.id ? updatedOrder : o));
-                                    setSelectedOrder(updatedOrder);
-                                    toast.success(`Statut mis à jour : ${newStatus}`);
+                                    void handleStatusChange(newStatus);
                                   }
                               }}
                             >
@@ -379,9 +500,7 @@ export function AdminOrderDetail({ ctx }: { ctx: any }) {
                 </div>
 
                 {/* Timeline / Logs of the order could go here */}
-              </div>
 
-              <div className="space-y-8">
                 {/* Map Section */}
                 {(() => {
                   let coords: [number, number] | null = null;
@@ -421,7 +540,9 @@ export function AdminOrderDetail({ ctx }: { ctx: any }) {
                     </div>
                   );
                 })()}
+              </div>
 
+              <div className="space-y-8">
                 {/* Internal Notes */}
                 <div className="bg-card p-6 rounded-[2.5rem] shadow-sm border border-primary/10 space-y-6">
                   <h4 className="text-xs font-bold uppercase tracking-widest text-primary/60">Notes Internes</h4>
@@ -453,7 +574,7 @@ export function AdminOrderDetail({ ctx }: { ctx: any }) {
                       className="flex-grow p-3 text-sm bg-secondary/30 border border-primary/5 rounded-xl focus:outline-none focus:border-primary/20 text-primary"
                     />
                     <button 
-                      onClick={() => {
+                      onClick={async () => {
                         if (!newNote.trim()) return;
                         const noteObj = {
                           id: `note-${Date.now()}`,
@@ -461,15 +582,12 @@ export function AdminOrderDetail({ ctx }: { ctx: any }) {
                           note: newNote,
                           author: 'Admin'
                         };
-                        const updatedOrder = { 
-                          ...selectedOrder, 
-                          internalNotes: [...(selectedOrder.internalNotes || []), noteObj],
-                          updatedAt: new Date().toISOString()
-                        };
-                        setLocalOrders(prev => prev.map(o => o.id === selectedOrder.id ? updatedOrder : o));
-                        setSelectedOrder(updatedOrder);
-                        setNewNote('');
-                        toast.success('Note ajoutée');
+                        try {
+                          await addInternalOrderNote(noteObj);
+                          setNewNote('');
+                        } catch {
+                          // Error handled in addInternalOrderNote
+                        }
                       }}
                       className="p-3 bg-primary text-white rounded-xl hover:bg-accent transition-colors shadow-md"
                     >

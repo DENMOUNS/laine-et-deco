@@ -12,9 +12,10 @@ import {
   sendPasswordResetEmail, 
   signInWithPopup, 
   GoogleAuthProvider,
+  browserPopupRedirectResolver,
   updateProfile
 } from 'firebase/auth';
-import { auth, db } from '../../backend/firebase';
+import { initFirebase } from '../../backend/firebase';
 import { serverTimestamp, setDoc, doc } from 'firebase/firestore';
 
 const authSchema = z.object({
@@ -48,6 +49,12 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
     resolver: zodResolver(authSchema)
   });
 
+  React.useEffect(() => {
+    if (mode === 'reset' && loginMethod !== 'email') {
+      setLoginMethod('email');
+    }
+  }, [mode, loginMethod]);
+
   const handleSuccessRedirect = () => {
     const returnToCheckout = sessionStorage.getItem('returnToCheckout');
     if (returnToCheckout === 'true') {
@@ -66,19 +73,35 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
     }
     
     setIsSubmitting(true);
-    if (!auth) {
+    const { auth: firebaseAuth, db: firebaseDb } = initFirebase();
+    if (!firebaseAuth) {
       toast.error("Firebase n'est pas configuré correctement.");
+      setIsSubmitting(false);
+      return;
+    }
+    if (mode === 'signup' && !firebaseDb) {
+      toast.error("Firebase n'est pas configuré correctement.");
+      setIsSubmitting(false);
+      return;
+    }
+    if (mode === 'reset' && (!data.email || !data.email.includes('@'))) {
+      toast.error('Veuillez entrer une adresse email valide pour la réinitialisation.');
+      setIsSubmitting(false);
+      return;
+    }
+    if ((mode === 'login' || mode === 'signup') && !data.password) {
+      toast.error('Veuillez saisir un mot de passe valide.');
       setIsSubmitting(false);
       return;
     }
     try {
       if (mode === 'login') {
-        await signInWithEmailAndPassword(auth, data.email, data.password);
+        await signInWithEmailAndPassword(firebaseAuth, data.email, data.password);
 
         toast.success('Connexion réussie !');
         handleSuccessRedirect();
       } else if (mode === 'signup') {
-        const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+        const userCredential = await createUserWithEmailAndPassword(firebaseAuth, data.email, data.password);
         const user = userCredential.user;
         if (data.name) {
           await updateProfile(user, { displayName: data.name });
@@ -86,7 +109,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
         
         // Create user document in Firestore with potential referral
         const referralCode = sessionStorage.getItem('referralCode');
-        await setDoc(doc(db, 'user', user.uid), {
+        await setDoc(doc(firebaseDb!, 'user', user.uid), {
           uid: user.uid,
           name: data.name || user.displayName || 'Utilisateur',
           email: user.email,
@@ -102,7 +125,12 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
         toast.success('Compte créé avec succès !');
         handleSuccessRedirect();
       } else if (mode === 'reset') {
-        await sendPasswordResetEmail(auth, data.email);
+        const { auth: firebaseAuth } = initFirebase();
+        if (!firebaseAuth) {
+          toast.error("Firebase n'est pas configuré correctement.");
+          return;
+        }
+        await sendPasswordResetEmail(firebaseAuth, data.email);
         toast.success('Lien de réinitialisation envoyé !');
         setMode('login');
       }
@@ -112,7 +140,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
       if (error.code === 'auth/user-not-found') errorMessage = "Utilisateur non trouvé.";
       if (error.code === 'auth/wrong-password') errorMessage = "Mot de passe incorrect.";
       if (error.code === 'auth/email-already-in-use') errorMessage = "Cet email est déjà utilisé.";
-      if (error.code === 'auth/invalid-email') errorMessage = "Email invalide.";
+      if (error.code === 'auth/invalid-email' || error.code === 'auth/argument-error') errorMessage = "Email invalide ou format incorrect.";
       
       toast.error(errorMessage);
     } finally {
@@ -122,18 +150,19 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
 
   const handleGoogleLogin = async () => {
     setIsSubmitting(true);
-    if (!auth) {
+    const { auth: firebaseAuth, db: firebaseDb } = initFirebase();
+    if (!firebaseAuth || !firebaseDb) {
       toast.error("Firebase n'est pas configuré correctement.");
       setIsSubmitting(false);
       return;
     }
     const provider = new GoogleAuthProvider();
     try {
-      const result = await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(firebaseAuth, provider, browserPopupRedirectResolver);
       const user = result.user;
       
       // Check if user document exists, if not create it
-      const userDocRef = doc(db, 'user', user.uid);
+      const userDocRef = doc(firebaseDb!, 'user', user.uid);
       const { getDoc } = await import('firebase/firestore');
       const userSnap = await getDoc(userDocRef);
       
@@ -175,6 +204,10 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
         errorMessage = `Domaine non autorisé. Veuillez ajouter ${window.location.hostname} aux domaines autorisés dans votre console Firebase (Authentification > Paramètres).`;
       } else if (error.code === 'auth/popup-blocked') {
         errorMessage = "Le popup a été bloqué. Veuillez autoriser les popups ou ouvrir l'application dans un nouvel onglet.";
+      } else if (error.code === 'auth/argument-error') {
+        errorMessage = 'Erreur Google : impossible d’ouvrir le popup. Essayez de recharger la page ou vérifiez que les popups sont autorisés.';
+      } else if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+        errorMessage = 'Connexion Google annulée. Veuillez réessayer.';
       } else {
         errorMessage = "Erreur lors de la connexion avec Google.";
       }
@@ -205,20 +238,24 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
           </p>
         </div>
 
-        <div className="flex gap-2 p-1 bg-slate-100 rounded-2xl mb-8">
-          <button 
-            onClick={() => setLoginMethod('email')}
-            className={`flex-1 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${loginMethod === 'email' ? 'bg-primary text-white shadow-md' : 'text-primary/70 hover:text-primary'}`}
-          >
-            Email
-          </button>
-          <button 
-            onClick={() => setLoginMethod('google')}
-            className={`flex-1 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${loginMethod === 'google' ? 'bg-primary text-white shadow-md' : 'text-primary/70 hover:text-primary'}`}
-          >
-            Google
-          </button>
-        </div>
+        {mode !== 'reset' ? (
+          <div className="flex gap-2 p-1 bg-slate-100 rounded-2xl mb-8">
+            <button 
+              onClick={() => setLoginMethod('email')}
+              className={`flex-1 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${loginMethod === 'email' ? 'bg-primary text-white shadow-md' : 'text-primary/70 hover:text-primary'}`}
+            >
+              Email
+            </button>
+            <button 
+              onClick={() => setLoginMethod('google')}
+              className={`flex-1 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${loginMethod === 'google' ? 'bg-primary text-white shadow-md' : 'text-primary/70 hover:text-primary'}`}
+            >
+              Google
+            </button>
+          </div>
+        ) : (
+          <div className="text-sm text-center text-primary/70 mb-8">Réinitialisation de mot de passe par email uniquement.</div>
+        )}
 
         {loginMethod === 'google' ? (
           <div className="space-y-6">

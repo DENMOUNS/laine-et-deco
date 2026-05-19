@@ -107,7 +107,28 @@ router.put('/order/status', verifyToken, resolveRole, async (req: any, res) => {
     const oldStatus = orderData.status;
     const orderRef = orderSnap.ref;
 
-    await orderRef.update({ status, updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp() });
+    const orderStatusNotes: Record<string, string> = {
+      pending: 'Commande passée',
+      processing: 'Commande en cours de traitement',
+      shipped: 'Commande expédiée',
+      delivered: 'Commande livrée',
+      cancelled: 'Commande annulée',
+      completed: 'Commande complétée',
+    };
+
+    const noteText = orderStatusNotes[status] || `Statut de commande mis à jour : ${status}`;
+    const orderNote = {
+      id: `note-${Date.now()}`,
+      note: noteText,
+      author: 'Système',
+      date: new Date().toISOString(),
+    };
+
+    await orderRef.update({
+      status,
+      internalNotes: firebaseAdmin.firestore.FieldValue.arrayUnion(orderNote),
+      updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+    });
 
     if (status === 'delivered' && oldStatus !== 'delivered' && orderData.userId) {
       const userRef = db.collection('user').doc(orderData.userId);
@@ -134,12 +155,23 @@ router.put('/order/status', verifyToken, resolveRole, async (req: any, res) => {
                 updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
               });
               await userRef.update({ referralRewardGiven: true, updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp() });
-              return res.json({ message: 'Status changé et récompense de parrainage appliquée.' });
             }
           }
         }
       }
     }
+
+    const notification = {
+      id: `notif-${Date.now()}`,
+      type: 'order',
+      title: noteText,
+      message: `Commande ${orderId} ${noteText.toLowerCase()}`,
+      timestamp: new Date().toISOString(),
+      read: false,
+      relatedId: orderId,
+    };
+
+    await db.collection('notification').doc(notification.id).set(notification);
 
     return res.json({ message: 'Statut de commande mis à jour.' });
   } catch (e: any) {

@@ -1,7 +1,7 @@
 import type { FirebaseApp, FirebaseOptions } from 'firebase/app';
 import { initializeApp } from 'firebase/app';
 import type { Auth } from 'firebase/auth';
-import { initializeAuth, browserSessionPersistence } from 'firebase/auth';
+import { getAuth, setPersistence, browserSessionPersistence } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
 import { initializeFirestore, memoryLocalCache } from 'firebase/firestore';
 import config from '../../firebase-applet-config.json';
@@ -87,8 +87,9 @@ function ensureFirebaseInitialized() {
     // Cache mémoire uniquement : pas d'IndexedDB Firestore (meilleur LCP / Lighthouse).
     db = initializeFirestore(app, { localCache: memoryLocalCache() }, databaseId);
 
-    auth = initializeAuth(app, {
-      persistence: browserSessionPersistence,
+    auth = getAuth(app);
+    void setPersistence(auth, browserSessionPersistence).catch((error) => {
+      console.warn('Impossible de définir la persistance Firebase Auth :', error);
     });
   } catch (error) {
     console.error("Erreur lors de l'initialisation de Firebase:", error);

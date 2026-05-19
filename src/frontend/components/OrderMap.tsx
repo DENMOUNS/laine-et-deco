@@ -73,15 +73,15 @@ export const OrderMap: React.FC<OrderMapProps> = ({ customerLocation, customerNa
   }, []);
 
   return (
-    <div className="w-full h-full relative" id="leaflet-map-container">
+    <div className="w-full h-full relative overflow-hidden" id="leaflet-map-container">
       <MapContainer 
         center={destPos} 
         zoom={13} 
         scrollWheelZoom={false}
-        className="w-full h-full"
+        className="w-full h-full absolute inset-0"
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          attribution='Landry | Doleres Contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         
