@@ -241,8 +241,8 @@ export function AdminOrderDetail({ ctx }: { ctx: any }) {
                             );
                           }
 
-                          return items.map((item, i) => {
-                            const product = PRODUCTS.find(p => p.id === item.productId || p.id === item.id);
+                          return items.map((item: any, i: number) => {
+                            const product = PRODUCTS.find((p: any) => p.id === item.productId || p.id === item.id);
                             return (
                               <div key={i} className="group relative flex justify-between items-center p-4 bg-secondary/30 border border-primary/5 rounded-2xl hover:border-primary/20 transition-all">
                                 <div className="flex items-center gap-4 flex-grow">
@@ -269,7 +269,7 @@ export function AdminOrderDetail({ ctx }: { ctx: any }) {
                                           value={item.quantity}
                                           onChange={(e) => {
                                             const newQty = parseInt(e.target.value) || 1;
-                                            setEditedOrder(prev => {
+                                            setEditedOrder((prev: any) => {
                                               if (!prev) return prev;
                                               const newDetails = [...(prev.orderDetails || [])];
                                               if (newDetails[i]) {
@@ -285,7 +285,7 @@ export function AdminOrderDetail({ ctx }: { ctx: any }) {
                                           onClick={() => {
                                             setEditedOrder(prev => {
                                               if (!prev || !prev.orderDetails) return prev;
-                                              const newDetails = prev.orderDetails.filter((_, idx) => idx !== i);
+                                              const newDetails = prev.orderDetails.filter((_: any, idx: number) => idx !== i);
                                               const newTotal = newDetails.reduce((sum, d) => sum + (d.price * d.quantity), 0);
                                               return { ...prev, orderDetails: newDetails, total: newTotal, items: newDetails.reduce((sum, d) => sum + d.quantity, 0) };
                                             });
@@ -372,7 +372,7 @@ export function AdminOrderDetail({ ctx }: { ctx: any }) {
                         <div className="bg-secondary/30 p-6 rounded-3xl border border-primary/5 relative">
                           <div className="flex items-center gap-4 mb-4">
                             {(() => {
-                              const customerUser = USERS.find(u => u.id === selectedOrder.userId || (u as any).uid === selectedOrder.userId || u.name === selectedOrder.customer);
+                              const customerUser = USERS.find((u: any) => u.id === selectedOrder.userId || (u as any).uid === selectedOrder.userId || u.name === selectedOrder.customer);
                               if (customerUser?.profileImage) {
                                 return <img src={customerUser.profileImage} className="w-14 h-14 rounded-2xl object-cover border-2 border-white shadow-sm" alt={selectedOrder.customer} />;
                               }
@@ -394,7 +394,7 @@ export function AdminOrderDetail({ ctx }: { ctx: any }) {
                                 <label className="text-xs font-bold text-primary/60">Adresse de livraison</label>
                                 <textarea 
                                   value={editedOrder?.address || ''}
-                                  onChange={(e) => setEditedOrder(prev => prev ? { ...prev, address: e.target.value } : null)}
+                                  onChange={(e) => setEditedOrder((prev: any) => prev ? { ...prev, address: e.target.value } : null)}
                                   className="w-full mt-1 p-2 border border-primary/10 rounded-lg text-sm bg-card text-primary focus:border-primary focus:outline-none"
                                   rows={3}
                                 />
@@ -432,7 +432,7 @@ export function AdminOrderDetail({ ctx }: { ctx: any }) {
                           
                           <button 
                             onClick={() => {
-                              const user = USERS.find(u => u.id === selectedOrder.userId || (u as any).uid === selectedOrder.userId || u.name === selectedOrder.customer);
+                              const user = USERS.find((u: any) => u.id === selectedOrder.userId || (u as any).uid === selectedOrder.userId || u.name === selectedOrder.customer);
                               if (user) {
                                 setSelectedCustomer(user);
                                 setActiveTab('customer-detail');
@@ -459,7 +459,7 @@ export function AdminOrderDetail({ ctx }: { ctx: any }) {
                               onChange={(e) => {
                                   const newStatus = e.target.value as any;
                                   if (isEditingOrder) {
-                                    setEditedOrder(prev => prev ? { ...prev, status: newStatus } : null);
+                                    setEditedOrder((prev: any) => prev ? { ...prev, status: newStatus } : null);
                                   } else {
                                     void handleStatusChange(newStatus);
                                   }
@@ -498,64 +498,26 @@ export function AdminOrderDetail({ ctx }: { ctx: any }) {
                     </div>
                   </div>
                 </div>
-
-                {/* Timeline / Logs of the order could go here */}
-
-                {/* Map Section */}
-                {(() => {
-                  let coords: [number, number] | null = null;
-                  if (Array.isArray(selectedOrder.coordinates)) {
-                    coords = selectedOrder.coordinates as [number, number];
-                  } else if (typeof selectedOrder.coordinates === 'string' && selectedOrder.coordinates.includes(',')) {
-                    const parts = selectedOrder.coordinates.split(',');
-                    coords = [parseFloat(parts[0]), parseFloat(parts[1])];
-                  }
-                  
-                  if (!coords && selectedOrder.address) {
-                    const match = selectedOrder.address.match(/\(Coordonnées:\s*([0-9.-]+)\s*,\s*([0-9.-]+)\)/);
-                    if (match) {
-                      coords = [parseFloat(match[1]), parseFloat(match[2])];
-                    }
-                  }
-
-                  if (!coords || isNaN(coords[0]) || isNaN(coords[1])) {
-                    return null;
-                  }
-
-                  return (
-                    <div className="bg-card p-6 rounded-[2.5rem] shadow-sm border border-primary/10 space-y-4">
-                      <h4 className="text-xs font-bold uppercase tracking-widest text-primary/60">Localisation de livraison</h4>
-                      <div className="h-[250px] rounded-2xl overflow-hidden border border-primary/5 shadow-inner">
-                        <OrderMap 
-                          customerLocation={coords} 
-                          customerName={selectedOrder.customer}
-                        />
-                      </div>
-                      <div className="p-3 bg-primary/5 rounded-xl border border-primary/5 flex gap-3">
-                        <Info size={16} className="text-primary flex-shrink-0 mt-0.5" />
-                        <p className="text-[10px] text-primary/70 leading-relaxed italic">
-                          L'itinéraire affiché est une estimation basée sur les coordonnées GPS.
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })()}
               </div>
 
-              <div className="space-y-8">
+              <div className="space-y-8 lg:col-span-1">
                 {/* Internal Notes */}
                 <div className="bg-card p-6 rounded-[2.5rem] shadow-sm border border-primary/10 space-y-6">
                   <h4 className="text-xs font-bold uppercase tracking-widest text-primary/60">Notes Internes</h4>
-                  <div className="space-y-4 max-h-[300px] overflow-y-auto no-scrollbar pr-2">
+                  <div className="relative pl-6 space-y-6 max-h-[360px] overflow-y-auto no-scrollbar pr-2">
+                    <div className="pointer-events-none absolute left-2 top-0 bottom-0 w-px bg-primary/20" />
                     {selectedOrder.internalNotes && selectedOrder.internalNotes.length > 0 ? (
-                      selectedOrder.internalNotes.map((note, idx) => {
+                      selectedOrder.internalNotes.map((note: any, idx: number) => {
                         const noteData = typeof note === 'string' ? { id: idx.toString(), note, author: 'Système', date: new Date().toISOString() } : note;
                         return (
-                          <div key={noteData.id} className="bg-secondary/30 p-4 rounded-2xl border border-primary/5 space-y-2">
-                            <p className="text-sm text-primary/80">{noteData.note}</p>
-                            <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-primary/40">
-                              <span>{noteData.author}</span>
-                              <span>{formatDate(noteData.date)}</span>
+                          <div key={noteData.id} className="relative rounded-3xl border border-primary/10 bg-secondary/30 p-4 shadow-sm">
+                            <div className="absolute -left-3 top-4 h-3 w-3 rounded-full border-2 border-white bg-primary shadow" />
+                            <div className="flex flex-col gap-3">
+                              <div className="flex items-center justify-between gap-4 text-[10px] uppercase tracking-widest text-primary/40">
+                                <span>{noteData.author}</span>
+                                <span>{formatDate(noteData.date)}</span>
+                              </div>
+                              <p className="text-sm text-primary/80 leading-relaxed">{noteData.note}</p>
                             </div>
                           </div>
                         );
@@ -595,6 +557,48 @@ export function AdminOrderDetail({ ctx }: { ctx: any }) {
                     </button>
                   </div>
                 </div>
+              </div>
+
+              <div className="lg:col-span-3 space-y-8">
+                {/* Map Section */}
+                {(() => {
+                  let coords: [number, number] | null = null;
+                  if (Array.isArray(selectedOrder.coordinates)) {
+                    coords = selectedOrder.coordinates as [number, number];
+                  } else if (typeof selectedOrder.coordinates === 'string' && selectedOrder.coordinates.includes(',')) {
+                    const parts = selectedOrder.coordinates.split(',');
+                    coords = [parseFloat(parts[0]), parseFloat(parts[1])];
+                  }
+                  
+                  if (!coords && selectedOrder.address) {
+                    const match = selectedOrder.address.match(/\(Coordonnées:\s*([0-9.-]+)\s*,\s*([0-9.-]+)\)/);
+                    if (match) {
+                      coords = [parseFloat(match[1]), parseFloat(match[2])];
+                    }
+                  }
+
+                  if (!coords || isNaN(coords[0]) || isNaN(coords[1])) {
+                    return null;
+                  }
+
+                  return (
+                    <div className="bg-card p-6 rounded-[2.5rem] shadow-sm border border-primary/10 space-y-4">
+                      <h4 className="text-xs font-bold uppercase tracking-widest text-primary/60">Localisation de livraison</h4>
+                      <div className="h-[340px] rounded-2xl overflow-hidden border border-primary/5 shadow-inner">
+                        <OrderMap 
+                          customerLocation={coords} 
+                          customerName={selectedOrder.customer}
+                        />
+                      </div>
+                      <div className="p-3 bg-primary/5 rounded-xl border border-primary/5 flex gap-3">
+                        <Info size={16} className="text-primary flex-shrink-0 mt-0.5" />
+                        <p className="text-[10px] text-primary/70 leading-relaxed italic">
+                          L'itinéraire affiché est une estimation basée sur les coordonnées GPS.
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </div>

@@ -625,9 +625,16 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
         } else {
             setActiveTab('orders');
         }
-    } else if (notification.type === 'stock') {
+    } else if (notification.type === 'product' || notification.type === 'stock') {
         if (notification.relatedId) {
-            onNavigate('admin-product-detail', notification.relatedId);
+            const product = localProducts.find(p => p.id === notification.relatedId);
+            if (product) {
+                setEditingItem(product);
+                setModalType('product');
+                setIsAddModalOpen(true);
+            } else {
+                setActiveTab('products');
+            }
         } else {
             setActiveTab('inventory');
         }
@@ -639,12 +646,12 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
                 setSelectedConversation(conv);
             }
         }
-    } else if (notification.type === 'customer') {
+    } else if (notification.type === 'customer' || notification.type === 'user') {
         if (notification.relatedId) {
             const customer = USERS.find(u => u.id === notification.relatedId);
             if (customer) {
                 setSelectedCustomer(customer);
-                setActiveTab('customers');
+                setActiveTab('customer-detail');
             } else {
                 setActiveTab('customers');
             }

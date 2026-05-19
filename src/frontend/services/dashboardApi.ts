@@ -55,3 +55,17 @@ export const seedDashboardData = async () => {
     method: 'POST',
   });
 };
+
+export const sendPushNotification = async (title: string, message: string) => {
+  return request('/api/dashboard/send-push-notification', {
+    method: 'POST',
+    body: JSON.stringify({ title, message }),
+  });
+};
+
+export const sendStockTransaction = async (productId: string, type: 'add' | 'remove', quantity: number, note?: string) => {
+  return request('/api/dashboard/stock/transaction', {
+    method: 'POST',
+    body: JSON.stringify({ productId, type, quantity, note }),
+  });
+};

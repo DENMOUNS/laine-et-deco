@@ -99,17 +99,29 @@ export function AdminProducts({ ctx }: { ctx: any }) {
                 },
                 {
                   header: 'Stock',
-                  accessor: (product: Product) => (
-                    <div className="flex items-center gap-2">
-                       <div className="flex-grow bg-secondary/50 h-1.5 rounded-full overflow-hidden w-24">
-                        <div 
-                          className={`h-full rounded-full ${product.stock < 10 ? 'bg-primary' : 'bg-primary/40'}`} 
-                          style={{ width: `${Math.min(product.stock, 100)}%` }} 
-                        />
+                  accessor: (product: Product) => {
+                    const currentStock = product.stock || 0;
+                    const lastRestock = product.lastRestock || currentStock || 1;
+                    const percentRemaining = (currentStock / lastRestock) * 100;
+                    const isLow = percentRemaining < 20;
+                    const isCritical = percentRemaining < 10;
+                    
+                    let barColor = 'bg-green-500';
+                    if (isCritical) barColor = 'bg-red-600';
+                    else if (isLow) barColor = 'bg-orange-500';
+                    
+                    return (
+                      <div className="flex items-center gap-2 w-32">
+                        <div className="flex-grow bg-gray-200 h-2 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full rounded-full ${barColor} transition-all`}
+                            style={{ width: `${Math.max(percentRemaining, 0)}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-semibold text-gray-600 w-8 text-right">{currentStock}</span>
                       </div>
-                      <span className="text-xs font-bold text-primary">{product.stock}</span>
-                    </div>
-                  ),
+                    );
+                  },
                   exportValue: (product: Product) => String(product.stock),
                   sortable: true,
                   sortKey: 'stock'

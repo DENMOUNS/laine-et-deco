@@ -59,11 +59,29 @@ export function AdminInventory({ ctx }: { ctx: any }) {
                 columns={[
                   { header: 'Produit', accessor: 'name', sortable: true },
                   { header: 'Catégorie', accessor: 'category', sortable: true },
-                  { header: 'Stock', accessor: (p: any) => (
-                    <span className={`font-bold ${p.stock === 0 ? 'text-primary' : p.stock < 10 ? 'text-accent' : 'text-primary/80'}`}>
-                      {p.stock} unités
-                    </span>
-                  ), sortable: true, sortKey: 'stock' },
+                  { header: 'Stock', accessor: (p: any) => {
+                    const currentStock = p.stock || 0;
+                    const lastRestock = p.lastRestock || currentStock || 1;
+                    const percentRemaining = (currentStock / lastRestock) * 100;
+                    const isLow = percentRemaining < 20;
+                    const isCritical = percentRemaining < 10;
+                    
+                    let barColor = 'bg-green-500';
+                    if (isCritical) barColor = 'bg-red-600';
+                    else if (isLow) barColor = 'bg-orange-500';
+                    
+                    return (
+                      <div className="flex items-center gap-2 w-40">
+                        <div className="flex-grow bg-gray-200 h-2 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full rounded-full ${barColor} transition-all`}
+                            style={{ width: `${Math.max(percentRemaining, 0)}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-semibold text-gray-600 w-8 text-right">{currentStock}</span>
+                      </div>
+                    );
+                  }, sortable: true, sortKey: 'stock' },
                   { header: 'Prix', accessor: (p: any) => `${p.price.toLocaleString()} FCFA`, sortable: true, sortKey: 'price' },
                   { 
                     header: 'Statut', 

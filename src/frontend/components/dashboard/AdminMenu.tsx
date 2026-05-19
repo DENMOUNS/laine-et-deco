@@ -3,7 +3,7 @@ import React from 'react';
 import { 
   LayoutDashboard, Package, ShoppingBag, Users, BarChart3, Settings, 
   TrendingUp, Bell, Plus, Coins, Globe, Shield, History, Percent, 
-  Truck, MapPin, Download, Lock
+  Truck, MapPin, Download, Lock, BoxesIcon
 } from 'lucide-react';
 
 export const getAdminMenuItems = () => [
@@ -12,6 +12,7 @@ export const getAdminMenuItems = () => [
   { id: 'overview', label: 'Tableau de Bord', icon: <LayoutDashboard size={20} />, permission: 'dashboard.view' },
   { id: 'orders', label: 'Commandes', icon: <ShoppingBag size={20} />, permission: 'orders.view' },
   { id: 'products', label: 'Catalogue Produits', icon: <Package size={20} />, permission: 'products.view' },
+  { id: 'inventory', label: 'Gestion des Stocks', icon: <BoxesIcon size={20} />, permission: 'inventory.view' },
   { id: 'categories', label: 'Catégories', icon: <Plus size={20} />, permission: 'categories.view' },
   { id: 'customers', label: 'Utilisateurs & Fidélité', icon: <Users size={20} />, permission: 'users.view' },
   

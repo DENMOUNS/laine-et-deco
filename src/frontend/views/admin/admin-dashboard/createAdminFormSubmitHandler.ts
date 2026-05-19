@@ -471,8 +471,11 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
           const product = localProducts.find(p => p.id === productId);
           
           if (product) {
-              const newStock = (product.stock || 0) + quantityChange;
-              await updateProduct(productId, { stock: newStock });
+              // Use dashboard API to record transaction and update stock atomically on server
+              const { sendStockTransaction } = await import('../../../services/dashboardApi');
+              await sendStockTransaction(productId, 'add', quantityChange, `Réapprovisionnement via admin (${product.name})`);
+              // refresh localProducts: simple optimistic update
+              setLocalProducts(prev => prev.map(p => p.id === productId ? { ...p, stock: (p.stock || 0) + quantityChange } : p));
               toast.success(`Stock mis à jour pour ${product.name} (+${quantityChange})`);
           }
       }

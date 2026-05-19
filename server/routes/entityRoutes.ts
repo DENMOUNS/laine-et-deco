@@ -43,19 +43,41 @@ const OWNER_COLLECTIONS = [
 // ROLE
 // ==========================
 
-async function getUserRole(uid: string): Promise<UserRole | null> {
+async function getUserRole(uid: string, email?: string, existingRole?: string): Promise<UserRole | null> {
   if (!db) return null;
 
+  const validRoles: UserRole[] = ['super-admin', 'admin', 'editor', 'stock-manager', 'support-client', 'customer'];
+
+  if (existingRole && validRoles.includes(existingRole as UserRole)) {
+    return existingRole as UserRole;
+  }
+
+  let role: string | undefined | null = null;
+
   const userSnap = await db.collection('user').doc(uid).get();
-  if (!userSnap.exists) return null;
+  if (userSnap.exists) {
+    role = userSnap.data()?.role;
+  }
 
-  const role = userSnap.data()?.role;
-  if (!role) return null;
+  if (!role && email) {
+    const emailQuery = await db.collection('user').where('email', '==', email).limit(1).get();
+    if (!emailQuery.empty) {
+      role = emailQuery.docs[0].data()?.role;
+    }
+  }
 
-  const roleSnap = await db.collection('role').doc(role).get();
-  if (!roleSnap.exists) return null;
+  if (!role) {
+    const uidQuery = await db.collection('user').where('uid', '==', uid).limit(1).get();
+    if (!uidQuery.empty) {
+      role = uidQuery.docs[0].data()?.role;
+    }
+  }
 
-  return role;
+  if (role && validRoles.includes(role as UserRole)) {
+    return role as UserRole;
+  }
+
+  return null;
 }
 
 const isSuperAdmin = (r: UserRole | null) => r === 'super-admin';
@@ -99,7 +121,7 @@ const resolveRole = async (
   _: Response,
   next: NextFunction
 ) => {
-  req.user!.role = await getUserRole(req.user!.uid);
+  req.user!.role = await getUserRole(req.user!.uid, req.user!.email, req.user!.role as string);
   next();
 };
 
@@ -115,6 +137,58 @@ router.post('/:entity', verifyToken, resolveRole, async (req: any, res) => {
   try {
     // admin + super-admin
     if (isAdminLevel(role)) {
+      // If creating a user, record notification
+      if (entity === 'user') {
+        const userData = {
+          ...req.body,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        const ref = await db.collection(entity).add(userData);
+
+        // create system notification for user creation
+        const notifId = `sys-user-${Date.now()}`;
+        await db.collection('notification').doc(notifId).set({
+          id: notifId,
+          type: 'user',
+          title: 'Utilisateur créé',
+          message: `Nouvel utilisateur ${userData.email || userData.name || ref.id}`,
+          relatedId: ref.id,
+          timestamp: new Date().toISOString(),
+          read: false,
+        });
+
+        return res.status(201).json({ id: ref.id });
+      }
+
+      // If creating a product, allow initial stock but record notification
+      if (entity === 'product') {
+        const initialStock = req.body.stock ?? req.body.quantity ?? 0;
+        const productData = {
+          ...req.body,
+          stock: initialStock,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        const ref = await db.collection(entity).add(productData);
+
+        // create system notification for product creation
+        const notifId = `sys-prod-${Date.now()}`;
+        await db.collection('notification').doc(notifId).set({
+          id: notifId,
+          type: 'product',
+          title: 'Produit créé',
+          message: `Produit ${productData.name || ref.id} créé (stock initial: ${initialStock})`,
+          relatedId: ref.id,
+          timestamp: new Date().toISOString(),
+          read: false,
+        });
+
+        return res.status(201).json({ id: ref.id });
+      }
+
       const ref = await db.collection(entity).add({
         ...req.body,
         createdAt: new Date(),
@@ -165,6 +239,72 @@ router.put('/:entity/:id', verifyToken, resolveRole, async (req: any, res) => {
 
     // super admin + admin
     if (isAdminLevel(role)) {
+      // If user status/blocked changed, record notification
+      if (entity === 'user' && ('blocked' in req.body || 'status' in req.body)) {
+        const oldBlocked = data.blocked;
+        const oldStatus = data.status;
+        const newBlocked = req.body.blocked;
+        const newStatus = req.body.status;
+
+        await ref.update({
+          ...req.body,
+          updatedAt: new Date(),
+        });
+
+        if (oldBlocked !== newBlocked || oldStatus !== newStatus) {
+          const notifId = `sys-user-${Date.now()}`;
+          let action = '';
+          if (oldBlocked !== newBlocked) {
+            action = newBlocked ? 'bloqué' : 'débloqué';
+          } else if (oldStatus !== newStatus) {
+            action = `statut changé: ${oldStatus} → ${newStatus}`;
+          }
+
+          await db.collection('notification').doc(notifId).set({
+            id: notifId,
+            type: 'user',
+            title: 'Utilisateur modifié',
+            message: `Utilisateur ${data.email || data.name || id} ${action}`,
+            relatedId: id,
+            timestamp: new Date().toISOString(),
+            read: false,
+          });
+        }
+
+        return res.json({ message: 'Utilisateur modifié' });
+      }
+
+      // Prevent direct stock/quantity modification via product update
+      if (entity === 'product' && ('stock' in req.body || 'quantity' in req.body)) {
+        return res.status(403).json({ error: 'La quantité/stock ne peut pas être modifiée ici. Utilisez la gestion des stocks.' });
+      }
+
+      // If price changed, record a system notification with old/new
+      if (entity === 'product' && (('price' in req.body) || ('salePrice' in req.body))) {
+        const oldPrice = data.price;
+        const oldSale = data.salePrice;
+        const updates: any = { ...req.body, updatedAt: new Date() };
+
+        await ref.update(updates);
+
+        const notifId = `sys-prod-${Date.now()}`;
+        const changedFields: string[] = [];
+        if ('price' in req.body && req.body.price !== oldPrice) changedFields.push(`prix: ${oldPrice} → ${req.body.price}`);
+        if ('salePrice' in req.body && req.body.salePrice !== oldSale) changedFields.push(`prix promo: ${oldSale} → ${req.body.salePrice}`);
+
+        await db.collection('notification').doc(notifId).set({
+          id: notifId,
+          type: 'product',
+          title: 'Produit modifié',
+          message: `Modification produit ${data.name || id}: ${changedFields.join(', ')}`,
+          relatedId: id,
+          timestamp: new Date().toISOString(),
+          read: false,
+        });
+
+        return res.json({ message: 'Produit modifié' });
+      }
+
       await ref.update({
         ...req.body,
         updatedAt: new Date(),

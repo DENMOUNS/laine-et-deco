@@ -26,19 +26,41 @@ const isAdmin = (role: UserRole | null) => role === 'admin';
 const isStockManager = (role: UserRole | null) => role === 'stock-manager';
 const isAdminLevel = (role: UserRole | null) => isSuperAdmin(role) || isAdmin(role);
 
-async function getUserRole(uid: string): Promise<UserRole | null> {
+async function getUserRole(uid: string, email?: string, existingRole?: string): Promise<UserRole | null> {
   if (!db) return null;
 
+  const validRoles: UserRole[] = ['super-admin', 'admin', 'editor', 'stock-manager', 'support-client', 'customer'];
+
+  if (existingRole && validRoles.includes(existingRole as UserRole)) {
+    return existingRole as UserRole;
+  }
+
+  let role: string | undefined | null = null;
+
   const userSnap = await db.collection('user').doc(uid).get();
-  if (!userSnap.exists) return null;
+  if (userSnap.exists) {
+    role = userSnap.data()?.role;
+  }
 
-  const role = userSnap.data()?.role;
-  if (!role) return null;
+  if (!role && email) {
+    const emailQuery = await db.collection('user').where('email', '==', email).limit(1).get();
+    if (!emailQuery.empty) {
+      role = emailQuery.docs[0].data()?.role;
+    }
+  }
 
-  const roleSnap = await db.collection('role').doc(role).get();
-  if (!roleSnap.exists) return null;
+  if (!role) {
+    const uidQuery = await db.collection('user').where('uid', '==', uid).limit(1).get();
+    if (!uidQuery.empty) {
+      role = uidQuery.docs[0].data()?.role;
+    }
+  }
 
-  return role as UserRole;
+  if (role && validRoles.includes(role as UserRole)) {
+    return role as UserRole;
+  }
+
+  return null;
 }
 
 const verifyToken = async (
@@ -70,7 +92,7 @@ const resolveRole = async (
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  req.user.role = await getUserRole(req.user.uid);
+  req.user.role = await getUserRole(req.user.uid, req.user.email, req.user.role as string);
   next();
 };
 
@@ -88,13 +110,19 @@ const findOrderDoc = async (orderId: string) => {
 router.put('/order/status', verifyToken, resolveRole, async (req: any, res) => {
   const { orderId, status } = req.body;
   const role = req.user?.role ?? null;
+  const uid = req.user?.uid;
+
+  console.log(`[ORDER_STATUS] User ${uid} with role ${role} attempting to update order ${orderId} to ${status}`);
 
   if (!orderId || !status) {
     return res.status(400).json({ error: 'orderId and status are required' });
   }
 
-  if (!isAdminLevel(role) && !isStockManager(role)) {
-    return res.status(403).json({ error: 'Forbidden' });
+  const canUpdate = isAdminLevel(role) || isStockManager(role);
+  console.log(`[ORDER_STATUS] Permission check: isAdminLevel=${isAdminLevel(role)}, isStockManager=${isStockManager(role)}, canUpdate=${canUpdate}`);
+
+  if (!canUpdate) {
+    return res.status(403).json({ error: `Forbidden: role ${role} cannot update order status` });
   }
 
   try {
@@ -123,6 +151,8 @@ router.put('/order/status', verifyToken, resolveRole, async (req: any, res) => {
       author: 'Système',
       date: new Date().toISOString(),
     };
+
+    console.log(`[ORDER_STATUS] Updating order ${orderId}: ${oldStatus} → ${status}`);
 
     await orderRef.update({
       status,
@@ -171,11 +201,13 @@ router.put('/order/status', verifyToken, resolveRole, async (req: any, res) => {
       relatedId: orderId,
     };
 
+    console.log(`[ORDER_STATUS] Creating notification:`, notification);
     await db.collection('notification').doc(notification.id).set(notification);
 
-    return res.json({ message: 'Statut de commande mis à jour.' });
+    console.log(`[ORDER_STATUS] Order update completed successfully`);
+    return res.json({ message: 'Statut de commande mis à jour.', orderId, status });
   } catch (e: any) {
-    console.error('Dashboard order status update failed:', e);
+    console.error('[ORDER_STATUS] Error:', e);
     return res.status(500).json({ error: e.message || 'Impossible de mettre à jour la commande.' });
   }
 });
@@ -222,4 +254,154 @@ router.post('/seed', verifyToken, resolveRole, async (_req: any, res) => {
   }
 });
 
+router.post('/send-push-notification', verifyToken, resolveRole, async (req: any, res) => {
+  const { title, message } = req.body;
+  const role = req.user?.role ?? null;
+
+  if (!title || !message) {
+    return res.status(400).json({ error: 'title et message requis' });
+  }
+
+  const isStaff = (r: UserRole | null) => r !== null && r !== 'customer';
+  if (!isStaff(role)) {
+    return res.status(403).json({ error: `Forbidden: role ${role} cannot send push notifications` });
+  }
+
+  try {
+    const customersSnap = await db.collection('user').where('role', '==', 'customer').get();
+    const notificationId = `push-${Date.now()}`;
+    const notificationData = {
+      id: notificationId,
+      type: 'push',
+      title,
+      message,
+      timestamp: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+      read: false,
+      recipientCount: customersSnap.size,
+    };
+
+    await db.collection('push_notification').doc(notificationId).set(notificationData);
+
+    const batch = db.batch();
+    customersSnap.docs.forEach((customerDoc) => {
+      const notifRef = db.collection('notification').doc(`${customerDoc.id}-${notificationId}`);
+      batch.set(notifRef, {
+        id: `${customerDoc.id}-${notificationId}`,
+        userId: customerDoc.id,
+        type: 'push',
+        title,
+        message,
+        timestamp: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+        read: false,
+      });
+    });
+    await batch.commit();
+
+    return res.json({
+      id: notificationId,
+      recipientCount: customersSnap.size,
+      message: `Notification envoyée à ${customersSnap.size} client(s)`,
+    });
+  } catch (e: any) {
+    console.error('Push notification send failed:', e);
+    return res.status(500).json({ error: e.message || 'Impossible d\'envoyer la notification' });
+  }
+});
+
+// Stock transaction: add or remove stock for a product
+router.post('/stock/test', verifyToken, resolveRole, async (req: any, res) => {
+  console.log('[STOCK_TEST] reached');
+  return res.json({ ok: true, test: 'stock test endpoint' });
+});
+
+router.post('/stock/transaction', verifyToken, resolveRole, async (req: any, res) => {
+  console.log('[STOCK_TX] incoming request');
+  const { productId, type, quantity, note } = req.body as { productId: string; type: 'add' | 'remove'; quantity: number; note?: string };
+  const role = req.user?.role ?? null;
+  const uid = req.user?.uid;
+
+  const isStaff = (r: UserRole | null) => r !== null && r !== 'customer';
+  if (!isStaff(role)) return res.status(403).json({ error: `Forbidden: role ${role} cannot manage stock` });
+
+  if (!productId || !type || typeof quantity !== 'number' || quantity <= 0) {
+    return res.status(400).json({ error: 'productId, type (add|remove) et quantity (>0) requis' });
+  }
+
+  try {
+    const productRef = db.collection('product').doc(productId);
+
+    const result = await db.runTransaction(async (tx) => {
+      const snap = await tx.get(productRef);
+      if (!snap.exists) throw new Error('Produit introuvable');
+
+      const data = snap.data() as any;
+      const beforeQty = Number(data.stock ?? data.quantity ?? 0);
+      const delta = type === 'add' ? Math.abs(quantity) : -Math.abs(quantity);
+      const afterQty = beforeQty + delta;
+
+      if (afterQty < 0) throw new Error('Stock insuffisant');
+
+      const updateField: any = {};
+      if ('stock' in data) updateField.stock = afterQty;
+      else if ('quantity' in data) updateField.quantity = afterQty;
+      else updateField.stock = afterQty;
+      updateField.updatedAt = firebaseAdmin.firestore.FieldValue.serverTimestamp();
+
+      // Record lastRestock when adding stock
+      if (type === 'add') {
+        updateField.lastRestock = Math.abs(quantity);
+        updateField.lastRestockAt = new Date().toISOString();
+      }
+
+      tx.update(productRef, updateField);
+
+      const txId = `stock-${Date.now()}`;
+      const txDoc = {
+        id: txId,
+        productId,
+        type,
+        quantity: Math.abs(quantity),
+        before: beforeQty,
+        after: afterQty,
+        note: note || null,
+        author: uid,
+        timestamp: new Date().toISOString(),
+      };
+
+      tx.set(db.collection('stock_transaction').doc(txId), txDoc);
+
+      // create notification about stock change
+      const notifId = `sys-prod-${Date.now()}`;
+      const title = type === 'add' ? 'Stock ajouté' : 'Stock retiré';
+      const message = `${title} pour produit ${data.name || productId} : ${Math.abs(quantity)} (avant ${beforeQty} → après ${afterQty})`;
+
+      tx.set(db.collection('notification').doc(notifId), {
+        id: notifId,
+        type: 'product',
+        title,
+        message,
+        relatedId: productId,
+        timestamp: new Date().toISOString(),
+        read: false,
+      });
+
+      const stockField = 'stock' in data ? 'stock' : 'quantity';
+      const productObj: any = { id: snap.id, ...data };
+      productObj[stockField] = afterQty;
+      if (type === 'add') {
+        productObj.lastRestock = Math.abs(quantity);
+        productObj.lastRestockAt = new Date().toISOString();
+      }
+
+      return { txDoc, product: productObj };
+    });
+
+    return res.json({ message: 'Transaction de stock enregistrée', transaction: result.txDoc, product: result.product });
+  } catch (e: any) {
+    console.error('Stock transaction failed:', e);
+    return res.status(400).json({ error: e.message || 'Impossible d\'effectuer la transaction' });
+  }
+});
+
 export default router;
+
