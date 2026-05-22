@@ -50,7 +50,17 @@ import {
   AdminDashboardModals,
   AdminOrderDetail,
   AdminCustomerDetail,
-  AdminRmaDetail
+  AdminRmaDetail,
+  AdminSiteLogos,
+  AdminSiteColors,
+  AdminHeroBanners,
+  AdminAnnouncementBanners,
+  AdminScrollingBanners,
+  AdminSeoPages,
+  AdminLoyaltyConfig,
+  AdminMaintenanceConfig,
+  AdminNewsletterConfig,
+  AdminInvoiceConfig
 } from './';
 
 export function AdminDashboardShell({ ctx }: { ctx: any }) {
@@ -69,6 +79,7 @@ export function AdminDashboardShell({ ctx }: { ctx: any }) {
           setActiveTab={setActiveTab}
           user={user}
           onNavigate={onNavigate}
+          setEditingItem={setEditingItem}
         />
         <main className="flex-grow overflow-y-auto bg-[#fbf9f6] flex flex-col">
           <AdminHeader
@@ -101,6 +112,7 @@ export function AdminDashboardShell({ ctx }: { ctx: any }) {
         setActiveTab={setActiveTab}
         user={user}
         onNavigate={onNavigate}
+        setEditingItem={setEditingItem}
       />
 
       {/* Overlay for mobile sidebar */}
@@ -270,6 +282,17 @@ export function AdminDashboardShell({ ctx }: { ctx: any }) {
         <AdminNavItems ctx={ctx} />
 
         <AdminQr ctx={ctx} />
+        <AdminSite ctx={ctx} />
+        {activeTab === 'site_logos' && <AdminSiteLogos ctx={ctx} />}
+        {activeTab === 'site_colors' && <AdminSiteColors ctx={ctx} />}
+        {activeTab === 'hero_banners' && <AdminHeroBanners ctx={ctx} />}
+        {activeTab === 'announcement_banners' && <AdminAnnouncementBanners ctx={ctx} />}
+        {activeTab === 'scrolling_banners' && <AdminScrollingBanners ctx={ctx} />}
+        {activeTab === 'seo_pages' && <AdminSeoPages ctx={ctx} />}
+        {activeTab === 'loyalty_config' && <AdminLoyaltyConfig ctx={ctx} />}
+        {activeTab === 'maintenance_config' && <AdminMaintenanceConfig ctx={ctx} />}
+        {activeTab === 'newsletter_config' && <AdminNewsletterConfig ctx={ctx} />}
+        <AdminInvoiceConfig ctx={ctx} />
         <AdminCoupons ctx={ctx} />
 
         <AdminCities ctx={ctx} />

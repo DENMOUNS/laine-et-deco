@@ -20,6 +20,16 @@ async function startServer() {
 
   app.use(express.json());
 
+  // Simple request logger to aid debugging (dev only)
+  app.use((req, _res, next) => {
+    try {
+      console.log(`[REQ] ${req.method} ${req.originalUrl}`);
+    } catch (e) {
+      // ignore logging failures
+    }
+    next();
+  });
+
   // --- Security: Rate Limiting (DDoS & Brute Force protection) ---
   const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -30,6 +40,75 @@ async function startServer() {
   });
 
   app.use("/api/", apiLimiter);
+
+  // Test route to verify API routing works
+  app.get('/api/test', (_req, res) => {
+    console.log('[TEST] /api/test called');
+    return res.json({ ok: true, message: 'API routing works' });
+  });
+
+  // --- QR Config: Public read, Staff write ---
+  app.get('/api/dashboard/qr_config/:id', async (req, res) => {
+    try {
+      const { db } = await import("./server/firebaseAdmin");
+      const snap = await db.collection('qr_config').doc(req.params.id).get();
+      if (snap.exists) {
+        return res.json({ id: snap.id, ...snap.data() });
+      }
+      return res.status(404).json({ error: 'Configuration introuvable.' });
+    } catch (e: any) {
+      console.error('QR config read failed:', e);
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.put('/api/dashboard/qr_config/:id', async (req, res) => {
+    try {
+      const { db, firebaseAdmin, auth } = await import("./server/firebaseAdmin");
+      const bearer = req.headers.authorization;
+      if (!bearer?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      const token = bearer.replace('Bearer ', '');
+      const decoded = await auth.verifyIdToken(token);
+      const uid = decoded.uid;
+      
+      // Check if user is staff
+      const userSnap = await db.collection('user').doc(uid).get();
+      const role = userSnap.data()?.role;
+      const isStaff = role && role !== 'customer';
+      if (!isStaff) {
+        return res.status(403).json({ error: 'Accès refusé.' });
+      }
+
+      await db.collection('qr_config').doc(req.params.id).set({
+        ...req.body,
+        updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
+      return res.json({ message: 'Configuration enregistrée.' });
+    } catch (e: any) {
+      console.error('QR config write failed:', e);
+      return res.status(400).json({ error: e.message });
+    }
+  });
+
+  // // --- Invoice Config: Public read, Staff write ---
+  app.get('/api/dashboard/invoice_config/:id', async (req, res) => {
+    try {
+      const { db } = await import("./server/firebaseAdmin");
+      const snap = await db.collection('invoice_config').doc(req.params.id).get();
+      if (snap.exists) {
+        return res.json({ id: snap.id, ...snap.data() });
+      }
+      return res.status(404).json({ error: 'Configuration introuvable.' });
+    } catch (e: any) {
+      console.error('Invoice config read failed:', e);
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+
+
 
   // --- API Routes ---
   app.use('/api/entity', entityRoutes);

@@ -5,6 +5,9 @@ import { migrateCreatedAt, seedDashboardData } from '../dashboardSeed';
 
 const router = Router();
 
+// Debug: indicate this routes module was loaded
+try { console.log('[ROUTES] dashboardRoutes module loaded'); } catch (e) { }
+
 type UserRole =
   | 'super-admin'
   | 'admin'
@@ -25,6 +28,149 @@ const isSuperAdmin = (role: UserRole | null) => role === 'super-admin';
 const isAdmin = (role: UserRole | null) => role === 'admin';
 const isStockManager = (role: UserRole | null) => role === 'stock-manager';
 const isAdminLevel = (role: UserRole | null) => isSuperAdmin(role) || isAdmin(role);
+
+const SYSTEM_CONFIG_COLLECTIONS = new Set([
+  'invoice_config',
+  'qr_config',
+  'site_logo',
+  'site_color',
+  'hero_banner',
+  'announcement_banner',
+  'scrolling_banner',
+  'seo_page',
+  'loyalty_config_history',
+  'maintenance_config_history',
+  'newsletter_config_history',
+  'custom_section_config',
+]);
+
+function buildSystemConfigDocs(siteConfig: any) {
+  const branding = siteConfig?.branding || {};
+  const newsletter = siteConfig?.newsletterPopup || {};
+  const now = firebaseAdmin.firestore.FieldValue.serverTimestamp();
+  const meta = { createdAt: now, updatedAt: now };
+  const docs: { collectionName: string; id: string; data: any }[] = [
+    {
+      collectionName: 'invoice_config',
+      id: 'global',
+      data: {
+        phone: '+237 000 000 000',
+        email: 'contact@laine-deco.com',
+        paymentPhone: '+237 000 000 000',
+        paymentName: 'Laine et Déco',
+        address: 'Douala, Cameroun',
+        message1: 'Les articles faits sur-mesure ne sont ni repris ni échangés.',
+        message2: 'Merci de vérifier votre commande à la réception.',
+        footerMessage: 'Merci pour votre confiance !',
+        ...meta,
+      },
+    },
+    {
+      collectionName: 'qr_config',
+      id: 'global',
+      data: {
+        whatsappNumber: siteConfig?.qrConfig?.whatsappNumber || '+237600000000',
+        whatsappMessage: siteConfig?.qrConfig?.whatsappMessage || 'Bonjour Laine et Déco, je souhaite passer commande.',
+        welcomeMessage: siteConfig?.qrConfig?.welcomeMessage || 'Bienvenue chez Laine et Déco ! Découvrez nos créations uniques.',
+        ...meta,
+      },
+    },
+    {
+      collectionName: 'site_logo',
+      id: 'default-logo',
+      data: { image: branding.logo || siteConfig?.hero?.backgroundImages?.[0] || '/logo.png', status: 'active', ...meta },
+    },
+    {
+      collectionName: 'site_color',
+      id: 'default-color',
+      data: {
+        primaryColor: branding.primaryColor || siteConfig?.primaryColor || '#3E4A3D',
+        secondaryColor: branding.secondaryColor || '#B85535',
+        accentColor: siteConfig?.accentColor || '#5C6B5A',
+        backgroundColor: '#fbf9f6',
+        status: 'active',
+        ...meta,
+      },
+    },
+    {
+      collectionName: 'announcement_banner',
+      id: 'default-announcement',
+      data: { message: siteConfig?.adBannerText || '', status: siteConfig?.showAdBanner ? 'active' : 'inactive', ...meta },
+    },
+    {
+      collectionName: 'loyalty_config_history',
+      id: 'default-loyalty',
+      data: { config: siteConfig?.loyaltyConfig || constants.SITE_CONFIG.loyaltyConfig, status: 'active', ...meta },
+    },
+    {
+      collectionName: 'maintenance_config_history',
+      id: 'default-maintenance',
+      data: {
+        isActive: siteConfig?.maintenance?.isActive || false,
+        message: siteConfig?.maintenance?.message || '',
+        endDate: siteConfig?.maintenance?.endDate || '',
+        status: 'active',
+        ...meta,
+      },
+    },
+    {
+      collectionName: 'newsletter_config_history',
+      id: 'default-newsletter',
+      data: {
+        isActive: newsletter.isActive || false,
+        title: newsletter.title || '',
+        message: newsletter.message || '',
+        delay: newsletter.delay || 5000,
+        image: newsletter.image || '',
+        button1Text: "S'inscrire",
+        button2Text: 'Non merci',
+        status: 'active',
+        ...meta,
+      },
+    },
+  ];
+
+  (siteConfig?.sliderItems || []).forEach((slide: any) => {
+    docs.push({
+      collectionName: 'hero_banner',
+      id: String(slide.id),
+      data: {
+        image: slide.image,
+        title: slide.title,
+        subtitle: slide.subtitle || '',
+        ctaText: siteConfig?.hero?.ctaText || 'Découvrir',
+        status: 'active',
+        ...meta,
+      },
+    });
+  });
+
+  (siteConfig?.marqueeItems || []).forEach((item: any) => {
+    docs.push({
+      collectionName: 'scrolling_banner',
+      id: String(item.id),
+      data: { text: item.text, iconName: item.iconName, status: 'active', ...meta },
+    });
+  });
+
+  Object.entries(siteConfig?.seo || {}).forEach(([page, pageMeta]: [string, any]) => {
+    docs.push({
+      collectionName: 'seo_page',
+      id: `seo-${page}`,
+      data: { page, metaTitle: pageMeta.title || '', metaDescription: pageMeta.description || '', status: 'active', ...meta },
+    });
+  });
+
+  (siteConfig?.customSections || []).forEach((section: any) => {
+    docs.push({
+      collectionName: 'custom_section_config',
+      id: String(section.id),
+      data: { title: section.title, type: section.type, itemIds: section.itemIds || [], status: 'active', ...meta },
+    });
+  });
+
+  return docs;
+}
 
 async function getUserRole(uid: string, email?: string, existingRole?: string): Promise<UserRole | null> {
   if (!db) return null;
@@ -251,6 +397,168 @@ router.post('/seed', verifyToken, resolveRole, async (_req: any, res) => {
   } catch (e: any) {
     console.error('Dashboard seed failed:', e);
     return res.status(500).json({ error: e.message || 'Impossible de lancer le seed.' });
+  }
+});
+
+// Public GET endpoints (read-only, no auth required)
+router.get('/qr_config/:id', async (req: any, res) => {
+  try {
+    const snap = await db.collection('qr_config').doc(req.params.id).get();
+    if (snap.exists) {
+      return res.json({ id: snap.id, ...snap.data() });
+    }
+    return res.status(404).json({ error: 'Configuration introuvable.' });
+  } catch (e: any) {
+    console.error('QR config read failed:', e);
+    return res.status(500).json({ error: e.message || 'Erreur lecture configuration.' });
+  }
+});
+
+router.get('/invoice_config/:id', async (req: any, res) => {
+  try {
+    const snap = await db.collection('invoice_config').doc(req.params.id).get();
+    if (snap.exists) {
+      return res.json({ id: snap.id, ...snap.data() });
+    }
+    return res.status(404).json({ error: 'Configuration introuvable.' });
+  } catch (e: any) {
+    console.error('Invoice config read failed:', e);
+    return res.status(500).json({ error: e.message || 'Erreur lecture configuration.' });
+  }
+});
+
+// Protected PUT endpoints (write, staff only)
+router.get('/public/qr', async (_req, res) => {
+  try {
+    const snap = await db.collection('qr_config').doc('global').get();
+    if (snap.exists) {
+      return res.json({ id: snap.id, ...snap.data() });
+    }
+    return res.status(404).json({ error: 'Configuration introuvable.' });
+  } catch (e: any) {
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+router.post('/public/qr/init', async (_req, res) => {
+  try {
+    const ref = db.collection('qr_config').doc('global');
+    const snap = await ref.get();
+    if (snap.exists) {
+      return res.json({ id: snap.id, ...snap.data() });
+    }
+    const defaults = {
+      whatsappNumber: '+237600000000',
+      whatsappMessage: 'Bonjour Laine et Déco, je souhaite passer commande.',
+      welcomeMessage: 'Bienvenue chez Laine et Déco ! Découvrez nos créations uniques.',
+    };
+    await ref.set({
+      ...defaults,
+      createdAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+    });
+    return res.json(defaults);
+  } catch (e: any) {
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+router.put('/qr_config/:id', verifyToken, resolveRole, async (req: any, res) => {
+  const role = req.user?.role ?? null;
+  const isStaff = role !== null && role !== 'customer';
+  if (!isStaff) {
+    return res.status(403).json({ error: 'Accès refusé.' });
+  }
+  try {
+    await db.collection('qr_config').doc(req.params.id).set({
+      ...req.body,
+      updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+    return res.json({ message: 'Configuration enregistrée.' });
+  } catch (e: any) {
+    return res.status(500).json({ error: e.message || 'Erreur enregistrement.' });
+  }
+});
+
+router.put('/invoice_config/:id', verifyToken, resolveRole, async (req: any, res) => {
+  const role = req.user?.role ?? null;
+  const isStaff = role !== null && role !== 'customer';
+  if (!isStaff) {
+    return res.status(403).json({ error: 'Accès refusé.' });
+  }
+  try {
+    await db.collection('invoice_config').doc(req.params.id).set({
+      ...req.body,
+      updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+    return res.json({ message: 'Configuration enregistrée.' });
+  } catch (e: any) {
+    return res.status(500).json({ error: e.message || 'Erreur enregistrement.' });
+  }
+});
+
+router.get('/config/:collectionName/:id', verifyToken, resolveRole, async (req: any, res) => {
+  const role = req.user?.role ?? null;
+  const { collectionName, id } = req.params;
+
+  if (!isAdminLevel(role)) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  if (!SYSTEM_CONFIG_COLLECTIONS.has(collectionName)) {
+    return res.status(400).json({ error: 'Collection config non autorisée.' });
+  }
+
+  try {
+    const snap = await db.collection(collectionName).doc(id).get();
+    if (!snap.exists) {
+      return res.status(404).json({ error: 'Configuration introuvable.' });
+    }
+    return res.json({ id: snap.id, ...snap.data() });
+  } catch (e: any) {
+    return res.status(500).json({ error: e.message || 'Impossible de lire la configuration.' });
+  }
+});
+
+router.put('/config/:collectionName/:id', verifyToken, resolveRole, async (req: any, res) => {
+  const role = req.user?.role ?? null;
+  const { collectionName, id } = req.params;
+
+  if (!isAdminLevel(role)) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  if (!SYSTEM_CONFIG_COLLECTIONS.has(collectionName)) {
+    return res.status(400).json({ error: 'Collection config non autorisée.' });
+  }
+
+  try {
+    await db.collection(collectionName).doc(id).set({
+      ...req.body,
+      updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+    return res.json({ message: 'Configuration enregistrée.' });
+  } catch (e: any) {
+    return res.status(500).json({ error: e.message || 'Impossible d’enregistrer la configuration.' });
+  }
+});
+
+router.post('/configs/init', verifyToken, resolveRole, async (req: any, res) => {
+  const role = req.user?.role ?? null;
+
+  if (!isAdminLevel(role)) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  try {
+    const siteConfig = req.body?.siteConfig || constants.SITE_CONFIG;
+    const docs = buildSystemConfigDocs(siteConfig);
+    const batch = db.batch();
+    docs.forEach(({ collectionName, id, data }) => {
+      batch.set(db.collection(collectionName).doc(id), data, { merge: true });
+    });
+    await batch.commit();
+    return res.json({ message: 'Configurations initialisées.', count: docs.length });
+  } catch (e: any) {
+    console.error('System config init failed:', e);
+    return res.status(500).json({ error: e.message || 'Impossible d’initialiser les configurations.' });
   }
 });
 

@@ -3,7 +3,7 @@ import React from 'react';
 import { 
   LayoutDashboard, Package, ShoppingBag, Users, BarChart3, Settings, 
   TrendingUp, Bell, Plus, Coins, Globe, Shield, History, Percent, 
-  Truck, MapPin, Download, Lock, BoxesIcon
+  Truck, MapPin, Download, Lock, BoxesIcon, Image as ImageIcon, Palette, Monitor, Megaphone, Type as TypeIcon, Search, Award, Wrench, Mail, FileText, QrCode
 } from 'lucide-react';
 
 export const getAdminMenuItems = () => [
@@ -44,7 +44,18 @@ export const getAdminMenuItems = () => [
   
   // Système
   { id: 'system_header', label: 'SYSTÈME', isHeader: true },
-  { id: 'site', label: 'Configuration Site', icon: <Settings size={20} />, permission: 'system.view' },
+  { id: 'site', label: 'Configuration du Site', icon: <Settings size={20} />, permission: 'system.view' },
+  { id: 'site_logos', label: 'Logos du Site', icon: <ImageIcon size={20} />, permission: 'system.view' },
+  { id: 'site_colors', label: 'Couleurs du Site', icon: <Palette size={20} />, permission: 'system.view' },
+  { id: 'hero_banners', label: 'Bannières Hero', icon: <Monitor size={20} />, permission: 'system.view' },
+  { id: 'announcement_banners', label: 'Bannières Annonce', icon: <Megaphone size={20} />, permission: 'system.view' },
+  { id: 'scrolling_banners', label: 'Bannières Défilantes', icon: <TypeIcon size={20} />, permission: 'system.view' },
+  { id: 'seo_pages', label: 'Pages SEO', icon: <Search size={20} />, permission: 'system.view' },
+  { id: 'loyalty_config', label: 'Prog. de Fidélité', icon: <Award size={20} />, permission: 'system.view' },
+  { id: 'maintenance_config', label: 'Mode Maintenance', icon: <Wrench size={20} />, permission: 'system.view' },
+  { id: 'newsletter_config', label: 'Popup Newsletter', icon: <Mail size={20} />, permission: 'system.view' },
+  { id: 'invoice_config', label: 'Factures (PDF)', icon: <FileText size={20} />, permission: 'system.view' },
+  { id: 'qr', label: 'QR Code Landing', icon: <QrCode size={20} />, permission: 'system.view' },
   { id: 'taxes', label: 'Taxes (TVA)', icon: <Percent size={20} />, permission: 'system.view' },
   { id: 'shipping', label: 'Livraison', icon: <Truck size={20} />, permission: 'system.view' },
   { id: 'cities', label: 'Villes & Tarifs', icon: <MapPin size={20} />, permission: 'system.view' },

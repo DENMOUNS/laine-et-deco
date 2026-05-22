@@ -12,6 +12,7 @@ interface AdminSidebarProps {
   setActiveTab: (tab: string) => void;
   user: FirebaseUser | null;
   onNavigate: (view: string) => void;
+  setEditingItem: (item: any) => void;
 }
 
 export const AdminSidebar: React.FC<AdminSidebarProps> = ({
@@ -21,6 +22,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   activeTab,
   setActiveTab,
   onNavigate,
+  setEditingItem,
 }) => {
   return (
     <aside
@@ -50,6 +52,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
               key={item.id}
               onClick={() => {
                 setActiveTab(item.id);
+                setEditingItem(null);
                 setIsSidebarOpen(false);
               }}
               className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all ${

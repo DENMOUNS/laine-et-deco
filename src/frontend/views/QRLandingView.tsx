@@ -1,10 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { motion, useMotionValue, useTransform, useSpring } from 'motion/react';
+import { motion, useMotionValue, useTransform, useSpring } from 'framer-motion';
 import { MessageCircle, Home, Loader2, ArrowRight, Smartphone, Smile, Sparkles, Heart } from 'lucide-react';
-import { db } from '../../backend/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { ensurePublicQrConfig } from '../services/dashboardApi';
 import { SITE_CONFIG } from '../../constants';
-import { SiteConfig } from '../../types';
 
 interface QRLandingViewProps {
   onNavigate: (view: string) => void;
@@ -36,7 +34,11 @@ const Confetti = () => (
 );
 
 export const QRLandingView: React.FC<QRLandingViewProps> = ({ onNavigate }) => {
-  const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
+  const [qrConfig, setQrConfig] = useState<{
+    whatsappNumber: string;
+    whatsappMessage: string;
+    welcomeMessage: string;
+  } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Parallax setup
@@ -48,39 +50,59 @@ export const QRLandingView: React.FC<QRLandingViewProps> = ({ onNavigate }) => {
   const rotateY = useTransform(mouseX, [-0.5, 0.5], ["-10deg", "10deg"]);
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchConfig = async () => {
+      const defaultQrConfig = {
+        whatsappNumber: SITE_CONFIG.qrConfig?.whatsappNumber || '+237600000000',
+        whatsappMessage: SITE_CONFIG.qrConfig?.whatsappMessage || 'Bonjour Laine et Déco, je souhaite passer commande.',
+        welcomeMessage: SITE_CONFIG.qrConfig?.welcomeMessage || 'Bienvenue chez Laine et Déco ! Découvrez nos créations uniques.'
+      };
+
       try {
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Timeout fetching config')), 3000)
-        );
-        const configDoc: any = await Promise.race([
-          getDoc(doc(db, 'site_config', 'global')),
-          timeoutPromise
-        ]);
-        if (configDoc.exists()) {
-          setSiteConfig(configDoc.data() as SiteConfig);
-        } else {
-          setSiteConfig(SITE_CONFIG); // fallback
+        // Prefer server-side public config (reads DB)
+        const resp = await fetch('/api/dashboard/public/qr', { credentials: 'same-origin' });
+        if (!isMounted) return;
+        if (resp.ok) {
+          const data = await resp.json();
+          setQrConfig({ ...defaultQrConfig, ...data });
+          setIsLoading(false);
+          return;
+        }
+
+        // If GET failed, try to initialize safely (creates only if missing)
+        try {
+          const initResp = await ensurePublicQrConfig();
+          if (!isMounted) return;
+          setQrConfig({ ...defaultQrConfig, ...(initResp || {}) });
+          setIsLoading(false);
+          return;
+        } catch (e) {
+          console.warn('Public QR init failed, falling back to defaults', e);
         }
       } catch (err) {
-        console.error('Failed to load site config for QR landing', err);
-        setSiteConfig(SITE_CONFIG); // fallback
-      } finally {
+        console.error('Failed to load QR config via public API', err);
+      }
+
+      if (isMounted) {
+        setQrConfig(defaultQrConfig);
         setIsLoading(false);
       }
     };
     fetchConfig();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  if (isLoading) {
+  if (isLoading || !qrConfig) {
     return (
       <div className="min-h-screen bg-secondary/30 flex items-center justify-center p-4">
         <Loader2 className="w-10 h-10 animate-spin text-primary opacity-50" />
       </div>
     );
   }
-
-  const qrConfig = siteConfig?.qrConfig || SITE_CONFIG.qrConfig!;
 
   const handleWhatsAppClick = () => {
     let number = qrConfig.whatsappNumber.replace(/[^\d+]/g, '');
