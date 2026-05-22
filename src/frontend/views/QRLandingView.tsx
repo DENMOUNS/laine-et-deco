@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, useMotionValue, useTransform, useSpring } from 'framer-motion';
 import { MessageCircle, Home, Loader2, ArrowRight, Smartphone, Smile, Sparkles, Heart } from 'lucide-react';
-import { ensurePublicQrConfig } from '../services/dashboardApi';
 import { SITE_CONFIG } from '../../constants';
 
 interface QRLandingViewProps {
@@ -54,34 +53,38 @@ export const QRLandingView: React.FC<QRLandingViewProps> = ({ onNavigate }) => {
 
     const fetchConfig = async () => {
       const defaultQrConfig = {
-        whatsappNumber: SITE_CONFIG.qrConfig?.whatsappNumber || '+237600000000',
+        whatsappNumber: SITE_CONFIG.qrConfig?.whatsappNumber || '+237655500443',
         whatsappMessage: SITE_CONFIG.qrConfig?.whatsappMessage || 'Bonjour Laine et Déco, je souhaite passer commande.',
         welcomeMessage: SITE_CONFIG.qrConfig?.welcomeMessage || 'Bienvenue chez Laine et Déco ! Découvrez nos créations uniques.'
       };
 
       try {
-        // Prefer server-side public config (reads DB)
-        const resp = await fetch('/api/dashboard/public/qr', { credentials: 'same-origin' });
+        // Fetch public QR config from server
+        const resp = await fetch('/api/dashboard/public/config/qr_config/global', { 
+          credentials: 'same-origin' 
+        });
+        
         if (!isMounted) return;
-        if (resp.ok) {
+        
+        // Vérifier le Content-Type AVANT de parser
+        const contentType = resp.headers.get('content-type') || '';
+        
+        if (resp.ok && contentType.includes('application/json')) {
           const data = await resp.json();
           setQrConfig({ ...defaultQrConfig, ...data });
-          setIsLoading(false);
-          return;
+        } else {
+          // Pas du JSON (probablement du HTML) → fallback silencieux
+          setQrConfig(defaultQrConfig);
         }
+        
+        setIsLoading(false);
 
-        // If GET failed, try to initialize safely (creates only if missing)
-        try {
-          const initResp = await ensurePublicQrConfig();
-          if (!isMounted) return;
-          setQrConfig({ ...defaultQrConfig, ...(initResp || {}) });
-          setIsLoading(false);
-          return;
-        } catch (e) {
-          console.warn('Public QR init failed, falling back to defaults', e);
-        }
       } catch (err) {
         console.error('Failed to load QR config via public API', err);
+        if (isMounted) {
+          setQrConfig(defaultQrConfig);
+          setIsLoading(false);
+        }
       }
 
       if (isMounted) {

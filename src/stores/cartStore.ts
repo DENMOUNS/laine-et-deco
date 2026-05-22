@@ -33,13 +33,24 @@ export const useCartStore = create<CartState>((set, get) => ({
       const existingIndex = state.cart.findIndex(
         (item) => item.type === 'product' && item.product?.id === product.id
       );
+      
+      const currentQty = existingIndex >= 0 ? state.cart[existingIndex].quantity : 0;
+      const spaceLeft = Math.max(0, product.stock - currentQty);
+      
+      if (spaceLeft <= 0) {
+        sonnerToast.error(`Désolé, la limite de stock (${product.stock}) est atteinte pour ${product.name}.`);
+        return state;
+      }
+
+      const qtyToAdd = Math.min(quantity, spaceLeft);
+
       let newCart: CartItem[];
       if (existingIndex >= 0) {
         newCart = [...state.cart];
         const currentItem = newCart[existingIndex];
         newCart[existingIndex] = {
           ...currentItem,
-          quantity: currentItem.quantity + quantity,
+          quantity: currentItem.quantity + qtyToAdd,
         };
       } else {
         newCart = [
@@ -48,22 +59,32 @@ export const useCartStore = create<CartState>((set, get) => ({
             id: product.id,
             type: 'product',
             product,
-            quantity,
+            quantity: qtyToAdd,
             price: product.price,
           },
         ];
       }
       persistCart(newCart);
+      if (qtyToAdd < quantity) {
+        sonnerToast.warning(`Seulement ${qtyToAdd} exemplaire(s) de ${product.name} ajouté(s) (limite de stock).`);
+      } else {
+        sonnerToast.success(`${product.name} ajouté au panier !`);
+      }
       return { cart: newCart };
     });
-    sonnerToast.success(`${product.name} ajouté au panier !`);
   },
 
   updateCartQuantity: (id, delta) => {
     set((state) => {
       const newCart = state.cart.map((item) => {
         if (item.id === id) {
-          const newQty = Math.max(1, item.quantity + delta);
+          let newQty = Math.max(1, item.quantity + delta);
+          if (item.type === 'product' && item.product) {
+            newQty = Math.min(newQty, item.product.stock);
+            if (newQty < item.quantity + delta) {
+               sonnerToast.error(`Limite de stock atteinte pour ${item.product.name}.`);
+            }
+          }
           return { ...item, quantity: newQty };
         }
         return item;

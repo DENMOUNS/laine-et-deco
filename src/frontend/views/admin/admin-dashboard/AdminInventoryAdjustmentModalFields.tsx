@@ -49,13 +49,12 @@ export function AdminInventoryAdjustmentModalFields({ ctx }: { ctx: any }) {
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Quantité à ajouter</label>
+                  <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Quantité (utiliser le signe - pour retirer)</label>
                   <input 
                     name="quantityChange" 
                     type="number" 
-                    min="1" 
                     className="input-field" 
-                    placeholder="Ex: 50" 
+                    placeholder="Ex: 50 ou -10" 
                     required 
                   />
                 </div>

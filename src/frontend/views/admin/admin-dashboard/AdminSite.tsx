@@ -2,7 +2,6 @@ import React from 'react';
 import { CheckCircle2, RefreshCcw, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { Loader } from '../../../components/Loader';
-import { initializeSystemConfigs } from '../../../services/dashboardApi';
 import { AdminSiteBrandingSection } from './AdminSiteBrandingSection';
 import { AdminSiteHeroSection } from './AdminSiteHeroSection';
 import { AdminSiteFeaturesSection } from './AdminSiteFeaturesSection';
@@ -20,19 +19,6 @@ export function AdminSite({ ctx }: { ctx: any }) {
 
   if (activeTab !== 'site') return null;
 
-  const handleInitializeConfigs = async () => {
-    setIsSaving(true);
-    try {
-      await initializeSystemConfigs(siteConfig);
-      toast.success('Configurations initialisées depuis site_config');
-    } catch (error: any) {
-      console.error("Erreur lors de l'initialisation des configs", error);
-      toast.error(error?.message || "Erreur lors de l'initialisation");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   return (
     <div className="space-y-12">
       <div className="flex flex-col lg:flex-row justify-between gap-4 bg-card p-6 rounded-3xl border border-primary/10">
@@ -41,13 +27,6 @@ export function AdminSite({ ctx }: { ctx: any }) {
           <p className="text-sm text-primary/60">Gérez l'apparence et les fonctionnalités globales</p>
         </div>
         <div className="flex flex-wrap gap-4">
-          <button
-            onClick={handleInitializeConfigs}
-            disabled={isSaving}
-            className="flex items-center gap-2 bg-secondary text-primary px-6 py-4 rounded-2xl font-bold hover:bg-primary/10 transition-all shadow-sm disabled:opacity-60"
-          >
-            <RefreshCcw size={20} /> {isSaving ? 'Initialisation...' : 'Initialiser Configs'}
-          </button>
           <button
             onClick={saveAllSiteConfig}
             disabled={isSaving}

@@ -19,13 +19,17 @@ function getServiceAccount() {
   return serviceAccount;
 }
 
+const firebaseConfig = (config as any).default || config;
+// Prefer VITE_FIREBASE_STORAGE_BUCKET (set in env) for local/dev usage, fallback to FIREBASE_STORAGE_BUCKET or config
+const storageBucket = process.env.VITE_FIREBASE_STORAGE_BUCKET || process.env.FIREBASE_STORAGE_BUCKET || firebaseConfig.storageBucket;
+
 if (!firebaseAdmin.apps.length) {
   firebaseAdmin.initializeApp({
     credential: firebaseAdmin.credential.cert(getServiceAccount()),
+    storageBucket: storageBucket || undefined,
   });
 }
 
-const firebaseConfig = (config as any).default || config;
 const databaseId =
   process.env.FIRESTORE_DATABASE_ID ||
   firebaseConfig.firestoreDatabaseId ||

@@ -78,7 +78,7 @@ function buildSystemConfigDocs(siteConfig: any) {
     {
       collectionName: 'site_logo',
       id: 'default-logo',
-      data: { image: branding.logo || siteConfig?.hero?.backgroundImages?.[0] || '/logo.png', status: 'active', ...meta },
+      data: { image: '', lien: branding.logo || siteConfig?.hero?.backgroundImages?.[0] || '/logo.png', status: 'active', ...meta },
     },
     {
       collectionName: 'site_color',
@@ -400,101 +400,7 @@ router.post('/seed', verifyToken, resolveRole, async (_req: any, res) => {
   }
 });
 
-// Public GET endpoints (read-only, no auth required)
-router.get('/qr_config/:id', async (req: any, res) => {
-  try {
-    const snap = await db.collection('qr_config').doc(req.params.id).get();
-    if (snap.exists) {
-      return res.json({ id: snap.id, ...snap.data() });
-    }
-    return res.status(404).json({ error: 'Configuration introuvable.' });
-  } catch (e: any) {
-    console.error('QR config read failed:', e);
-    return res.status(500).json({ error: e.message || 'Erreur lecture configuration.' });
-  }
-});
-
-router.get('/invoice_config/:id', async (req: any, res) => {
-  try {
-    const snap = await db.collection('invoice_config').doc(req.params.id).get();
-    if (snap.exists) {
-      return res.json({ id: snap.id, ...snap.data() });
-    }
-    return res.status(404).json({ error: 'Configuration introuvable.' });
-  } catch (e: any) {
-    console.error('Invoice config read failed:', e);
-    return res.status(500).json({ error: e.message || 'Erreur lecture configuration.' });
-  }
-});
-
-// Protected PUT endpoints (write, staff only)
-router.get('/public/qr', async (_req, res) => {
-  try {
-    const snap = await db.collection('qr_config').doc('global').get();
-    if (snap.exists) {
-      return res.json({ id: snap.id, ...snap.data() });
-    }
-    return res.status(404).json({ error: 'Configuration introuvable.' });
-  } catch (e: any) {
-    return res.status(500).json({ error: e.message });
-  }
-});
-
-router.post('/public/qr/init', async (_req, res) => {
-  try {
-    const ref = db.collection('qr_config').doc('global');
-    const snap = await ref.get();
-    if (snap.exists) {
-      return res.json({ id: snap.id, ...snap.data() });
-    }
-    const defaults = {
-      whatsappNumber: '+237600000000',
-      whatsappMessage: 'Bonjour Laine et Déco, je souhaite passer commande.',
-      welcomeMessage: 'Bienvenue chez Laine et Déco ! Découvrez nos créations uniques.',
-    };
-    await ref.set({
-      ...defaults,
-      createdAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
-    });
-    return res.json(defaults);
-  } catch (e: any) {
-    return res.status(500).json({ error: e.message });
-  }
-});
-
-router.put('/qr_config/:id', verifyToken, resolveRole, async (req: any, res) => {
-  const role = req.user?.role ?? null;
-  const isStaff = role !== null && role !== 'customer';
-  if (!isStaff) {
-    return res.status(403).json({ error: 'Accès refusé.' });
-  }
-  try {
-    await db.collection('qr_config').doc(req.params.id).set({
-      ...req.body,
-      updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
-    }, { merge: true });
-    return res.json({ message: 'Configuration enregistrée.' });
-  } catch (e: any) {
-    return res.status(500).json({ error: e.message || 'Erreur enregistrement.' });
-  }
-});
-
-router.put('/invoice_config/:id', verifyToken, resolveRole, async (req: any, res) => {
-  const role = req.user?.role ?? null;
-  const isStaff = role !== null && role !== 'customer';
-  if (!isStaff) {
-    return res.status(403).json({ error: 'Accès refusé.' });
-  }
-  try {
-    await db.collection('invoice_config').doc(req.params.id).set({
-      ...req.body,
-      updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
-    }, { merge: true });
-    return res.json({ message: 'Configuration enregistrée.' });
-  } catch (e: any) {
-    return res.status(500).json({ error: e.message || 'Erreur enregistrement.' });
-  }
-});
+// Old routes removed - use generic /config/:collectionName/:id instead
 
 router.get('/config/:collectionName/:id', verifyToken, resolveRole, async (req: any, res) => {
   const role = req.user?.role ?? null;
@@ -508,7 +414,17 @@ router.get('/config/:collectionName/:id', verifyToken, resolveRole, async (req: 
   }
 
   try {
-    const snap = await db.collection(collectionName).doc(id).get();
+    // Try to get by document ID first
+    let snap = await db.collection(collectionName).doc(id).get();
+    
+    // If not found, try to find by field 'id' (fallback for legacy seed data)
+    if (!snap.exists) {
+      const query = await db.collection(collectionName).where('id', '==', id).limit(1).get();
+      if (!query.empty) {
+        snap = query.docs[0];
+      }
+    }
+    
     if (!snap.exists) {
       return res.status(404).json({ error: 'Configuration introuvable.' });
     }
@@ -530,37 +446,32 @@ router.put('/config/:collectionName/:id', verifyToken, resolveRole, async (req: 
   }
 
   try {
-    await db.collection(collectionName).doc(id).set({
+    // Try to find the document first (to get its actual ID)
+    let docId = id;
+    let snap = await db.collection(collectionName).doc(id).get();
+    
+    // If not found by document ID, try by field 'id'
+    if (!snap.exists) {
+      const query = await db.collection(collectionName).where('id', '==', id).limit(1).get();
+      if (!query.empty) {
+        docId = query.docs[0].id;
+        snap = query.docs[0];
+      } else {
+        return res.status(404).json({ error: 'Configuration introuvable.' });
+      }
+    }
+    
+    // Update using the actual document ID
+    await db.collection(collectionName).doc(docId).set({
       ...req.body,
       updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
     }, { merge: true });
     return res.json({ message: 'Configuration enregistrée.' });
   } catch (e: any) {
-    return res.status(500).json({ error: e.message || 'Impossible d’enregistrer la configuration.' });
+    return res.status(500).json({ error: e.message || 'Impossible d\'enregistrer la configuration.' });
   }
 });
 
-router.post('/configs/init', verifyToken, resolveRole, async (req: any, res) => {
-  const role = req.user?.role ?? null;
-
-  if (!isAdminLevel(role)) {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
-
-  try {
-    const siteConfig = req.body?.siteConfig || constants.SITE_CONFIG;
-    const docs = buildSystemConfigDocs(siteConfig);
-    const batch = db.batch();
-    docs.forEach(({ collectionName, id, data }) => {
-      batch.set(db.collection(collectionName).doc(id), data, { merge: true });
-    });
-    await batch.commit();
-    return res.json({ message: 'Configurations initialisées.', count: docs.length });
-  } catch (e: any) {
-    console.error('System config init failed:', e);
-    return res.status(500).json({ error: e.message || 'Impossible d’initialiser les configurations.' });
-  }
-});
 
 router.post('/send-push-notification', verifyToken, resolveRole, async (req: any, res) => {
   const { title, message } = req.body;
@@ -708,6 +619,260 @@ router.post('/stock/transaction', verifyToken, resolveRole, async (req: any, res
   } catch (e: any) {
     console.error('Stock transaction failed:', e);
     return res.status(400).json({ error: e.message || 'Impossible d\'effectuer la transaction' });
+  }
+});
+
+// GET config (qr_config ou invoice_config)
+router.get('/config/:type', verifyToken, resolveRole, async (req: any, res) => {
+  const { type } = req.params;
+  const allowed = ['qr_config', 'invoice_config'];
+  
+  if (!allowed.includes(type)) {
+    return res.status(400).json({ error: 'Type non autorisé' });
+  }
+
+  try {
+    // Prefer explicit 'global' doc id, then fallback to legacy 'id' field,
+    // then fallback to any document in the collection. If nothing found,
+    // return an empty object (like public endpoint) so the admin UI can
+    // render defaults instead of crashing on 404.
+    let snap: any = await db.collection(type).doc('global').get();
+
+    if (!snap.exists) {
+      const query = await db.collection(type).where('id', '==', 'global').limit(1).get();
+      if (!query.empty) snap = query.docs[0];
+    }
+
+    if (!snap.exists) {
+      const any = await db.collection(type).limit(1).get();
+      if (!any.empty) snap = any.docs[0];
+    }
+
+    if (!snap || !snap.exists) {
+      return res.json({});
+    }
+
+    return res.json({ id: snap.id, ...snap.data() });
+  } catch (e: any) {
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// PUT config
+router.put('/config/:type', verifyToken, resolveRole, async (req: any, res) => {
+  const { type } = req.params;
+  const role = req.user?.role ?? null;
+  const allowed = ['qr_config', 'invoice_config'];
+
+  if (!allowed.includes(type)) {
+    return res.status(400).json({ error: 'Type non autorisé' });
+  }
+
+  if (!isAdminLevel(role)) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  try {
+    const snapshot = await db.collection(type).limit(1).get();
+    
+    if (snapshot.empty) {
+      // Créer si inexistant
+      const ref = await db.collection(type).add({
+        ...req.body,
+        createdAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+      });
+      return res.json({ id: ref.id, message: 'Créé avec succès' });
+    }
+    
+    const docRef = snapshot.docs[0].ref;
+    await docRef.update({
+      ...req.body,
+      updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+    });
+    return res.json({ message: 'Mis à jour avec succès' });
+  } catch (e: any) {
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// Route publique — pas besoin de token
+
+router.get('/public/config/:collection/:docId', async (req, res) => {
+  const { collection, docId } = req.params;
+  const ALLOWED_PUBLIC = ['qr_config', 'invoice_config', 'site_config'];
+
+  if (!ALLOWED_PUBLIC.includes(collection)) {
+    return res.status(403).json({ error: 'Accès refusé' });
+  }
+
+  try {
+    let data: any = null;
+
+    if (docId === 'global') {
+      const snap = await db.collection(collection).limit(1).get();
+      if (!snap.empty) {
+        data = { id: snap.docs[0].id, ...snap.docs[0].data() };
+      }
+    } else {
+      const snap = await db.collection(collection).doc(docId).get();
+      if (snap.exists) {
+        data = { id: snap.id, ...snap.data() };
+      }
+    }
+
+    if (!data) {
+      // ← NE PAS retourner 404 qui ferait crasher resp.ok
+      // Retourner un objet vide avec les defaults
+      return res.json({});
+    }
+
+    return res.json(data);
+  } catch (e: any) {
+    console.error('Public config fetch error:', e);
+    return res.json({}); // ← toujours du JSON, jamais de HTML
+  }
+});
+
+router.put('/config/:collection', verifyToken, resolveRole, async (req: any, res) => {
+  const { collection } = req.params;
+  const role = req.user?.role ?? null;
+  const ALLOWED = ['qr_config', 'invoice_config'];
+
+  if (!ALLOWED.includes(collection)) {
+    return res.status(400).json({ error: 'Collection non autorisée' });
+  }
+
+  if (!isAdminLevel(role)) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  try {
+    const snap = await db.collection(collection).limit(1).get();
+
+    if (snap.empty) {
+      const ref = await db.collection(collection).add({
+        ...req.body,
+        createdAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+      });
+      return res.status(201).json({ id: ref.id });
+    }
+
+    await snap.docs[0].ref.update({
+      ...req.body,
+      updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+    });
+    return res.json({ message: 'Mis à jour' });
+  } catch (e: any) {
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /invoice/generate - Create invoice generation job (authenticated)
+router.post('/invoice/generate', verifyToken, resolveRole, async (req: any, res) => {
+  const { orderId, isDuplicata } = req.body;
+  const uid = req.user?.uid;
+  const role = req.user?.role ?? null;
+
+  if (!orderId) {
+    return res.status(400).json({ error: 'orderId requis' });
+  }
+
+  // Allow customers to generate their own invoices, and staff/admin can generate any
+  const isStaff = role && role !== 'customer';
+  let order;
+  try {
+    order = await findOrderDoc(orderId);
+  } catch (e: any) {
+    console.error('[INVOICE_JOB] Error loading order:', e);
+    return res.status(500).json({ error: e.message || 'Impossible de charger la commande' });
+  }
+  
+  if (!order || !order.exists) {
+    return res.status(404).json({ error: 'Commande introuvable' });
+  }
+
+  const orderData = order.data() as any;
+  const canGenerate = isStaff || orderData.userId === uid;
+
+  if (!canGenerate) {
+    return res.status(403).json({ error: 'Accès refusé' });
+  }
+
+  try {
+    // Create invoice job in Firestore
+    const jobId = `invoice-job-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const jobData = {
+      id: jobId,
+      orderId,
+      isDuplicata: isDuplicata || false,
+      status: 'pending', // pending | processing | completed | failed
+      createdAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+      expiresAt: firebaseAdmin.firestore.Timestamp.fromMillis(Date.now() + 60000),
+      createdBy: uid,
+      pdfUrl: null,
+      error: null,
+    };
+
+    await db.collection('invoice_job').doc(jobId).set(jobData);
+    console.log(`[INVOICE_JOB] Created job ${jobId} for order ${orderId}`);
+
+    return res.json({ jobId, status: 'pending' });
+  } catch (e: any) {
+    console.error('[INVOICE_JOB] Error creating job:', e);
+    return res.status(500).json({ error: e.message || 'Impossible de créer la tâche' });
+  }
+});
+
+// GET /invoice/job/:jobId - Poll job status (authenticated)
+router.get('/invoice/job/:jobId', verifyToken, resolveRole, async (req: any, res) => {
+  const { jobId } = req.params;
+  const uid = req.user?.uid;
+  const role = req.user?.role ?? null;
+
+  try {
+    const jobSnap = await db.collection('invoice_job').doc(jobId).get();
+    if (!jobSnap.exists) {
+      return res.status(404).json({ error: 'Job introuvable' });
+    }
+
+    const jobData = jobSnap.data() as any;
+    const isStaff = role && role !== 'customer';
+    if (!isStaff && jobData.createdBy !== uid) {
+      return res.status(403).json({ error: 'Accès refusé' });
+    }
+
+    return res.json({
+      jobId,
+      status: jobData.status,
+      pdfUrl: jobData.pdfUrl,
+      error: jobData.error,
+    });
+  } catch (e: any) {
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// PUBLIC GET endpoint - QR config for landing page (no auth required)
+router.get('/public/config/qr_config/global', async (_req, res) => {
+  try {
+    let snap = await db.collection('qr_config').doc('global').get();
+    
+    // If not found by document ID, try by field 'id' (fallback for legacy seed data)
+    if (!snap.exists) {
+      const query = await db.collection('qr_config').where('id', '==', 'global').limit(1).get();
+      if (!query.empty) {
+        snap = query.docs[0];
+      }
+    }
+    
+    if (!snap.exists) {
+      return res.status(404).json({ error: 'Configuration QR introuvable.' });
+    }
+    return res.json({ id: snap.id, ...snap.data() });
+  } catch (e: any) {
+    return res.status(500).json({ error: e.message || 'Erreur lecture configuration QR.' });
   }
 });
 

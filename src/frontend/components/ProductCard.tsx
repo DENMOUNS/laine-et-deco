@@ -124,7 +124,7 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, on
             product.stock > 0 ? 'bg-orange-100 text-orange-600' : 
             'bg-red-100 text-red-600'
           }`}>
-            {product.stock > 10 ? 'En Stock' : product.stock > 0 ? 'Stock Faible' : 'Épuisé'}
+            {product.stock > 0 ? `${product.stock} en stock` : 'Épuisé'}
           </span>
         </div>
         <h3 className="font-serif text-lg text-primary group-hover:text-accent transition-colors mb-2 cursor-pointer" onClick={() => onClick(product)}>

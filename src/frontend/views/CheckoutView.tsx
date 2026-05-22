@@ -2,9 +2,9 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { CartItem, Product, ShippingRule, City } from '../../types';
 import { Button } from '../components/ui/Button';
 import { toast } from 'sonner';
-import { MapPin, CreditCard, ShoppingBag, Truck, Package, Lock } from 'lucide-react';
+import { MapPin, CreditCard, ShoppingBag, Truck, Package, Lock, Phone, CheckCircle } from 'lucide-react';
 import { User as FirebaseUser } from 'firebase/auth';
-import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc, increment, setDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc, increment, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '../../backend/firebase';
 import { motion, AnimatePresence } from 'motion/react';
 import { useEntity } from '../hooks/useEntity';
@@ -143,6 +143,62 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
     }
   };
 
+  const buildOrderInvoiceData = async (orderBase: any) => {
+    const getConfigData = async (collectionName: string, id: string, fallbackId?: string) => {
+      try {
+        const directSnap = await getDoc(doc(db, collectionName, id));
+        if (directSnap.exists()) return directSnap.data();
+
+        const legacyQuery = query(collection(db, collectionName), where('id', '==', id));
+        const legacySnap = await getDocs(legacyQuery);
+        if (!legacySnap.empty) return legacySnap.docs[0].data();
+
+        if (fallbackId) {
+          const fallbackSnap = await getDoc(doc(db, collectionName, fallbackId));
+          if (fallbackSnap.exists()) return fallbackSnap.data();
+        }
+      } catch (error) {
+        console.warn(`Unable to copy ${collectionName}/${id} into order invoiceData:`, error);
+      }
+
+      return {};
+    };
+
+    const [invoiceConfig, colorConfig, logoConfig] = await Promise.all([
+      getConfigData('invoice_config', 'global'),
+      getConfigData('site_color', 'default-color'),
+      getConfigData('site_logo', 'default-logo'),
+    ]);
+
+    return {
+      version: 1,
+      copiedAt: new Date().toISOString(),
+      orderId: orderBase.id,
+      customerName: orderBase.customerName || orderBase.customer || 'Client',
+      address: orderBase.address || '',
+      phone: orderBase.phone || '',
+      paymentMethod: orderBase.paymentMethod || '',
+      items: orderBase.orderDetails || [],
+      subtotal,
+      shippingFee: shipping,
+      discount,
+      total: orderBase.total,
+      config: {
+        phone: invoiceConfig.phone || '',
+        email: invoiceConfig.email || '',
+        paymentPhone: invoiceConfig.paymentPhone || '',
+        paymentName: invoiceConfig.paymentName || '',
+        address: invoiceConfig.address || '',
+        message1: invoiceConfig.message1 || '',
+        message2: invoiceConfig.message2 || '',
+        footerMessage: invoiceConfig.footerMessage || '',
+        companyName: logoConfig.name || invoiceConfig.companyName || '',
+        logo: logoConfig.image || logoConfig.lien || invoiceConfig.logo || '',
+      },
+      primaryColor: colorConfig.primaryColor || '#2c3e35',
+    };
+  };
+
   const handleSubmit = async () => {
     if (!user) {
       toast.error('Veuillez vous connecter pour passer commande.');
@@ -153,7 +209,17 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
     setIsSubmitting(true);
     try {
       const orderId = `ORD-${crypto.randomUUID().split('-')[0].toUpperCase()}-${Date.now().toString().slice(-4)}`;
-      const orderData = {
+      const orderDetails = cart.map(item => ({
+        id: item.id,
+        productId: item.id,
+        type: item.type,
+        name: item.type === 'product' ? item.product?.name : item.pack?.name,
+        price: item.price,
+        quantity: item.quantity,
+        image: item.type === 'product' ? item.product?.image : 'https://picsum.photos/seed/pack/200'
+      }));
+
+      const orderData: any = {
         id: orderId,
         uuid: crypto.randomUUID(),
         userId: user.uid,
@@ -164,15 +230,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
         phone: formData.phone,
         coordinates: formData.coordinates,
         items: cart.reduce((acc, item) => acc + item.quantity, 0),
-        orderDetails: cart.map(item => ({
-          id: item.id,
-          productId: item.id,
-          type: item.type,
-          name: item.type === 'product' ? item.product?.name : item.pack?.name,
-          price: item.price,
-          quantity: item.quantity,
-          image: item.type === 'product' ? item.product?.image : 'https://picsum.photos/seed/pack/200'
-        })),
+        orderDetails,
         total: total,
         shippingFee: shipping,
         status: 'processing',
@@ -186,6 +244,8 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
           { status: 'Livrée', description: 'Colis reçu.', date: '', completed: false }
         ]
       };
+
+      orderData.invoiceData = await buildOrderInvoiceData(orderData);
 
       await addDoc(collection(db, 'order'), orderData);
       
@@ -202,7 +262,6 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
       
       // Update current user points - Using direct doc reference with UID
       try {
-        const { getDoc } = await import('firebase/firestore');
         const userDocRef = doc(db, 'user', user.uid);
         const userSnap = await getDoc(userDocRef);
         
@@ -337,7 +396,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
         </div>
         <div className="flex items-center gap-3 text-xs font-medium text-primary/70">
           <Truck size={16} />
-          Livraison suivie par Colissimo
+          Livraison effectuée par nos soins
         </div>
       </div>
     </div>
@@ -408,10 +467,10 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
                     />
                   </div>
                   <div className="md:col-span-2 space-y-2">
-                    <label className="text-[10px] font-bold tracking-widest text-primary/70 uppercase">Adresse</label>
+                    <label className="text-[10px] font-bold tracking-widest text-primary/70 uppercase">Nom du quartier</label>
                     <input 
                       type="text" 
-                      placeholder="123 Rue de la Laine" 
+                      placeholder="Ex: Deido, Bonamoussadi" 
                       value={formData.address} 
                       onChange={(e) => setFormData({...formData, address: e.target.value})} 
                       className="w-full px-6 py-4 rounded-2xl bg-white border border-primary/10 focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all font-medium" 
@@ -610,29 +669,66 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
                     </Button>
                   </div>
                 ) : (
-                  <div className="bg-white p-10 rounded-[3rem] border border-primary/5 shadow-sm space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                      <div>
-                        <h4 className="text-[10px] font-bold tracking-widest text-primary/70 uppercase mb-4">Livraison</h4>
-                        <p className="font-serif text-lg text-primary">{formData.firstName} {formData.lastName}</p>
-                        <p className="text-primary/70">{formData.address}</p>
-                        <p className="text-primary/70">{formData.city}</p>
-                        {formData.coordinates && (
-                          <p className="text-xs text-accent font-mono mt-2 bg-accent/5 p-2 rounded-lg inline-block">
-                            GPS: {formData.coordinates}
-                          </p>
-                        )}
+                  <div className="bg-white rounded-[3rem] border border-primary/5 shadow-xl overflow-hidden relative">
+                    <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-accent to-[#5c5e46]" />
+                    <div className="p-10 space-y-8">
+                      <div className="flex items-center gap-4 border-b border-primary/5 pb-8">
+                        <div className="w-12 h-12 bg-primary/5 rounded-full flex items-center justify-center text-primary">
+                          <Package size={24} />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-serif font-bold text-primary">Prêt à valider ?</h3>
+                          <p className="text-sm text-primary/70">Vérifiez vos informations avant de confirmer.</p>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="text-[10px] font-bold tracking-widest text-primary/70 uppercase mb-4">Contact</h4>
-                        <p className="text-primary/70">{formData.phone}</p>
-                        <p className="text-primary/70">{user?.email}</p>
-                      </div>
-                      <div>
-                        <h4 className="text-[10px] font-bold tracking-widest text-primary/70 uppercase mb-4">Paiement</h4>
-                        <p className="text-primary/70">{formData.paymentMethod === 'delivery' ? 'Paiement à la livraison' : formData.paymentMethod}</p>
-                      </div>
-                    </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+                        <div className="space-y-4 bg-secondary/30 p-6 rounded-3xl">
+                          <h4 className="flex items-center gap-2 text-[10px] font-bold tracking-widest text-primary/70 uppercase">
+                            <MapPin size={14} /> Adresse de livraison
+                          </h4>
+                          <div>
+                            <p className="font-serif text-lg font-bold text-primary">{formData.firstName} {formData.lastName}</p>
+                            <p className="text-primary/80 mt-1">{formData.address}</p>
+                            <p className="text-primary/80">{formData.city}</p>
+                            {formData.coordinates && (
+                              <p className="text-[10px] text-accent font-mono mt-3 bg-accent/10 px-3 py-1.5 rounded-lg inline-block border border-accent/20">
+                                📍 GPS: {formData.coordinates}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="space-y-4 bg-secondary/30 p-6 rounded-3xl">
+                          <h4 className="flex items-center gap-2 text-[10px] font-bold tracking-widest text-primary/70 uppercase">
+                            <Phone size={14} /> Contact
+                          </h4>
+                          <div>
+                            <p className="text-primary/80 font-medium">{formData.phone}</p>
+                            <p className="text-primary/80 mt-1">{user?.email}</p>
+                          </div>
+                        </div>
+
+                        <div className="md:col-span-2 space-y-4 bg-accent/5 p-6 rounded-3xl border border-accent/10">
+                          <h4 className="flex items-center gap-2 text-[10px] font-bold tracking-widest text-accent uppercase">
+                            <CreditCard size={14} /> Mode de paiement
+                          </h4>
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-accent">
+                              {formData.paymentMethod === 'delivery' ? <Truck size={24} /> : <CreditCard size={24} />}
+                            </div>
+                            <div>
+                              <p className="font-serif text-lg font-bold text-primary">
+                                {formData.paymentMethod === 'delivery' ? 'Paiement à la livraison' : 
+                                 formData.paymentMethod === 'mobile' ? 'Mobile Money' : 'Carte Bancaire'}
+                              </p>
+                              <p className="text-xs text-primary/70 mt-1">
+                                {formData.paymentMethod === 'delivery' ? 'Vous paierez en espèces lors de la réception.' : 'Paiement en ligne sécurisé.'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div></div>
                   </div>
                 )}
 

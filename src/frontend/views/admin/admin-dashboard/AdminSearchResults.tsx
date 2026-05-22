@@ -54,7 +54,10 @@ export function AdminSearchResults({ ctx }: { ctx: any }) {
                     return (
                       <div 
                         key={item.id} 
-                        onClick={() => onNavigate('admin-product-detail', item.id)}
+                        onClick={() => {
+                          setEditingItem(item);
+                          setActiveTab('product-edit');
+                        }}
                         className="bg-card p-4 rounded-[2rem] border border-primary/10 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer group"
                       >
                         <div className="aspect-square rounded-2xl overflow-hidden mb-4 bg-secondary/50 relative border border-primary/5">

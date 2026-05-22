@@ -9,16 +9,36 @@ import { z } from "zod";
 import DOMPurify from "isomorphic-dompurify";
 import entityRoutes from './server/routes/entityRoutes';
 import dashboardRoutes from './server/routes/dashboardRoutes';
+import storageRoutes from './server/routes/storageRoutes';
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
+   // --- Security: Rate Limiting (DDoS & Brute Force protection) ---
+  const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per window
+    message: { error: "Trop de requêtes, veuillez réessayer plus tard." },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+
   /** Vite middleware (dev) sauf si NODE_ENV=production (npm run start après build). */
   const useViteDevServer =
     process.env.SERVE_WITH_VITE === 'true' || process.env.NODE_ENV !== 'production';
 
-  app.use(express.json());
+  app.use(express.json({ limit: '10mb' }));
+  app.use("/api/", apiLimiter);
+  const invoiceDir = path.join(process.cwd(), 'public', 'invoices');
+  if (!fs.existsSync(invoiceDir)) {
+    fs.mkdirSync(invoiceDir, { recursive: true });
+  }
+  app.use('/invoices', express.static(invoiceDir, { maxAge: '1h' }));
+  app.use('/api/entity', entityRoutes);
+  app.use('/api/dashboard', dashboardRoutes);
+  app.use('/api/storage', storageRoutes);
 
   // Simple request logger to aid debugging (dev only)
   app.use((req, _res, next) => {
@@ -30,85 +50,13 @@ async function startServer() {
     next();
   });
 
-  // --- Security: Rate Limiting (DDoS & Brute Force protection) ---
-  const apiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per window
-    message: { error: "Trop de requêtes, veuillez réessayer plus tard." },
-    standardHeaders: true,
-    legacyHeaders: false,
-  });
-
-  app.use("/api/", apiLimiter);
+ 
 
   // Test route to verify API routing works
   app.get('/api/test', (_req, res) => {
     console.log('[TEST] /api/test called');
     return res.json({ ok: true, message: 'API routing works' });
   });
-
-  // --- QR Config: Public read, Staff write ---
-  app.get('/api/dashboard/qr_config/:id', async (req, res) => {
-    try {
-      const { db } = await import("./server/firebaseAdmin");
-      const snap = await db.collection('qr_config').doc(req.params.id).get();
-      if (snap.exists) {
-        return res.json({ id: snap.id, ...snap.data() });
-      }
-      return res.status(404).json({ error: 'Configuration introuvable.' });
-    } catch (e: any) {
-      console.error('QR config read failed:', e);
-      return res.status(500).json({ error: e.message });
-    }
-  });
-
-  app.put('/api/dashboard/qr_config/:id', async (req, res) => {
-    try {
-      const { db, firebaseAdmin, auth } = await import("./server/firebaseAdmin");
-      const bearer = req.headers.authorization;
-      if (!bearer?.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'Unauthorized' });
-      }
-      const token = bearer.replace('Bearer ', '');
-      const decoded = await auth.verifyIdToken(token);
-      const uid = decoded.uid;
-      
-      // Check if user is staff
-      const userSnap = await db.collection('user').doc(uid).get();
-      const role = userSnap.data()?.role;
-      const isStaff = role && role !== 'customer';
-      if (!isStaff) {
-        return res.status(403).json({ error: 'Accès refusé.' });
-      }
-
-      await db.collection('qr_config').doc(req.params.id).set({
-        ...req.body,
-        updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
-      }, { merge: true });
-      return res.json({ message: 'Configuration enregistrée.' });
-    } catch (e: any) {
-      console.error('QR config write failed:', e);
-      return res.status(400).json({ error: e.message });
-    }
-  });
-
-  // // --- Invoice Config: Public read, Staff write ---
-  app.get('/api/dashboard/invoice_config/:id', async (req, res) => {
-    try {
-      const { db } = await import("./server/firebaseAdmin");
-      const snap = await db.collection('invoice_config').doc(req.params.id).get();
-      if (snap.exists) {
-        return res.json({ id: snap.id, ...snap.data() });
-      }
-      return res.status(404).json({ error: 'Configuration introuvable.' });
-    } catch (e: any) {
-      console.error('Invoice config read failed:', e);
-      return res.status(500).json({ error: e.message });
-    }
-  });
-
-
-
 
   // --- API Routes ---
   app.use('/api/entity', entityRoutes);
@@ -233,15 +181,34 @@ async function startServer() {
         },
       })
     );
-    app.get('*', (_req, res) => {
+    app.get(/(.*)/, (_req, res) => {
       res.setHeader('Cache-Control', 'no-cache');
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
+  app.listen(PORT, "0.0.0.0", async () => {
     const mode = useViteDevServer ? "développement (Vite)" : "production (fichiers dist/)";
     console.log(`Server running on http://localhost:${PORT} — mode ${mode}`);
+    try {
+      const admin = (await import('./server/firebaseAdmin.js')).firebaseAdmin;
+      const db = (await import('./server/firebaseAdmin.js')).db;
+      console.log(`[DEBUG] Firebase connected to Project: ${admin.app().options.projectId}`);
+      const snap = await db.collection('qr_config').doc('global').get();
+      console.log(`[DEBUG] qr_config/global exists on startup? ${snap.exists}`);
+      if (snap.exists) {
+        console.log(`[DEBUG] qr_config/global data:`, snap.data());
+        const docs = await db.collection('qr_config').limit(5).get();
+        console.log(`[DEBUG] Collection qr_config has ${docs.size} docs. IDs:`, docs.docs.map(d => d.id));
+        const invDocs = await db.collection('invoice_config').limit(5).get();
+        console.log(`[DEBUG] Collection invoice_config has ${invDocs.size} docs. IDs:`, invDocs.docs.map(d => d.id));
+      }
+    } catch (e) {
+      console.error('[DEBUG] Failed to check qr_config/global', e);
+    }
+    
+    // Invoice worker removed: PDF generation will be handled synchronously
+    
     if (useViteDevServer) {
       console.log(
         "Astuce Lighthouse : exécutez « npm run build » puis « npm run start » pour mesurer la perf réelle."

@@ -339,6 +339,7 @@ export interface Order {
   coordinates?: { lat: number; lng: number } | [number, number] | string;
   trackingSteps?: { status: string; description: string; date: string; completed: boolean }[];
   invoiceUrl?: string;
+  invoiceData?: any;
   createdAt?: any;
   updatedAt?: any;
   description?: string;
@@ -750,3 +751,104 @@ export interface MemberPortfolio {
   updatedAt?: any;
 }
 
+
+export interface SiteLogo extends BaseEntity {
+  id?: string;
+  image?: string;
+  lien?: string;
+  status: 'active' | 'inactive';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface SiteColor extends BaseEntity {
+  id?: string;
+  primaryColor: string;
+  secondaryColor: string;
+  accentColor: string;
+  backgroundColor?: string;
+  status: 'active' | 'inactive';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface HeroBannerConfig extends BaseEntity {
+  id?: string;
+  image: string;
+  title: string;
+  subtitle: string;
+  ctaText: string;
+  status: 'active' | 'inactive';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface AnnouncementBannerConfig extends BaseEntity {
+  id?: string;
+  message: string;
+  status: 'active' | 'inactive';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ScrollingBannerConfig extends BaseEntity {
+  id?: string;
+  text: string;
+  iconName: string;
+  status: 'active' | 'inactive';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface SeoPageConfig extends BaseEntity {
+  id?: string;
+  page: string;
+  metaTitle: string;
+  metaDescription: string;
+  ogImage?: string;
+  status: 'active' | 'inactive';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface LoyaltyProgramConfig extends BaseEntity {
+  id?: string;
+  config: LoyaltyConfig;
+  status: 'active' | 'inactive';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MaintenanceModeConfig extends BaseEntity {
+  id?: string;
+  isActive: boolean;
+  message: string;
+  endDate?: string;
+  status: 'active' | 'inactive';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface NewsletterPopupConfig extends BaseEntity {
+  id?: string;
+  isActive: boolean;
+  title: string;
+  message: string;
+  delay: number;
+  image: string;
+  button1Text: string;
+  button2Text: string;
+  status: 'active' | 'inactive';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CustomSectionConfig extends BaseEntity {
+  id?: string;
+  title: string;
+  type: 'products' | 'categories' | 'banner';
+  itemIds: string[];
+  status: 'active' | 'inactive';
+  createdAt?: string;
+  updatedAt?: string;
+}

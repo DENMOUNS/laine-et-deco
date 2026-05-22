@@ -34,7 +34,7 @@ export function AdminProductForm({ ctx }: { ctx: any }) {
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-4">
                 <button 
-                  onClick={() => setActiveTab('products')}
+                  onClick={() => { setActiveTab('products'); setEditingItem(null); }}
                   className="p-2 bg-card rounded-xl shadow-sm border border-primary/10 text-primary/60 hover:text-primary transition-colors"
                 >
                   <ChevronLeft size={20} />
@@ -48,7 +48,7 @@ export function AdminProductForm({ ctx }: { ctx: any }) {
               </div>
               <div className="flex items-center gap-3">
                 <button 
-                  onClick={() => setActiveTab('products')}
+                  onClick={() => { setActiveTab('products'); setEditingItem(null); }}
                   className="px-6 py-2.5 text-primary/60 font-bold hover:text-primary transition-colors"
                 >
                   Annuler
@@ -72,7 +72,7 @@ export function AdminProductForm({ ctx }: { ctx: any }) {
               const finalSlug = slugValue || (nameValue ? nameValue.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') : '');
               
               const newProduct: any = {
-                id: editingItem ? editingItem.id : `prod-${Date.now()}`,
+                id: (activeTab === 'product-edit' && editingItem?.id) ? editingItem.id : `prod-${Date.now()}`,
                 name: nameValue,
                 slug: finalSlug,
                 price: Number(formData.get('price')),
@@ -80,6 +80,7 @@ export function AdminProductForm({ ctx }: { ctx: any }) {
                 promoPrice: formData.get('promoPrice') ? Number(formData.get('promoPrice')) : undefined,
                 stock: editingItem?.stock || 0,
                 category: formData.get('category') as string,
+                condition: formData.get('condition') as string || 'new',
                 image: editingItem?.image || 'https://picsum.photos/seed/wool/300/300',
                 description: formData.get('description') as string,
                 colors: editingItem?.colors || ['#FFFFFF'],
@@ -87,16 +88,16 @@ export function AdminProductForm({ ctx }: { ctx: any }) {
                     title: formData.get('seoTitle') as string,
                     description: formData.get('seoDescription') as string
                 },
-                isAvailable: editingItem?.isAvailable ?? true,
+                isAvailable: editingItem?.isAvailable ?? false,
                 rating: editingItem?.rating || 5,
-                specs: editingItem?.specs || {}
+                specs: editingItem?.specs || {},
+                in_stock: (editingItem?.stock || 0) > 0
               };
               const now = new Date().toISOString();
-              if (editingItem) {
+              if (activeTab === 'product-edit') {
                   newProduct.updatedAt = now;
-                  newProduct.createdAt = editingItem.createdAt || now;
-                  updateProduct(editingItem.id, newProduct);
-                  setLocalProducts(prev => prev.map(p => p.id === editingItem.id ? { ...p, ...newProduct } : p));
+                  updateProduct(newProduct.id, newProduct);
+                  setLocalProducts(prev => prev.map(p => p.id === newProduct.id ? { ...p, ...newProduct } : p));
                   toast.success('Produit mis à jour avec succès');
               } else {
                   newProduct.createdAt = now;
@@ -106,6 +107,7 @@ export function AdminProductForm({ ctx }: { ctx: any }) {
                   toast.success('Produit créé avec succès');
               }
               setActiveTab('products');
+              setEditingItem(null);
             }} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <AdminProductFormMainFields ctx={ctx} />
               <AdminProductFormSidebarFields ctx={ctx} />

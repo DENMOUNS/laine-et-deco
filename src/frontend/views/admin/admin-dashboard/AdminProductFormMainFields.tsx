@@ -131,6 +131,18 @@ export function AdminProductFormMainFields({ ctx }: { ctx: any }) {
                         {CATEGORIES.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                       </select>
                     </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-widest text-primary/60">État du produit</label>
+                      <select 
+                        name="condition"
+                        required
+                        className="w-full px-6 py-4 bg-secondary/50 border border-primary/10 rounded-2xl focus:outline-none focus:border-primary focus:bg-card text-primary transition-all appearance-none"
+                        defaultValue={editingItem?.condition || 'new'}
+                      >
+                        <option value="new">Neuf</option>
+                        <option value="second-hand">Deuxième Main</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
@@ -142,7 +154,7 @@ export function AdminProductFormMainFields({ ctx }: { ctx: any }) {
                       onClick={() => {
                         const newSpecs = { ...(editingItem?.specs || {}) };
                         newSpecs['Nouvelle_caracteristique_' + Date.now()] = '';
-                        setEditingItem(prev => ({ ...prev, specs: newSpecs }));
+                        setEditingItem(prev => ({ ...(prev || {}), specs: newSpecs }));
                       }}
                       className="text-xs font-bold uppercase tracking-widest text-primary/60 hover:text-primary transition-colors flex items-center gap-1"
                     >

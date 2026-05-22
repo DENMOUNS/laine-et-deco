@@ -4,6 +4,7 @@ import { Plus, Edit, Trash2, ExternalLink, SwitchCamera } from 'lucide-react';
 import { useEntity } from '../../hooks/useEntity';
 import { MemberPortfolio } from '../../../types';
 import { toast } from 'sonner';
+import { ImageUpload } from '../../components/ui/ImageUpload';
 
 export const AdminPortfolios: React.FC = () => {
   const { data: portfolios, addEntity, updateEntity, deleteEntity } = useEntity<MemberPortfolio>('member_portfolio', []);
@@ -184,13 +185,11 @@ export const AdminPortfolios: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold uppercase tracking-widest text-primary/50 block mb-2">URL Image/Avatar</label>
-                  <input 
-                    type="url" 
-                    value={formData.avatar || ''} 
-                    onChange={e => setFormData({...formData, avatar: e.target.value})}
-                    className="input-field" 
-                    placeholder="https://"
+                  <label className="text-xs font-bold uppercase tracking-widest text-primary/50 block mb-2">Image/Avatar</label>
+                  <ImageUpload
+                    name="avatar"
+                    defaultValue={formData.avatar || ''}
+                    onChange={(dataUrl) => setFormData({ ...formData, avatar: dataUrl })}
                   />
                 </div>
                 <div>

@@ -235,7 +235,7 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
     return ORDERS;
   }, [ORDERS]);
 
-  const { products: fetchedProducts } = useProducts();
+  const { products: fetchedProducts } = useProducts({ isAdmin: true });
   const PRODUCTS = fetchedProducts.length > 0 ? fetchedProducts : INITIAL_PRODUCTS;
   const { data: USERS, deleteEntity: deleteUser } = useEntity<UserType>('user', INITIAL_USERS);
   const { data: CATEGORIES, updateEntity: updateCategory, addEntity: addCategory, deleteEntity: deleteCategory, setData: setLocalCategories, isLoading: isLoadingCategories } = useEntity<Category>('category', INITIAL_CATEGORIES);
@@ -431,7 +431,13 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
   const isAddModalOpen = useAdminStore((s) => s.isAddModalOpen);
   const setIsAddModalOpen = useAdminStore((s) => s.setIsAddModalOpen);
   const editingItem = useAdminStore((s) => s.editingItem);
-  const setEditingItem = (item: any) => useAdminStore.setState({ editingItem: item });
+  const setEditingItem = (itemOrFn: any) => {
+    if (typeof itemOrFn === 'function') {
+      useAdminStore.setState((state) => ({ editingItem: itemOrFn(state.editingItem) }));
+    } else {
+      useAdminStore.setState({ editingItem: itemOrFn });
+    }
+  };
   const modalType = useAdminStore((s) => s.modalType);
   const setModalType = (type: string) => useAdminStore.setState({ modalType: type });
   const isSaving = useAdminStore((s) => s.isSaving);

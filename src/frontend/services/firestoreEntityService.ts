@@ -28,12 +28,24 @@ const PUBLIC_COLLECTIONS = [
   'currency',
   'badge',
   'city',
+  'qr_config ',
+  'invoice_config',
   'community_post',
   'member_portfolio',
   'coupon',
   'nav_item',
   'faq',
-  'analytics'
+  'analytics',
+  'site_logo',
+  'site_color',
+  'hero_banner',
+  'announcement_banner',
+  'scrolling_banner',
+  'seo_page',
+  'loyalty_config_history',
+  'maintenance_config_history',
+  'newsletter_config_history',
+  'custom_section_config'
 ];
 
 const CACHEABLE_COLLECTIONS = new Set(['product', 'promo_event']);
@@ -108,10 +120,30 @@ export const subscribeToEntityCollection = <T extends BaseEntity>(
 
         if (cachedData) {
           onData(cachedData);
+          return;
         }
 
-        onError(err instanceof Error ? err : new Error(String(err)));
-        handleFirestoreError(err, OperationType.LIST, entityType);
+        // Try fallback: request via server API using idToken (server uses admin SDK)
+        (async () => {
+          try {
+            const token = await getAuthToken();
+            const resp = await fetch(`/api/entity/${encodeURIComponent(entityType)}`, {
+              method: 'GET',
+              headers: { Authorization: `Bearer ${token}` },
+              credentials: 'same-origin',
+            });
+            const body = await resp.json().catch(() => null);
+            if (resp.ok && Array.isArray(body)) {
+              onData(body as T[]);
+              return;
+            }
+          } catch (e) {
+            // ignore and fall through to original error handling
+          }
+
+          onError(err instanceof Error ? err : new Error(String(err)));
+          handleFirestoreError(err, OperationType.LIST, entityType);
+        })();
       }
     );
   };

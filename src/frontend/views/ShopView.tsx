@@ -5,7 +5,7 @@ import { toast as sonnerToast } from 'sonner';
 
 import { useEntity } from '../hooks/useEntity';
 import { ProductCard } from '../components/ProductCard';
-import { Product, PromoEvent } from '../../types';
+import { FlashSale, Product, PromoEvent } from '../../types';
 import { analyzeProductImage } from '../utils/aiUtils';
 import { useProducts } from '../hooks/useProducts';
 import { productSearch } from '../utils/searchUtils';
@@ -19,6 +19,7 @@ interface ShopViewProps {
   onProductClick: (p: Product) => void;
   events?: PromoEvent[];
   initialSearchQuery?: string;
+  flashSaleId?: string | null;
 }
 
 interface FilterContentProps {
@@ -217,9 +218,22 @@ const FilterContent: React.FC<FilterContentProps> = ({
   </div>
 );
 
-export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist, onQuickView, onAddToComparison, onProductClick, events = [], initialSearchQuery = '' }) => {
+export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist, onQuickView, onAddToComparison, onProductClick, events = [], initialSearchQuery = '', flashSaleId }) => {
   const { products: fetchedProducts, isLoading: isInitialLoading } = useProducts();
-  const PRODUCTS = fetchedProducts;
+  let PRODUCTS = fetchedProducts;
+  
+  const { data: FLASH_SALES } = useEntity<FlashSale>('flash_sale');
+  const activeFlashSales = (FLASH_SALES || []).filter(fs => fs.status === 'active' && new Date(fs.endDate) > new Date());
+  const targetFlashSale = flashSaleId ? activeFlashSales.find(fs => fs.id === flashSaleId) : null;
+  
+  if (targetFlashSale) {
+    const flashProductIds = targetFlashSale.items.map(item => item.productId);
+    PRODUCTS = PRODUCTS.filter(p => flashProductIds.includes(p.id)).map(p => {
+      const flashItem = targetFlashSale.items.find(item => item.productId === p.id);
+      return flashItem ? { ...p, price: flashItem.flashPrice, oldPrice: p.price } : p;
+    });
+  }
+
   const { data: CATEGORIES } = useEntity<any>('category');
   const [selectedCategory, setSelectedCategory] = useState('Tous');
   const [selectedMaterial, setSelectedMaterial] = useState('Tous');
@@ -352,7 +366,7 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
                            CATEGORIES.find(c => c.name === p.category)?.slug === selectedCategory;
     const matchesMaterial = selectedMaterial === 'Tous' || p.material === selectedMaterial;
     const matchesBrand = selectedBrand === 'Tous' || p.brand === selectedBrand;
-    const matchesCondition = selectedCondition === 'Tous' || p.condition === selectedCondition;
+    const matchesCondition = selectedCondition === 'Tous' || (p.condition || 'new') === selectedCondition;
     const matchesNew = !onlyNewArrivals || p.isNew;
     const matchesPrice = p.price <= priceRange;
     
@@ -416,7 +430,7 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
         <div>
-          <h1 className="text-4xl font-serif mb-2">Boutique</h1>
+          <h1 className="text-4xl font-serif mb-2">{targetFlashSale ? targetFlashSale.name : 'Boutique'}</h1>
           <p className="text-primary/70">{filteredProducts.length} produits trouvés</p>
         </div>
         

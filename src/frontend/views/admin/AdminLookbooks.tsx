@@ -3,6 +3,7 @@ import { Plus, Edit, Trash2, ChevronLeft, Camera } from 'lucide-react';
 import { Lookbook, Product } from '../../../types';
 import { DataTable } from '../../components/DataTable';
 import { useEntity } from '../../hooks/useEntity';
+import { ImageUpload } from '../../components/ui/ImageUpload';
 
 interface AdminLookbooksProps {
   products: Product[];
@@ -71,13 +72,11 @@ export const AdminLookbooks: React.FC<AdminLookbooksProps> = ({ products }) => {
                 />
               </div>
               <div>
-                <label className="text-xs font-bold uppercase tracking-widest text-primary/70 mb-2 block">URL de l'image (Ex: https://images.unsplash.com/...)</label>
-                <input 
-                  type="url" 
-                  className="input-field"
-                  value={editingItem?.image || ''}
-                  onChange={e => setEditingItem(prev => ({ ...prev, image: e.target.value }))}
-                  required
+                <label className="text-xs font-bold uppercase tracking-widest text-primary/70 mb-2 block">Image</label>
+                <ImageUpload
+                  name="image"
+                  defaultValue={editingItem?.image || ''}
+                  onChange={(dataUrl) => setEditingItem(prev => ({ ...prev, image: dataUrl }))}
                 />
               </div>
               <div className="md:col-span-2">
@@ -100,13 +99,6 @@ export const AdminLookbooks: React.FC<AdminLookbooksProps> = ({ products }) => {
                 </select>
               </div>
             </div>
-
-            {/* Image Preview */}
-            {editingItem?.image && (
-              <div className="rounded-xl overflow-hidden h-64 border border-primary/10 relative">
-                 <img src={editingItem.image} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-              </div>
-            )}
 
             <div className="border-t border-primary/10 pt-8 mt-8">
               <h3 className="text-lg font-serif font-bold mb-4">Produits associés (Shop the look)</h3>

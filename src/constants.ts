@@ -1,4 +1,4 @@
-import { Product, Category, Order, User, Review, BlogPost, LoginLog, RequestLog, Notification, SalesStat, SiteConfig, ChatMessage, Conversation, Coupon, AdminRole, PromoEvent, Pack, PushNotification, Email, Expense, RMA, AbandonedCart, CustomerGroup, TaxRule, ShippingRule, CatalogPriceRule, NewsletterSubscriber, CommunityPost, Badge, UserProfile, City, NavItem, FAQ, Currency } from './types';
+import { Product, Category, Order, User, Review, BlogPost, LoginLog, RequestLog, Notification, SalesStat, SiteConfig, ChatMessage, Conversation, Coupon, AdminRole, PromoEvent, Pack, PushNotification, Email, Expense, RMA, AbandonedCart, CustomerGroup, TaxRule, ShippingRule, CatalogPriceRule, NewsletterSubscriber, CommunityPost, Badge, UserProfile, City, NavItem, FAQ, Currency, FlashSale } from './types';
 
 export const CATEGORIES: Category[] = [
   { id: '1', name: 'Laine', slug: 'laine', image: 'https://images.unsplash.com/photo-1584992236310-6edddc08acff?auto=format&fit=crop&q=80&w=600', count: 45, status: 'active' },
@@ -682,6 +682,21 @@ export const PROMO_EVENTS: PromoEvent[] = [
     productIds: ['p1', 'p2'],
     status: 'scheduled'
   }
+];
+
+export const DEFAULT_FLASH_SALES: FlashSale[] = [
+  {
+    id: 'flash-default',
+    name: 'Vente Flash Laine et Déco',
+    endDate: '2099-12-31T23:59:59',
+    status: 'active',
+    items: [
+      { productId: 'p1', flashPrice: 6800, totalQuantity: 24, soldQuantity: 4 },
+      { productId: 'p-tech1', flashPrice: 75000, totalQuantity: 10, soldQuantity: 2 },
+      { productId: 'p12', flashPrice: 12000, totalQuantity: 18, soldQuantity: 5 },
+      { productId: 'p-tech2', flashPrice: 42000, totalQuantity: 12, soldQuantity: 3 },
+    ],
+  },
 ];
 
 export const SITE_CONFIG: SiteConfig = {

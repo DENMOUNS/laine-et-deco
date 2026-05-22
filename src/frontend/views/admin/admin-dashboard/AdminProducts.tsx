@@ -18,6 +18,7 @@ import { FAQEditor } from '../../../components/dashboard/FAQEditor';
 import { PromoEventEditor } from '../../../components/dashboard/PromoEventEditor';
 import { CatalogPriceRuleEditor } from '../../../components/dashboard/CatalogPriceRuleEditor';
 import { cn } from '../../../utils/utils';
+import { StockBar } from '../../../components/ui/StockBar';
 
 import { AdminFlashSales } from '../AdminFlashSales';
 import { AdminLookbooks } from '../AdminLookbooks';
@@ -99,35 +100,54 @@ export function AdminProducts({ ctx }: { ctx: any }) {
                 },
                 {
                   header: 'Stock',
-                  accessor: (product: Product) => {
-                    const currentStock = product.stock || 0;
-                    const lastRestock = product.lastRestock || currentStock || 1;
-                    const percentRemaining = (currentStock / lastRestock) * 100;
-                    const isLow = percentRemaining < 20;
-                    const isCritical = percentRemaining < 10;
-                    
-                    let barColor = 'bg-green-500';
-                    if (isCritical) barColor = 'bg-red-600';
-                    else if (isLow) barColor = 'bg-orange-500';
-                    
-                    return (
-                      <div className="flex items-center gap-2 w-32">
-                        <div className="flex-grow bg-gray-200 h-2 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full rounded-full ${barColor} transition-all`}
-                            style={{ width: `${Math.max(percentRemaining, 0)}%` }}
-                          />
-                        </div>
-                        <span className="text-xs font-semibold text-gray-600 w-8 text-right">{currentStock}</span>
-                      </div>
-                    );
-                  },
+                  accessor: (product: Product) => (
+                    <div className="flex flex-col gap-1" onClick={e => e.stopPropagation()}>
+                      <span className="font-bold text-primary text-sm">{product.stock || 0} p.</span>
+                      <select 
+                        value={product.in_stock ? 'in' : 'out'} 
+                        onChange={(e) => {
+                          const in_stock = e.target.value === 'in';
+                          updateProduct(product.id, { in_stock });
+                          setLocalProducts(prev => prev.map(p => p.id === product.id ? { ...p, in_stock } : p));
+                          toast.success(`Statut stock mis à jour: ${in_stock ? 'En stock' : 'En rupture'}`);
+                        }}
+                        className={cn(
+                          "text-[10px] font-bold px-2 py-1 rounded-full outline-none cursor-pointer w-24 text-center",
+                          product.in_stock ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"
+                        )}
+                      >
+                        <option value="in">En stock</option>
+                        <option value="out">En rupture</option>
+                      </select>
+                    </div>
+                  ),
                   exportValue: (product: Product) => String(product.stock),
                   sortable: true,
                   sortKey: 'stock'
                 },
-                { header: 'Statut', accessor: (p: Product) => <StatusBadge status={p.stock > 0 ? 'active' : 'inactive'} /> },
                 { header: 'Créé le', accessor: (p: Product) => formatDate(p.createdAt), className: 'text-primary/60 text-sm', sortable: true },
+                {
+                  header: 'Statut',
+                  accessor: (product: Product) => (
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const newAvailable = !product.isAvailable;
+                        updateProduct(product.id, { isAvailable: newAvailable });
+                        setLocalProducts(prev => prev.map(p => p.id === product.id ? { ...p, isAvailable: newAvailable } : p));
+                        toast.success(newAvailable ? 'Produit activé' : 'Produit désactivé');
+                      }}
+                      className={cn(
+                        "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest transition-colors border",
+                        getStatusStyles(product.isAvailable ? 'active' : 'inactive')
+                      )}
+                    >
+                      {product.isAvailable ? 'Actif' : 'Inactif'}
+                    </button>
+                  ),
+                  sortable: true,
+                  sortKey: 'isAvailable'
+                },
                 {
                   header: 'Actions',
                   accessor: (product: Product) => (
@@ -137,16 +157,6 @@ export function AdminProducts({ ctx }: { ctx: any }) {
                         className="p-2 text-primary/60 hover:text-primary transition-colors"
                       >
                         <Settings size={16} />
-                      </button>
-                      <button 
-                        onClick={(e) => { 
-                          e.stopPropagation(); 
-                          setLocalProducts(prev => prev.map(p => p.id === product.id ? { ...p, isAvailable: !p.isAvailable } : p));
-                          toast.success(product.isAvailable ? 'Produit désactivé' : 'Produit activé');
-                        }}
-                        className={`p-2 transition-colors ${product.isAvailable ? 'text-primary/40 hover:text-primary' : 'text-primary hover:text-primary/80'}`}
-                      >
-                        {product.isAvailable ? <X size={16} /> : <CheckCircle2 size={16} />}
                       </button>
                     </div>
                   )

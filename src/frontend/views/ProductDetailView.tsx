@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
+import { motion } from 'motion/react';
 import { Product, PromoEvent } from '../../types';
 import { Button } from '../components/ui/Button';
 import { Minus, Plus, ShoppingBag } from 'lucide-react';
+
+interface FlyingDot {
+  id: number;
+  x: number;
+  y: number;
+}
 
 interface ProductDetailViewProps {
   product: Product;
@@ -23,6 +30,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
   events
 }) => {
   const [quantity, setQuantity] = useState(1);
+  const [flyingDots, setFlyingDots] = useState<FlyingDot[]>([]);
 
   // Filter for similar products: same category, not the current product
   const recommendedProducts = allProducts
@@ -49,6 +57,13 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                 <p className="text-xl text-primary/70 line-through">{product.oldPrice.toLocaleString()} FCFA</p>
               )}
             </div>
+            
+            <div className="inline-block px-3 py-1 bg-secondary/30 rounded-full">
+              <p className={`text-sm font-bold ${product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {product.stock > 0 ? `${product.stock} disponible(s) en stock` : 'Rupture de stock'}
+              </p>
+            </div>
+            
             <p className="text-primary/70 leading-relaxed">{product.description}</p>
             
             {product.specs && Object.keys(product.specs).length > 0 && (
@@ -72,21 +87,45 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                   size="icon"
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
                   className="w-10 h-10 flex items-center justify-center hover:text-accent"
+                  disabled={quantity <= 1 || product.stock <= 0}
                 >
                   <Minus size={18} />
                 </Button>
-                <span className="flex-grow text-center font-bold">{quantity}</span>
+                <input
+                  type="number"
+                  min="1"
+                  max={product.stock}
+                  value={product.stock <= 0 ? 0 : quantity}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value);
+                    if (!isNaN(val)) {
+                      setQuantity(Math.min(product.stock, Math.max(1, val)));
+                    } else {
+                      setQuantity(1);
+                    }
+                  }}
+                  className="flex-grow w-8 text-center font-bold bg-transparent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  disabled={product.stock <= 0}
+                />
                 <Button 
                   variant="ghost"
                   size="icon"
-                  onClick={() => setQuantity(quantity + 1)}
+                  onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
                   className="w-10 h-10 flex items-center justify-center hover:text-accent"
+                  disabled={quantity >= product.stock || product.stock <= 0}
                 >
                   <Plus size={18} />
                 </Button>
               </div>
               <div className="flex gap-4">
-                <Button variant="primary" className="flex-grow" onClick={() => onAddToCart(product, quantity)}>
+                <Button variant="primary" className="flex-grow relative overflow-hidden" onClick={(e) => {
+                  if (product.stock <= 0) return;
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const newDot = { id: Date.now(), x: e.clientX, y: e.clientY };
+                  setFlyingDots(prev => [...prev, newDot]);
+                  onAddToCart(product, quantity);
+                  setTimeout(() => setFlyingDots(prev => prev.filter(d => d.id !== newDot.id)), 1000);
+                }} disabled={product.stock <= 0}>
                   <ShoppingBag size={20} className="mr-2" /> Ajouter au panier
                 </Button>
                 <Button variant="outline" onClick={() => onAddToWishlist(product)}>
@@ -115,6 +154,24 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Flying Dots Animation */}
+      {flyingDots.map(dot => (
+        <motion.div
+          key={dot.id}
+          initial={{ x: dot.x, y: dot.y, scale: 1, opacity: 1 }}
+          animate={{ 
+            x: window.innerWidth - 60, // Top right corner (Cart Icon)
+            y: 40,
+            scale: 0.2, 
+            opacity: 0 
+          }}
+          transition={{ duration: 0.8, ease: [0.25, 1, 0.5, 1] }}
+          className="fixed z-[100] top-0 left-0 w-8 h-8 bg-accent rounded-full pointer-events-none shadow-xl flex items-center justify-center text-white"
+        >
+          <ShoppingBag size={14} />
+        </motion.div>
+      ))}
     </div>
   );
 };

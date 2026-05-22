@@ -292,41 +292,49 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
       {/* Hero Section Slider */}
       <section className="relative min-h-[90vh] flex items-center py-20 overflow-hidden">
         {/* Background */}
-        <motion.div className="absolute inset-0 z-0">
-          {(() => {
-            const slide = HERO_SLIDES_OPTIMIZED[currentSlide];
-            if (!slide) return null;
-            if (slide.image.endsWith('.mp4')) {
+        <div className="absolute inset-0 z-0">
+          <AnimatePresence mode="sync">
+            {HERO_SLIDES_OPTIMIZED.map((slide, i) => {
+              if (i !== currentSlide) return null;
+              if (slide.image.endsWith('.mp4')) {
+                return (
+                  <motion.video
+                    key={`video-${i}`}
+                    src={slide.image}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 1 }}
+                    className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                  />
+                );
+              }
               return (
-                <video
-                  key={slide.image}
+                <motion.img
+                  key={`img-${i}`}
                   src={slide.image}
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
+                  alt={slide.title || 'Collection Laine et Déco'}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 1 }}
                   className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                  referrerPolicy="no-referrer"
+                  loading={i === 0 ? "eager" : "lazy"}
+                  decoding="async"
+                  width={960}
+                  height={540}
+                  sizes="100vw"
                 />
               );
-            }
-            return (
-              <img
-                key={`${currentSlide}-${slide.image}`}
-                src={slide.image}
-                alt={slide.title || 'Collection Laine et Déco'}
-                className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-                referrerPolicy="no-referrer"
-                fetchPriority="high"
-                loading="eager"
-                decoding="async"
-                width={960}
-                height={540}
-                sizes="100vw"
-              />
-            );
-          })()}
-          <motion.div className="absolute inset-0 bg-black/40 pointer-events-none" aria-hidden />
-        </motion.div>
+            })}
+          </AnimatePresence>
+          <div className="absolute inset-0 bg-black/40 pointer-events-none z-[1]" aria-hidden />
+        </div>
         
         {/* Content Overlay */}
         <div className={`relative ${isSearchFocused ? 'z-[50]' : 'z-10'} max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full`}>
@@ -799,10 +807,18 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
               <h2 className="text-4xl font-serif text-red-900">{fs.name}</h2>
               <p className="text-red-700/80 mt-2">Vite ! Quantités limitées, l'offre expire bientôt.</p>
             </div>
-            <CountdownTimer endDate={fs.endDate} />
+              <div className="flex items-center gap-4">
+                <CountdownTimer endDate={fs.endDate} />
+                <button 
+                  onClick={() => onNavigate('flash-sales', undefined, fs.id)}
+                  className="bg-red-500 text-white px-6 py-2 rounded-xl font-bold hover:bg-red-600 transition-colors shadow-sm hidden sm:block whitespace-nowrap"
+                >
+                  Voir tout
+                </button>
+              </div>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="flex flex-nowrap overflow-x-auto snap-x snap-mandatory gap-6 pb-6 hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
             {fs.items.map(item => {
               const product = PRODUCTS.find(p => p.id === item.productId);
               if (!product) return null;
@@ -811,7 +827,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
               const isComboSoldOut = item.soldQuantity >= item.totalQuantity;
 
               return (
-                <div key={item.productId} className="relative group">
+                <div key={item.productId} className="min-w-[280px] w-[280px] sm:min-w-[300px] sm:w-[300px] snap-start relative group flex-shrink-0">
                   <ProductCard 
                     product={flashProduct} 
                     onAddToCart={(p) => {
@@ -831,13 +847,22 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                   {/* Progress Bar for stock */}
                   <div className="absolute top-4 left-4 right-4 z-10 bg-white/90 backdrop-blur tracking-widest text-[10px] uppercase font-bold p-2 px-3 rounded-full shadow-lg border border-red-100 flex items-center justify-between">
                     <span className="text-red-600">Vendus: {item.soldQuantity}/{item.totalQuantity}</span>
-                    <div className="w-1/2 h-1.5 bg-red-100 rounded-full overflow-hidden">
+                    <div className="w-1/3 h-1.5 bg-red-100 rounded-full overflow-hidden">
                       <div className="h-full bg-red-500 rounded-full" style={{ width: `${(item.soldQuantity / item.totalQuantity) * 100}%` }}></div>
                     </div>
                   </div>
                 </div>
               );
             })}
+            
+            <div className="min-w-[280px] w-[280px] sm:hidden snap-start flex items-center justify-center p-6">
+              <button 
+                onClick={() => onNavigate('flash-sales', undefined, fs.id)}
+                className="w-full bg-red-100 text-red-600 py-4 rounded-2xl font-bold hover:bg-red-200 transition-colors"
+              >
+                Voir toute la vente
+              </button>
+            </div>
           </div>
         </section>
       ))}

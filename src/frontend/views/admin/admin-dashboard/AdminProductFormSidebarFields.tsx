@@ -35,39 +35,67 @@ export function AdminProductFormSidebarFields({ ctx }: { ctx: any }) {
                   <div className="flex items-center justify-between p-4 bg-secondary/50 rounded-2xl border border-primary/10">
                     <div>
                       <p className="font-bold text-sm text-primary">Statut du produit</p>
-                      <p className="text-xs text-primary/60">{editingItem?.isAvailable !== false ? 'Visible sur la boutique' : 'Masqué pour les clients'}</p>
+                      <p className="text-xs text-primary/60">{editingItem?.isAvailable ?? false ? 'Visible sur la boutique' : 'Masqué pour les clients'}</p>
                     </div>
                     <button 
                       type="button"
-                      onClick={() => setEditingItem(prev => ({ ...prev, isAvailable: !prev?.isAvailable }))}
-                      className={`w-14 h-7 rounded-full relative transition-all duration-300 ${editingItem?.isAvailable !== false ? 'bg-primary' : 'bg-secondary/50'}`}
+                      onClick={() => setEditingItem((prev: any) => ({ ...prev, isAvailable: !(prev?.isAvailable ?? false) }))}
+                      className={`w-14 h-7 rounded-full relative transition-all duration-300 ${editingItem?.isAvailable ?? false ? 'bg-primary' : 'bg-secondary/50'}`}
                     >
-                      <div className={`absolute top-1 w-5 h-5 bg-card rounded-full shadow-sm transition-all duration-300 ${editingItem?.isAvailable !== false ? 'right-1' : 'left-1'}`} />
+                      <div className={`absolute top-1 w-5 h-5 bg-card rounded-full shadow-sm transition-all duration-300 ${editingItem?.isAvailable ?? false ? 'right-1' : 'left-1'}`} />
                     </button>
                   </div>
                 </div>
 
                 <div className="bg-card p-8 rounded-3xl shadow-sm border border-primary/10 space-y-6">
                   <h4 className="text-lg font-bold text-primary border-b border-primary/5 pb-4">Image du Produit</h4>
-                  <div className="aspect-[4/5] bg-secondary/50 rounded-2xl border-2 border-dashed border-primary/10 flex flex-col items-center justify-center overflow-hidden relative group">
-                    {editingItem?.image ? (
+                  <div className="aspect-[4/5] bg-secondary/50 rounded-2xl border-2 border-dashed border-primary/10 flex flex-col items-center justify-center overflow-hidden relative group cursor-pointer hover:border-primary/40 transition-all shadow-inner">
+                    {(currentImage || editingItem?.image) ? (
                       <>
-                        <img src={editingItem.image} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <button type="button" className="bg-card text-primary px-4 py-2 rounded-xl font-bold text-xs">Changer l'image</button>
+                        <img src={currentImage || editingItem?.image} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                          <span className="bg-white text-primary px-6 py-2 rounded-xl font-bold text-sm shadow-xl">Changer l'image</span>
+                          <button 
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCurrentImage('');
+                              if (editingItem) setEditingItem((prev: any) => ({ ...prev, image: '' }));
+                            }}
+                            className="bg-rose-500 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-xl hover:bg-rose-600 transition-colors"
+                          >
+                            Supprimer
+                          </button>
                         </div>
                       </>
                     ) : (
-                      <div className="text-center p-6">
-                        <div className="w-12 h-12 bg-card rounded-2xl shadow-sm flex items-center justify-center mx-auto mb-4 text-primary/60">
-                          <ImageIcon size={24} />
+                      <div className="text-center p-10 text-primary/40 group-hover:text-primary/60 transition-colors">
+                        <div className="w-16 h-16 bg-primary/5 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <ImageIcon size={32} />
                         </div>
-                        <p className="text-sm font-bold text-primary">Ajouter une image</p>
-                        <p className="text-xs text-primary/60 mt-1">Glissez-déposez ou cliquez pour parcourir</p>
+                        <p className="text-sm font-bold uppercase tracking-widest">Sélectionner une photo</p>
+                        <p className="text-[10px] mt-2 italic">Format portrait recommandé (800x1000px)</p>
                       </div>
                     )}
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            const dataUrl = reader.result as string;
+                            setCurrentImage(dataUrl);
+                            setEditingItem((prev: any) => ({ ...(prev || {}), image: dataUrl }));
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
                   </div>
-                  <p className="text-[10px] text-primary/60 text-center uppercase tracking-widest font-bold">Format recommandé: 800x1000px</p>
+                  <p className="text-[10px] text-primary/60 text-center uppercase tracking-widest font-bold">L'image est uploadée depuis votre appareil</p>
                 </div>
 
                 <div className="bg-card p-8 rounded-3xl shadow-sm border border-primary/10 space-y-6">
@@ -104,7 +132,7 @@ export function AdminProductFormSidebarFields({ ctx }: { ctx: any }) {
                             const newColor = e.target.value;
                             const currentColors = editingItem?.colors || [];
                             if (!currentColors.includes(newColor)) {
-                              setEditingItem((prev: any) => ({ ...prev, colors: [...currentColors, newColor] }));
+                              setEditingItem((prev: any) => ({ ...(prev || {}), colors: [...currentColors, newColor] }));
                             }
                           }}
                         />

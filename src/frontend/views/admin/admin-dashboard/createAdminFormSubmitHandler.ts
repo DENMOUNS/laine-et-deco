@@ -28,7 +28,7 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
           const now = new Date().toISOString();
           if (editingItem) {
               newCategory.updatedAt = now;
-              newCategory.createdAt = editingItem.createdAt || now;
+
           } else {
               newCategory.createdAt = now;
               newCategory.updatedAt = now;
@@ -50,8 +50,7 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
         };
         const now = new Date().toISOString();
         newBadge.updatedAt = now;
-        newBadge.createdAt = editingItem.createdAt || now;
-        
+
         setSiteConfig((prev: any) => ({
             ...prev,
             loyaltyConfig: {
@@ -86,7 +85,7 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
           const now = new Date().toISOString();
           if (editingItem) {
               newPack.updatedAt = now;
-              newPack.createdAt = editingItem.createdAt || now;
+
           } else {
               newPack.createdAt = now;
               newPack.updatedAt = now;
@@ -111,7 +110,7 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
           const now = new Date().toISOString();
           if (editingItem) {
               newUser.updatedAt = now;
-              newUser.createdAt = editingItem.createdAt || now;
+
           } else {
               newUser.createdAt = now;
               newUser.updatedAt = now;
@@ -156,7 +155,7 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
 
            if (editingItem) {
                newRole.updatedAt = now;
-               newRole.createdAt = editingItem.createdAt || now;
+
                await updateLocalRole(roleId, newRole);
                toast.success('Rôle mis à jour');
            } else {
@@ -181,7 +180,7 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
           const now = new Date().toISOString();
           if (editingItem) {
               newNotif.updatedAt = now;
-              newNotif.createdAt = editingItem.createdAt || now;
+
           } else {
               newNotif.createdAt = now;
               newNotif.updatedAt = now;
@@ -207,7 +206,7 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
           const now = new Date().toISOString();
           if (editingItem) {
               newEmail.updatedAt = now;
-              newEmail.createdAt = editingItem.createdAt || now;
+
           } else {
               newEmail.createdAt = now;
               newEmail.updatedAt = now;
@@ -242,7 +241,7 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
 
            if (editingItem) {
                newUser.updatedAt = now;
-               newUser.createdAt = editingItem.createdAt || now;
+
                await updateLocalUser(userId, newUser);
                toast.success('Utilisateur mis à jour');
            } else {
@@ -264,7 +263,7 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
           const now = new Date().toISOString();
           if (editingItem) {
               newEvent.updatedAt = now;
-              newEvent.createdAt = editingItem.createdAt || now;
+
           } else {
               newEvent.createdAt = now;
               newEvent.updatedAt = now;
@@ -286,7 +285,7 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
           const now = new Date().toISOString();
           if (editingItem) {
               newExpense.updatedAt = now;
-              newExpense.createdAt = editingItem.createdAt || now;
+
           } else {
               newExpense.createdAt = now;
               newExpense.updatedAt = now;
@@ -309,7 +308,7 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
           const now = new Date().toISOString();
           if (editingItem) {
               newLookbook.updatedAt = now;
-              newLookbook.createdAt = editingItem.createdAt || now;
+
           } else {
               newLookbook.createdAt = now;
               newLookbook.updatedAt = now;
@@ -333,7 +332,7 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
           const now = new Date().toISOString();
           if (editingItem) {
               newBlog.updatedAt = now;
-              newBlog.createdAt = editingItem.createdAt || now;
+
           } else {
               newBlog.createdAt = now;
               newBlog.updatedAt = now;
@@ -353,7 +352,7 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
           const now = new Date().toISOString();
           if (editingItem) {
               newGroup.updatedAt = now;
-              newGroup.createdAt = editingItem.createdAt || now;
+
           } else {
               newGroup.createdAt = now;
               newGroup.updatedAt = now;
@@ -374,7 +373,7 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
           const now = new Date().toISOString();
           if (editingItem) {
               newTax.updatedAt = now;
-              newTax.createdAt = editingItem.createdAt || now;
+
           } else {
               newTax.createdAt = now;
               newTax.updatedAt = now;
@@ -396,7 +395,7 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
           const now = new Date().toISOString();
           if (editingItem) {
               newShipping.updatedAt = now;
-              newShipping.createdAt = editingItem.createdAt || now;
+
           } else {
               newShipping.createdAt = now;
               newShipping.updatedAt = now;
@@ -418,7 +417,7 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
           const now = new Date().toISOString();
           if (editingItem) {
               newNavItem.updatedAt = now;
-              newNavItem.createdAt = editingItem.createdAt || now;
+
               updateNavItem(editingItem.id, newNavItem);
           } else {
               newNavItem.createdAt = now;
@@ -436,7 +435,7 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
           const now = new Date().toISOString();
           if (editingItem) {
               newRule.updatedAt = now;
-              newRule.createdAt = editingItem.createdAt || now;
+
           } else {
               newRule.createdAt = now;
               newRule.updatedAt = now;
@@ -458,7 +457,7 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
           const now = new Date().toISOString();
           if (editingItem) {
               newCurrency.updatedAt = now;
-              newCurrency.createdAt = editingItem.createdAt || now;
+
               updateCurrency(editingItem.id, newCurrency);
           } else {
               newCurrency.createdAt = now;
@@ -471,12 +470,11 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
           const product = localProducts.find(p => p.id === productId);
           
           if (product) {
-              // Use dashboard API to record transaction and update stock atomically on server
-              const { sendStockTransaction } = await import('../../../services/dashboardApi');
-              await sendStockTransaction(productId, 'add', quantityChange, `Réapprovisionnement via admin (${product.name})`);
-              // refresh localProducts: simple optimistic update
-              setLocalProducts(prev => prev.map(p => p.id === productId ? { ...p, stock: (p.stock || 0) + quantityChange } : p));
-              toast.success(`Stock mis à jour pour ${product.name} (+${quantityChange})`);
+              const newStock = Math.max(0, (product.stock || 0) + quantityChange);
+              const inStock = newStock > 0;
+              await updateProduct(productId, { stock: newStock, in_stock: inStock });
+              setLocalProducts(prev => prev.map(p => p.id === productId ? { ...p, stock: newStock, in_stock: inStock } : p));
+              toast.success(`Stock mis à jour pour ${product.name} (Nouveau stock: ${newStock})`);
           }
       }
 

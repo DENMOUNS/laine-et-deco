@@ -59,28 +59,6 @@ export const CartView: React.FC<CartViewProps> = ({
       <div className="flex flex-col lg:flex-row gap-12">
         {/* Main Content */}
         <div className="w-full lg:w-2/3 space-y-8">
-          {/* Free Shipping Progress */}
-          <div className="bg-white p-8 rounded-[2.5rem] border border-primary/5 shadow-sm">
-            <div className="flex justify-between items-center mb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-secondary rounded-lg">
-                  <Truck className="text-accent" size={24} />
-                </div>
-                <span className="font-serif font-bold text-lg">Livraison</span>
-              </div>
-              <span className="text-accent font-bold">
-                {subtotal >= FREE_SHIPPING_THRESHOLD ? 'Livraison gratuite offerte !' : `Plus que ${(FREE_SHIPPING_THRESHOLD - subtotal).toLocaleString()} FCFA`}
-              </span>
-            </div>
-            <div className="h-2 bg-secondary rounded-full overflow-hidden">
-              <motion.div 
-                initial={{ width: 0 }}
-                animate={{ width: `${progress}%` }}
-                className="h-full bg-accent"
-              />
-            </div>
-          </div>
-
           {/* Cart Items */}
           <div className="space-y-4">
             <AnimatePresence mode="popLayout">
@@ -128,10 +106,27 @@ export const CartView: React.FC<CartViewProps> = ({
                         >
                           <Minus size={14} className="sm:size-4" />
                         </button>
-                        <span className="w-4 text-center font-bold text-xs sm:text-sm">{item.quantity}</span>
+                        <input 
+                          type="number"
+                          min="1"
+                          max={item.type === 'product' ? item.product?.stock : undefined}
+                          value={item.quantity}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value);
+                            if (!isNaN(val) && val >= 1) {
+                              const delta = val - item.quantity;
+                              if (delta !== 0) {
+                                onUpdateQuantity(item.id, delta);
+                              }
+                            }
+                          }}
+                          className="w-8 sm:w-10 text-center font-bold text-xs sm:text-sm bg-transparent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
                         <button 
                           onClick={() => onUpdateQuantity(item.id, 1)}
-                          className="text-primary hover:text-accent transition-colors"
+                          className="text-primary hover:text-accent transition-colors disabled:opacity-20"
+                          disabled={item.type === 'product' && item.quantity >= (item.product?.stock || 0)}
+                          title={item.type === 'product' && item.quantity >= (item.product?.stock || 0) ? 'Limite de stock atteinte' : undefined}
                         >
                           <Plus size={14} className="sm:size-4" />
                         </button>
@@ -183,20 +178,14 @@ export const CartView: React.FC<CartViewProps> = ({
                 <span>Sous-total</span>
                 <span>{subtotal.toLocaleString()} FCFA</span>
               </div>
-              <div className="flex justify-between text-primary/70 font-medium">
-                <span>Livraison</span>
-                <span>{shipping === 0 ? 'Offerte' : `${shipping.toLocaleString()} FCFA`}</span>
-              </div>
-              {shipping > 0 && (
-                <p className="text-xs italic text-accent opacity-80">
-                  Plus que {(FREE_SHIPPING_THRESHOLD - subtotal).toLocaleString()} FCFA pour la livraison gratuite !
-                </p>
-              )}
+              <p className="text-xs italic text-accent opacity-80 mt-4">
+                Les frais de livraison seront calculés à l'étape de paiement.
+              </p>
             </div>
 
             <div className="flex justify-between items-end mb-12">
-              <span className="text-2xl font-serif font-bold text-primary">Total</span>
-              <span className="text-4xl font-serif font-bold text-primary">{total.toLocaleString()} FCFA</span>
+              <span className="text-2xl font-serif font-bold text-primary">Total estimé</span>
+              <span className="text-4xl font-serif font-bold text-primary">{subtotal.toLocaleString()} FCFA</span>
             </div>
 
             <button 
@@ -206,12 +195,6 @@ export const CartView: React.FC<CartViewProps> = ({
               Passer la commande
               <ArrowRight size={22} />
             </button>
-
-            <div className="mt-10 flex items-center justify-center gap-6 opacity-40 grayscale">
-              <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/2560px-Visa_Inc._logo.svg.png" alt="Visa" className="h-4 object-contain" />
-              <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/1280px-Mastercard-logo.svg.png" alt="Mastercard" className="h-6 object-contain" />
-              <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/PayPal.svg/2560px-PayPal.svg.png" alt="PayPal" className="h-5 object-contain" />
-            </div>
           </div>
         </div>
       </div>

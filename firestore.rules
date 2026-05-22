@@ -118,6 +118,66 @@ service cloud.firestore {
       allow write: if isSuperAdmin() || isAdmin();
     }
 
+    match /site_logo/{docId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || isAdmin();
+    }
+
+    match /site_color/{docId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || isAdmin();
+    }
+
+    match /hero_banner/{docId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || isAdmin();
+    }
+
+    match /announcement_banner/{docId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || isAdmin();
+    }
+
+    match /scrolling_banner/{docId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || isAdmin();
+    }
+
+    match /seo_page/{docId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || isAdmin();
+    }
+
+    match /newsletter_config_history/{docId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || isAdmin();
+    }
+
+    match /invoice_config/{docId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || isAdmin();
+    }
+
+    match /qr_config/{docId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || isAdmin();
+    }
+
+    match /loyalty_config_history/{docId} {
+      allow read: if isStaff();
+      allow write: if isSuperAdmin() || isAdmin();
+    }
+
+    match /maintenance_config_history/{docId} {
+      allow read: if isStaff();
+      allow write: if isSuperAdmin() || isAdmin();
+    }
+
+    match /custom_section_config/{docId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || isAdmin();
+    }
+
     match /admin_role/{docId} {
       allow read: if isStaff();
       allow create, update, delete: if isSuperAdmin();

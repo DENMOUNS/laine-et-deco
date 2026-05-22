@@ -102,6 +102,28 @@ function ShopPage() {
   );
 }
 
+function FlashSalesPage() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const addToCart = useCartStore((s) => s.addToCart);
+  const addToWishlist = useWishlistStore((s) => s.addToWishlist);
+  const addToComparison = useComparisonStore((s) => s.addToComparison);
+  const events = useConfigStore((s) => s.events);
+  return (
+    <ShopView
+      onAddToCart={addToCart}
+      onAddToWishlist={addToWishlist}
+      onQuickView={() => {}}
+      onAddToComparison={addToComparison}
+      onProductClick={(p: Product) => navigate(`/product/${p.id}`)}
+      events={events}
+      initialSearchQuery={searchParams.get('q') || ''}
+      flashSaleId={id}
+    />
+  );
+}
+
 function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const onNavigate = useNavigateAdapter();
@@ -363,6 +385,7 @@ export const AppRoutes: React.FC = () => {
           {/* Public routes */}
           <Route path="/" element={<HomePage />} />
           <Route path="/shop" element={<ShopPage />} />
+          <Route path="/flash-sales/:id" element={<FlashSalesPage />} />
           <Route path="/product/:id" element={<ProductDetailPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />

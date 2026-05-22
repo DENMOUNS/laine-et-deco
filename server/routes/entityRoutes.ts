@@ -189,6 +189,18 @@ router.post('/:entity', verifyToken, resolveRole, async (req: any, res) => {
         return res.status(201).json({ id: ref.id });
       }
 
+      // Allow creating with a provided `id` (useful for system configs like 'global')
+      if (req.body && req.body.id) {
+        const docId = String(req.body.id);
+        const docRef = db.collection(entity).doc(docId);
+        await docRef.set({
+          ...req.body,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+        return res.status(201).json({ id: docId });
+      }
+
       const ref = await db.collection(entity).add({
         ...req.body,
         createdAt: new Date(),
@@ -230,6 +242,14 @@ router.put('/:entity/:id', verifyToken, resolveRole, async (req: any, res) => {
     const snap = await ref.get();
 
     if (!snap.exists) {
+      if (isAdminLevel(role)) {
+        await ref.set({
+          ...req.body,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }, { merge: true });
+        return res.json({ message: 'Created' });
+      }
       return res.status(404).json({ error: 'Introuvable' });
     }
 

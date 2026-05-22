@@ -55,7 +55,7 @@ export const updateEntity = async (entity: string, id: string, data: any) => {
 const buildSystemConfigDocs = (siteConfig: any) => {
   const branding = siteConfig?.branding || {};
   const newsletter = siteConfig?.newsletterPopup || {};
-  const docs = [
+  const docs: { collectionName: string; id: string; data: any }[] = [
     {
       collectionName: 'invoice_config',
       id: 'global',
@@ -82,7 +82,7 @@ const buildSystemConfigDocs = (siteConfig: any) => {
     {
       collectionName: 'site_logo',
       id: 'default-logo',
-      data: { image: branding.logo || siteConfig?.hero?.backgroundImages?.[0] || '/logo.png', status: 'active' },
+      data: { image: '', lien: branding.logo || siteConfig?.hero?.backgroundImages?.[0] || '/logo.png', status: 'active' },
     },
     {
       collectionName: 'site_color',
@@ -191,57 +191,28 @@ export const seedDashboardData = async () => {
   });
 };
 
-export const initializeSystemConfigs = async (siteConfig?: any) => {
-  let cfg = siteConfig;
-  if (!cfg) {
-    try {
-      cfg = await getSystemConfig('site_config', 'global');
-    } catch (err: any) {
-      throw new Error(`Impossible de récupérer site_config: ${err?.message || err}`);
-    }
-  }
-
-  const docs = buildSystemConfigDocs(cfg || {});
-  // Send updates sequentially with retries/backoff to avoid rate limits (429)
-  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-  const sendWithRetries = async (item: any) => {
-    const maxAttempts = 5;
-    let attempt = 0;
-    while (true) {
-      try {
-        await updateEntity(item.collectionName, item.id, item.data);
-        return;
-      } catch (err: any) {
-        attempt += 1;
-        const msg = String(err?.message || '').toLowerCase();
-        const isRateLimit = msg.includes('trop de requêtes') || msg.includes('too many requests') || msg.includes('429');
-        if (!isRateLimit || attempt >= maxAttempts) {
-          throw err;
-        }
-        const backoff = Math.min(2000, Math.pow(2, attempt) * 150);
-        await sleep(backoff);
-      }
-    }
-  };
-
-  for (const item of docs) {
-    await sendWithRetries(item);
-    // small pause between requests
-    await sleep(80);
-  }
-
-  return { message: 'Configurations initialisées.', count: docs.length };
+export const fetchDashboardConfig = async (type: 'qr_config' | 'invoice_config') => {
+  return request(`/api/dashboard/config/${type}`, { method: 'GET' });
 };
 
+export const saveDashboardConfig = async (collection: 'qr_config' | 'invoice_config', data: any) => {
+  return request(`/api/dashboard/config/${collection}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+};
+
+
+
+
 export const getSystemConfig = async (collectionName: string, id: string) => {
-  // Public read - no auth needed
-  return request(`/api/dashboard/${encodeURIComponent(collectionName)}/${encodeURIComponent(id)}`);
+  // Generic read via /config endpoint - requires auth
+  return request(`/api/dashboard/config/${encodeURIComponent(collectionName)}/${encodeURIComponent(id)}`);
 };
 
 export const saveSystemConfig = async (collectionName: string, id: string, data: any) => {
-  // Protected write - requires staff auth
-  return request(`/api/dashboard/${encodeURIComponent(collectionName)}/${encodeURIComponent(id)}`, {
+  // Generic write via /config endpoint - requires admin auth
+  return request(`/api/dashboard/config/${encodeURIComponent(collectionName)}/${encodeURIComponent(id)}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   });
@@ -259,19 +230,4 @@ export const sendStockTransaction = async (productId: string, type: 'add' | 'rem
     method: 'POST',
     body: JSON.stringify({ productId, type, quantity, note }),
   });
-};
-
-// Public fallback: ensure QR config exists (creates only if missing)
-export const ensurePublicQrConfig = async () => {
-  const resp = await fetch('/api/dashboard/public/qr/init', {
-    method: 'POST',
-    credentials: 'same-origin',
-  });
-
-  const body = await resp.json().catch(() => null);
-  if (!resp.ok) {
-    throw new Error(body?.error || resp.statusText || 'Erreur init QR');
-  }
-
-  return body;
 };

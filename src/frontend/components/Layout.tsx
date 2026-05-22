@@ -7,6 +7,27 @@ import { useStaticEntity } from '../hooks/useStaticEntity';
 import { Product, NavItem } from '../../types';
 import type { User as FirebaseUser } from 'firebase/auth';
 
+const LogoDisplay = () => {
+  const { data: logos } = useStaticEntity<any>('site_logo');
+  const activeLogo = logos?.find((l: any) => l.status === 'active');
+  const logoSrc = activeLogo?.image || activeLogo?.lien;
+  
+  if (logoSrc) {
+    return <img src={logoSrc} alt="Laine & Déco" className="h-10 md:h-12 w-auto object-contain transition-transform group-hover:scale-105" />;
+  }
+  
+  return (
+    <>
+      <div className="flex items-center justify-center p-2 bg-gradient-to-br from-accent to-accent/90 text-white rounded-xl shadow-[0_4px_12px_rgba(230,111,105,0.3)] border border-white/20 transition-transform group-hover:scale-105">
+         <Scissors className="h-6 w-6 sm:h-8 sm:w-8 text-white stroke-[2]" />
+      </div>
+      <h1 className="text-xl sm:text-2xl md:text-3xl font-serif font-black tracking-tight text-primary ml-3 relative whitespace-nowrap">
+        Laine & <span className="text-accent underline decoration-accent/30 decoration-2 underline-offset-4">Déco</span>
+      </h1>
+    </>
+  );
+};
+
 interface NavbarProps {
   onNavigate: (view: string, id?: string, query?: string) => void;
   currentView: string;
@@ -74,15 +95,9 @@ export const Navbar: React.FC<NavbarProps> = ({
       <nav className="sticky top-0 z-50 glass border-b border-primary/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20 relative">
-          {/* Logo Container */}
           <div className="flex items-center gap-3 z-20 flex-shrink-0">
             <div className="cursor-pointer flex items-center group" onClick={() => onNavigate('home')}>
-              <div className="flex items-center justify-center p-2 bg-gradient-to-br from-accent to-accent/90 text-white rounded-xl shadow-[0_4px_12px_rgba(230,111,105,0.3)] border border-white/20 transition-transform group-hover:scale-105">
-                 <Scissors className="h-6 w-6 sm:h-8 sm:w-8 text-white stroke-[2]" />
-              </div>
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-serif font-black tracking-tight text-primary ml-3 relative whitespace-nowrap">
-                Laine & <span className="text-accent underline decoration-accent/30 decoration-2 underline-offset-4">Déco</span>
-              </h1>
+              <LogoDisplay />
             </div>
           </div>
 

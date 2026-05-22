@@ -59,66 +59,20 @@ export function AdminInventory({ ctx }: { ctx: any }) {
                 columns={[
                   { header: 'Produit', accessor: 'name', sortable: true },
                   { header: 'Catégorie', accessor: 'category', sortable: true },
-                  { header: 'Stock', accessor: (p: any) => {
-                    const currentStock = p.stock || 0;
-                    const lastRestock = p.lastRestock || currentStock || 1;
-                    const percentRemaining = (currentStock / lastRestock) * 100;
-                    const isLow = percentRemaining < 20;
-                    const isCritical = percentRemaining < 10;
-                    
-                    let barColor = 'bg-green-500';
-                    if (isCritical) barColor = 'bg-red-600';
-                    else if (isLow) barColor = 'bg-orange-500';
-                    
-                    return (
-                      <div className="flex items-center gap-2 w-40">
-                        <div className="flex-grow bg-gray-200 h-2 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full rounded-full ${barColor} transition-all`}
-                            style={{ width: `${Math.max(percentRemaining, 0)}%` }}
-                          />
-                        </div>
-                        <span className="text-xs font-semibold text-gray-600 w-8 text-right">{currentStock}</span>
-                      </div>
-                    );
-                  }, sortable: true, sortKey: 'stock' },
+                  { header: 'Stock', accessor: (p: any) => (
+                    <span className="font-bold text-primary text-lg">{p.stock || 0}</span>
+                  ), sortable: true, sortKey: 'stock' },
+                  { header: 'État', accessor: (p: any) => (
+                    <span className={cn(
+                      "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest",
+                      p.in_stock ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"
+                    )}>
+                      {p.in_stock ? 'En stock' : 'En rupture'}
+                    </span>
+                  )},
                   { header: 'Prix', accessor: (p: any) => `${p.price.toLocaleString()} FCFA`, sortable: true, sortKey: 'price' },
-                  { 
-                    header: 'Statut', 
-                    accessor: (product: Product) => (
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setLocalProducts(prev => prev.map(p => p.id === product.id ? { ...p, isAvailable: !p.isAvailable } : p));
-                          toast.success(product.isAvailable ? 'Produit désactivé' : 'Produit activé');
-                        }}
-                        className={cn(
-                          "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest transition-colors border",
-                          getStatusStyles(product.isAvailable ? 'active' : 'inactive')
-                        )}
-                      >
-                        {product.isAvailable ? 'Actif' : 'Inactif'}
-                      </button>
-                    ),
-                    sortable: true,
-                    sortKey: 'isAvailable'
-                  },
-                  {
-                    header: 'Actions',
-                    accessor: (product: Product) => (
-                      <div className="flex gap-2">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); setEditingItem(product); setModalType('product'); }}
-                          className="text-primary font-bold text-sm hover:underline"
-                        >
-                          Modifier
-                        </button>
-                      </div>
-                    )
-                  },
                 { header: 'Créé le', accessor: (item: any) => formatDate(item.createdAt || item.date || item.subscribedAt || item.sentAt || new Date().toISOString()), className: 'text-primary/60 text-sm', sortable: true }
               ]}
-                onRowClick={(p) => { setEditingItem(p); setModalType('product'); }}
               />
             </div>
           </div>

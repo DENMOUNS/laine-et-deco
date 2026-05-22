@@ -9,13 +9,25 @@ interface UseEntityOptions {
   deps?: unknown[];
 }
 
+import { readCache, writeCache } from '../utils/cacheStorage';
+
+const CACHEABLE_ENTITIES = ['product', 'pack', 'blog_post', 'lookbook', 'category'];
+
 export function useEntity<T extends BaseEntity = BaseEntity>(
   entityType: string,
   initialData: T[] = [],
   options: UseEntityOptions = {}
 ) {
-  const [data, setData] = useState<T[]>(initialData);
-  const [isLoading, setIsLoading] = useState(true);
+  const cacheKey = `entityCache:${entityType}`;
+  
+  const [data, setData] = useState<T[]>(() => {
+    if (CACHEABLE_ENTITIES.includes(entityType)) {
+      const cached = readCache<T[]>(cacheKey);
+      if (cached) return cached;
+    }
+    return initialData;
+  });
+  const [isLoading, setIsLoading] = useState(!CACHEABLE_ENTITIES.includes(entityType) || !readCache(cacheKey));
   const [error, setError] = useState<Error | null>(null);
   const isMounted = useRef(true);
   const { enabled = true, constraints = [], deps = [] } = options;
@@ -33,7 +45,6 @@ export function useEntity<T extends BaseEntity = BaseEntity>(
       return;
     }
 
-    setIsLoading(true);
     let cancelled = false;
     let unsubscribe = () => {};
 
@@ -46,6 +57,9 @@ export function useEntity<T extends BaseEntity = BaseEntity>(
         (items) => {
           if (!isMounted.current) return;
           setData(items);
+          if (CACHEABLE_ENTITIES.includes(entityType)) {
+            writeCache(cacheKey, items);
+          }
           setIsLoading(false);
           setError(null);
         },
@@ -88,6 +102,7 @@ export function useEntity<T extends BaseEntity = BaseEntity>(
     isLoading,
     error,
     addEntity,
+    createEntity: addEntity,
     updateEntity,
     setEntity,
     deleteEntity,

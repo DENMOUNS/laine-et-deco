@@ -20,8 +20,13 @@ const createSearcher = <T>(getSearchableText: (item: T) => string) => {
   };
 };
 
+const getConditionText = (condition?: string) => {
+  if (condition === 'second-hand') return 'deuxieme main occasion vintage second hand seconde';
+  return 'neuf nouveau new';
+};
+
 export const productSearch = createSearcher<any>((p) => 
-  `${p.name} ${p.category} ${p.description || ''} ${p.material || ''} ${p.brand || ''}`
+  `${p.name} ${p.category} ${p.description || ''} ${p.material || ''} ${p.brand || ''} ${getConditionText(p.condition)}`
 );
 
 export const orderSearch = createSearcher<any>((o) => 

@@ -68,7 +68,7 @@ export const OrderSuccessView: React.FC<OrderSuccessViewProps> = ({ onNavigate }
             className="px-10 py-6 rounded-2xl text-lg flex items-center gap-3 group"
             onClick={() => onNavigate('customer-dashboard', 'orders')}
           >
-            Valider la commande
+            Consulter la commande
             <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
           </Button>
           
