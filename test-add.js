@@ -13,10 +13,8 @@ async function run() {
       userId: 'lmFy8saTupTa8Lmk0oOGSxfPgc13',
       createdAt: new Date().toISOString()
     });
-    console.log('Added document with ID: ', docRef.id);
     process.exit(0);
   } catch (e) {
-    console.error(e);
     process.exit(1);
   }
 }

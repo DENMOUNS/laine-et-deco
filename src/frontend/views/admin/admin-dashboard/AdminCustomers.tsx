@@ -54,6 +54,8 @@ export function AdminCustomers({ ctx }: { ctx: any }) {
             </div>
             <DataTable<UserType>
               dateFilterKey="createdAt"
+              searchable={true}
+              defaultSort={{ key: 'createdAt', direction: 'desc' }}
               data={sortByDate(localUsers.filter(u => customerFilter === 'all' ? true : customerFilter === 'admin' ? u.role !== 'customer' : u.role === 'customer'))}
               onRowClick={(user) => {
                 setSelectedCustomer(user); 

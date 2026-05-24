@@ -68,7 +68,6 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
   const onSubmit = async (data: any) => {
     // Check honeypot
     if (hpValue) {
-      console.log('Bot detected');
       return;
     }
     
@@ -135,7 +134,6 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
         setMode('login');
       }
     } catch (error: any) {
-      console.error("Auth Error:", error);
       let errorMessage = "Une erreur est survenue lors de l'authentification.";
       if (error.code === 'auth/user-not-found') errorMessage = "Utilisateur non trouvé.";
       if (error.code === 'auth/wrong-password') errorMessage = "Mot de passe incorrect.";
@@ -198,7 +196,6 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
       toast.success('Connexion Google réussie !');
       handleSuccessRedirect();
     } catch (error: any) {
-      console.error("Google Auth Error:", error);
       let errorMessage = "";
       if (error.code === 'auth/unauthorized-domain') {
         errorMessage = `Domaine non autorisé. Veuillez ajouter ${window.location.hostname} aux domaines autorisés dans votre console Firebase (Authentification > Paramètres).`;

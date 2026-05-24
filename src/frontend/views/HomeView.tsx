@@ -4,10 +4,10 @@ import { ArrowRight, Package, Truck, ShieldCheck, Heart, Calendar, User, Search,
 
 import { useStaticEntity } from '../hooks/useStaticEntity';
 import { useProducts } from '../hooks/useProducts';
-import { limit } from 'firebase/firestore';
+import { limit, where } from 'firebase/firestore';
 import { ProductCard } from '../components/ProductCard';
 import { Button } from '../components/ui/Button';
-import { Product, SiteConfig, PromoEvent, Pack, FlashSale, Lookbook } from '../../types';
+import { Product, SiteConfig, PromoEvent, Pack, FlashSale, Lookbook, HeroBannerConfig } from '../../types';
 import { AdBanner } from '../components/AdBanner';
 import { productSearch } from '../utils/searchUtils';
 import { useDeferUntilInteraction } from '../hooks/useAfterIdle';
@@ -91,6 +91,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
   const { data: PACKS } = useStaticEntity<any>('pack', [], secondaryOpts);
   const { data: RECENT_FLASH_SALES } = useStaticEntity<FlashSale>('flash_sale', [], secondaryOpts);
   const { data: LOOKBOOKS } = useStaticEntity<Lookbook>('lookbook', [], secondaryOpts);
+  const { data: HERO_BANNERS } = useStaticEntity<HeroBannerConfig>('hero_banner', [], {
+    constraints: [where('status', '==', 'active')],
+  });
+  const { data: ALL_HERO_BANNERS } = useStaticEntity<HeroBannerConfig>('hero_banner', [], secondaryOpts);
   const activeFlashSales = RECENT_FLASH_SALES.filter(fs => fs.status === 'active' && new Date(fs.endDate) > new Date());
   const activeLookbooks = LOOKBOOKS.filter(lb => lb.status === 'active');
 
@@ -134,25 +138,25 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
     }
   }, [searchQuery]);
 
-  const heroImages = siteConfig.hero.backgroundImages && siteConfig.hero.backgroundImages.length > 0 
-    ? siteConfig.hero.backgroundImages 
-    : ((siteConfig.hero as any).backgroundImage ? [(siteConfig.hero as any).backgroundImage] : ['https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?auto=format&fit=crop&q=80&w=1200']);
-  
-  const HERO_SLIDES = (siteConfig.showSlider && siteConfig.sliderItems && siteConfig.sliderItems.length > 0) 
-    ? siteConfig.sliderItems.map(item => ({
+  const heroBannersToRender = HERO_BANNERS && HERO_BANNERS.length > 0 ? HERO_BANNERS : ALL_HERO_BANNERS;
+
+  const HERO_SLIDES = heroBannersToRender && heroBannersToRender.length > 0
+    ? heroBannersToRender.map((item) => ({
         image: optimizeImageUrl(item.image, 960),
         title: item.title,
         subtitle: item.subtitle,
-        link: 'shop'
+        ctaText: item.ctaText || 'Découvrir la collection',
+        link: 'shop',
       }))
-    : heroImages.map(image => ({
-        image: optimizeImageUrl(image, 960),
-        title: siteConfig.hero.title,
-        subtitle: siteConfig.hero.description || "Bienvenue chez Laine et Déco",
-        ctaText: siteConfig.hero.ctaText || "Découvrir la collection",
-        link: "shop"
-      }));
+    : [{
+        image: 'https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?auto=format&fit=crop&q=80&w=1200',
+        title: 'Laine & Déco',
+        subtitle: 'Bienvenue chez Laine et Déco',
+        ctaText: 'Découvrir la collection',
+        link: 'shop',
+      }];
 
+      
   const HERO_SLIDES_OPTIMIZED = HERO_SLIDES;
 
   useEffect(() => {
@@ -219,7 +223,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
 
     recognition.onerror = (event: any) => {
       setIsVoiceSearching(false);
-      console.error("Speech recognition error", event.error);
       if (event.error === 'not-allowed') {
         toast.error("Accès au microphone refusé. Veuillez vérifier vos paramètres.");
       } else {
@@ -237,7 +240,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
     try {
       recognition.start();
     } catch (err) {
-      console.error("Failed to start recognition", err);
       setIsVoiceSearching(false);
     }
   };

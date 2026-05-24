@@ -64,8 +64,6 @@ export const OrderMap: React.FC<OrderMapProps> = ({ customerLocation, customerNa
         },
         (error) => {
           console.warn("Geolocation failed or denied", error);
-          // Default fallback (e.g. city center if unknown)
-          // setAdminPos([4.0511, 9.7679]); 
         },
         { enableHighAccuracy: true }
       );

@@ -123,7 +123,6 @@ export const PatternGeneratorView: React.FC<PatternGeneratorProps> = ({ onNaviga
         toast.success('Patron généré avec succès !');
       }
     } catch (error) {
-      console.error('Erreur de génération:', error);
       toast.error('Une erreur est survenue lors de la génération du patron.');
     } finally {
       setIsGenerating(false);

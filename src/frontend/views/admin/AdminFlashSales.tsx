@@ -227,6 +227,8 @@ export const AdminFlashSales: React.FC<AdminFlashSalesProps> = ({ products }) =>
 
       <DataTable<FlashSale>
         data={flashSales}
+        searchable={true}
+        defaultSort={{ key: 'endDate', direction: 'desc' }}
         columns={[
           { header: 'Nom', accessor: 'name', sortable: true },
           { header: 'Date de fin', accessor: (fs) => new Date(fs.endDate).toLocaleString('fr-FR'), sortable: true },

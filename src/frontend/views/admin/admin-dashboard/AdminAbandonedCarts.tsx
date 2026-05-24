@@ -33,8 +33,9 @@ export function AdminAbandonedCarts({ ctx }: { ctx: any }) {
               <h3 className="text-2xl font-serif text-primary">Paniers Abandonnés</h3>
             </div>
             <DataTable<AbandonedCart>
-              
               dateFilterKey="createdAt"
+              searchable={true}
+              defaultSort={{ key: 'createdAt', direction: 'desc' }}
               data={sortByDate(localAbandonedCarts)}
               title="Paniers"
               onRowClick={() => {}}

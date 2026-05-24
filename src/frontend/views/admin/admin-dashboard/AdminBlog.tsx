@@ -38,8 +38,9 @@ export function AdminBlog({ ctx }: { ctx: any }) {
               </button>
             </div>
             <DataTable<any>
-              
               dateFilterKey="createdAt"
+              searchable={true}
+              defaultSort={{ key: 'createdAt', direction: 'desc' }}
               data={sortByDate(localBlogPosts)}
               onRowClick={(b) => { setEditingItem(b); setModalType('blog'); }}
               title="Blog"

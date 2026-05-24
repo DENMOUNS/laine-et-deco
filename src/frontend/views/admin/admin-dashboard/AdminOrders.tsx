@@ -77,7 +77,6 @@ export function AdminOrders({ ctx }: { ctx: any }) {
                           toast.success(`Statut de la commande ${order.id} mis à jour : ${newStatus}`);
                         } catch (err) {
                           setLocalOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: oldStatus } : o));
-                          console.error('Order status update failed:', err);
                           toast.error(err instanceof Error ? err.message : 'Erreur lors de la mise à jour en base de données');
                         }
                     }}

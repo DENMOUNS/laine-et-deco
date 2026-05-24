@@ -4,7 +4,7 @@ import { Button } from '../components/ui/Button';
 import { toast } from 'sonner';
 import { MapPin, CreditCard, ShoppingBag, Truck, Package, Lock, Phone, CheckCircle } from 'lucide-react';
 import { User as FirebaseUser } from 'firebase/auth';
-import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc, increment, setDoc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc, increment, setDoc, getDoc, limit } from 'firebase/firestore';
 import { db } from '../../backend/firebase';
 import { motion, AnimatePresence } from 'motion/react';
 import { useEntity } from '../hooks/useEntity';
@@ -146,6 +146,13 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
   const buildOrderInvoiceData = async (orderBase: any) => {
     const getConfigData = async (collectionName: string, id: string, fallbackId?: string) => {
       try {
+        if (collectionName === 'site_logo') {
+          const activeQuery = query(collection(db, collectionName), where('status', '==', 'active'), limit(1));
+          const activeSnap = await getDocs(activeQuery);
+          if (!activeSnap.empty) return activeSnap.docs[0].data();
+          return {};
+        }
+
         const directSnap = await getDoc(doc(db, collectionName, id));
         if (directSnap.exists()) return directSnap.data();
 
@@ -167,7 +174,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
     const [invoiceConfig, colorConfig, logoConfig] = await Promise.all([
       getConfigData('invoice_config', 'global'),
       getConfigData('site_color', 'default-color'),
-      getConfigData('site_logo', 'default-logo'),
+      getConfigData('site_logo', 'active-logo'),
     ]);
 
     return {
@@ -193,7 +200,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
         message2: invoiceConfig.message2 || '',
         footerMessage: invoiceConfig.footerMessage || '',
         companyName: logoConfig.name || invoiceConfig.companyName || '',
-        logo: logoConfig.image || logoConfig.lien || invoiceConfig.logo || '',
+        logo: logoConfig.image || logoConfig.lien || '',
       },
       primaryColor: colorConfig.primaryColor || '#2c3e35',
     };
@@ -286,14 +293,12 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
         }
       } catch (userErr) {
         console.warn("Failed to update user profile points:", userErr);
-        // Don't fail the whole order if profile update fails
       }
       
       toast.success(`Commande validée ! Vous avez gagné ${pointsEarned} points.`);
       onComplete();
       onNavigate('order-success');
     } catch (err) {
-      console.error(err);
       toast.error('Une erreur est survenue lors de la validation.');
     } finally {
       setIsSubmitting(false);

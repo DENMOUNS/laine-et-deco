@@ -26,6 +26,7 @@ import { AdminPortfolios } from '../AdminPortfolios';
 import { Modal } from '../../../components/Modal';
 
 import { AdminInventoryAdjustmentModalFields } from './AdminInventoryAdjustmentModalFields';
+import { AdminQuickStockAdjustModalFields } from './AdminQuickStockAdjustModalFields';
 import { AdminPackModalFields } from './AdminPackModalFields';
 import { AdminNav_itemModalFields } from './AdminNav_itemModalFields';
 import { AdminUserModalFields } from './AdminUserModalFields';
@@ -51,11 +52,12 @@ export function AdminDashboardModals({ ctx }: { ctx: any }) {
     <>
             {/* Modals */}
         <Modal 
-          isOpen={(isAddModalOpen || !!editingItem) && !['rma-detail', 'product-edit', 'product-create', 'category-create', 'category-edit'].includes(activeTab)} 
+          isOpen={isAddModalOpen && !['rma-detail', 'product-edit', 'product-create', 'category-create', 'category-edit', 'inventory-detail'].includes(activeTab)} 
           onClose={() => { setIsAddModalOpen(false); setEditingItem(null); }} 
           title={
             editingItem ? `Modifier ${editingItem.name || editingItem.title || editingItem.subject || 'l\'élément'}` :
             modalType === 'inventory-adjustment' ? 'Réapprovisionnement Stock' :
+            modalType === 'quick-stock-adjust' ? `Ajuster le Stock - ${editingItem?.name || ''}` :
             modalType === 'category' ? 'Nouvelle Catégorie' : 
             modalType === 'badge' ? 'Modifier le Badge' :
             modalType === 'loyalty-config' ? 'Configuration Fidélité' :
@@ -71,6 +73,7 @@ export function AdminDashboardModals({ ctx }: { ctx: any }) {
         >
           <form className="space-y-6" onSubmit={handleFormSubmit}>
             <AdminInventoryAdjustmentModalFields ctx={ctx} />
+            <AdminQuickStockAdjustModalFields ctx={ctx} />
             <AdminPackModalFields ctx={ctx} />
             <AdminNav_itemModalFields ctx={ctx} />
             <AdminUserModalFields ctx={ctx} />

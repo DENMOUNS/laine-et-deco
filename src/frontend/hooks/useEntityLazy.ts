@@ -9,7 +9,6 @@ export function useEntityLazy<T>(entityType: string) {
 
   const fetchEntity = useCallback(async (id: string) => {
     if (!db) {
-      console.warn(`Firebase db is not initialized. Cannot fetch ${entityType}.`);
       return;
     }
     

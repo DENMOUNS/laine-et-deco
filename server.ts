@@ -42,11 +42,6 @@ async function startServer() {
 
   // Simple request logger to aid debugging (dev only)
   app.use((req, _res, next) => {
-    try {
-      console.log(`[REQ] ${req.method} ${req.originalUrl}`);
-    } catch (e) {
-      // ignore logging failures
-    }
     next();
   });
 
@@ -54,7 +49,6 @@ async function startServer() {
 
   // Test route to verify API routing works
   app.get('/api/test', (_req, res) => {
-    console.log('[TEST] /api/test called');
     return res.json({ ok: true, message: 'API routing works' });
   });
 
@@ -102,10 +96,8 @@ async function startServer() {
       res.json({ text: response.text });
     } catch (error: any) {
       if (error instanceof z.ZodError) {
-        console.error("Validation error:", error.issues);
         return res.status(400).json({ error: "Invalid input data", details: error.issues });
       }
-      console.error("Error calling Gemini API:", error);
       res.status(500).json({ error: error.message });
     }
   });
@@ -131,7 +123,6 @@ async function startServer() {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Invalid input data", details: error.issues });
       }
-      console.error("Error analyzing image:", error);
       res.status(500).json({ error: error.message });
     }
   });
@@ -149,7 +140,6 @@ async function startServer() {
 
       return res.json({ ok: true });
     } catch (error: any) {
-      console.error("Error tracking visitor:", error);
       return res.status(500).json({ error: "Unable to track visitor" });
     }
   });
@@ -165,9 +155,6 @@ async function startServer() {
     const distPath = path.join(process.cwd(), 'dist');
     const indexHtml = path.join(distPath, 'index.html');
     if (!fs.existsSync(indexHtml)) {
-      console.error(
-        'Aucun fichier dist/index.html. Lancez « npm run build » avant « npm run start ».'
-      );
       process.exit(1);
     }
     app.use(
@@ -189,30 +176,15 @@ async function startServer() {
 
   app.listen(PORT, "0.0.0.0", async () => {
     const mode = useViteDevServer ? "développement (Vite)" : "production (fichiers dist/)";
-    console.log(`Server running on http://localhost:${PORT} — mode ${mode}`);
     try {
       const admin = (await import('./server/firebaseAdmin.js')).firebaseAdmin;
       const db = (await import('./server/firebaseAdmin.js')).db;
-      console.log(`[DEBUG] Firebase connected to Project: ${admin.app().options.projectId}`);
       const snap = await db.collection('qr_config').doc('global').get();
-      console.log(`[DEBUG] qr_config/global exists on startup? ${snap.exists}`);
       if (snap.exists) {
-        console.log(`[DEBUG] qr_config/global data:`, snap.data());
         const docs = await db.collection('qr_config').limit(5).get();
-        console.log(`[DEBUG] Collection qr_config has ${docs.size} docs. IDs:`, docs.docs.map(d => d.id));
         const invDocs = await db.collection('invoice_config').limit(5).get();
-        console.log(`[DEBUG] Collection invoice_config has ${invDocs.size} docs. IDs:`, invDocs.docs.map(d => d.id));
       }
     } catch (e) {
-      console.error('[DEBUG] Failed to check qr_config/global', e);
-    }
-    
-    // Invoice worker removed: PDF generation will be handled synchronously
-    
-    if (useViteDevServer) {
-      console.log(
-        "Astuce Lighthouse : exécutez « npm run build » puis « npm run start » pour mesurer la perf réelle."
-      );
     }
   });
 }

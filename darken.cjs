@@ -54,6 +54,5 @@ filesToProcess.forEach(file => {
       content = content.replace(regex, newClass);
     }
     fs.writeFileSync(filePath, content, 'utf8');
-    console.log(`Processed ${file}`);
   }
 });

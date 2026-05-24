@@ -38,7 +38,6 @@ export function AdminCities({ ctx }: { ctx: any }) {
                         await resetCities();
                         toast.success('Villes réinitialisées');
                       } catch (err) {
-                        console.error('Cities reset error:', err);
                         toast.error('Erreur lors de la réinitialisation');
                       }
                     }
@@ -57,6 +56,8 @@ export function AdminCities({ ctx }: { ctx: any }) {
             </div>
             <DataTable<City> 
               dateFilterKey="createdAt"
+              searchable={true}
+              defaultSort={{ key: 'createdAt', direction: 'desc' }}
               data={sortByDate(CITIES)}
               onRowClick={handleEditCity}
               onDelete={(item) => deleteCity(item.id!)}

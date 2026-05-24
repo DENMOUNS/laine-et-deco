@@ -97,11 +97,9 @@ export async function generateInvoicePDF(order: Order, isDuplicata: boolean = fa
     try {
       // Create job
       const jobId = await createInvoiceJob(order.id, isDuplicata);
-      console.log(`[INVOICE] Created job ${jobId}`);
 
       // Poll job until completion
-      const pdfUrl = await pollInvoiceJob(jobId, 60000); // 60 second timeout
-      console.log(`[INVOICE] Job completed. PDF: ${pdfUrl}`);
+      const pdfUrl = await pollInvoiceJob(jobId, 60000);
 
       // Dismiss loading toast
       toast.dismiss(loadingToast);
@@ -117,11 +115,9 @@ export async function generateInvoicePDF(order: Order, isDuplicata: boolean = fa
       toast.success('Facture générée avec succès');
     } catch (error: any) {
       toast.dismiss(loadingToast);
-      console.error('Error generating PDF:', error);
       toast.error(error?.message || 'Erreur lors de la génération de la facture');
     }
   } catch (error: any) {
-    console.error('Error in generateInvoicePDF:', error);
     toast.error('Erreur lors de la génération de la facture');
   }
 };

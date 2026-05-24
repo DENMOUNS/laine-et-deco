@@ -80,7 +80,6 @@ export const QRLandingView: React.FC<QRLandingViewProps> = ({ onNavigate }) => {
         setIsLoading(false);
 
       } catch (err) {
-        console.error('Failed to load QR config via public API', err);
         if (isMounted) {
           setQrConfig(defaultQrConfig);
           setIsLoading(false);

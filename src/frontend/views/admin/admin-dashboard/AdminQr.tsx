@@ -30,8 +30,6 @@ export function AdminQr({ ctx }: { ctx: any }) {
           welcomeMessage: data.welcomeMessage || '',
         });
       } catch (error: any) {
-        console.error('Erreur chargement qr_config', error);
-        // setConfig(siteConfig.qrConfig);
         const msg = error?.message || String(error);
         if (!msg.includes('introuvable') && !msg.includes('404')) {
           toast.error('Impossible de charger la configuration QR');
@@ -49,7 +47,6 @@ export function AdminQr({ ctx }: { ctx: any }) {
       await saveSystemConfig('qr_config', 'global', config);
       toast.success('Configuration QR enregistrée');
     } catch (e: any) {
-      console.error('Erreur sauvegarde qr_config', e);
       toast.error(e?.message || "Erreur lors de la sauvegarde");
     } finally {
       setIsSaving(false);

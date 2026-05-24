@@ -42,6 +42,8 @@ export function AdminEvents({ ctx }: { ctx: any }) {
             </div>
             <DataTable<PromoEvent>
               dateFilterKey="createdAt"
+              searchable={true}
+              defaultSort={{ key: 'createdAt', direction: 'desc' }}
               data={sortByDate(PROMO_EVENTS)}
               onRowClick={handleEditEvent}
               onDelete={(item) => handleDeleteEvent(item.id!)}

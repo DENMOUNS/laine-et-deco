@@ -20,7 +20,6 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   useEffect(() => {
     if (!auth) {
-      console.warn("Firebase auth is not initialized.");
       setIsAuthReady(true);
       return;
     }

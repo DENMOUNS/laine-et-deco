@@ -40,6 +40,8 @@ export function AdminCoupons({ ctx }: { ctx: any }) {
             </div>
             <DataTable<Coupon> 
               dateFilterKey="createdAt"
+              searchable={true}
+              defaultSort={{ key: 'createdAt', direction: 'desc' }}
               data={sortByDate(COUPONS)}
               onRowClick={handleEditCoupon}
               onDelete={(item) => deleteCoupon(item.id!)}

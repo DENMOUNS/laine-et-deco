@@ -64,7 +64,7 @@ export function AdminProductForm({ ctx }: { ctx: any }) {
               </div>
             </div>
 
-            <form id="product-form" onSubmit={(e) => {
+            <form id="product-form" onSubmit={async (e) => {
               e.preventDefault();
               const formData = new FormData(e.currentTarget);
               const nameValue = formData.get('name') as string;
@@ -72,7 +72,8 @@ export function AdminProductForm({ ctx }: { ctx: any }) {
               const finalSlug = slugValue || (nameValue ? nameValue.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') : '');
               
               const newProduct: any = {
-                id: (activeTab === 'product-edit' && editingItem?.id) ? editingItem.id : `prod-${Date.now()}`,
+                // Do not generate a client-side id for creations — let the server assign the document id.
+                id: (activeTab === 'product-edit' && editingItem?.id) ? editingItem.id : undefined,
                 name: nameValue,
                 slug: finalSlug,
                 price: Number(formData.get('price')),
@@ -96,15 +97,23 @@ export function AdminProductForm({ ctx }: { ctx: any }) {
               const now = new Date().toISOString();
               if (activeTab === 'product-edit') {
                   newProduct.updatedAt = now;
-                  updateProduct(newProduct.id, newProduct);
+                  // update backend and optimistic local update
+                  await updateProduct(newProduct.id, newProduct);
                   setLocalProducts(prev => prev.map(p => p.id === newProduct.id ? { ...p, ...newProduct } : p));
                   toast.success('Produit mis à jour avec succès');
               } else {
                   newProduct.createdAt = now;
                   newProduct.updatedAt = now;
-                  addProduct(newProduct);
-                  setLocalProducts(prev => [...prev, newProduct]);
-                  toast.success('Produit créé avec succès');
+                  try {
+                    // Let backend create the document and return the real id
+                    const createdId = await addProduct(newProduct);
+                    newProduct.id = createdId;
+                    // Add to local list using server id to avoid duplicates
+                    setLocalProducts(prev => [...prev, newProduct]);
+                    toast.success('Produit créé avec succès');
+                  } catch (err: any) {
+                    toast.error('Échec de la création du produit');
+                  }
               }
               setActiveTab('products');
               setEditingItem(null);

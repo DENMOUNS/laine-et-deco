@@ -37,7 +37,6 @@ export function AdminInvoiceConfig({ ctx }: { ctx: any }) {
           footerMessage: data.footerMessage || '',
         });
       } catch (error: any) {
-        console.error('Error fetching invoice config', error);
         const msg = error?.message || String(error);
         if (!msg.includes('introuvable') && !msg.includes('404')) {
           toast.error('Impossible de charger la configuration facture');
@@ -56,7 +55,6 @@ export function AdminInvoiceConfig({ ctx }: { ctx: any }) {
       await saveSystemConfig('invoice_config', 'global', config);
       toast.success('Configuration de facture enregistrée');
     } catch (error: any) {
-      console.error('Error saving invoice config', error);
       toast.error(error?.message || 'Erreur lors de la sauvegarde');
     } finally {
       setIsSaving(false);

@@ -95,7 +95,6 @@ export const KnittingConfiguratorView: React.FC<KnittingConfiguratorProps> = ({ 
         toast.success(`L'IA suggère: ${foundColor.name}`);
       }
     } catch (error) {
-      console.error("AI Error:", error);
       toast.error("L'IA est un peu fatiguée, choisissez votre couleur préférée !");
     } finally {
       setIsAiSuggesting(false);

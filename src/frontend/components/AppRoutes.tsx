@@ -436,6 +436,8 @@ export const AppRoutes: React.FC = () => {
           
           {/* Admin */}
           <Route path="/admin" element={<AdminDashboardPage />} />
+          {/* Support deep admin URLs like /admin/inventory so refresh doesn't 404 */}
+          <Route path="/admin/*" element={<AdminDashboardPage />} />
           <Route path="/admin/product/:id" element={<AdminProductDetailPage />} />
           <Route path="/admin/user/:id" element={<AdminUserDetailPage />} />
           <Route path="/admin-logs" element={<AdminLogsView onNavigate={onNavigate} />} />

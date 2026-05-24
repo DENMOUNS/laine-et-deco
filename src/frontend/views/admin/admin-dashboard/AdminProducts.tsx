@@ -49,6 +49,8 @@ export function AdminProducts({ ctx }: { ctx: any }) {
             </div>
             <DataTable<Product>
               dateFilterKey="createdAt"
+              searchable={true}
+              defaultSort={{ key: 'createdAt', direction: 'desc' }}
               data={sortByDate(localProducts.filter(p => {
                   if (productFilter === 'all') return true;
                   if (productFilter === 'stock_low') return p.stock < 10 && p.stock > 0;

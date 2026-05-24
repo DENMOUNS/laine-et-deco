@@ -13,8 +13,8 @@ const firebaseConfig = ((config as FirebaseConfigInput).default ?? config) as Fi
 let app: FirebaseApp | null = null;
 let initialized = false;
 
-export let db: Firestore | null = null;
-export let auth: Auth | null = null;
+export let db!: Firestore;
+export let auth!: Auth;
 
 export enum OperationType {
   CREATE = 'create',
@@ -70,7 +70,6 @@ function ensureFirebaseInitialized() {
   initialized = true;
 
   if (!firebaseConfig?.projectId) {
-    console.error("Erreur de l'initialisation de la base de données: projectId est manquant dans la configuration Firebase.");
     return;
   }
 
@@ -89,7 +88,6 @@ function ensureFirebaseInitialized() {
 
     auth = getAuth(app);
     void setPersistence(auth, browserSessionPersistence).catch((error) => {
-      console.warn('Impossible de définir la persistance Firebase Auth :', error);
     });
   } catch (error) {
     console.error("Erreur lors de l'initialisation de Firebase:", error);

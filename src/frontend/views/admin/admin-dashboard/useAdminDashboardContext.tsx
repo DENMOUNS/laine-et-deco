@@ -279,7 +279,6 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
         toast.success(`${label} : Enregistré avec succès`);
       }
     } catch (err) {
-      console.error(err);
       toast.error('Erreur lors de l’enregistrement');
     }
   };
@@ -294,7 +293,6 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
         toast.success('Toute la configuration a été enregistrée');
       }
     } catch (err) {
-      console.error(err);
       toast.error('Erreur lors de l’enregistrement global');
     }
   };
@@ -487,7 +485,6 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
       await seedDashboardData();
       toast.success('Base de données initialisée avec succès !');
     } catch (error) {
-      console.error('Error seeding database:', error);
       toast.error(`Erreur lors de l'initialisation de la base de données: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsSaving(false);

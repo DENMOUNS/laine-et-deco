@@ -1,4 +1,6 @@
 import { toast } from 'sonner';
+import { sendStockTransaction } from '../../../services/dashboardApi';
+import { dispatchStaticEntityUpdate } from '../../../hooks/useStaticEntity';
 
 export function createAdminFormSubmitHandler(getCtx: () => any) {
   return async (e: React.FormEvent<HTMLFormElement>) => {
@@ -464,17 +466,93 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
               newCurrency.updatedAt = now;
               addCurrency(newCurrency);
           }
+      } else if (modalType === 'quick-stock-adjust') {
+          const quantityChange = Number(formData.get('quantityChange'));
+          const note = formData.get('note') as string || '';
+          const product = editingItem;
+
+          if (!product) {
+              toast.error('Produit introuvable');
+              return;
+          } else if (!quantityChange) {
+              toast.error('Quantité invalide');
+              return;
+          } else {
+              try {
+                  const type = quantityChange > 0 ? 'add' : 'remove';
+                  const quantity = Math.abs(quantityChange);
+                  const res: any = await sendStockTransaction(product.id, type, quantity, note);
+                  const updatedProduct = res?.product;
+                  const normalizedProduct = updatedProduct
+                    ? {
+                        ...updatedProduct,
+                        stock: updatedProduct.stock ?? updatedProduct.quantity ?? 0,
+                        quantity: updatedProduct.quantity ?? updatedProduct.stock ?? 0,
+                      }
+                    : null;
+                  if (normalizedProduct) {
+                      setLocalProducts(prev => {
+                          const newArray = prev.map(p => {
+                              if (p.id === product.id) {
+                                  const merged = { ...p, ...normalizedProduct };
+                                  return merged;
+                              }
+                              return p;
+                          });
+                          return newArray;
+                      });
+                      setEditingItem(prev => prev?.id === product.id ? { ...prev, ...normalizedProduct } : prev);
+                      dispatchStaticEntityUpdate('product', { record: normalizedProduct });
+                  } else {
+                      const newStock = Math.max(0, (product.stock || 0) + quantityChange);
+                      const inStock = newStock > 0;
+                      setLocalProducts(prev => prev.map(p => p.id === product.id ? { ...p, stock: newStock, quantity: newStock, in_stock: inStock } : p));
+                      setEditingItem(prev => prev?.id === product.id ? { ...prev, stock: newStock, quantity: newStock, in_stock: inStock } : prev);
+                  }
+                  toast.success(`Stock ajusté pour ${product.name}`);
+              } catch (err: any) {
+                  toast.error(err?.message || 'Erreur lors de l\'ajustement du stock');
+              }
+          }
       } else if (modalType === 'inventory-adjustment') {
           const productId = formData.get('productId') as string;
           const quantityChange = Number(formData.get('quantityChange'));
+          const note = formData.get('note') as string || '';
           const product = localProducts.find(p => p.id === productId);
-          
-          if (product) {
-              const newStock = Math.max(0, (product.stock || 0) + quantityChange);
-              const inStock = newStock > 0;
-              await updateProduct(productId, { stock: newStock, in_stock: inStock });
-              setLocalProducts(prev => prev.map(p => p.id === productId ? { ...p, stock: newStock, in_stock: inStock } : p));
-              toast.success(`Stock mis à jour pour ${product.name} (Nouveau stock: ${newStock})`);
+
+          if (!product) {
+              toast.error('Produit introuvable');
+          } else if (!quantityChange) {
+              toast.error('Quantité invalide');
+          } else {
+              try {
+                  const type = quantityChange > 0 ? 'add' : 'remove';
+                  const quantity = Math.abs(quantityChange);
+                  const res: any = await sendStockTransaction(productId, type, quantity, note);
+                  // Server returns updated product in res.product
+                  const updatedProduct = res?.product;
+                  const normalizedProduct = updatedProduct
+                    ? {
+                        ...updatedProduct,
+                        stock: updatedProduct.stock ?? updatedProduct.quantity ?? 0,
+                        quantity: updatedProduct.quantity ?? updatedProduct.stock ?? 0,
+                      }
+                    : null;
+                  if (normalizedProduct) {
+                      setLocalProducts(prev => prev.map(p => p.id === productId ? { ...p, ...normalizedProduct } : p));
+                      setEditingItem(prev => prev?.id === productId ? { ...prev, ...normalizedProduct } : prev);
+                      dispatchStaticEntityUpdate('product', { record: normalizedProduct });
+                  } else {
+                      // Fallback: adjust locally
+                      const newStock = Math.max(0, (product.stock || 0) + quantityChange);
+                      const inStock = newStock > 0;
+                      setLocalProducts(prev => prev.map(p => p.id === productId ? { ...p, stock: newStock, quantity: newStock, in_stock: inStock } : p));
+                      setEditingItem(prev => prev?.id === productId ? { ...prev, stock: newStock, quantity: newStock, in_stock: inStock } : prev);
+                  }
+                  toast.success(`Transaction de stock enregistrée pour ${product.name}`);
+              } catch (err: any) {
+                  toast.error(err?.message || 'Erreur lors de la transaction de stock');
+              }
           }
       }
 
@@ -484,7 +562,9 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
           setEditingItem(null);
       }
       setIsAddModalOpen(false);
-      setEditingItem(null);
+      if (activeTab !== 'inventory-detail') {
+          setEditingItem(null);
+      }
     } catch (error) {
       toast.error('Une erreur est survenue');
     } finally {

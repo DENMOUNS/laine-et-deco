@@ -101,7 +101,6 @@ export const seedFirebase = async () => {
     } catch (err: unknown) {
       const code = (err as { code?: string })?.code;
       if (code === 'permission-denied') continue;
-      console.warn(`Seed: failed to seed "${col.name}"`, err);
     }
   }
 };

@@ -38,8 +38,9 @@ export function AdminEmails({ ctx }: { ctx: any }) {
               </button>
             </div>
             <DataTable<Email>
-              
               dateFilterKey="createdAt"
+              searchable={true}
+              defaultSort={{ key: 'createdAt', direction: 'desc' }}
               data={sortByDate(EMAILS)}
               onRowClick={(e) => { setEditingItem(e); setModalType('email'); }}
               title="Gestion Emails"

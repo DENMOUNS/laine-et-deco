@@ -5,9 +5,6 @@ import { migrateCreatedAt, seedDashboardData } from '../dashboardSeed';
 
 const router = Router();
 
-// Debug: indicate this routes module was loaded
-try { console.log('[ROUTES] dashboardRoutes module loaded'); } catch (e) { }
-
 type UserRole =
   | 'super-admin'
   | 'admin'
@@ -258,15 +255,12 @@ router.put('/order/status', verifyToken, resolveRole, async (req: any, res) => {
   const role = req.user?.role ?? null;
   const uid = req.user?.uid;
 
-  console.log(`[ORDER_STATUS] User ${uid} with role ${role} attempting to update order ${orderId} to ${status}`);
 
   if (!orderId || !status) {
     return res.status(400).json({ error: 'orderId and status are required' });
   }
 
   const canUpdate = isAdminLevel(role) || isStockManager(role);
-  console.log(`[ORDER_STATUS] Permission check: isAdminLevel=${isAdminLevel(role)}, isStockManager=${isStockManager(role)}, canUpdate=${canUpdate}`);
-
   if (!canUpdate) {
     return res.status(403).json({ error: `Forbidden: role ${role} cannot update order status` });
   }
@@ -298,7 +292,6 @@ router.put('/order/status', verifyToken, resolveRole, async (req: any, res) => {
       date: new Date().toISOString(),
     };
 
-    console.log(`[ORDER_STATUS] Updating order ${orderId}: ${oldStatus} → ${status}`);
 
     await orderRef.update({
       status,
@@ -347,13 +340,10 @@ router.put('/order/status', verifyToken, resolveRole, async (req: any, res) => {
       relatedId: orderId,
     };
 
-    console.log(`[ORDER_STATUS] Creating notification:`, notification);
     await db.collection('notification').doc(notification.id).set(notification);
 
-    console.log(`[ORDER_STATUS] Order update completed successfully`);
     return res.json({ message: 'Statut de commande mis à jour.', orderId, status });
   } catch (e: any) {
-    console.error('[ORDER_STATUS] Error:', e);
     return res.status(500).json({ error: e.message || 'Impossible de mettre à jour la commande.' });
   }
 });
@@ -378,7 +368,6 @@ router.post('/cities/reset', verifyToken, resolveRole, async (_req: any, res) =>
 
     return res.json({ message: 'Villes réinitialisées.' });
   } catch (e: any) {
-    console.error('Cities reset failed:', e);
     return res.status(500).json({ error: e.message || 'Impossible de réinitialiser les villes.' });
   }
 });
@@ -395,7 +384,6 @@ router.post('/seed', verifyToken, resolveRole, async (_req: any, res) => {
     await seedDashboardData();
     return res.json({ message: 'Seed et migration exécutés.' });
   } catch (e: any) {
-    console.error('Dashboard seed failed:', e);
     return res.status(500).json({ error: e.message || 'Impossible de lancer le seed.' });
   }
 });
@@ -522,19 +510,16 @@ router.post('/send-push-notification', verifyToken, resolveRole, async (req: any
       message: `Notification envoyée à ${customersSnap.size} client(s)`,
     });
   } catch (e: any) {
-    console.error('Push notification send failed:', e);
     return res.status(500).json({ error: e.message || 'Impossible d\'envoyer la notification' });
   }
 });
 
 // Stock transaction: add or remove stock for a product
 router.post('/stock/test', verifyToken, resolveRole, async (req: any, res) => {
-  console.log('[STOCK_TEST] reached');
   return res.json({ ok: true, test: 'stock test endpoint' });
 });
 
 router.post('/stock/transaction', verifyToken, resolveRole, async (req: any, res) => {
-  console.log('[STOCK_TX] incoming request');
   const { productId, type, quantity, note } = req.body as { productId: string; type: 'add' | 'remove'; quantity: number; note?: string };
   const role = req.user?.role ?? null;
   const uid = req.user?.uid;
@@ -547,7 +532,21 @@ router.post('/stock/transaction', verifyToken, resolveRole, async (req: any, res
   }
 
   try {
-    const productRef = db.collection('product').doc(productId);
+    let productRef = db.collection('product').doc(productId);
+
+    // If the doc id doesn't exist, try resolving by an `id` field (legacy/seeded ids)
+    let directSnap = await productRef.get();
+    if (!directSnap.exists) {
+      const q = await db.collection('product').where('id', '==', productId).limit(1).get();
+      if (!q.empty) {
+        productRef = q.docs[0].ref;
+        directSnap = q.docs[0];
+      }
+    }
+
+    if (!directSnap || !directSnap.exists) {
+      throw new Error('Produit introuvable');
+    }
 
     const result = await db.runTransaction(async (tx) => {
       const snap = await tx.get(productRef);
@@ -560,11 +559,12 @@ router.post('/stock/transaction', verifyToken, resolveRole, async (req: any, res
 
       if (afterQty < 0) throw new Error('Stock insuffisant');
 
-      const updateField: any = {};
-      if ('stock' in data) updateField.stock = afterQty;
-      else if ('quantity' in data) updateField.quantity = afterQty;
-      else updateField.stock = afterQty;
-      updateField.updatedAt = firebaseAdmin.firestore.FieldValue.serverTimestamp();
+      const updateField: any = {
+        stock: afterQty,
+        quantity: afterQty,
+        in_stock: afterQty > 0,
+        updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+      };
 
       // Record lastRestock when adding stock
       if (type === 'add') {
@@ -604,9 +604,10 @@ router.post('/stock/transaction', verifyToken, resolveRole, async (req: any, res
         read: false,
       });
 
-      const stockField = 'stock' in data ? 'stock' : 'quantity';
       const productObj: any = { id: snap.id, ...data };
-      productObj[stockField] = afterQty;
+      productObj.stock = afterQty;
+      productObj.quantity = afterQty;
+      productObj.in_stock = afterQty > 0; // Recalculate in_stock status
       if (type === 'add') {
         productObj.lastRestock = Math.abs(quantity);
         productObj.lastRestockAt = new Date().toISOString();
@@ -615,9 +616,16 @@ router.post('/stock/transaction', verifyToken, resolveRole, async (req: any, res
       return { txDoc, product: productObj };
     });
 
-    return res.json({ message: 'Transaction de stock enregistrée', transaction: result.txDoc, product: result.product });
+    // Post-transaction: verify persisted document
+    try {
+      const persistedSnap = await db.collection('product').doc(productId).get();
+      const persistedData = persistedSnap.exists ? persistedSnap.data() : null;
+
+      return res.json({ message: 'Transaction de stock enregistrée', transaction: result.txDoc, product: result.product, persistedProduct: persistedData });
+    } catch (readErr: any) {
+      return res.json({ message: 'Transaction de stock enregistrée', transaction: result.txDoc, product: result.product });
+    }
   } catch (e: any) {
-    console.error('Stock transaction failed:', e);
     return res.status(400).json({ error: e.message || 'Impossible d\'effectuer la transaction' });
   }
 });
@@ -729,7 +737,6 @@ router.get('/public/config/:collection/:docId', async (req, res) => {
 
     return res.json(data);
   } catch (e: any) {
-    console.error('Public config fetch error:', e);
     return res.json({}); // ← toujours du JSON, jamais de HTML
   }
 });
@@ -785,7 +792,6 @@ router.post('/invoice/generate', verifyToken, resolveRole, async (req: any, res)
   try {
     order = await findOrderDoc(orderId);
   } catch (e: any) {
-    console.error('[INVOICE_JOB] Error loading order:', e);
     return res.status(500).json({ error: e.message || 'Impossible de charger la commande' });
   }
   
@@ -816,11 +822,9 @@ router.post('/invoice/generate', verifyToken, resolveRole, async (req: any, res)
     };
 
     await db.collection('invoice_job').doc(jobId).set(jobData);
-    console.log(`[INVOICE_JOB] Created job ${jobId} for order ${orderId}`);
 
     return res.json({ jobId, status: 'pending' });
   } catch (e: any) {
-    console.error('[INVOICE_JOB] Error creating job:', e);
     return res.status(500).json({ error: e.message || 'Impossible de créer la tâche' });
   }
 });

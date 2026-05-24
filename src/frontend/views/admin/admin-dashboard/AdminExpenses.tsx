@@ -68,6 +68,8 @@ export function AdminExpenses({ ctx }: { ctx: any }) {
               </div>
               <DataTable<Expense>
               dateFilterKey="createdAt"
+              searchable={true}
+              defaultSort={{ key: 'createdAt', direction: 'desc' }}
               data={sortByDate(localExpenses)}
                 title="Dépenses"
                 onRowClick={(expense) => { setEditingItem(expense); setModalType('expense'); setIsAddModalOpen(true); }}

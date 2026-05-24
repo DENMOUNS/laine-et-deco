@@ -25,6 +25,5 @@ filesToUpdate.forEach(file => {
     // Actually, simple replacement should work for most cases.
     content = content.replace(/bg-white(?!\/)/g, 'bg-card');
     fs.writeFileSync(fullPath, content);
-    console.log(`Updated ${file}`);
   }
 });

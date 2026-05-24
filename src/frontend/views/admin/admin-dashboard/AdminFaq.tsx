@@ -43,6 +43,8 @@ export function AdminFaq({ ctx }: { ctx: any }) {
             </div>
             <DataTable<FAQ> 
               dateFilterKey="createdAt"
+              searchable={true}
+              defaultSort={{ key: 'createdAt', direction: 'desc' }}
               data={FAQS}
               onRowClick={handleEditFAQ}
               onDelete={(item) => handleDeleteFAQ(item.id!)}

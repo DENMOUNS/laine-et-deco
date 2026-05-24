@@ -45,7 +45,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       const { auth, db } = initFirebase();
       if (!auth) {
-        console.warn('Firebase auth is not initialized.');
         set({ isAuthLoading: false });
         return;
       }

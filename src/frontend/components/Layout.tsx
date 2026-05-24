@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ShoppingBag, Search, User, Heart, Menu, X, ChevronRight, ArrowRight, Moon, Sun, Home, Shield, ArrowRightLeft, QrCode, Scissors } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { where } from 'firebase/firestore';
 
 import { initialsAvatarDataUri } from '../utils/avatarFallback';
 import { useStaticEntity } from '../hooks/useStaticEntity';
@@ -8,8 +9,10 @@ import { Product, NavItem } from '../../types';
 import type { User as FirebaseUser } from 'firebase/auth';
 
 const LogoDisplay = () => {
-  const { data: logos } = useStaticEntity<any>('site_logo');
-  const activeLogo = logos?.find((l: any) => l.status === 'active');
+  const { data: logos } = useStaticEntity<any>('site_logo', [], {
+    constraints: [where('status', '==', 'active')],
+  });
+  const activeLogo = logos?.[0];
   const logoSrc = activeLogo?.image || activeLogo?.lien;
   
   if (logoSrc) {

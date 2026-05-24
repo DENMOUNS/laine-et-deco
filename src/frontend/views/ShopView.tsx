@@ -332,7 +332,6 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
 
     recognition.onerror = (event: any) => {
       setIsVoiceSearching(false);
-      console.error("Speech recognition error", event.error);
       if (event.error === 'not-allowed') {
         sonnerToast.error("Accès au microphone refusé. Veuillez vérifier vos paramètres.");
       } else {
@@ -349,7 +348,6 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
     try {
       recognition.start();
     } catch (err) {
-      console.error("Failed to start recognition", err);
       setIsVoiceSearching(false);
     }
   };

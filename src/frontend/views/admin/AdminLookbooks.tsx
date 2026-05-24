@@ -162,6 +162,8 @@ export const AdminLookbooks: React.FC<AdminLookbooksProps> = ({ products }) => {
 
       <DataTable<Lookbook>
         data={lookbooks}
+        searchable={true}
+        defaultSort={{ key: 'createdAt', direction: 'desc' }}
         columns={[
           { 
             header: 'Image', 

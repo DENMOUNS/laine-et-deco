@@ -54,6 +54,12 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
                 setActiveTab(item.id);
                 setEditingItem(null);
                 setIsSidebarOpen(false);
+                try {
+                  // update URL so refresh stays on the same admin view
+                  onNavigate(`admin/${item.id}`);
+                } catch (e) {
+                  // ignore navigation errors
+                }
               }}
               className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all ${
                 activeTab === item.id || (item.id === 'products' && (activeTab === 'product-create' || activeTab === 'product-edit'))

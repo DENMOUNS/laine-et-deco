@@ -30,25 +30,31 @@ export function AdminSiteLogos({ ctx }: { ctx: any }) {
     if (formData.lien) payload.lien = formData.lien;
 
     if (editingItem && Object.keys(payload).length === 0) {
-      toast('Aucune modification detectee.');
+      toast('Aucune modification détectée.');
       return;
     }
 
     try {
       if (editingItem) {
-        await updateEntity(editingItem.id!, payload);
-        toast.success('Logo mis a jour');
+        if (!editingItem.id) {
+          toast.error('Impossible de mettre à jour : identifiant manquant.');
+          return;
+        }
+        if (!('status' in payload)) {
+          payload.status = editingItem.status;
+        }
+        await updateEntity(editingItem.id, payload);
+        toast.success('Logo mis à jour');
       } else {
-        const activeLogo = logos.find(l => l.status === 'active');
+        const activeLogo = logos.find((l) => l.status === 'active');
         if (activeLogo) await updateEntity(activeLogo.id!, { status: 'inactive' });
         await createEntity({ ...payload, status: 'active' });
-        toast.success('Nouveau logo defini comme actif');
+        toast.success('Nouveau logo défini comme actif');
       }
       setIsModalOpen(false);
       setFormData({ image: '', lien: '' });
       setEditingItem(null);
     } catch (error: any) {
-      console.error('Logo save error:', error);
       toast.error(error?.message || 'Erreur lors de la sauvegarde');
     }
   };
@@ -115,7 +121,7 @@ export function AdminSiteLogos({ ctx }: { ctx: any }) {
                 </div>
                 <div className="flex gap-4 pt-4">
                   <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 border border-primary/20 text-primary font-bold rounded-2xl hover:bg-primary/5 transition-all">Annuler</button>
-                  <button type="submit" className="flex-1 py-4 bg-primary text-white font-bold rounded-2xl hover:bg-accent transition-all shadow-xl shadow-primary/20">Enregistrer</button>
+                  <button type="submit" className="flex-1 py-4 bg-primary text-white font-bold rounded-2xl hover:bg-accent transition-all shadow-xl shadow-primary/20">{editingItem ? 'Enregistrer les modifications' : 'Ajouter le logo'}</button>
                 </div>
               </form>
             </div>

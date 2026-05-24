@@ -30,6 +30,4 @@ function copyRecursiveSync(src, dest) {
   }
 }
 
-console.log('Restoring from _original_repo...');
 copyRecursiveSync('./_original_repo', '.');
-console.log('Restore complete!');

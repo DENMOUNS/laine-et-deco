@@ -42,12 +42,8 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ startOpen = false }) => 
               const msgs = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
               if (isMounted.current) setMessages(msgs);
             } catch (e) {
-              console.error('Error processing chat snapshot:', e);
             }
           },
-          (error) => {
-            if (isMounted.current) console.error('Error fetching chat messages:', error);
-          }
         );
       } else {
         if (isMounted.current) setMessages([]);
@@ -111,7 +107,6 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ startOpen = false }) => 
       const data = await response.json();
       return data.text || "Je rencontre une petite difficulté technique.";
     } catch (error: any) {
-      console.error("Local Backend API Error:", error);
       return "Je rencontre une petite difficulté technique, mais je suis toujours là pour vous aider ! Que souhaitez-vous savoir sur nos produits ?";
     }
   };

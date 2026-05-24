@@ -68,7 +68,6 @@ export const CustomOrderView: React.FC = () => {
       setMaterials('');
       setDimensions('');
     } catch (error) {
-      console.error('Erreur lors de l\'envoi de la demande:', error);
       toast.error('Une erreur est survenue lors de l\'envoi. Veuillez réessayer.');
     } finally {
       setIsSubmitting(false);

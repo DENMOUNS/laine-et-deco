@@ -34,7 +34,6 @@ filesToProcess.forEach(file => {
     content = content.replace(/bg-accent\/10 rounded-full blur-3xl/g, 'bg-primary/5 rounded-full blur-3xl');
 
     fs.writeFileSync(filePath, content);
-    console.log(`Processed ${file}`);
   } else {
     console.log(`File not found: ${file}`);
   }

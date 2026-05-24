@@ -31,8 +31,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({ product, onAddToCart, 
         throw new Error('Web Share API not supported');
       }
     } catch (err: any) {
-      if (err.name === 'AbortError') return; // Ignore cancellation
-      console.error('Erreur lors du partage', err);
+      if (err.name === 'AbortError') return;
       try {
         await navigator.clipboard.writeText(window.location.href);
         toast.success('Lien copié dans le presse-papier !');

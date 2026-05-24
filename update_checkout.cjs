@@ -87,7 +87,6 @@ if (step3Start !== -1 && endToUse !== -1) {
                       </div>`;
   content = content.substring(0, step3Start) + newStep3 + content.substring(endToUse);
   fs.writeFileSync(path, content, 'utf8');
-  console.log('CheckoutView updated successfully');
 } else {
   console.log('Could not find step3 bounds:', step3Start, endToUse);
 }

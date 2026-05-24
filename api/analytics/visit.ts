@@ -53,7 +53,6 @@ export default async function handler(req: any, res: any) {
 
     return res.status(200).json({ ok: true });
   } catch (error) {
-    console.error('Error tracking visitor:', error);
     return res.status(500).json({ error: 'Unable to track visitor' });
   }
 }

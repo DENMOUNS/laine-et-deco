@@ -201,6 +201,29 @@ router.post('/:entity', verifyToken, resolveRole, async (req: any, res) => {
         return res.status(201).json({ id: docId });
       }
 
+      if (entity === 'site_logo') {
+        const newLogoData = {
+          ...req.body,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        if (newLogoData.status === 'active') {
+          const activeLogos = await db.collection(entity).where('status', '==', 'active').get();
+          const batch = db.batch();
+          activeLogos.forEach((logo) => {
+            batch.update(logo.ref, { status: 'inactive', updatedAt: new Date() });
+          });
+          const docRef = db.collection(entity).doc();
+          batch.set(docRef, newLogoData);
+          await batch.commit();
+          return res.status(201).json({ id: docRef.id });
+        }
+
+        const ref = await db.collection(entity).add(newLogoData);
+        return res.status(201).json({ id: ref.id });
+      }
+
       const ref = await db.collection(entity).add({
         ...req.body,
         createdAt: new Date(),
@@ -242,6 +265,9 @@ router.put('/:entity/:id', verifyToken, resolveRole, async (req: any, res) => {
     const snap = await ref.get();
 
     if (!snap.exists) {
+      if (entity === 'site_logo') {
+        return res.status(404).json({ error: 'Introuvable' });
+      }
       if (isAdminLevel(role)) {
         await ref.set({
           ...req.body,
@@ -297,6 +323,19 @@ router.put('/:entity/:id', verifyToken, resolveRole, async (req: any, res) => {
       // Prevent direct stock/quantity modification via product update
       if (entity === 'product' && ('stock' in req.body || 'quantity' in req.body)) {
         return res.status(403).json({ error: 'La quantité/stock ne peut pas être modifiée ici. Utilisez la gestion des stocks.' });
+      }
+
+      if (entity === 'site_logo' && req.body.status === 'active') {
+        const activeLogos = await db.collection(entity).where('status', '==', 'active').get();
+        const batch = db.batch();
+        activeLogos.forEach((logo) => {
+          if (logo.id !== id) {
+            batch.update(logo.ref, { status: 'inactive', updatedAt: new Date() });
+          }
+        });
+        batch.update(ref, { ...req.body, updatedAt: new Date() });
+        await batch.commit();
+        return res.json({ message: 'Updated' });
       }
 
       // If price changed, record a system notification with old/new
