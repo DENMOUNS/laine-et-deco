@@ -86,10 +86,6 @@ export const FAQ_ITEMS: FAQ[] = [
   }
 ];
 
-export const ANALYTICS = [
-  { id: 'visitors', count: 1250 }
-];
-
 export const PRODUCTS: Product[] = [
   {
     id: 'p-tech1',

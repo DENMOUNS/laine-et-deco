@@ -12,7 +12,6 @@ import {
   AdminOrders,
   AdminLogs,
   AdminStats,
-  AdminAnalytics,
   AdminEvents,
   AdminSite,
   AdminProducts,
@@ -239,8 +238,6 @@ export function AdminDashboardShell({ ctx }: { ctx: any }) {
         <AdminLogs ctx={ctx} />
 
         <AdminStats ctx={ctx} />
-
-        <AdminAnalytics ctx={ctx} />
 
         <AdminEvents ctx={ctx} />
 

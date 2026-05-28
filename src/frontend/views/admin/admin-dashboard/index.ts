@@ -6,7 +6,6 @@ export { AdminCustomerGroups } from './AdminCustomerGroups';
 export { AdminOrders } from './AdminOrders';
 export { AdminLogs } from './AdminLogs';
 export { AdminStats } from './AdminStats';
-export { AdminAnalytics } from './AdminAnalytics';
 export { AdminEvents } from './AdminEvents';
 export { AdminSite } from './AdminSite';
 export { AdminProducts } from './AdminProducts';

@@ -40,7 +40,6 @@ export const getAdminMenuItems = () => [
   // Rapports
   { id: 'reports_header', label: 'RAPPORTS', isHeader: true },
   { id: 'stats', label: 'Statistiques', icon: <BarChart3 size={20} />, permission: 'reports.view' },
-  { id: 'analytics', label: 'Analytique Avancée', icon: <TrendingUp size={20} />, permission: 'reports.view' },
   
   // Système
   { id: 'system_header', label: 'SYSTÈME', isHeader: true },

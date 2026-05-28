@@ -20,6 +20,9 @@ export const useVisitorCounter = () => {
             if (result?.ok) {
               localStorage.setItem(VISIT_KEY, now.toString());
             }
+          } else if (response.status === 429) {
+            // If the analytics endpoint is rate-limited, avoid retrying repeatedly.
+            localStorage.setItem(VISIT_KEY, now.toString());
           }
         } catch {
           /* analytics non bloquant */

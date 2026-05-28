@@ -1,7 +1,6 @@
 import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { Toaster } from 'sonner';
 import { RouteFallback } from './components/RouteFallback';
-import { useVisitorCounter } from './hooks/useVisitorCounter';
 import { useAuthStore } from '../stores/authStore';
 import { useConfigStore } from '../stores/configStore';
 import { SiteConfig, PromoEvent, NavItem } from '../types';
@@ -85,7 +84,6 @@ function useDeferredConfigSync() {
 }
 
 export function App() {
-  useVisitorCounter();
   useDeferredConfigSync();
 
   const initAuthListener = useAuthStore((s) => s.initAuthListener);

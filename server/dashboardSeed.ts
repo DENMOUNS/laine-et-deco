@@ -46,8 +46,7 @@ const collectionsToSeed = [
   { name: 'nav_item', data: constants.NAV_ITEMS },
   { name: 'admin_role', data: constants.ADMIN_ROLES },
   { name: 'user', data: constants.USERS },
-  { name: 'order', data: constants.ORDERS },
-  { name: 'analytics', data: constants.ANALYTICS }
+  { name: 'order', data: constants.ORDERS }
 ];
 
 export async function seedDashboardData() {

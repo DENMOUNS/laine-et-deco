@@ -121,8 +121,16 @@ const resolveRole = async (
   _: Response,
   next: NextFunction
 ) => {
-  req.user!.role = await getUserRole(req.user!.uid, req.user!.email, req.user!.role as string);
-  next();
+  try {
+    if (!req.user?.uid) {
+      return next(new Error('Unauthorized')); 
+    }
+    req.user.role = await getUserRole(req.user.uid, req.user.email, req.user.role as string);
+    next();
+  } catch (error: any) {
+    console.error('resolveRole error:', error);
+    return next(error);
+  }
 };
 
 // ==========================
@@ -131,8 +139,12 @@ const resolveRole = async (
 
 router.post('/:entity', verifyToken, resolveRole, async (req: any, res) => {
   const { entity } = req.params;
-  const role = req.user.role;
-  const uid = req.user.uid;
+  const role = req.user?.role ?? null;
+  const uid = req.user?.uid;
+
+  if (!uid) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
 
   try {
     // admin + super-admin
@@ -247,6 +259,7 @@ router.post('/:entity', verifyToken, resolveRole, async (req: any, res) => {
 
     return res.status(403).json({ error: 'Forbidden' });
   } catch (e: any) {
+    console.error(`Entity create error for ${entity}:`, e);
     return res.status(400).json({ error: e.message });
   }
 });

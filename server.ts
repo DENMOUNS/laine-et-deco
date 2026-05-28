@@ -7,6 +7,7 @@ import fs from "node:fs";
 import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import DOMPurify from "isomorphic-dompurify";
+import { auth, db } from './server/firebaseAdmin.js';
 import entityRoutes from './server/routes/entityRoutes';
 import dashboardRoutes from './server/routes/dashboardRoutes';
 import storageRoutes from './server/routes/storageRoutes';
@@ -15,6 +16,51 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  const isAdminRole = (role: string | undefined | null) => {
+    return ['super-admin', 'admin', 'editor', 'stock-manager', 'support-client'].includes(role ?? '');
+  };
+
+  const resolveUserRoleFromToken = async (token: string) => {
+    try {
+      const decoded = await auth.verifyIdToken(token);
+      const uid = decoded.uid;
+      const email = decoded.email;
+      let role: string | null = null;
+
+      const userSnap = await db.collection('user').doc(uid).get();
+      if (userSnap.exists) {
+        role = userSnap.data()?.role;
+      }
+
+      if (!role && email) {
+        const emailQuery = await db.collection('user').where('email', '==', email).limit(1).get();
+        if (!emailQuery.empty) {
+          role = emailQuery.docs[0].data()?.role;
+        }
+      }
+
+      if (!role) {
+        const uidQuery = await db.collection('user').where('uid', '==', uid).limit(1).get();
+        if (!uidQuery.empty) {
+          role = uidQuery.docs[0].data()?.role;
+        }
+      }
+
+      return role;
+    } catch {
+      return null;
+    }
+  };
+
+  const attachAuthRole = async (req: any, _res: any, next: any) => {
+    const bearer = req.headers.authorization;
+    if (bearer?.startsWith('Bearer ')) {
+      const token = bearer.replace('Bearer ', '');
+      req.authRole = await resolveUserRoleFromToken(token);
+    }
+    next();
+  };
+
    // --- Security: Rate Limiting (DDoS & Brute Force protection) ---
   const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -22,6 +68,9 @@ async function startServer() {
     message: { error: "Trop de requêtes, veuillez réessayer plus tard." },
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req) => {
+      return isAdminRole(req.authRole);
+    },
   });
 
 
@@ -30,6 +79,7 @@ async function startServer() {
     process.env.SERVE_WITH_VITE === 'true' || process.env.NODE_ENV !== 'production';
 
   app.use(express.json({ limit: '10mb' }));
+  app.use('/api/', attachAuthRole);
   app.use("/api/", apiLimiter);
   const invoiceDir = path.join(process.cwd(), 'public', 'invoices');
   if (!fs.existsSync(invoiceDir)) {
@@ -55,6 +105,14 @@ async function startServer() {
   // --- API Routes ---
   app.use('/api/entity', entityRoutes);
   app.use('/api/dashboard', dashboardRoutes);
+
+  app.use((err: any, _req: any, res: any, next: any) => {
+    console.error('Unhandled server error:', err);
+    if (res.headersSent) {
+      return next(err);
+    }
+    res.status(500).json({ error: err?.message || 'Internal Server Error' });
+  });
 
   // Initialize AI safely on backend
   let ai: GoogleGenAI | null = null;
@@ -124,23 +182,6 @@ async function startServer() {
         return res.status(400).json({ error: "Invalid input data", details: error.issues });
       }
       res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.post("/api/analytics/visit", async (_req, res) => {
-    try {
-      const { db, firebaseAdmin } = await import("./server/firebaseAdmin");
-      await db.collection("analytics").doc("visitors").set(
-        {
-          count: firebaseAdmin.firestore.FieldValue.increment(1),
-          updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
-        },
-        { merge: true }
-      );
-
-      return res.json({ ok: true });
-    } catch (error: any) {
-      return res.status(500).json({ error: "Unable to track visitor" });
     }
   });
 

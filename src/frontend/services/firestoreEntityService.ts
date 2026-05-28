@@ -35,7 +35,6 @@ const PUBLIC_COLLECTIONS = [
   'coupon',
   'nav_item',
   'faq',
-  'analytics',
   'site_logo',
   'site_color',
   'hero_banner',

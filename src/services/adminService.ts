@@ -120,14 +120,13 @@ export function handleEntityDelete(
 
 // ── Stats Calculations ──
 
-export function calculateAdminStats(orders: Order[], users: any[], analytics: any[]) {
+export function calculateAdminStats(orders: Order[], users: any[]) {
   const totalSales = orders.reduce((sum, o) => sum + (o.total || 0), 0);
   const totalOrdersCount = orders.length;
   const totalCustomers = users.length;
-  const totalVisitors = analytics.find(a => a.id === 'visitors')?.count || 0;
   const averageOrderValue = totalOrdersCount > 0 ? Math.round(totalSales / totalOrdersCount) : 0;
 
-  return { totalSales, totalOrdersCount, totalCustomers, totalVisitors, averageOrderValue };
+  return { totalSales, totalOrdersCount, totalCustomers, averageOrderValue };
 }
 
 // ── Permissions ──
