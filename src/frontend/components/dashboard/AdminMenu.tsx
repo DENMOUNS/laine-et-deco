@@ -60,6 +60,5 @@ export const getAdminMenuItems = () => [
   { id: 'cities', label: 'Villes & Tarifs', icon: <MapPin size={20} />, permission: 'system.view' },
   { id: 'import-export', label: 'Import / Export', icon: <Download size={20} />, permission: 'system.view' },
   { id: 'roles', label: 'Rôles', icon: <Lock size={20} />, permission: 'super-admin' },
-  { id: 'logs', label: 'Historique & Logs', icon: <History size={20} />, permission: 'super-admin' },
   { id: 'notifications', label: 'Notifications Système', icon: <Bell size={20} />, permission: 'system.view' },
 ];

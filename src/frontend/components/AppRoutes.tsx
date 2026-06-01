@@ -30,9 +30,9 @@ const CartView = lazy(() => import('../views/CartView').then(m => ({ default: m.
 const AdminDashboard = lazy(() => import('../views/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const AdminProductDetailView = lazy(() => import('../views/AdminProductDetailView').then(m => ({ default: m.AdminProductDetailView })));
 const AdminUserDetailView = lazy(() => import('../views/AdminUserDetailView').then(m => ({ default: m.AdminUserDetailView })));
-const AdminLogsView = lazy(() => import('../views/AdminLogsView').then(m => ({ default: m.AdminLogsView })));
 const ProductDetailView = lazy(() => import('../views/ProductDetailView').then(m => ({ default: m.ProductDetailView })));
 const CheckoutView = lazy(() => import('../views/CheckoutView').then(m => ({ default: m.CheckoutView })));
+
 const TeamView = lazy(() => import('../views/TeamView').then(m => ({ default: m.TeamView })));
 const PacksView = lazy(() => import('../views/PacksView').then(m => ({ default: m.PacksView })));
 const CustomPackBuilderView = lazy(() => import('../views/CustomPackBuilderView').then(m => ({ default: m.CustomPackBuilderView })));
@@ -440,7 +440,6 @@ export const AppRoutes: React.FC = () => {
           <Route path="/admin/*" element={<AdminDashboardPage />} />
           <Route path="/admin/product/:id" element={<AdminProductDetailPage />} />
           <Route path="/admin/user/:id" element={<AdminUserDetailPage />} />
-          <Route path="/admin-logs" element={<AdminLogsView onNavigate={onNavigate} />} />
           
           {/* Special */}
           <Route path="/qr-landing" element={<QRLandingView onNavigate={onNavigate} />} />

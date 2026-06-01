@@ -9,7 +9,7 @@ interface UseStaticEntityOptions {
   deps?: unknown[];
 }
 
-const DEFAULT_LIMIT = 200;
+const DEFAULT_LIMIT = 0;
 interface StaticEntityUpdatePayload<T> {
   entityType: string;
   fullData?: T[];
@@ -79,7 +79,7 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
 
         const finalConstraints: QueryConstraint[] = [...constraints];
         const hasLimit = finalConstraints.some((c) => (c as { type?: string }).type === 'limit');
-        if (!hasLimit) {
+        if (!hasLimit && DEFAULT_LIMIT > 0) {
           finalConstraints.push(limit(DEFAULT_LIMIT));
         }
 

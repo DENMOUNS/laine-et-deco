@@ -26,7 +26,6 @@ export function useNavigateAdapter() {
       case 'admin-product-detail': path = id ? `/admin/product/${id}` : '/admin'; break;
       case 'admin-user-detail': path = id ? `/admin/user/${id}` : '/admin'; break;
       case 'admin-dashboard': path = '/admin'; break;
-      case 'admin-logs': path = '/admin-logs'; break;
       case 'pack-detail': path = id ? `/pack/${id}` : '/packs'; break;
       case 'blog-post': path = id ? `/blog/${id}` : '/blog'; break;
       case 'order-tracking': path = id ? `/order-tracking/${id}` : '/order-tracking'; break;

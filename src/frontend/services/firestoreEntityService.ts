@@ -47,8 +47,31 @@ const PUBLIC_COLLECTIONS = [
   'custom_section_config'
 ];
 
-const CACHEABLE_COLLECTIONS = new Set(['product', 'promo_event']);
-const DEFAULT_LIMIT = 80;
+const CACHEABLE_COLLECTIONS = new Set([
+  'product',
+  'promo_event',
+  'faq',
+  'sales_data',
+  'order',
+  'admin_role',
+  'traffic_source',
+  'retention_data',
+  'category_distribution',
+  'device_data',
+  'user',
+  'revenue_by_payment',
+  'site_config',
+  'notification',
+  'nav_item',
+  'category',
+  'pack',
+  'blog_post',
+  'lookbook',
+  'currency',
+  'city',
+  'coupon'
+]);
+const DEFAULT_LIMIT = 0;
 
 export interface EntityServiceOptions {
   constraints?: QueryConstraint[];
@@ -70,7 +93,7 @@ const buildEntityQuery = (
   defaultLimit = DEFAULT_LIMIT
 ) => {
   const finalConstraints = [...constraints];
-  if (!hasLimitConstraint(finalConstraints)) {
+  if (!hasLimitConstraint(finalConstraints) && defaultLimit > 0) {
     finalConstraints.push(limit(defaultLimit));
   }
 
@@ -133,11 +156,24 @@ export const subscribeToEntityCollection = <T extends BaseEntity>(
             });
             const body = await resp.json().catch(() => null);
             if (resp.ok && Array.isArray(body)) {
+              if (CACHEABLE_COLLECTIONS.has(entityType)) {
+                writeCache(getEntityCacheKey(entityType), body as T[]);
+              }
               onData(body as T[]);
               return;
             }
+
+            const fallbackCache = readCache<T[]>(getEntityCacheKey(entityType));
+            if (fallbackCache) {
+              onData(fallbackCache);
+              return;
+            }
           } catch (e) {
-            // ignore and fall through to original error handling
+            const fallbackCache = readCache<T[]>(getEntityCacheKey(entityType));
+            if (fallbackCache) {
+              onData(fallbackCache);
+              return;
+            }
           }
 
           onError(err instanceof Error ? err : new Error(String(err)));

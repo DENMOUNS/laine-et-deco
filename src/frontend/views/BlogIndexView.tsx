@@ -3,9 +3,12 @@ import { motion } from 'motion/react';
 import { BookOpen, Calendar, User, ArrowRight } from 'lucide-react';
 import { useStaticEntity } from '../hooks/useStaticEntity';
 import { Button } from '../components/ui/Button';
+import { useNavigate } from 'react-router-dom';
 
 export const BlogIndexView: React.FC = () => {
   const { data: BLOG_POSTS } = useStaticEntity<any>('blog_post');
+  const navigate = useNavigate();
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-12">
       <div className="text-center mb-20">
@@ -67,10 +70,10 @@ export const BlogIndexView: React.FC = () => {
               </p>
               
               <div className="mt-auto">
-                <Button variant="ghost" className="p-0 text-accent font-bold hover:bg-transparent hover:text-accent/80 group/btn">
-                  Lire la suite 
-                  <ArrowRight size={16} className="ml-2 transition-transform group-hover/btn:translate-x-1" />
-                </Button>
+                <button onClick={() => navigate(`/blog/${post.id}`)} className="p-0 text-accent font-bold hover:underline inline-flex items-center gap-2">
+                  Lire la suite
+                  <ArrowRight size={16} className="ml-2 transition-transform group-hover:translate-x-1" />
+                </button>
               </div>
             </div>
           </motion.article>
