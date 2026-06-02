@@ -14,7 +14,6 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
   { id: 'nav-10', name: 'FAQ', view: 'faq', order: 10, status: 'active', position: 'side', createdAt: '2024-01-01T00:00:00Z' },
   { id: 'nav-11', name: 'À propos', view: 'about', order: 11, status: 'active', position: 'side', createdAt: '2024-01-01T00:00:00Z' },
   { id: 'nav-11-5', name: 'Équipe', view: 'team', order: 11.5, status: 'active', position: 'side', createdAt: '2024-01-01T00:00:00Z' },
-  { id: 'nav-12', name: 'Points VIP', view: 'loyalty', order: 12, status: 'active', position: 'side', createdAt: '2024-01-01T00:00:00Z' },
   { id: 'nav-13', name: 'Contactez-nous', view: 'contact', order: 13, status: 'active', position: 'side', createdAt: '2024-01-01T00:00:00Z' },
 ];
 

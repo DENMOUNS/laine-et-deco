@@ -70,7 +70,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const mainNavLinks = navItems.filter(item => item.status === 'active' && (!item.position || item.position === 'top')).sort((a, b) => a.order - b.order);
 
-  const dynamicSidebarLinks = navItems.filter(item => item.status === 'active' && item.position === 'side').sort((a, b) => a.order - b.order).map(item => ({ name: item.name, view: item.view, icon: <ChevronRight size={18} /> }));
+  const dynamicSidebarLinks = navItems.filter(item => item.status === 'active' && item.position === 'side' && item.view !== 'loyalty' && item.name !== 'Points VIP').sort((a, b) => a.order - b.order).map(item => ({ name: item.name, view: item.view, icon: <ChevronRight size={18} /> }));
 
   const sidebarLinks = dynamicSidebarLinks.length > 0 ? dynamicSidebarLinks : [
     { name: 'Compagnon Tricot', view: 'knitting-companion', icon: <ChevronRight size={18} /> },
