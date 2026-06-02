@@ -70,8 +70,9 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ startOpen = false }) => 
   };
     const getAIResponse = async (userMessage: string) => {
     try {
-      const productsContext = PRODUCTS.map(p => 
-        `- ${p.name}: ${p.price} FCFA, Catégorie: ${p.category}, Description: ${p.description}`
+      // Limit to 50 products and truncate descriptions to avoid exceeding server limits
+      const productsContext = PRODUCTS.slice(0, 50).map(p =>
+        `- ${p.name}: ${p.price} FCFA, Cat: ${p.category}, Desc: ${(p.description || '').slice(0, 100)}`
       ).join('\n');
 
       const systemInstruction = `Tu es l'assistant shopping expert de "Laine et Déco", un concept store polyvalent.

@@ -10,7 +10,6 @@ export { AdminEvents } from './AdminEvents';
 export { AdminSite } from './AdminSite';
 export { AdminProducts } from './AdminProducts';
 export { AdminProductForm } from './AdminProductForm';
-export { AdminPayments } from './AdminPayments';
 export { AdminExpenses } from './AdminExpenses';
 export { AdminRmas } from './AdminRmas';
 export { AdminAbandonedCarts } from './AdminAbandonedCarts';

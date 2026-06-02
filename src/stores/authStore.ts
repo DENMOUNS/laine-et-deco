@@ -53,17 +53,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({ user: currentUser, isAuthLoading: false });
 
         if (currentUser?.uid) {
-          const cached = readCache(userProfileCacheKey(currentUser.uid));
-          if (cached) {
-            set({ currentUserDoc: cached });
-          }
+          // readCache is async (IndexedDB) — must be awaited
+          readCache(userProfileCacheKey(currentUser.uid)).then((cached) => {
+            if (cached) {
+              set({ currentUserDoc: cached });
+            }
+          });
 
           if (db) {
             void getDoc(doc(db, 'user', currentUser.uid)).then((snap) => {
               if (!snap.exists()) return;
               const profile = { id: snap.id, ...snap.data() };
               set({ currentUserDoc: profile });
-              writeCache(userProfileCacheKey(currentUser.uid), profile);
+              void writeCache(userProfileCacheKey(currentUser.uid), profile);
             });
           }
         } else {

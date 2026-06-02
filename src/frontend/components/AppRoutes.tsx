@@ -56,6 +56,7 @@ const ContactView = lazy(() => import('../views/ContactView').then(m => ({ defau
 const FAQView = lazy(() => import('../views/FAQView').then(m => ({ default: m.FAQView })));
 const QRLandingView = lazy(() => import('../views/QRLandingView').then(m => ({ default: m.QRLandingView })));
 const Error404View = lazy(() => import('../views/Error404View').then(m => ({ default: m.Error404View })));
+const AboutView = lazy(() => import('../views/AboutView').then(m => ({ default: m.AboutView })));
 
 // ── Route wrapper components ──
 // Each wrapper reads ONLY what it needs from stores — no monolithic useSharedData
@@ -396,7 +397,7 @@ export const AppRoutes: React.FC = () => {
           <Route path="/blog" element={<BlogIndexView />} />
           <Route path="/blog/:id" element={<BlogPostPage />} />
           <Route path="/team" element={<TeamView onNavigate={onNavigate} />} />
-          <Route path="/about" element={<StaticPageView title="À Propos de Nous" onBack={() => {}} content={<div className="space-y-6"><p>Bienvenue chez Laine et Déco.</p></div>} />} />
+          <Route path="/about" element={<AboutView onNavigate={onNavigate} />} />
           <Route path="/contact" element={<ContactView onNavigate={onNavigate} />} />
           <Route path="/faq" element={<FAQView onNavigate={onNavigate} />} />
           

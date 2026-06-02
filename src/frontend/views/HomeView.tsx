@@ -1113,11 +1113,15 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
               return (
                 <div key={pack.id} className="bg-white rounded-[2rem] p-8 shadow-sm border border-primary/5 flex flex-col gap-6 group cursor-pointer hover:shadow-md transition-shadow" onClick={() => onNavigate('pack-detail', pack.id)}>
                   <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-100">
-                     <div className="grid grid-cols-2 gap-1 h-full">
-                        {packProducts.slice(0, 4).map((p, i) => (
-                            <img key={i} src={p.image} alt={p.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" loading="lazy" width="200" height="200" />
-                        ))}
-                     </div>
+                     {pack.coverImage ? (
+                        <img src={pack.coverImage} alt={pack.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" loading="lazy" />
+                     ) : (
+                        <div className="grid grid-cols-2 gap-1 h-full">
+                           {packProducts.slice(0, 4).map((p, i) => (
+                               <img key={i} src={p?.image} alt={p?.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" loading="lazy" width="200" height="200" />
+                           ))}
+                        </div>
+                     )}
                      <div className="absolute bottom-0 right-0 bg-primary text-white px-3 py-1 rounded-tl-xl text-xs font-bold uppercase tracking-widest">
                         {packProducts.length} Articles
                      </div>

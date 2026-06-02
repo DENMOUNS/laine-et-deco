@@ -39,7 +39,7 @@ export const PackDetailView: React.FC<PackDetailViewProps> = ({ packId, onNaviga
   }, 0);
 
   const discountedPrice = originalPrice * (1 - pack.discountPercentage / 100);
-  const packImage = packProducts[0]?.image || 'https://picsum.photos/seed/pack/800/600';
+  const packImage = pack.coverImage || packProducts[0]?.image || 'https://picsum.photos/seed/pack/800/600';
 
   const handleAddPackToCart = () => {
     onAddPackToCart(pack, packQuantity);

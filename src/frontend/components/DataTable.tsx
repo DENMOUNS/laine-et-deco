@@ -36,6 +36,11 @@ interface DataTableProps<T> {
   searchable?: boolean;
   defaultSort?: { key: string; direction: 'asc' | 'desc' } | null;
   dateFilterKey?: keyof T; // Key to filter by date
+  serverPagination?: {
+    totalItems: number;
+    isLoading?: boolean;
+    onPageChange: (direction: 'next' | 'prev', limit: number) => void;
+  };
 }
 
 type DateRangeType = 'all' | 'today' | 'yesterday' | 'this-week' | 'this-month' | 'this-year' | 'custom';
@@ -51,7 +56,8 @@ export function DataTable<T extends { id?: string | number }>({
   defaultItemsPerPage = 5,
   searchable = true,
   defaultSort = null,
-  dateFilterKey
+  dateFilterKey,
+  serverPagination
 }: DataTableProps<T>) {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -68,11 +74,12 @@ export function DataTable<T extends { id?: string | number }>({
   const handleItemsPerPageChange = (val: number) => {
     setItemsPerPage(val);
     setCurrentPage(1);
+    // Note: serverPagination logic would need a full reset here if we support it.
   };
 
   // Filter data based on search and date
   const filteredData = useMemo(() => {
-    let result = data;
+    let result = Array.isArray(data) ? data : [];
 
     // Date Filtering
     if (dateFilterKey && dateRangeType !== 'all') {
@@ -143,24 +150,32 @@ export function DataTable<T extends { id?: string | number }>({
     });
   }, [data, searchTerm, dateFilterKey, dateRangeType, customStartDate, customEndDate]);
 
+  // Ensure filteredData is always an array before sorting
+  const safeFilteredData = Array.isArray(filteredData) ? filteredData : [];
+
   // Sort data
   const sortedData = useMemo(() => {
-    if (!sortConfig) return filteredData;
-    return [...filteredData].sort((a, b) => {
+    if (!sortConfig) return safeFilteredData;
+    return [...safeFilteredData].sort((a, b) => {
       const aVal = a[sortConfig.key as keyof T];
       const bVal = b[sortConfig.key as keyof T];
       if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
       if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [filteredData, sortConfig]);
+  }, [safeFilteredData, sortConfig]);
 
   // Paginate data
-  const totalPages = Math.ceil(sortedData.length / itemsPerPage) || 1;
-  const paginatedData = sortedData.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const totalPages = serverPagination
+    ? Math.ceil(serverPagination.totalItems / itemsPerPage) || 1
+    : Math.ceil(sortedData.length / itemsPerPage) || 1;
+
+  const paginatedData = serverPagination 
+    ? sortedData // server pagination implies sortedData is already paginated exactly for this page
+    : sortedData.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+    );
 
   const getExportData = () => {
     const headers = columns.map(c => c.header);
@@ -450,14 +465,17 @@ export function DataTable<T extends { id?: string | number }>({
 
         <div className="flex items-center gap-6">
           <p className="text-sm text-primary/70 font-medium">
-            <span className="font-bold text-primary">{(currentPage - 1) * itemsPerPage + 1}</span> - <span className="font-bold text-primary">{Math.min(currentPage * itemsPerPage, sortedData.length)}</span> sur <span className="font-bold text-primary">{sortedData.length}</span>
+            <span className="font-bold text-primary">{(currentPage - 1) * itemsPerPage + 1}</span> - <span className="font-bold text-primary">{Math.min(currentPage * itemsPerPage, serverPagination ? serverPagination.totalItems : sortedData.length)}</span> sur <span className="font-bold text-primary">{serverPagination ? serverPagination.totalItems : sortedData.length}</span>
           </p>
           <div className="flex gap-2">
             <Button
               variant="outline"
               size="sm"
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(prev => prev - 1)}
+              disabled={currentPage === 1 || serverPagination?.isLoading}
+              onClick={() => {
+                if (serverPagination) serverPagination.onPageChange('prev', itemsPerPage);
+                setCurrentPage(prev => prev - 1);
+              }}
               className="rounded-xl"
             >
               <ChevronLeft size={18} />
@@ -465,8 +483,11 @@ export function DataTable<T extends { id?: string | number }>({
             <Button
               variant="outline"
               size="sm"
-              disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage(prev => prev + 1)}
+              disabled={currentPage === totalPages || serverPagination?.isLoading}
+              onClick={() => {
+                if (serverPagination) serverPagination.onPageChange('next', itemsPerPage);
+                setCurrentPage(prev => prev + 1);
+              }}
               className="rounded-xl"
             >
               <ChevronRight size={18} />

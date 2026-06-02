@@ -172,7 +172,6 @@ import { AdminEvents } from './AdminEvents';
 import { AdminSite } from './AdminSite';
 import { AdminProducts } from './AdminProducts';
 import { AdminProductForm } from './AdminProductForm';
-import { AdminPayments } from './AdminPayments';
 import { AdminExpenses } from './AdminExpenses';
 import { AdminRmas } from './AdminRmas';
 import { AdminAbandonedCarts } from './AdminAbandonedCarts';
@@ -232,7 +231,7 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
   const isActiveTab = (tabs: string[]) => tabs.includes(activeTab);
 
   const { data: ORDERS, setData: setLocalOrders, deleteEntity: deleteOrder, isLoading: isLoadingOrders } = useEntity<Order>('order', [], {
-    enabled: isActiveTab(['overview', 'orders', 'order-detail', 'search-results', 'customers', 'customer-detail', 'notifications', 'messages', 'stats'])
+    enabled: isActiveTab(['order-detail', 'search-results', 'customers', 'customer-detail', 'notifications', 'messages'])
   });
   const allOrders = useMemo(() => {
     return ORDERS;
@@ -244,7 +243,7 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
     enabled: isActiveTab(['customers', 'customer-detail', 'customer-groups', 'customer-group-detail', 'overview', 'search-results', 'notifications', 'messages', 'stats'])
   });
   const { data: CATEGORIES, updateEntity: updateCategory, addEntity: addCategory, deleteEntity: deleteCategory, setData: setLocalCategories, isLoading: isLoadingCategories } = useEntity<Category>('category', [], {
-    enabled: isActiveTab(['categories', 'category-create', 'category-edit', 'products', 'product-create', 'product-edit', 'inventory'])
+    enabled: isActiveTab(['products', 'product-create', 'product-edit', 'inventory'])
   });
   const { data: NAV_ITEMS, updateEntity: updateNavItem, addEntity: addNavItem, deleteEntity: deleteNavItem } = useEntity<NavItem>('nav_item', [], {
     enabled: isActiveTab(['nav-items', 'site', 'stats'])
@@ -438,7 +437,7 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
     enabled: isActiveTab(['stats'])
   });
   const { data: PACKS, updateEntity: updatePack, addEntity: addPack, deleteEntity: deletePack, setData: setLocalPacks, isLoading: isLoadingPacks } = useEntity<Pack>('pack', [], {
-    enabled: isActiveTab(['packs'])
+    enabled: false
   });
   const localPacks = PACKS;
   const { data: PUSH_NOTIFICATIONS, setData: setLocalPushNotifications, isLoading: isLoadingPush } = useEntity<any>('push_notification', [], {

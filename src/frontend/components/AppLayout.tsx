@@ -140,7 +140,7 @@ export const AppLayout: React.FC = () => {
 
   return (
     <div
-      className={`min-h-screen bg-[#FDFBF7] text-primary font-sans ${siteConfig?.theme === 'dark' ? 'dark' : ''}`}
+      className="min-h-screen bg-[#FDFBF7] text-primary font-sans"
       style={{
         '--primary-color': siteConfig?.primaryColor || '#2C3E35',
         '--accent-color': siteConfig?.accentColor || '#D6B4A3',

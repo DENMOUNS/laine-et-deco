@@ -24,6 +24,7 @@ export const PacksView: React.FC<PacksViewProps> = ({ onNavigate, onAddToCart, o
   };
 
   const getPackImage = (pack: Pack) => {
+    if (pack.coverImage) return pack.coverImage;
     const firstProduct = PRODUCTS.find(p => p.id === pack.products[0]?.productId);
     return firstProduct?.image || 'https://picsum.photos/seed/pack/800/600';
   };

@@ -11,27 +11,29 @@ type CachedValue<T> = {
   value: T;
 };
 
-export function readCache<T>(key: string): T | null {
+import { get, set, del } from 'idb-keyval';
+
+export async function readCache<T>(key: string): Promise<T | null> {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = await get<string>(key);
     if (!raw) return null;
 
     const cached = JSON.parse(raw) as CachedValue<T>;
     if (!cached || cached.expiresAt < Date.now()) {
-      localStorage.removeItem(key);
+      await del(key);
       return null;
     }
 
     return cached.value;
   } catch {
-    localStorage.removeItem(key);
+    await del(key);
     return null;
   }
 }
 
-export function readCacheCreatedAt(key: string): number | null {
+export async function readCacheCreatedAt(key: string): Promise<number | null> {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = await get<string>(key);
     if (!raw) return null;
 
     const cached = JSON.parse(raw) as CachedValue<any>;
@@ -85,9 +87,9 @@ export function getTTLForEntity(entityType: string): number {
   }
 }
 
-export function writeCache<T>(key: string, value: T, ttlMs = MONTH_MS) {
+export async function writeCache<T>(key: string, value: T, ttlMs = MONTH_MS): Promise<void> {
   try {
-    localStorage.setItem(
+    await set(
       key,
       JSON.stringify({
         expiresAt: Date.now() + ttlMs,
@@ -100,9 +102,9 @@ export function writeCache<T>(key: string, value: T, ttlMs = MONTH_MS) {
   }
 }
 
-export function removeCache(key: string) {
+export async function removeCache(key: string): Promise<void> {
   try {
-    localStorage.removeItem(key);
+    await del(key);
   } catch {
     // Ignore storage failures.
   }

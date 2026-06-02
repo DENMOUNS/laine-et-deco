@@ -58,10 +58,11 @@ export function AdminDashboardModals({ ctx }: { ctx: any }) {
             editingItem ? `Modifier ${editingItem.name || editingItem.title || editingItem.subject || 'l\'élément'}` :
             modalType === 'inventory-adjustment' ? 'Réapprovisionnement Stock' :
             modalType === 'quick-stock-adjust' ? `Ajuster le Stock - ${editingItem?.name || ''}` :
-            modalType === 'category' ? 'Nouvelle Catégorie' : 
+            modalType === 'category' ? 'Nouvelle Catégorie' :
+            modalType === 'shipping' ? 'Nouvelle Règle de Livraison' :
             modalType === 'badge' ? 'Modifier le Badge' :
             modalType === 'loyalty-config' ? 'Configuration Fidélité' :
-            modalType === 'event' ? 'Créer un Évènement' : 
+            modalType === 'event' ? 'Créer un Évènement' :
             modalType === 'pack' ? 'Ajouter un Pack' :
             modalType === 'currency' ? 'Ajouter une Devise' :
             modalType === 'notification' ? 'Nouvelle Notification' :
@@ -111,11 +112,23 @@ export function AdminDashboardModals({ ctx }: { ctx: any }) {
                 <button 
                   type="button"
                   onClick={() => {
+                    if (!window.confirm(`Supprimer "${editingItem.name || editingItem.title || 'cet élément'}" ?`)) return;
+                    if (modalType === 'shipping') {
+                      deleteShippingRule(editingItem.id);
+                    } else if (modalType === 'tax') {
+                      deleteTaxRule(editingItem.id);
+                    } else if (modalType === 'customer-group') {
+                      deleteCustomerGroup(editingItem.id);
+                    } else if (modalType === 'category') {
+                      deleteCategory(editingItem.id);
+                    } else if (modalType === 'nav_item') {
+                      deleteNavItem(editingItem.id);
+                    }
                     setIsAddModalOpen(false);
                     setEditingItem(null);
                     toast.success('Élément supprimé avec succès !');
                   }}
-                  className="flex-grow py-4 bg-red-200 text-red-800 rounded-2xl font-bold hover:bg-red-200 transition-all"
+                  className="flex-grow py-4 bg-red-200 text-red-800 rounded-2xl font-bold hover:bg-red-300 transition-all"
                 >
                   Supprimer
                 </button>

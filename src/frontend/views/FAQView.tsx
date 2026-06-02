@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, ChevronDown, MessageCircle, Truck, CreditCard, Package, Settings, Info, ChevronRight, HelpCircle } from 'lucide-react';
 import { cn } from '../utils/utils';
@@ -38,9 +38,9 @@ export const FAQView: React.FC<{ onNavigate: (view: string) => void }> = ({ onNa
   const hasResultsInOtherCategories = searchQuery && filteredFaqs.length === 0 && allFilteredBySearch.length > 0;
 
   return (
-    <div className="min-h-screen bg-slate-50/30 pb-20">
+    <div className="min-h-screen bg-slate-50/30 pb-20 overflow-hidden">
       {/* Hero Section */}
-      <div className="bg-primary text-white pt-24 pb-16 px-4 rounded-b-[4rem] relative overflow-hidden">
+      <div className="bg-primary text-white pt-24 pb-16 px-4 rounded-b-[2.5rem] md:rounded-b-[4rem] relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-accent/20 rounded-full blur-3xl -mr-20 -mt-20" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full blur-2xl -ml-10 -mb-10" />
         
@@ -48,49 +48,51 @@ export const FAQView: React.FC<{ onNavigate: (view: string) => void }> = ({ onNa
           <motion.h1 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-5xl font-serif mb-6"
+            className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 leading-tight"
           >
             Comment pouvons-nous vous aider ?
           </motion.h1>
           
-          <div className="relative max-w-2xl mx-auto">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-primary/70" size={24} />
+          <div className="relative max-w-2xl mx-auto px-2">
+            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-primary/70" size={20} />
             <input 
               type="text"
               placeholder="Rechercher une question..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-14 pr-6 py-5 rounded-3xl bg-white text-primary placeholder:text-primary/70 shadow-2xl shadow-primary/20 outline-none focus:ring-4 focus:ring-accent/20 transition-all text-lg"
+              className="w-full pl-12 pr-6 py-4 md:py-5 rounded-3xl bg-white text-primary placeholder:text-primary/70 shadow-2xl shadow-primary/20 outline-none focus:ring-4 focus:ring-accent/20 transition-all text-base md:text-lg"
             />
           </div>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 -mt-10">
-        <div className="flex flex-col lg:flex-row gap-12">
+      <div className="max-w-6xl mx-auto px-4 -mt-10 sm:-mt-12 relative z-20">
+        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
           {/* Categories Sidebar */}
-          <div className="lg:w-1/4">
-            <div className="sticky top-24 space-y-2">
-              <h2 className="text-sm font-bold uppercase tracking-widest text-primary/70 px-4 mb-4">Catégories</h2>
-              <div className="grid grid-cols-2 lg:grid-cols-1 gap-2">
+          <div className="w-full lg:w-1/4">
+            <div className="lg:sticky lg:top-24 space-y-4">
+              <h2 className="text-sm font-bold uppercase tracking-widest text-primary/70 px-1 lg:px-4 mb-1 lg:mb-4">Catégories</h2>
+              
+              {/* Horizontal scroll list on mobile/tablet, vertical stack on desktop */}
+              <div className="flex overflow-x-auto lg:flex-col gap-2 pb-4 lg:pb-0 -mx-4 px-4 lg:mx-0 lg:px-0 flex-nowrap scrollbar-none">
                 {CATEGORIES.map((cat) => (
                   <button
                     key={cat.id}
                     onClick={() => setActiveCategory(cat.id)}
                     className={cn(
-                      "flex items-center gap-3 p-4 rounded-2xl text-left transition-all group",
+                      "flex items-center gap-3 p-3 md:p-4 rounded-xl md:rounded-2xl text-left transition-all group flex-shrink-0",
                       activeCategory === cat.id 
                         ? "bg-white shadow-lg text-accent font-bold ring-1 ring-primary/5" 
                         : "text-primary/70 hover:bg-white/50 hover:text-primary"
                     )}
                   >
                     <span className={cn(
-                      "p-2 rounded-xl transition-colors",
+                      "p-1.5 md:p-2 rounded-lg md:rounded-xl transition-colors",
                       activeCategory === cat.id ? "bg-accent/10 text-accent" : "bg-primary/5 text-primary/70 group-hover:bg-primary/10 group-hover:text-primary"
                     )}>
                       {cat.icon}
                     </span>
-                    <span className="text-sm">{cat.name}</span>
+                    <span className="text-xs md:text-sm whitespace-nowrap">{cat.name}</span>
                   </button>
                 ))}
               </div>
@@ -110,28 +112,28 @@ export const FAQView: React.FC<{ onNavigate: (view: string) => void }> = ({ onNa
           </div>
 
           {/* FAQ List */}
-          <div className="lg:w-3/4">
+          <div className="w-full lg:w-3/4">
             <div className="space-y-4">
               {filteredFaqs.length > 0 ? (
                 filteredFaqs.map((faq, index) => (
                   <motion.div 
                     layout
                     key={faq.id || faq.question}
-                    className="bg-white rounded-[2.5rem] border border-primary/5 overflow-hidden"
+                    className="bg-white rounded-2xl md:rounded-[2.5rem] border border-primary/5 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
                   >
                     <button
                       onClick={() => setOpenIndex(openIndex === index ? null : index)}
-                      className="w-full flex items-center justify-between p-6 md:p-8 text-left hover:bg-slate-50 transition-colors"
+                      className="w-full flex items-center justify-between p-5 md:p-8 text-left hover:bg-slate-50 transition-colors"
                     >
                       <div className="pr-4">
-                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent mb-2 block">{faq.category}</span>
-                        <h3 className="text-lg md:text-xl font-serif text-primary leading-tight">{faq.question}</h3>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent mb-1 md:mb-2 block">{faq.category}</span>
+                        <h3 className="text-base sm:text-lg md:text-xl font-serif text-primary leading-tight">{faq.question}</h3>
                       </div>
                       <div className={cn(
-                        "w-12 h-12 rounded-full flex items-center justify-center transition-all shrink-0",
+                        "w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all shrink-0",
                         openIndex === index ? "bg-primary text-white rotate-180" : "bg-primary/5 text-primary/70"
                       )}>
-                        <ChevronDown size={20} />
+                        <ChevronDown size={18} className="md:size-[20px]" />
                       </div>
                     </button>
                     
@@ -143,7 +145,7 @@ export const FAQView: React.FC<{ onNavigate: (view: string) => void }> = ({ onNa
                           exit={{ height: 0, opacity: 0 }}
                           transition={{ duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] }}
                         >
-                          <div className="px-8 pb-8 text-primary/70 leading-relaxed border-t border-primary/5 pt-6 text-base md:text-lg italic">
+                          <div className="px-5 pb-5 pt-4 md:px-8 md:pb-8 md:pt-6 text-primary/80 leading-relaxed border-t border-primary/5 text-sm sm:text-base md:text-lg">
                             {faq.answer}
                           </div>
                         </motion.div>
@@ -152,31 +154,31 @@ export const FAQView: React.FC<{ onNavigate: (view: string) => void }> = ({ onNa
                   </motion.div>
                 ))
               ) : hasResultsInOtherCategories ? (
-                <div className="text-center py-20 bg-white rounded-[4rem] border border-primary/5 border-dashed">
-                  <div className="bg-accent/5 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Info className="text-accent" size={32} />
+                <div className="text-center py-16 md:py-20 bg-white rounded-[2rem] md:rounded-[4rem] border border-primary/5 border-dashed px-4">
+                  <div className="bg-accent/5 w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Info className="text-accent" size={28} />
                   </div>
-                  <h3 className="text-2xl font-serif text-primary">Résultats trouvés ailleurs</h3>
-                  <p className="text-primary/70 mt-2 max-w-sm mx-auto">
+                  <h3 className="text-xl md:text-2xl font-serif text-primary">Résultats trouvés ailleurs</h3>
+                  <p className="text-primary/70 mt-2 max-w-sm mx-auto text-sm md:text-base">
                     Nous avons trouvé {allFilteredBySearch.length} résultat(s) pour "{searchQuery}" mais dans d'autres catégories.
                   </p>
                   <button 
                     onClick={() => setActiveCategory('all')}
-                    className="mt-8 bg-primary text-white px-8 py-3 rounded-2xl font-bold hover:shadow-lg transition-all"
+                    className="mt-6 md:mt-8 bg-primary text-white px-6 md:px-8 py-3 rounded-2xl font-bold hover:shadow-lg transition-all text-sm md:text-base"
                   >
                     Voir tous les résultats
                   </button>
                 </div>
               ) : (
-                <div className="text-center py-20 bg-white rounded-[4rem] border border-primary/5 border-dashed">
-                  <div className="bg-primary/5 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Search className="text-primary/70" size={32} />
+                <div className="text-center py-16 md:py-20 bg-white rounded-[2rem] md:rounded-[4rem] border border-primary/5 border-dashed px-4">
+                  <div className="bg-primary/5 w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Search className="text-primary/70" size={28} />
                   </div>
-                  <h3 className="text-2xl font-serif text-primary/70">Aucun résultat trouvé</h3>
-                  <p className="text-primary/70 mt-2">Essayez avec d'autres mots-clés ou une autre catégorie.</p>
+                  <h3 className="text-xl md:text-2xl font-serif text-primary/70">Aucun résultat trouvé</h3>
+                  <p className="text-primary/70 mt-2 text-sm md:text-base">Essayez avec d'autres mots-clés ou une autre catégorie.</p>
                   <button 
                     onClick={() => { setSearchQuery(''); setActiveCategory('all'); }}
-                    className="mt-8 text-accent font-bold underline"
+                    className="mt-6 md:mt-8 text-accent font-bold underline text-sm md:text-base"
                   >
                     Réinitialiser les filtres
                   </button>
@@ -185,23 +187,23 @@ export const FAQView: React.FC<{ onNavigate: (view: string) => void }> = ({ onNa
             </div>
 
             {/* Bottom CTA */}
-            <div className="mt-16 bg-primary rounded-[3rem] p-8 md:p-12 text-white relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="mt-12 md:mt-16 bg-primary rounded-[2rem] md:rounded-[3rem] p-6 sm:p-8 md:p-12 text-white relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8">
               <div className="relative z-10 text-center md:text-left">
-                <h2 className="text-2xl md:text-3xl font-serif mb-4">Besoin d'un accompagnement personnalisé ?</h2>
-                <p className="text-white/70 mb-8 max-w-lg">Nos experts sont disponibles pour vous guider dans vos projets sur mesure ou vos choix de décoration.</p>
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-serif mb-4">Besoin d'un accompagnement personnalisé ?</h2>
+                <p className="text-white/70 mb-6 md:mb-8 max-w-lg text-sm sm:text-base">Nos experts sont disponibles pour vous guider dans vos projets sur mesure ou vos choix de décoration.</p>
                 <div className="flex flex-wrap gap-4 justify-center md:justify-start">
-                  <button onClick={() => onNavigate('contact')} className="bg-accent text-white px-8 py-4 rounded-2xl font-bold hover:shadow-xl transition-all flex items-center gap-2">
+                  <button onClick={() => onNavigate('contact')} className="bg-accent text-white px-6 sm:px-8 py-3 sm:py-4 rounded-2xl font-bold hover:shadow-xl transition-all flex items-center gap-2 text-sm sm:text-base">
                     Nous écrire <ChevronRight size={18} />
                   </button>
-                  <button onClick={() => onNavigate('shop')} className="bg-white/10 hover:bg-white/20 text-white px-8 py-4 rounded-2xl font-bold transition-all">
+                  <button onClick={() => onNavigate('shop')} className="bg-white/10 hover:bg-white/20 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-2xl font-bold transition-all text-sm sm:text-base">
                     Voir la boutique
                   </button>
                 </div>
               </div>
-              <div className="relative z-10">
-                <div className="w-32 h-32 md:w-48 md:h-48 border-2 border-white/20 rounded-full flex items-center justify-center animate-pulse">
-                  <div className="w-24 h-24 md:w-32 md:h-32 border border-white/40 rounded-full flex items-center justify-center">
-                    <HelpCircle size={48} className="text-accent" />
+              <div className="relative z-10 shrink-0">
+                <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-48 md:h-48 border-2 border-white/20 rounded-full flex items-center justify-center animate-pulse">
+                  <div className="w-18 h-18 sm:w-24 sm:h-24 md:w-32 md:h-32 border border-white/40 rounded-full flex items-center justify-center">
+                    <HelpCircle size={40} className="text-accent" />
                   </div>
                 </div>
               </div>

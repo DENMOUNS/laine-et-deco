@@ -123,6 +123,9 @@ interface AdminActions {
   setNewNote: (note: string) => void;
   setNewRMANote: (note: string) => void;
 
+  setEditingItem: (item: any | null) => void;
+  setModalType: (type: string) => void;
+
   // Reset
   resetModal: () => void;
 }
@@ -223,6 +226,9 @@ export const useAdminStore = create<AdminStore>((set) => ({
   setCustomerDetailTab: (tab) => set({ customerDetailTab: tab }),
   setViewingCustomer: (customer) => set({ viewingCustomer: customer }),
   setSearchResults: (results) => set({ searchResults: results }),
+
+  setEditingItem: (item) => set({ editingItem: item }),
+  setModalType: (type) => set({ modalType: type }),
 
   setCurrentSlug: (slug) => set({ currentSlug: slug }),
   setCurrentImage: (image) => set({ currentImage: image }),

@@ -10,6 +10,7 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
     setIsSaving(true);
     
     const formData = new FormData(e.currentTarget);
+    let stockHandled = false;
     
     await new Promise(resolve => setTimeout(resolve, 1500));
 
@@ -75,6 +76,7 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
             }
         }));
       } else if (modalType === 'pack') {
+          const coverImageValue = formData.get('coverImage') as string;
           const newPack: any = {
               id: editingItem ? editingItem.id : `pack-${Date.now()}`,
               name: formData.get('name') as string,
@@ -82,12 +84,12 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
               products: selectedPackProducts,
               discountPercentage: Number(formData.get('discountPercentage')),
               promoCode: formData.get('promoCode') as string || `PACK${Date.now().toString().slice(-4)}`,
-              status: editingItem?.status || 'active'
+              status: editingItem?.status || 'active',
+              ...(coverImageValue ? { coverImage: coverImageValue } : {}),
           };
           const now = new Date().toISOString();
           if (editingItem) {
               newPack.updatedAt = now;
-
           } else {
               newPack.createdAt = now;
               newPack.updatedAt = now;
@@ -97,6 +99,7 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
           } else {
               setLocalPacks(prev => [...prev, newPack]);
           }
+
       } else if (modalType === 'user') {
            const newUser: any = {
               id: editingItem ? editingItem.id : `user-${Date.now()}`,
@@ -386,12 +389,21 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
               addTaxRule(newTax);
           }
       } else if (modalType === 'shipping') {
+          const ruleType = (formData.get('type') as string) || 'zone';
+          let condition = formData.get('condition') as string;
+          // For threshold rules, build the condition from thresholdAmount if condition is empty/default
+          if (ruleType === 'threshold') {
+              const thresholdAmount = formData.get('thresholdAmount') as string;
+              if (thresholdAmount) {
+                  condition = `Total > ${thresholdAmount}`;
+              }
+          }
           const newShipping: any = {
               id: editingItem ? editingItem.id : `ship-${Date.now()}`,
               name: formData.get('name') as string,
               price: Number(formData.get('price')),
-              delay: formData.get('delay') as string,
-              condition: formData.get('condition') as string,
+              type: ruleType,
+              condition: condition || '',
               status: editingItem?.status || 'active'
           };
           const now = new Date().toISOString();
@@ -510,6 +522,7 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
                       setEditingItem(prev => prev?.id === product.id ? { ...prev, stock: newStock, quantity: newStock, in_stock: inStock } : prev);
                   }
                   toast.success(`Stock ajusté pour ${product.name}`);
+                  stockHandled = true;
               } catch (err: any) {
                   toast.error(err?.message || 'Erreur lors de l\'ajustement du stock');
               }
@@ -550,13 +563,14 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
                       setEditingItem(prev => prev?.id === productId ? { ...prev, stock: newStock, quantity: newStock, in_stock: inStock } : prev);
                   }
                   toast.success(`Transaction de stock enregistrée pour ${product.name}`);
+                  stockHandled = true;
               } catch (err: any) {
                   toast.error(err?.message || 'Erreur lors de la transaction de stock');
               }
           }
       }
 
-      toast.success(editingItem ? 'Modifications enregistrées avec succès' : 'Élément ajouté avec succès');
+      if (!stockHandled) toast.success(editingItem ? 'Modifications enregistrées avec succès' : 'Élément ajouté avec succès');
       if (['category-create', 'category-edit'].includes(activeTab)) {
           setActiveTab('categories');
           setEditingItem(null);

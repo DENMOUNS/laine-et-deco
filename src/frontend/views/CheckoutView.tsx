@@ -58,9 +58,11 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
       return 0;
     }
 
-    const activeRules = shippingRules.filter(r => r.status === 'active');
+    const activeRules = Array.isArray(shippingRules)
+      ? shippingRules.filter(r => r.status === 'active')
+      : [];
     
-    // Check threshold rules first (e.g., Free shipping over 200000)
+    // 1. Check threshold rules first (e.g., Free shipping over 200000)
     for (const rule of activeRules.filter(r => r.type === 'threshold')) {
       if (rule.condition && rule.condition.includes('Total >')) {
         const threshold = parseInt(rule.condition.replace(/[^\d]/g, ''), 10);
@@ -70,21 +72,27 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
       }
     }
 
-    // Check specific city delivery price
+    // 2. Check specific city delivery price (from Cities module)
     if (formData.city) {
       const selectedCity = allCities.find(c => c.name === formData.city || c.slug === formData.city);
       if (selectedCity && selectedCity.status === 'active') {
         return selectedCity.deliveryPrice;
       }
 
-      // Fallback to zone rules matching selected city if city not in cities collection
+      // 3. Fallback to zone rules matching selected city
       const zoneRule = activeRules.find(r => r.type === 'zone' && r.condition && r.condition.toLowerCase() === formData.city.toLowerCase());
       if (zoneRule) {
         return zoneRule.price;
       }
     }
+
+    // 4. Apply 'default' rule if one exists
+    const defaultRule = activeRules.find(r => r.type === 'default' || r.condition === 'default');
+    if (defaultRule) {
+      return defaultRule.price;
+    }
     
-    return 0; // Default shipping if no rules match
+    return 0; // No matching rule
   }, [subtotal, formData.city, shippingRules, allCities, appliedCoupon]);
 
   const total = subtotal + shipping - discount;
@@ -144,7 +152,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
   };
 
   const buildOrderInvoiceData = async (orderBase: any) => {
-    const getConfigData = async (collectionName: string, id: string, fallbackId?: string) => {
+    const safeGetConfig = async (collectionName: string, id: string) => {
       try {
         if (collectionName === 'site_logo') {
           const activeQuery = query(collection(db, collectionName), where('status', '==', 'active'), limit(1));
@@ -152,33 +160,32 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
           if (!activeSnap.empty) return activeSnap.docs[0].data();
           return {};
         }
-
+        // Try by document ID first
         const directSnap = await getDoc(doc(db, collectionName, id));
         if (directSnap.exists()) return directSnap.data();
-
-        const legacyQuery = query(collection(db, collectionName), where('id', '==', id));
+        // Fallback: query by 'id' field (legacy seed data pattern)
+        const legacyQuery = query(collection(db, collectionName), where('id', '==', id), limit(1));
         const legacySnap = await getDocs(legacyQuery);
         if (!legacySnap.empty) return legacySnap.docs[0].data();
-
-        if (fallbackId) {
-          const fallbackSnap = await getDoc(doc(db, collectionName, fallbackId));
-          if (fallbackSnap.exists()) return fallbackSnap.data();
-        }
-      } catch (error) {
-        console.warn(`Unable to copy ${collectionName}/${id} into order invoiceData:`, error);
+      } catch (e) {
+        console.warn(`[invoiceData] Unable to snapshot ${collectionName}/${id}:`, e);
       }
-
       return {};
     };
 
-    const [invoiceConfig, colorConfig, logoConfig] = await Promise.all([
-      getConfigData('invoice_config', 'global'),
-      getConfigData('site_color', 'default-color'),
-      getConfigData('site_logo', 'active-logo'),
+    // Use allSettled so a missing config never blocks order creation
+    const [invoiceResult, colorResult, logoResult] = await Promise.allSettled([
+      safeGetConfig('invoice_config', 'global'),
+      safeGetConfig('site_color', 'default-color'),
+      safeGetConfig('site_logo', 'active-logo'),
     ]);
 
+    const invoiceConfig = invoiceResult.status === 'fulfilled' ? invoiceResult.value : {};
+    const colorConfig   = colorResult.status   === 'fulfilled' ? colorResult.value   : {};
+    const logoConfig    = logoResult.status    === 'fulfilled' ? logoResult.value    : {};
+
     return {
-      version: 1,
+      version: 2,
       copiedAt: new Date().toISOString(),
       orderId: orderBase.id,
       customerName: orderBase.customerName || orderBase.customer || 'Client',
@@ -190,7 +197,10 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
       shippingFee: shipping,
       discount,
       total: orderBase.total,
+      // Self-contained config snapshot — used by invoiceUtils to skip network reads
       config: {
+        companyName: logoConfig.name || invoiceConfig.companyName || 'Laine & Déco',
+        logo: logoConfig.image || logoConfig.lien || '',
         phone: invoiceConfig.phone || '',
         email: invoiceConfig.email || '',
         paymentPhone: invoiceConfig.paymentPhone || '',
@@ -198,9 +208,8 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
         address: invoiceConfig.address || '',
         message1: invoiceConfig.message1 || '',
         message2: invoiceConfig.message2 || '',
-        footerMessage: invoiceConfig.footerMessage || '',
-        companyName: logoConfig.name || invoiceConfig.companyName || '',
-        logo: logoConfig.image || logoConfig.lien || '',
+        footerMessage: invoiceConfig.footerMessage || 'Merci pour votre confiance !',
+        taxId: invoiceConfig.taxId || '',
       },
       primaryColor: colorConfig.primaryColor || '#2c3e35',
     };

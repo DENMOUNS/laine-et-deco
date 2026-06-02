@@ -16,7 +16,6 @@ import {
   AdminSite,
   AdminProducts,
   AdminProductForm,
-  AdminPayments,
   AdminExpenses,
   AdminRmas,
   AdminAbandonedCarts,
@@ -100,6 +99,7 @@ export const AdminDashboardShell: React.FC<Props> = ({ ctx }) => {
       case 'overview':
         return <AdminOverview ctx={ctx} />;
       case 'inventory':
+      case 'inventory-detail':
         return <AdminInventory ctx={ctx} />;
       case 'loyalty':
         return <AdminLoyalty ctx={ctx} />;
@@ -118,8 +118,6 @@ export const AdminDashboardShell: React.FC<Props> = ({ ctx }) => {
       case 'product-create':
       case 'product-edit':
         return <AdminProductForm ctx={ctx} />;
-      case 'payments':
-        return <AdminPayments ctx={ctx} />;
       case 'expenses':
         return <AdminExpenses ctx={ctx} />;
       case 'rmas':
@@ -203,7 +201,7 @@ export const AdminDashboardShell: React.FC<Props> = ({ ctx }) => {
         return <AdminMaintenanceConfig ctx={ctx} />;
       case 'newsletter_config':
         return <AdminNewsletterConfig ctx={ctx} />;
-      case 'invoice-config':
+      case 'invoice_config':
         return <AdminInvoiceConfig ctx={ctx} />;
       default:
         return (

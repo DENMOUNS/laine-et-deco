@@ -26,7 +26,6 @@ export const getAdminMenuItems = () => [
   
   // Finance
   { id: 'finance_header', label: 'FINANCE', isHeader: true },
-  { id: 'payments', label: 'Paiements & Devises', icon: <Coins size={20} />, permission: 'finance.view' },
   { id: 'expenses', label: 'Dépenses & Achats', icon: <History size={20} />, permission: 'finance.view' },
 
   // Contenu

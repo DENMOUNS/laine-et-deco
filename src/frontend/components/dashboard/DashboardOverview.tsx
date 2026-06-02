@@ -27,11 +27,10 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 }) => {
   return (
     <div className="space-y-10">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {[
           { label: 'Commandes', value: user.orders, icon: <Package className="text-accent" /> },
           { label: 'Projets en cours', value: knittingProjects.filter(p => p.status === 'in-progress').length, icon: <Scissors className="text-blue-500" /> },
-          { label: 'Points Fidélité', value: userProfile.points, icon: <Star className="text-yellow-500" fill="currentColor" /> },
         ].map((stat, i) => (
           <div key={i} className="bg-card p-8 rounded-[2.5rem] shadow-sm border border-primary/5 flex items-center gap-6">
             <div className="p-4 bg-secondary rounded-2xl">{stat.icon}</div>

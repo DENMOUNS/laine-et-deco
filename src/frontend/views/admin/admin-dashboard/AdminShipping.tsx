@@ -1,89 +1,227 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, Legend } from 'recharts';
-import { LayoutDashboard, Package, ShoppingBag, Users, BarChart3, Settings, LogOut, TrendingUp, ArrowUpRight, ArrowDownRight, Search, Bell, Plus, Menu, X, History, Coins, Globe, Shield, Activity, Smartphone, Monitor, Star, CheckCircle2, AlertCircle, MessageSquare, Palette, Award, Download, FileText, Send, Table as TableIcon, Ticket, Lock, Eye, MousePointer2, Calendar as CalendarIcon, Image as ImageIcon, Type as TypeIcon, MonitorOff, Info, User, Edit, Trash2, ShoppingCart, RefreshCcw, Tag, Mail, Percent, Truck, ChevronLeft, MapPin, Route, QrCode, Save, HelpCircle, Phone } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
-import { toast } from 'sonner';
-import { doc, updateDoc, increment, query, where, getDoc, writeBatch, addDoc } from 'firebase/firestore';
-import { auth, db } from '../../../../backend/firebase';
-import { BADGES, ADMIN_ROLES as INITIAL_ADMIN_ROLES } from '../../../../constants';
+import { Plus, Truck, Target, Info, Pencil, Trash2 } from 'lucide-react';
 import { DataTable } from '../../../components/DataTable';
-import { TabFilter } from '../../../components/TabFilter';
-import { StatusBadge, getStatusStyles } from '../../../components/ui/StatusBadge';
-import { Loader } from '../../../components/Loader';
-import { OrderMap } from '../../../components/OrderMap';
-import { CouponEditor } from '../../../components/dashboard/CouponEditor';
-import { CityEditor } from '../../../components/dashboard/CityEditor';
-import { FAQEditor } from '../../../components/dashboard/FAQEditor';
-import { PromoEventEditor } from '../../../components/dashboard/PromoEventEditor';
-import { CatalogPriceRuleEditor } from '../../../components/dashboard/CatalogPriceRuleEditor';
-import { cn } from '../../../utils/utils';
+import { ShippingRule } from '../../../../types';
+import { toast } from 'sonner';
 
-import { AdminFlashSales } from '../AdminFlashSales';
-import { AdminLookbooks } from '../AdminLookbooks';
-import { AdminPortfolios } from '../AdminPortfolios';
+const RULE_TYPE_LABELS: Record<string, { label: string; color: string }> = {
+  threshold: { label: 'Seuil', color: 'bg-blue-100 text-blue-700' },
+  zone:      { label: 'Zone',  color: 'bg-emerald-100 text-emerald-700' },
+  default:   { label: 'Défaut', color: 'bg-gray-100 text-gray-600' },
+};
 
 export function AdminShipping({ ctx }: { ctx: any }) {
-  const { ABANDONED_CARTS, ANALYTICS, BLOG_POSTS, CATEGORIES, CATEGORY_DISTRIBUTION, CHAT_MESSAGES, CITIES, CONVERSATIONS, COUPONS, CUSTOMER_GROUPS, DEVICE_DATA, EMAILS, EXPENSES, FAQS, LOGIN_LOGS, LOOKBOOK_POSTS, NAV_ITEMS, NOTIFICATIONS, ORDERS, PACKS, PRODUCTS, PROMO_EVENTS, PUSH_NOTIFICATIONS, REQUEST_LOGS, RETENTION_DATA, REVENUE_BY_PAYMENT, REVIEWS, SALES_DATA, SHIPPING_RULES, SUBSCRIBERS, TAX_RULES, TRAFFIC_SOURCES, USERS, activeMenuItem, activeTab, addBlogPost, addCatalogRule, addCategory, addCity, addCoupon, addCurrency, addCustomerGroup, addEvent, addExpense, addFAQ, addLocalRole, addLookbook, addNavItem, addPack, addProduct, addRMA, addReview, addShippingRule, addTaxRule, allOrders, averageOrderValue, catalogRulesWithDefaults, categoryPage, currentImage, currentSlug, currentUserDoc, customerDetailTab, customerFilter, deleteAbandonedCart, deleteCatalogRule, deleteCategory, deleteChatMessage, deleteCity, deleteConversation, deleteCoupon, deleteCurrency, deleteCustomerGroup, deleteEvent, deleteFAQ, deleteLocalRole, deleteLoginLog, deleteNavItem, deleteNotification, deleteOrder, deletePack, deleteProduct, deleteRequestLog, deleteReview, deleteShippingRule, deleteSiteConfig, deleteSubscriber, deleteTaxRule, deleteUser, editedOrder, editingItem, events, fetchedProducts, filteredMenuItems, formatDate, handleDeleteCatalogRule, handleDeleteCity, handleDeleteEvent, handleDeleteFAQ, handleEditCatalogRule, handleEditCity, handleEditCoupon, handleEditEvent, handleEditFAQ, handleFormSubmit, handleNotificationClick, handleSaveCatalogRule, handleSaveCity, handleSaveCoupon, handleSaveEvent, handleSaveFAQ, handleSearch, handleSeed, handleSendMessage, hasPermission, isAddModalOpen, isAuthLoading, isCatalogRuleEditorOpen, isCityEditorOpen, isCouponEditorOpen, isDataLoading, isEditingOrder, isEventEditorOpen, isFAQEditorOpen, isLoadingAbandoned, isLoadingBlog, isLoadingCatalog, isLoadingCategories, isLoadingCategoryDist, isLoadingDevice, isLoadingEmails, isLoadingExpenses, isLoadingGroups, isLoadingLookbook, isLoadingOrders, isLoadingPacks, isLoadingProducts, isLoadingPush, isLoadingRetention, isLoadingRevenue, isLoadingReviews, isLoadingRoles, isLoadingShipping, isLoadingSubscribers, isLoadingTax, isLoadingTraffic, isLogsLoading, isSaving, isSidebarOpen, isSuperAdmin, isTabAllowed, isUserCustomer, itemsPerPage, localAbandonedCarts, localBlogPosts, localCatalogPriceRules, localCategories, localCurrencies, localCustomerGroups, localExpenses, localLookbook, localNavItems, localOrders, localPacks, localProducts, localRMAs, localReviews, localRoles, localShippingRules, localSystemNotifications, localTaxRules, localUsers, logFilter, menuItems, messageInput, modalType, navItemsWithDefaults, newNote, newRMANote, notificationFilter, notificationPage, onNavigate, orderFilter, overviewOrderFilter, permissions, productFilter, propSetSiteConfig, propSiteConfig, rawSiteConfig, realLogs, requestLogFilter, reviewFilter, roleData, saveAllSiteConfig, saveSiteSection, searchResults, selectedCatalogRule, selectedCity, selectedConversation, selectedCoupon, selectedCustomer, selectedCustomerGroup, selectedEvent, selectedFAQ, selectedOrder, selectedPackProducts, setActiveTab, setCategoryPage, setCurrentImage, setCurrentSlug, setCustomerDetailTab, setCustomerFilter, setEditedOrder, setEditingItem, setEvents, setIsAddModalOpen, setIsCatalogRuleEditorOpen, setIsCityEditorOpen, setIsCouponEditorOpen, setIsEditingOrder, setIsEventEditorOpen, setIsFAQEditorOpen, setIsSaving, setIsSidebarOpen, setLocalAbandonedCarts, setLocalAbandonedCarts2, setLocalBlogPosts, setLocalBlogPosts2, setLocalCategories, setLocalCurrencies, setLocalCustomerGroups, setLocalCustomerGroups2, setLocalEmails, setLocalExpenses, setLocalLookbook, setLocalLookbook2, setLocalOrders, setLocalPacks, setLocalProducts, setLocalPushNotifications, setLocalReviews, setLocalReviews2, setLocalRole, setLocalRoles, setLocalShippingRules, setLocalShippingRules2, setLocalSubscribers, setLocalSystemNotifications, setLocalTaxRules, setLocalTaxRules2, setLocalUser, setLocalUsers, setLogFilter, setMessageInput, setModalType, setNewNote, setNewRMANote, setNotificationFilter, setNotificationPage, setOrderFilter, setOverviewOrderFilter, setProductFilter, setRequestLogFilter, setReviewFilter, setSearchResults, setSelectedCatalogRule, setSelectedCity, setSelectedConversation, setSelectedCoupon, setSelectedCustomer, setSelectedCustomerGroup, setSelectedEvent, setSelectedFAQ, setSelectedOrder, setSelectedPackProducts, setShowNotifications, setSiteConfig, setViewingCustomer, showNotifications, siteConfig, siteConfigs, sortByDate, stats, totalCustomers, totalOrdersCount, totalSales, totalVisitors, updateBlogPost, updateCatalogRule, updateCategory, updateCity, updateCoupon, updateCurrency, updateCustomerGroup, updateEvent, updateExpense, updateFAQ, updateLocalRole, updateLocalUser, updateLookbook, updateNavItem, updatePack, updateProduct, updateRMA, updateReview, updateShippingRule, updateSiteConfig, updateTaxRule, user, userRoleSlug, viewingCustomer } = ctx;
+  const {
+    activeTab,
+    localShippingRules,
+    isLoadingShipping,
+    deleteShippingRule,
+    updateShippingRule,
+    sortByDate,
+    formatDate,
+    setEditingItem,
+    setModalType,
+    setIsAddModalOpen,
+  } = ctx;
+
+  const handleAdd = () => {
+    setEditingItem(null);
+    setModalType('shipping');
+    setIsAddModalOpen(true);
+  };
+
+  const handleEdit = (rule: ShippingRule) => {
+    setEditingItem(rule);
+    setModalType('shipping');
+    setIsAddModalOpen(true);
+  };
+
+  const handleDelete = (rule: ShippingRule) => {
+    if (!window.confirm(`Supprimer la règle "${rule.name}" ?`)) return;
+    deleteShippingRule(rule.id!);
+    toast.success('Règle de livraison supprimée');
+  };
+
+  if (activeTab !== 'shipping') return null;
+
+  const rules = Array.isArray(localShippingRules) ? localShippingRules : [];
+
   return (
-    <>
-      {activeTab === 'shipping' && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h3 className="text-2xl font-serif text-primary">Méthodes de Livraison</h3>
-              <button className="bg-primary text-primary-foreground px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-accent transition-all shadow-lg">
-                <Plus size={18} /> Nouvelle Méthode
-              </button>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h3 className="text-2xl font-serif text-primary">Règles de Livraison</h3>
+          <p className="text-sm text-primary/50 mt-1">
+            Définissez des règles de prix basées sur des seuils de montant ou des zones géographiques.
+          </p>
+        </div>
+        <button
+          onClick={handleAdd}
+          className="bg-primary text-primary-foreground px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-accent transition-all shadow-lg"
+        >
+          <Plus size={18} /> Nouvelle Règle
+        </button>
+      </div>
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-3 gap-4">
+        {[
+          {
+            label: 'Règles actives',
+            value: rules.filter(r => r.status === 'active').length,
+            icon: Truck,
+            color: 'bg-emerald-50 text-emerald-700',
+          },
+          {
+            label: 'Règles seuil',
+            value: rules.filter(r => r.type === 'threshold').length,
+            icon: Target,
+            color: 'bg-blue-50 text-blue-700',
+          },
+          {
+            label: 'Règles zone',
+            value: rules.filter(r => r.type === 'zone').length,
+            icon: Info,
+            color: 'bg-amber-50 text-amber-700',
+          },
+        ].map(({ label, value, icon: Icon, color }) => (
+          <div key={label} className="bg-secondary/30 border border-primary/10 rounded-2xl p-4 flex items-center gap-4">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${color}`}>
+              <Icon size={18} />
             </div>
-            <DataTable<ShippingRule>
-              
-              dateFilterKey="createdAt"
-              data={sortByDate(localShippingRules)}
-              title="Livraison"
-              onRowClick={() => {}}
-              columns={[
-                { header: 'Nom', accessor: 'name', className: 'font-bold text-primary' },
-                { header: 'Condition', accessor: 'condition', className: 'text-sm text-primary/60' },
-                { 
-                  header: 'Prix', 
-                  accessor: (shipping) => <span className="font-bold text-primary">{shipping.price === 0 ? 'Gratuit' : `${shipping.price.toLocaleString()} FCFA`}</span>,
-                  exportValue: (shipping) => shipping.price.toString()
-                },
-                { 
-                  header: 'Statut', 
-                  accessor: (shipping: ShippingRule) => (
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setLocalShippingRules(prev => prev.map(s => s.id === shipping.id ? { ...s, status: s.status === 'active' ? 'inactive' : 'active' } : s));
-                        toast.success(`Livraison ${shipping.name} ${shipping.status === 'active' ? 'désactivée' : 'activée'}`);
-                      }}
-                      className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest transition-colors ${
-                        shipping.status === 'active' ? 'bg-primary/10 text-primary' : 'bg-secondary/50 text-primary/60'
-                      }`}
-                    >
-                      {shipping.status || 'active'}
-                    </button>
-                  )
-                },
-                {
-                  header: 'Actions',
-                  accessor: (shipping: ShippingRule) => (
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); setEditingItem(shipping); setModalType('shipping'); }}
-                        className="text-primary font-bold text-sm hover:underline"
-                      >
-                        Modifier
-                      </button>
-                    </div>
-                  )
-                },
-              { header: 'Créé le', accessor: (item: any) => formatDate(item.createdAt || item.date || item.subscribedAt || item.sentAt || new Date().toISOString()), className: 'text-primary/60 text-sm', sortable: true }
-            ]}
-            />
+            <div>
+              <p className="text-2xl font-bold text-primary">{value}</p>
+              <p className="text-xs text-primary/50">{label}</p>
+            </div>
           </div>
-        )}
-    </>
+        ))}
+      </div>
+
+      {/* Rules table */}
+      {isLoadingShipping ? (
+        <div className="flex items-center justify-center py-16 text-primary/40 text-sm">
+          Chargement des règles…
+        </div>
+      ) : rules.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-4 text-primary/40">
+          <Truck size={40} className="opacity-30" />
+          <p className="text-sm font-medium">Aucune règle de livraison configurée.</p>
+          <button
+            onClick={handleAdd}
+            className="text-primary text-sm font-bold underline underline-offset-2"
+          >
+            Ajouter la première règle
+          </button>
+        </div>
+      ) : (
+        <DataTable<ShippingRule>
+          dateFilterKey="createdAt"
+          data={sortByDate(rules)}
+          title="Règles de Livraison"
+          onRowClick={handleEdit}
+          columns={[
+            {
+              header: 'Nom',
+              accessor: 'name',
+              className: 'font-bold text-primary',
+            },
+            {
+              header: 'Type',
+              accessor: (rule: ShippingRule) => {
+                const t = RULE_TYPE_LABELS[rule.type || 'zone'] || RULE_TYPE_LABELS.zone;
+                return (
+                  <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${t.color}`}>
+                    {t.label}
+                  </span>
+                );
+              },
+            },
+            {
+              header: 'Condition',
+              accessor: (rule: ShippingRule) => {
+                if (rule.type === 'threshold') {
+                  const match = rule.condition?.match(/\d+/);
+                  const threshold = match ? Number(match[0]).toLocaleString('fr-FR') : rule.condition;
+                  return (
+                    <span className="text-sm text-primary/70">
+                      Total &gt; <strong>{threshold} FCFA</strong>
+                    </span>
+                  );
+                }
+                return <span className="text-sm text-primary/70">{rule.condition || '—'}</span>;
+              },
+              exportValue: (rule: ShippingRule) => rule.condition || '',
+            },
+            {
+              header: 'Frais',
+              accessor: (rule: ShippingRule) => (
+                <span className={`font-bold ${rule.price === 0 ? 'text-emerald-600' : 'text-primary'}`}>
+                  {rule.price === 0 ? '🎁 Gratuit' : `${rule.price.toLocaleString('fr-FR')} FCFA`}
+                </span>
+              ),
+              exportValue: (rule: ShippingRule) =>
+                rule.price === 0 ? 'Gratuit' : `${rule.price} FCFA`,
+            },
+            {
+              header: 'Statut',
+              accessor: (rule: ShippingRule) => (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const newStatus = rule.status === 'active' ? 'inactive' : 'active';
+                    updateShippingRule(rule.id!, { status: newStatus, updatedAt: new Date().toISOString() });
+                    toast.success(
+                      `Règle "${rule.name}" ${newStatus === 'active' ? 'activée' : 'désactivée'}`
+                    );
+                  }}
+                  className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest transition-colors ${
+                    rule.status === 'active'
+                      ? 'bg-primary/10 text-primary hover:bg-red-100 hover:text-red-600'
+                      : 'bg-secondary/50 text-primary/40 hover:bg-primary/10 hover:text-primary'
+                  }`}
+                >
+                  {rule.status || 'active'}
+                </button>
+              ),
+            },
+            {
+              header: 'Actions',
+              accessor: (rule: ShippingRule) => (
+                <div className="flex gap-3 items-center">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEdit(rule);
+                    }}
+                    className="text-primary/60 hover:text-primary transition-colors"
+                    title="Modifier"
+                  >
+                    <Pencil size={14} />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(rule);
+                    }}
+                    className="text-red-400 hover:text-red-600 transition-colors"
+                    title="Supprimer"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ),
+            },
+            {
+              header: 'Créé le',
+              accessor: (item: any) =>
+                formatDate(item.createdAt || item.date || new Date().toISOString()),
+              className: 'text-primary/60 text-sm',
+              sortable: true,
+            },
+          ]}
+        />
+      )}
+    </div>
   );
 }

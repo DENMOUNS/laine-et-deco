@@ -175,13 +175,17 @@ export interface Product {
   image: string;
   description: string;
   stock: number;
+  /** Alias of stock — kept for backward-compat with legacy data */
+  quantity?: number;
+  /** Derived flag: true when stock > 0. Always kept in sync with stock. */
+  in_stock?: boolean;
   rating: number;
   isNew?: boolean;
   isSale?: boolean;
   isAvailable: boolean; // Added for stock management toggle
   material?: string;
   colors?: string[];
-  specs?: Record<string, string>; // Technical specifications (weight, volume, electronics, etc)
+  specs?: Record<string, any>; // Technical specifications
   reviews?: Review[];
   views?: number;
   salesCount?: number;
@@ -267,7 +271,7 @@ export interface ShippingRule {
   condition: string;
   price: number;
   status: 'active' | 'inactive';
-  type?: 'zone' | 'threshold';
+  type?: 'zone' | 'threshold' | 'default';
   createdAt?: string;
   updatedAt?: string;
 }
@@ -617,9 +621,10 @@ export interface Pack {
   id: string;
   name: string;
   description: string;
-  products: { productId: string; quantity: number }[]; // Max 4 products
+  products: { productId: string; quantity: number }[]; // Up to 20 products
   promoCode: string;
   discountPercentage: number;
+  coverImage?: string; // Optional cover image for the pack
   status?: 'active' | 'inactive';
   createdAt?: string;
   updatedAt?: string;

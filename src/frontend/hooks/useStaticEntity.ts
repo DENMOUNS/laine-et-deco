@@ -54,15 +54,16 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
     }
 
     const cacheKey = getStaticEntityCacheKey(entityType);
-    const cachedData = readCache<T[]>(cacheKey);
-    if (cachedData?.length) {
-      setData(cachedData);
-      setIsLoading(false);
-    }
-
     let cancelled = false;
 
     const fetchData = async () => {
+      const cachedData = await readCache<T[]>(cacheKey);
+      if (cancelled) return;
+      
+      if (cachedData?.length) {
+        setData(cachedData);
+        setIsLoading(false);
+      }
       try {
         const [{ collection, getDocs, query, limit }, { initFirebase }] = await Promise.all([
           import('firebase/firestore'),

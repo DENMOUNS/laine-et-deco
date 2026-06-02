@@ -26,7 +26,7 @@ const calculatePackPrice = (pack: Pack, products: Product[]) => {
 };
 
 export const useCartStore = create<CartState>((set, get) => ({
-  cart: readCache<CartItem[]>(CART_CACHE_KEY) || [],
+  cart: [],
 
   addToCart: (product, quantity = 1) => {
     set((state) => {
@@ -145,6 +145,13 @@ export const useCartStore = create<CartState>((set, get) => ({
     set({ cart });
   },
 }));
+
+// Hydrate cart from IndexedDB after store creation (readCache is async)
+readCache<CartItem[]>(CART_CACHE_KEY).then((cached) => {
+  if (cached && Array.isArray(cached) && cached.length > 0) {
+    useCartStore.setState({ cart: cached });
+  }
+});
 
 function persistCart(cart: CartItem[]) {
   if (cart.length > 0) {

@@ -123,7 +123,7 @@ async function startServer() {
   // Input Validation Schemas
   const chatSchema = z.object({
     message: z.string().min(1, "Message is required").max(5000, "Message is too long"),
-    systemInstruction: z.string().max(2000, "Instruction is too long").optional(),
+    systemInstruction: z.string().max(15000, "Instruction is too long").optional(),
     responseSchema: z.any().optional(),
   });
 

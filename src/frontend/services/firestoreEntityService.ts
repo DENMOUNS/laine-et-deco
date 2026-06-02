@@ -7,6 +7,12 @@ import {
   query,
   QueryConstraint,
   QuerySnapshot,
+  getDocs,
+  startAfter,
+  count,
+  getCountFromServer,
+  getAggregateFromServer,
+  sum,
   type Firestore,
 } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -106,6 +112,57 @@ const parseSnapshot = <T extends BaseEntity>(snapshot: QuerySnapshot<DocumentDat
     items.push({ id: docSnapshot.id, ...(docSnapshot.data() as DocumentData) } as T);
   });
   return items;
+};
+
+export const getPaginatedEntities = async <T extends BaseEntity>(
+  entityType: string,
+  constraints: QueryConstraint[],
+  pageSize: number,
+  lastDocument: DocumentData | null = null
+) => {
+  const { db } = initFirebase();
+  if (!db) throw new Error('Firestore is not initialized');
+
+  const finalConstraints = [...constraints, limit(pageSize)];
+  if (lastDocument) {
+    finalConstraints.push(startAfter(lastDocument));
+  }
+
+  const q = query(collection(db, entityType), ...finalConstraints);
+  const snapshot = await getDocs(q);
+  
+  const items = parseSnapshot<T>(snapshot);
+  const lastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null;
+  
+  return { items, lastDoc, hasMore: snapshot.docs.length === pageSize };
+};
+
+export const getEntityAggregate = async (
+  entityType: string,
+  fieldToSum?: string,
+  constraints: QueryConstraint[] = []
+) => {
+  const { db } = initFirebase();
+  if (!db) throw new Error('Firestore is not initialized');
+
+  const q = query(collection(db, entityType), ...constraints);
+  
+  if (fieldToSum) {
+    const snapshot = await getAggregateFromServer(q, {
+      count: count(),
+      total: sum(fieldToSum)
+    });
+    return {
+      count: snapshot.data().count,
+      total: snapshot.data().total
+    };
+  } else {
+    const snapshot = await getCountFromServer(q);
+    return {
+      count: snapshot.data().count,
+      total: 0
+    };
+  }
 };
 
 export const subscribeToEntityCollection = <T extends BaseEntity>(

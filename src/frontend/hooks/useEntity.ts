@@ -51,16 +51,8 @@ export function useEntity<T extends BaseEntity = BaseEntity>(
   const cacheKey = `entityCache:${entityType}`;
   const isAdmin = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
   
-  const [data, setData] = useState<T[]>(() => {
-    if (CACHEABLE_ENTITIES.includes(entityType)) {
-      const cached = readCache<T[]>(cacheKey);
-      if (cached) return cached;
-    }
-    return initialData;
-  });
-
-  const isCachedAndValid = CACHEABLE_ENTITIES.includes(entityType) && readCache<T[]>(cacheKey) !== null;
-  const [isLoading, setIsLoading] = useState(!isCachedAndValid);
+  const [data, setData] = useState<T[]>(initialData);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const isMounted = useRef(true);
   const { enabled = true, constraints = [], deps = [] } = options;
@@ -78,35 +70,48 @@ export function useEntity<T extends BaseEntity = BaseEntity>(
       return;
     }
 
-    // Client-side optimization: If we have valid cache and we are not in admin, skip fetching
-    // BUT only for entities that don't need real-time updates for clients.
-    const dynamicEntities = ['order', 'user', 'notification', 'chat_message', 'conversation', 'abandoned_cart'];
-    if (!isAdmin && isCachedAndValid && !dynamicEntities.includes(entityType)) {
-      setIsLoading(false);
+    let cancelled = false;
+    let unsubscribe = () => {};
+
+    const initializeData = async () => {
+      let cached: T[] | null = null;
+      let cacheTime: number | null = null;
       
-      // SWR: Fetch only documents updated since the cache was created
-      void import('../services/firestoreEntityService').then(async ({ subscribeToEntityCollection }) => {
-        const [{ readCacheCreatedAt }, { collection, getDocs, query, where }, { initFirebase }] = await Promise.all([
-          import('../utils/cacheStorage'),
-          import('firebase/firestore'),
-          import('../../backend/firebase')
-        ]);
-        
-        const cacheTime = readCacheCreatedAt(cacheKey);
+      if (CACHEABLE_ENTITIES.includes(entityType)) {
+        cached = await readCache<T[]>(cacheKey);
+        if (cached && !cancelled) {
+          setData(cached);
+          setIsLoading(false);
+          cacheTime = await import('../utils/cacheStorage').then(m => m.readCacheCreatedAt(cacheKey));
+        }
+      }
+
+      if (cancelled) return;
+
+      const dynamicEntities = ['order', 'user', 'notification', 'chat_message', 'conversation', 'abandoned_cart'];
+      const isDynamic = dynamicEntities.includes(entityType);
+
+      if (!isAdmin && cached && !isDynamic) {
+        // SWR (Stale-While-Revalidate)
         if (!cacheTime) return;
         
-        const { db: firestoreDb } = initFirebase();
-        if (!firestoreDb) return;
-        
         try {
+          const [{ collection, getDocs, query, where }, { initFirebase }] = await Promise.all([
+            import('firebase/firestore'),
+            import('../../backend/firebase')
+          ]);
+          
+          const { db: firestoreDb } = initFirebase();
+          if (!firestoreDb) return;
+          
           const q = query(
             collection(firestoreDb, entityType),
             where('updatedAt', '>', new Date(cacheTime).toISOString())
           );
-          const snapshot = await getDocs(q);
-          if (snapshot.empty) return;
           
-          // Merge updated docs into cache and state
+          const snapshot = await getDocs(q);
+          if (snapshot.empty || cancelled) return;
+          
           const updatedItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as T));
           setData(prev => {
             const newMap = new Map(prev.map(p => [p.id, p]));
@@ -118,22 +123,18 @@ export function useEntity<T extends BaseEntity = BaseEntity>(
         } catch (e) {
           // ignore SWR errors silently
         }
-      });
-      
-      return;
-    }
+        return;
+      }
 
-    let cancelled = false;
-    let unsubscribe = () => {};
-
-    void import('../services/firestoreEntityService').then(({ subscribeToEntityCollection }) => {
+      // Fetch from Firebase if no cache or if it's admin/dynamic
+      const { subscribeToEntityCollection } = await import('../services/firestoreEntityService');
       if (cancelled) return;
 
       unsubscribe = subscribeToEntityCollection<T>(
         entityType,
         { constraints },
         (items) => {
-          if (!isMounted.current) return;
+          if (cancelled) return;
           setData(items);
           if (CACHEABLE_ENTITIES.includes(entityType)) {
             writeCache(cacheKey, items, getTTLForEntity(entityType));
@@ -142,18 +143,20 @@ export function useEntity<T extends BaseEntity = BaseEntity>(
           setError(null);
         },
         (err) => {
-          if (!isMounted.current) return;
+          if (cancelled) return;
           setError(err);
           setIsLoading(false);
         }
       );
-    });
+    };
+
+    initializeData();
 
     return () => {
       cancelled = true;
       unsubscribe();
     };
-  }, [entityType, enabled, isAdmin, isCachedAndValid, ...deps]);
+  }, [entityType, enabled, isAdmin, ...deps]);
 
   const withService = async <R>(
     fn: (svc: typeof import('../services/firestoreEntityService')) => Promise<R>

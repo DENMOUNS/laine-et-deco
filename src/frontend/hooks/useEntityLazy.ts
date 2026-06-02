@@ -14,7 +14,7 @@ export function useEntityLazy<T>(entityType: string) {
     const dynamicEntities = ['order', 'user', 'notification', 'chat_message', 'conversation', 'abandoned_cart'];
     
     if (!isAdmin && !dynamicEntities.includes(entityType)) {
-      const cached = readCache<T>(cacheKey);
+      const cached = await readCache<T>(cacheKey);
       if (cached) {
         setData(cached);
         setIsLoading(false);

@@ -14,9 +14,21 @@ const LogoDisplay = () => {
   });
   const activeLogo = logos?.[0];
   const logoSrc = activeLogo?.image || activeLogo?.lien;
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [logoSrc]);
   
-  if (logoSrc) {
-    return <img src={logoSrc} alt="Laine & Déco" className="h-10 md:h-12 w-auto object-contain transition-transform group-hover:scale-105" />;
+  if (logoSrc && !imgError && logoSrc !== '/logo.png') {
+    return (
+      <img 
+        src={logoSrc} 
+        alt="Laine & Déco" 
+        onError={() => setImgError(true)}
+        className="h-10 md:h-12 w-auto object-contain transition-transform group-hover:scale-105" 
+      />
+    );
   }
   
   return (
@@ -54,23 +66,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { data: CATEGORIES } = useStaticEntity<any>('category', [], { enabled: isMenuOpen });
-  const [isDarkMode, setIsDarkMode] = useState(false);
 
-  useEffect(() => {
-    if (document.documentElement.classList.contains('dark')) {
-      setIsDarkMode(true);
-    }
-  }, []);
-
-  const toggleDarkMode = () => {
-    if (isDarkMode) {
-      document.documentElement.classList.remove('dark');
-      setIsDarkMode(false);
-    } else {
-      document.documentElement.classList.add('dark');
-      setIsDarkMode(true);
-    }
-  };
 
   const mainNavLinks = navItems.filter(item => item.status === 'active' && (!item.position || item.position === 'top')).sort((a, b) => a.order - b.order);
 
@@ -125,12 +121,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             ))}
           </div>
 
-          {/* Icons */}
           <div className="flex items-center space-x-1 md:space-x-2 z-20">
-            <button aria-label="Activer/Désactiver le mode sombre" onClick={toggleDarkMode} className="flex p-2 text-primary hover:text-accent transition-colors rounded-full hover:bg-primary/5">
-              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
-            
             {/* Icons visible on all screens */}
             <div className="flex items-center space-x-0.5 sm:space-x-1 flex-nowrap z-20">
               <button 
@@ -286,12 +277,31 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <ChevronRight size={18} className={currentView === link.view ? 'opacity-100 text-white' : 'opacity-40'} />
                     </button>
                   ))}
-                  <button
-                    onClick={() => { onNavigate('shop'); setIsMenuOpen(false); }}
-                    className={`text-sm font-medium text-left p-3 rounded-xl transition-all flex items-center gap-3 ${currentView === 'shop' ? 'bg-accent text-white' : 'text-white hover:bg-white/10'}`}
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const formData = new FormData(e.currentTarget);
+                      const query = formData.get('q')?.toString().trim();
+                      if (query) {
+                        onNavigate('shop', undefined, query);
+                      } else {
+                        onNavigate('shop');
+                      }
+                      setIsMenuOpen(false);
+                    }}
+                    className="p-3 bg-white/10 rounded-2xl shadow-sm border border-white/5 flex items-center gap-2 mt-2"
                   >
-                    <Search size={18} /> Rechercher
-                  </button>
+                    <Search size={18} className="text-white/50 shrink-0" />
+                    <input 
+                      type="text" 
+                      name="q"
+                      placeholder="Rechercher un produit..." 
+                      className="bg-transparent text-sm text-white placeholder-white/45 focus:outline-none w-full"
+                    />
+                    <button type="submit" className="text-xs bg-accent text-white px-3 py-1.5 rounded-xl font-bold hover:bg-accent/80 transition-colors shrink-0">
+                      Go
+                    </button>
+                  </form>
                 </div>
 
                 <hr className="border-white/10 my-6" />
@@ -371,21 +381,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     </button>
                 </div>
                 
-                <hr className="border-white/10 my-6" />
-                
-                <div className="space-y-6">
-                  <div className="space-y-3">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-white/70 px-2">Préférences</p>
-                    <div className="flex gap-2 px-2">
-                       <button onClick={toggleDarkMode} className="flex-1 py-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center gap-2 text-white font-medium hover:bg-white/10 transition-colors">
-                          {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
-                          <span className="text-xs">{isDarkMode ? 'Mode Clair' : 'Mode Sombre'}</span>
-                       </button>
-                    </div>
-                  </div>
-                </div>
-                
-                <hr className="border-white/10 my-6" />
+
                 
                 <div className="space-y-2">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-white/70 mb-2 px-2">Compte</p>
@@ -497,6 +493,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, user }) => {
             <p className="font-bold opacity-50 mt-1">Version 1.0.0</p>
           </div>
           <div className="flex space-x-6 mt-4 md:mt-0">
+            <button onClick={() => onNavigate('about')} className="hover:text-white transition-colors">À propos</button>
             <button onClick={() => onNavigate('team')} className="hover:text-white transition-colors">Équipe</button>
             <button onClick={() => onNavigate('legal')} className="hover:text-white transition-colors">Mentions légales</button>
             <button onClick={() => onNavigate('privacy')} className="hover:text-white transition-colors">Confidentialité</button>

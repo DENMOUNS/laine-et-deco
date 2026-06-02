@@ -194,8 +194,6 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, onNa
             onDeleteProject={() => {}}
           />
         );
-      case 'loyalty':
-        return <DashboardLoyalty userProfile={userProfile} badges={[]} onRedeemPoints={handleRedeemPoints} />;
       case 'profile':
         return <DashboardProfile user={dashboardUser} onUpdateUser={() => {}} />;
       case 'payments':
@@ -249,21 +247,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, onNa
                 )}
               </div>
               <h2 className="text-xl font-serif font-bold text-primary">{user.displayName || 'Client'}</h2>
-              <p className="text-xs text-primary/70 mb-6 truncate">{user.email}</p>
-              <div className="flex justify-center gap-2">
-                <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-[10px] font-bold uppercase tracking-widest border border-purple-200 shadow-sm">
-                  {(() => {
-                    let status = 'Débutant';
-                    if (userProfile.points >= 1000 && userProfile.points < 2500) status = 'Passionné';
-                    if (userProfile.points >= 2500 && userProfile.points < 5000) status = 'Artisan';
-                    if (userProfile.points >= 5000) status = 'Maître Créateur';
-                    return status;
-                  })()}
-                </span>
-                <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-[10px] font-bold uppercase tracking-widest border border-amber-200 shadow-sm">
-                  {userProfile.points} Points
-                </span>
-              </div>
+              <p className="text-xs text-primary/70 mb-2 truncate">{user.email}</p>
             </div>
 
             <nav className="bg-card p-4 rounded-[3rem] shadow-sm border border-primary/5 space-y-1">
@@ -271,7 +255,6 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, onNa
                 { id: 'overview', label: 'Tableau de bord', icon: <TrendingUp size={20} /> },
                 { id: 'orders', label: 'Mes Commandes', icon: <Package size={20} /> },
                 { id: 'projects', label: 'Compagnon Tricot', icon: <Scissors size={20} /> },
-                { id: 'loyalty', label: 'Programme Fidélité', icon: <Star size={20} /> },
                 { id: 'profile', label: 'Profil & Sécurité', icon: <Settings size={20} /> },
                 { id: 'tools', label: 'Outils Créatifs', icon: <MessageSquare size={20} /> },
               ].map((item) => (
