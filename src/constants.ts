@@ -460,7 +460,8 @@ export const USERS: User[] = [
   { id: 'u2', name: 'Marie T.', email: 'marie@test.fr', role: 'editor', joinDate: '2023-05-20', orders: 2, status: 'active', points: 450, loyaltyTier: 'Bronze' },
   { id: 'u3', name: 'Jean K.', email: 'jean@gmail.com', role: 'stock-manager', joinDate: '2023-11-02', orders: 0, status: 'inactive', points: 0, loyaltyTier: 'Bronze' },
   { id: 'u4', name: 'Paul Martin', email: 'paul@martin.com', role: 'support-client', joinDate: '2024-01-10', orders: 1, status: 'active', points: 150, loyaltyTier: 'Bronze' },
-  { id: 'u5', name: 'Alice Client', email: 'alice@client.com', role: 'customer', joinDate: '2024-02-10', orders: 3, status: 'active', points: 300, loyaltyTier: 'Silver' }
+  { id: 'u5', name: 'Alice Client', email: 'alice@client.com', role: 'customer', joinDate: '2024-02-10', orders: 3, status: 'active', points: 300, loyaltyTier: 'Silver' },
+  { id: 'u6', name: 'Dolores K.', email: 'doloreskenne6@gmail.com', role: 'admin', joinDate: '2024-03-15', orders: 0, status: 'active', points: 0, loyaltyTier: 'Bronze' }
 ];
 
 export const LOGIN_LOGS: LoginLog[] = [
