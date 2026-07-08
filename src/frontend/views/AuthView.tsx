@@ -16,7 +16,7 @@ import {
   updateProfile
 } from 'firebase/auth';
 import { initFirebase } from '../../backend/firebase';
-import { serverTimestamp, setDoc, doc, getDoc } from 'firebase/firestore';
+import { serverTimestamp, setDoc, doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 const authSchema = z.object({
   name: z.string().min(2, 'Le nom est trop court').optional(),
@@ -102,20 +102,34 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
         if (firebaseDb && user.uid && user.email) {
           const userDocRef = doc(firebaseDb, 'user', user.uid);
           const userDocSnap = await getDoc(userDocRef);
-          
+
           if (!userDocSnap.exists()) {
-            // User document doesn't exist, create it with customer role
-            await setDoc(userDocRef, {
-              uid: user.uid,
-              name: user.displayName || 'Utilisateur',
-              email: user.email,
-              role: 'customer',
-              points: 0,
-              orders: 0,
-              joinDate: new Date().toISOString().split('T')[0],
-              status: 'active',
-              createdAt: serverTimestamp()
-            });
+            const emailQuery = query(collection(firebaseDb, 'user'), where('email', '==', user.email));
+            const emailSnap = await getDocs(emailQuery);
+
+            if (!emailSnap.empty) {
+              const existingDoc = emailSnap.docs[0];
+              await setDoc(existingDoc.ref, {
+                ...existingDoc.data(),
+                uid: user.uid,
+                name: existingDoc.data()?.name || user.displayName || 'Utilisateur',
+                email: user.email,
+                profileImage: existingDoc.data()?.profileImage || user.photoURL || null,
+                updatedAt: serverTimestamp(),
+              }, { merge: true });
+            } else {
+              await setDoc(userDocRef, {
+                uid: user.uid,
+                name: user.displayName || 'Utilisateur',
+                email: user.email,
+                role: 'customer',
+                points: 0,
+                orders: 0,
+                joinDate: new Date().toISOString().split('T')[0],
+                status: 'active',
+                createdAt: serverTimestamp()
+              });
+            }
           }
         }
 
@@ -183,24 +197,39 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
       
       // Check if user document exists, if not create it
       const userDocRef = doc(firebaseDb!, 'user', user.uid);
-      const { getDoc } = await import('firebase/firestore');
+      const { getDoc, query, collection, where, getDocs, updateDoc } = await import('firebase/firestore');
       const userSnap = await getDoc(userDocRef);
       
       if (!userSnap.exists()) {
-        const referralCode = sessionStorage.getItem('referralCode');
-        await setDoc(userDocRef, {
-          uid: user.uid,
-          name: user.displayName || 'Utilisateur',
-          email: user.email,
-          profileImage: user.photoURL || null,
-          role: 'customer',
-          points: 0,
-          orders: 0,
-          joinDate: new Date().toISOString().split('T')[0],
-          status: 'active',
-          referredBy: referralCode || null,
-          createdAt: serverTimestamp()
-        });
+        const emailQuery = query(collection(firebaseDb, 'user'), where('email', '==', user.email));
+        const emailSnap = await getDocs(emailQuery);
+
+        if (!emailSnap.empty) {
+          const existingDoc = emailSnap.docs[0];
+          await setDoc(existingDoc.ref, {
+            ...existingDoc.data(),
+            uid: user.uid,
+            name: existingDoc.data()?.name || user.displayName || 'Utilisateur',
+            email: user.email,
+            profileImage: existingDoc.data()?.profileImage || user.photoURL || null,
+            updatedAt: serverTimestamp(),
+          }, { merge: true });
+        } else {
+          const referralCode = sessionStorage.getItem('referralCode');
+          await setDoc(userDocRef, {
+            uid: user.uid,
+            name: user.displayName || 'Utilisateur',
+            email: user.email,
+            profileImage: user.photoURL || null,
+            role: 'customer',
+            points: 0,
+            orders: 0,
+            joinDate: new Date().toISOString().split('T')[0],
+            status: 'active',
+            referredBy: referralCode || null,
+            createdAt: serverTimestamp()
+          });
+        }
       } else {
         // Update profile metadata without changing the role managed in Firestore.
         const existingData = userSnap.data();
@@ -209,7 +238,6 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
           updates.profileImage = user.photoURL;
         }
         if (Object.keys(updates).length > 0) {
-          const { updateDoc } = await import('firebase/firestore');
           updates.updatedAt = serverTimestamp();
           await updateDoc(userDocRef, updates);
         }

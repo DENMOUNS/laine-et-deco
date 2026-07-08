@@ -57,6 +57,16 @@ async function getUserRole(uid: string, email?: string, existingRole?: string): 
   const userSnap = await db.collection('user').doc(uid).get();
   if (userSnap.exists) {
     role = userSnap.data()?.role;
+
+    if (role === 'customer' && email) {
+      const emailQuery = await db.collection('user').where('email', '==', email).limit(1).get();
+      if (!emailQuery.empty) {
+        const emailRole = emailQuery.docs[0].data()?.role;
+        if (emailRole && validRoles.includes(emailRole as UserRole) && emailRole !== 'customer' && emailQuery.docs[0].id !== uid) {
+          role = emailRole;
+        }
+      }
+    }
   }
 
   if (!role && email) {
@@ -280,14 +290,6 @@ router.put('/:entity/:id', verifyToken, resolveRole, async (req: any, res) => {
     if (!snap.exists) {
       if (entity === 'site_logo') {
         return res.status(404).json({ error: 'Introuvable' });
-      }
-      if (isAdminLevel(role)) {
-        await ref.set({
-          ...req.body,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }, { merge: true });
-        return res.json({ message: 'Created' });
       }
       return res.status(404).json({ error: 'Introuvable' });
     }

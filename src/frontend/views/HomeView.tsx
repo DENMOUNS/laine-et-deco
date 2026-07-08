@@ -91,9 +91,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
   const { data: PACKS } = useStaticEntity<any>('pack', [], secondaryOpts);
   const { data: RECENT_FLASH_SALES } = useStaticEntity<FlashSale>('flash_sale', [], secondaryOpts);
   const { data: LOOKBOOKS } = useStaticEntity<Lookbook>('lookbook', [], secondaryOpts);
-  // Une seule lecture de la collection 'hero_banner' (mise en cache car sans filtre),
-  // le filtre "actif" est fait côté client — avant, la collection était lue deux fois
-  // (une version filtrée non-cachée + une version complète différée) à chaque visite.
+  // Les bannières Hero viennent uniquement de Firestore / cache, pas des constantes locales.
   const { data: ALL_HERO_BANNERS } = useStaticEntity<HeroBannerConfig>('hero_banner', [], secondaryOpts);
   const HERO_BANNERS = ALL_HERO_BANNERS.filter((b) => b.status === 'active');
   const activeFlashSales = RECENT_FLASH_SALES.filter(fs => fs.status === 'active' && new Date(fs.endDate) > new Date());
@@ -110,6 +108,20 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
   const [trackingStatus, setTrackingStatus] = React.useState<{ steps: { label: string, date: string, completed: boolean }[] } | null>(null);
   const [isTrackingLoading, setIsTrackingLoading] = React.useState(false);
   const [liveSearchResults, setLiveSearchResults] = React.useState<Product[]>([]);
+  const [isHeroLoading, setIsHeroLoading] = React.useState(true);
+  const HERO_SLIDES = HERO_BANNERS.map((item) => ({
+    image: optimizeImageUrl(item.image, 960),
+    title: item.title,
+    subtitle: item.subtitle,
+    ctaText: item.ctaText || 'Découvrir la collection',
+    link: 'shop',
+  }));
+  const currentHeroSlide = HERO_SLIDES[currentSlide] || HERO_SLIDES[0] || null;
+
+  React.useEffect(() => {
+    setIsHeroLoading(Boolean(currentHeroSlide?.image));
+  }, [currentHeroSlide?.image]);
+
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   React.useEffect(() => {
@@ -138,27 +150,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
       setLiveSearchResults([]);
     }
   }, [searchQuery]);
-
-  const heroBannersToRender = HERO_BANNERS && HERO_BANNERS.length > 0 ? HERO_BANNERS : ALL_HERO_BANNERS;
-
-  const HERO_SLIDES = heroBannersToRender && heroBannersToRender.length > 0
-    ? heroBannersToRender.map((item) => ({
-        image: optimizeImageUrl(item.image, 960),
-        title: item.title,
-        subtitle: item.subtitle,
-        ctaText: item.ctaText || 'Découvrir la collection',
-        link: 'shop',
-      }))
-    : [{
-        image: 'https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?auto=format&fit=crop&q=80&w=1200',
-        title: 'Laine & Déco',
-        subtitle: 'Bienvenue chez Laine et Déco',
-        ctaText: 'Découvrir la collection',
-        link: 'shop',
-      }];
-
-      
-  const HERO_SLIDES_OPTIMIZED = HERO_SLIDES;
 
   useEffect(() => {
     if (HERO_SLIDES.length <= 1) return;
@@ -296,8 +287,21 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
       <section className="relative min-h-[90vh] flex items-center py-20 overflow-hidden">
         {/* Background */}
         <div className="absolute inset-0 z-0">
+          {isHeroLoading && currentHeroSlide && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/90">
+              <div className="flex flex-col items-center gap-4">
+                <div className="relative w-16 h-16 rounded-full bg-slate-200 shadow-xl overflow-hidden">
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-slate-300 via-slate-400 to-slate-500 opacity-90 animate-spin" />
+                  <div className="absolute inset-0 rounded-full border border-white/70 mix-blend-screen" />
+                  <div className="absolute inset-x-4 top-6 h-1 rounded-full bg-slate-600 opacity-90 rotate-12" />
+                  <div className="absolute inset-x-4 bottom-6 h-1 rounded-full bg-slate-600 opacity-90 -rotate-12" />
+                </div>
+                <span className="text-sm font-medium uppercase tracking-[0.35em] text-white/90">Chargement du hero</span>
+              </div>
+            </div>
+          )}
           <AnimatePresence mode="sync">
-            {HERO_SLIDES_OPTIMIZED.map((slide, i) => {
+            {HERO_SLIDES.map((slide, i) => {
               if (i !== currentSlide) return null;
               if (slide.image.endsWith('.mp4')) {
                 return (
@@ -308,10 +312,11 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                     muted
                     loop
                     playsInline
+                    onLoadedData={() => setIsHeroLoading(false)}
                     initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
+                    animate={{ opacity: isHeroLoading ? 0 : 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 1 }}
+                    transition={{ duration: 0.75 }}
                     className="absolute inset-0 w-full h-full object-cover pointer-events-none"
                   />
                 );
@@ -321,10 +326,12 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                   key={`img-${i}`}
                   src={slide.image}
                   alt={slide.title || 'Collection Laine et Déco'}
+                  onLoad={() => setIsHeroLoading(false)}
+                  onError={() => setIsHeroLoading(false)}
                   initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
+                  animate={{ opacity: isHeroLoading ? 0 : 1 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 1 }}
+                  transition={{ duration: 0.75 }}
                   className="absolute inset-0 w-full h-full object-cover pointer-events-none"
                   referrerPolicy="no-referrer"
                   loading={i === 0 ? "eager" : "lazy"}
@@ -345,10 +352,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
             {/* Animated Title/Subtitle */}
             <motion.div key={currentSlide} className="mb-10 animate-hero-fade-in">
               <span className="inline-block text-xs font-bold uppercase tracking-[0.3em] mb-6 text-accent">
-                {HERO_SLIDES_OPTIMIZED[currentSlide].subtitle}
+                {currentHeroSlide?.subtitle}
               </span>
               <h1 className="text-4xl sm:text-6xl md:text-8xl font-serif leading-[1.1]">
-                {HERO_SLIDES_OPTIMIZED[currentSlide].title}
+                {currentHeroSlide?.title}
               </h1>
             </motion.div>
 
@@ -586,7 +593,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                 <ArrowRight className="ml-3 group-hover:translate-x-1 transition-transform" size={24} />
               </button>
               <div className="flex gap-2 items-center ml-auto">
-                {HERO_SLIDES_OPTIMIZED.map((_, i) => (
+                {HERO_SLIDES.map((_, i) => (
                   <button
                     key={i}
                     aria-label={`Aller à la diapositive ${i + 1}`}

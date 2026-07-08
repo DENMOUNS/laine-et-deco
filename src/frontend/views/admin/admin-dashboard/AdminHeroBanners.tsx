@@ -26,7 +26,10 @@ export function AdminHeroBanners({ ctx }: { ctx: any }) {
       }
 
       if (editingItem) {
-        await updateEntity(editingItem.id!, formData);
+        if (!editingItem.id) {
+          throw new Error('Aucun identifiant de bannière disponible pour la mise à jour.');
+        }
+        await updateEntity(editingItem.id, formData);
         toast.success('Banniere mise a jour');
       } else {
         const activeBanner = banners.find(b => b.status === 'active');
@@ -36,8 +39,8 @@ export function AdminHeroBanners({ ctx }: { ctx: any }) {
       }
       setIsModalOpen(false);
       setEditingItem(null);
-    } catch (error) {
-      toast.error('Erreur lors de la sauvegarde');
+    } catch (error: any) {
+      toast.error(error?.message || 'Erreur lors de la sauvegarde');
     }
   };
 

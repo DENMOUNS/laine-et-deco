@@ -76,6 +76,8 @@ import {
   HelpCircle,
   Phone
 } from 'lucide-react';
+import { onSnapshot } from 'firebase/firestore';
+import { db } from '../../../../backend/firebase';
 import { useEntity } from '../../../hooks/useEntity';
 import { useAdminStore } from '../../../../stores/adminStore';
 import {
@@ -252,6 +254,37 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
     enabled: isActiveTab(['customers', 'customer-detail', 'customer-groups', 'customer-group-detail', 'overview', 'search-results', 'notifications', 'messages', 'stats'])
   });
   const localUsers = Array.isArray(USERS) ? USERS : (USERS && typeof USERS === 'object' ? Object.values(USERS) : []);
+
+  // Profil de l'utilisateur CONNECTÉ : listener dédié, TOUJOURS actif (indépendant de
+  // l'onglet admin affiché). Le fetch `USERS` ci-dessus n'est activé que sur certains
+  // onglets (customers, overview, stats, ...) pour limiter les lectures Firestore ; or
+  // le rôle de l'utilisateur connecté (super-admin/admin/...) doit être connu sur TOUS
+  // les onglets pour le contrôle d'accès du panneau admin (cf. AdminDashboardShell).
+  // Sans ce listener séparé, arriver directement sur un onglet non listé (ex: /admin/qr)
+  // empêchait tout chargement du document utilisateur : le rôle retombait par défaut sur
+  // 'customer' et bloquait l'accès admin même pour un super-admin.
+  const [ownUserDoc, setOwnUserDoc] = useState<UserType | null>(null);
+  const [isOwnUserDocLoading, setIsOwnUserDocLoading] = useState(true);
+  useEffect(() => {
+    if (!user?.uid) {
+      setOwnUserDoc(null);
+      setIsOwnUserDocLoading(false);
+      return;
+    }
+    setIsOwnUserDocLoading(true);
+    const unsubscribe = onSnapshot(
+      doc(db, 'user', user.uid),
+      (snapshot) => {
+        setOwnUserDoc(snapshot.exists() ? ({ id: snapshot.id, ...snapshot.data() } as UserType) : null);
+        setIsOwnUserDocLoading(false);
+      },
+      () => {
+        setOwnUserDoc(null);
+        setIsOwnUserDocLoading(false);
+      }
+    );
+    return () => unsubscribe();
+  }, [user?.uid]);
   const { data: CATEGORIES, updateEntity: updateCategory, addEntity: addCategory, deleteEntity: deleteCategory, setData: setLocalCategories, isLoading: isLoadingCategories } = useEntity<Category>('category', [], {
     enabled: isActiveTab(['products', 'product-create', 'product-edit', 'inventory'])
   });
@@ -872,7 +905,10 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
 
   const menuItems = getAdminMenuItems();
 
-  const currentUserDoc = localUsers.find(u => u.id === user?.uid);
+  // Priorité au listener dédié (toujours actif) ; repli sur la liste `localUsers`
+  // (tab-gated) si celle-ci est déjà chargée et que le listener dédié n'a pas encore
+  // répondu, pour éviter un flash "customer" pendant le tout premier rendu.
+  const currentUserDoc = ownUserDoc ?? localUsers.find(u => u.id === user?.uid);
   const userRoleSlug = currentUserDoc?.role || 'customer';
   
   const roleData = localRoles.find((r: any) => 
@@ -1084,6 +1120,7 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
     hasPermission,
     isAddModalOpen,
     isAuthLoading,
+    isOwnUserDocLoading,
     isCatalogRuleEditorOpen,
     isCityEditorOpen,
     isCouponEditorOpen,

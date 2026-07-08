@@ -78,6 +78,7 @@ export const AdminDashboardShell: React.FC<Props> = ({ ctx }) => {
     isDataLoading,
     isTabAllowed,
     userRoleSlug,
+    isOwnUserDocLoading,
     filteredMenuItems,
     setActiveTab,
     selectedCustomerGroup,
@@ -284,7 +285,13 @@ export const AdminDashboardShell: React.FC<Props> = ({ ctx }) => {
         />
 
         <div className="px-6 lg:px-10 pb-10">
-          {userRoleSlug === 'customer' && (
+          {isOwnUserDocLoading && (
+            <div className="flex-grow flex items-center justify-center p-10 mt-20">
+              <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+            </div>
+          )}
+
+          {(!isOwnUserDocLoading && userRoleSlug === 'customer') && (
             <div className="flex-grow flex items-center justify-center p-10 mt-20">
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -301,7 +308,7 @@ export const AdminDashboardShell: React.FC<Props> = ({ ctx }) => {
             </div>
           )}
 
-          {(userRoleSlug !== 'customer' && !isTabAllowed) && (
+          {(!isOwnUserDocLoading && userRoleSlug !== 'customer' && !isTabAllowed) && (
             <div className="flex-grow flex flex-col items-center justify-center p-10 mt-20 h-full">
               <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mb-6">
                 <Lock size={32} />
@@ -314,7 +321,7 @@ export const AdminDashboardShell: React.FC<Props> = ({ ctx }) => {
             </div>
           )}
 
-          {(userRoleSlug !== 'customer' && isTabAllowed) && (
+          {(!isOwnUserDocLoading && userRoleSlug !== 'customer' && isTabAllowed) && (
             <div className="admin-dashboard-content-area">
               <AdminDashboardModals ctx={ctx} />
               {renderActiveTab()}
