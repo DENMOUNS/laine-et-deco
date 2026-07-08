@@ -16,7 +16,8 @@ import {
   updateProfile
 } from 'firebase/auth';
 import { initFirebase } from '../../backend/firebase';
-import { serverTimestamp, setDoc, doc } from 'firebase/firestore';
+import { serverTimestamp, setDoc, doc, getDoc } from 'firebase/firestore';
+import { USERS } from '../../constants';
 
 const authSchema = z.object({
   name: z.string().min(2, 'Le nom est trop court').optional(),
@@ -95,7 +96,33 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
     }
     try {
       if (mode === 'login') {
-        await signInWithEmailAndPassword(firebaseAuth, data.email, data.password);
+        const userCredential = await signInWithEmailAndPassword(firebaseAuth, data.email, data.password);
+        const user = userCredential.user;
+
+        // Verify/create user document in Firestore after login
+        if (firebaseDb && user.uid && user.email) {
+          const userDocRef = doc(firebaseDb, 'user', user.uid);
+          const userDocSnap = await getDoc(userDocRef);
+          
+          if (!userDocSnap.exists()) {
+            // User document doesn't exist, create it
+            // Try to find predefined role from USERS constants
+            const predefinedUser = USERS.find(u => u.email.toLowerCase() === user.email?.toLowerCase());
+            const role = predefinedUser?.role || 'customer';
+            
+            await setDoc(userDocRef, {
+              uid: user.uid,
+              name: user.displayName || predefinedUser?.name || 'Utilisateur',
+              email: user.email,
+              role: role,
+              points: predefinedUser?.points || 0,
+              orders: predefinedUser?.orders || 0,
+              joinDate: new Date().toISOString().split('T')[0],
+              status: predefinedUser?.status || 'active',
+              createdAt: serverTimestamp()
+            });
+          }
+        }
 
         toast.success('Connexion réussie !');
         handleSuccessRedirect();
@@ -107,16 +134,20 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
         }
         
         // Create user document in Firestore with potential referral
+        // Check if user has predefined role from USERS constants
+        const predefinedUser = USERS.find(u => u.email.toLowerCase() === user.email?.toLowerCase());
+        const role = predefinedUser?.role || 'customer';
+        
         const referralCode = sessionStorage.getItem('referralCode');
         await setDoc(doc(firebaseDb!, 'user', user.uid), {
           uid: user.uid,
-          name: data.name || user.displayName || 'Utilisateur',
+          name: data.name || user.displayName || predefinedUser?.name || 'Utilisateur',
           email: user.email,
-          role: 'customer',
-          points: 0,
-          orders: 0,
+          role: role,
+          points: predefinedUser?.points || 0,
+          orders: predefinedUser?.orders || 0,
           joinDate: new Date().toISOString().split('T')[0],
-          status: 'active',
+          status: predefinedUser?.status || 'active',
           referredBy: referralCode || null,
           createdAt: serverTimestamp()
         });
