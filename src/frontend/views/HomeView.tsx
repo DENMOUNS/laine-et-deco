@@ -4,7 +4,7 @@ import { ArrowRight, Package, Truck, ShieldCheck, Heart, Calendar, User, Search,
 
 import { useStaticEntity } from '../hooks/useStaticEntity';
 import { useProducts } from '../hooks/useProducts';
-import { limit, where } from 'firebase/firestore';
+import { limit } from 'firebase/firestore';
 import { ProductCard } from '../components/ProductCard';
 import { Button } from '../components/ui/Button';
 import { Product, SiteConfig, PromoEvent, Pack, FlashSale, Lookbook, HeroBannerConfig } from '../../types';
@@ -91,10 +91,11 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
   const { data: PACKS } = useStaticEntity<any>('pack', [], secondaryOpts);
   const { data: RECENT_FLASH_SALES } = useStaticEntity<FlashSale>('flash_sale', [], secondaryOpts);
   const { data: LOOKBOOKS } = useStaticEntity<Lookbook>('lookbook', [], secondaryOpts);
-  const { data: HERO_BANNERS } = useStaticEntity<HeroBannerConfig>('hero_banner', [], {
-    constraints: [where('status', '==', 'active')],
-  });
+  // Une seule lecture de la collection 'hero_banner' (mise en cache car sans filtre),
+  // le filtre "actif" est fait côté client — avant, la collection était lue deux fois
+  // (une version filtrée non-cachée + une version complète différée) à chaque visite.
   const { data: ALL_HERO_BANNERS } = useStaticEntity<HeroBannerConfig>('hero_banner', [], secondaryOpts);
+  const HERO_BANNERS = ALL_HERO_BANNERS.filter((b) => b.status === 'active');
   const activeFlashSales = RECENT_FLASH_SALES.filter(fs => fs.status === 'active' && new Date(fs.endDate) > new Date());
   const activeLookbooks = LOOKBOOKS.filter(lb => lb.status === 'active');
 

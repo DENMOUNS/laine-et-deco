@@ -77,7 +77,6 @@ import {
   Phone
 } from 'lucide-react';
 import { useEntity } from '../../../hooks/useEntity';
-import { useProducts } from '../../../hooks/useProducts';
 import { useAdminStore } from '../../../../stores/adminStore';
 import {
   formatFirestoreDate as formatDate,
@@ -100,7 +99,6 @@ import { updateEntity as updateEntityBackend } from '../../../services/dashboard
 import { productSearch, orderSearch, userSearch, getStatusText, getActionDescription } from '../../../utils/searchUtils';
 import { 
   ORDERS as INITIAL_ORDERS, 
-  PRODUCTS as INITIAL_PRODUCTS, 
   USERS as INITIAL_USERS, 
   CATEGORIES as INITIAL_CATEGORIES, 
   LOGIN_LOGS as INITIAL_LOGIN_LOGS, 
@@ -237,11 +235,23 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
     return ORDERS;
   }, [ORDERS]);
 
-  const { products: fetchedProducts } = useProducts({ isAdmin: true });
-  const PRODUCTS = fetchedProducts.length > 0 ? fetchedProducts : INITIAL_PRODUCTS;
-  const { data: USERS, deleteEntity: deleteUser } = useEntity<UserType>('user', [], {
+  // NOTE: l'ancien appel `useProducts({ isAdmin: true })` ici a été supprimé.
+  // Il déclenchait une lecture complète (non filtrée par onglet) de la collection
+  // 'product' à CHAQUE montage du dashboard admin, alors que sa donnée (PRODUCTS /
+  // fetchedProducts) n'était utilisée nulle part — code mort. Ces noms sont ré-exposés
+  // plus bas, aliasés sur `localProducts` (déjà chargé via useEntity) pour ne rien casser.
+  // Fusionné : une seule lecture temps réel de 'user' (auparavant USERS et localUsers
+  // ouvraient chacun leur propre listener onSnapshot sur la même collection).
+  const {
+    data: USERS,
+    setData: setLocalUsers,
+    deleteEntity: deleteUser,
+    updateEntity: updateLocalUser,
+    setEntity: setLocalUser,
+  } = useEntity<UserType>('user', [], {
     enabled: isActiveTab(['customers', 'customer-detail', 'customer-groups', 'customer-group-detail', 'overview', 'search-results', 'notifications', 'messages', 'stats'])
   });
+  const localUsers = Array.isArray(USERS) ? USERS : (USERS && typeof USERS === 'object' ? Object.values(USERS) : []);
   const { data: CATEGORIES, updateEntity: updateCategory, addEntity: addCategory, deleteEntity: deleteCategory, setData: setLocalCategories, isLoading: isLoadingCategories } = useEntity<Category>('category', [], {
     enabled: isActiveTab(['products', 'product-create', 'product-edit', 'inventory'])
   });
@@ -252,9 +262,17 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
     enabled: isActiveTab(['faq', 'site', 'stats'])
   });
   const { data: LOGIN_LOGS, deleteEntity: deleteLoginLog } = useEntity<any>('login_log', [], { enabled: false });
-  const { data: NOTIFICATIONS, deleteEntity: deleteNotification } = useEntity<any>('notification', [], {
+  // Fusionné : NOTIFICATIONS et localSystemNotifications lisaient toutes les deux, en
+  // permanence (enabled: true), la même collection 'notification' — deux listeners
+  // temps réel ouverts pour la durée de toute la session admin. Un seul suffit.
+  const {
+    data: NOTIFICATIONS,
+    setData: setLocalSystemNotifications,
+    deleteEntity: deleteNotification,
+  } = useEntity<Notification>('notification', [], {
     enabled: true
   });
+  const localSystemNotifications = NOTIFICATIONS;
   const { data: SALES_DATA } = useEntity<any>('sales_data', [], {
     enabled: isActiveTab(['stats'])
   });
@@ -446,30 +464,112 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
   const { data: EMAILS, setData: setLocalEmails, isLoading: isLoadingEmails } = useEntity<any>('email', [], {
     enabled: isActiveTab(['newsletter', 'emails', 'newsletter_config'])
   });
-  const { data: EXPENSES, isLoading: isLoadingExpenses } = useEntity<any>('expense', INITIAL_EXPENSES, {
+  // Fusionné : EXPENSES + localExpenses lisaient toutes les deux 'expense'
+  // avec exactement la même condition enabled(['expenses']).
+  const {
+    data: EXPENSES,
+    setData: setLocalExpenses,
+    addEntity: addExpense,
+    updateEntity: updateExpense,
+    isLoading: isLoadingExpenses,
+  } = useEntity<Expense>('expense', INITIAL_EXPENSES, {
     enabled: isActiveTab(['expenses'])
   });
-  const { data: LOOKBOOK_POSTS, setData: setLocalLookbook, isLoading: isLoadingLookbook } = useEntity<any>('lookbook_post', INITIAL_LOOKBOOK_POSTS, {
+  const localExpenses = EXPENSES;
+  // Fusionné : LOOKBOOK_POSTS + localLookbook lisaient toutes les deux 'lookbook_post'
+  // avec exactement la même condition enabled(['lookbook']).
+  const {
+    data: LOOKBOOK_POSTS,
+    setData: setLocalLookbook,
+    addEntity: addLookbook,
+    updateEntity: updateLookbook,
+    isLoading: isLoadingLookbook,
+  } = useEntity<any>('lookbook_post', INITIAL_LOOKBOOK_POSTS, {
     enabled: isActiveTab(['lookbook'])
   });
-  const { data: BLOG_POSTS, setData: setLocalBlogPosts, isLoading: isLoadingBlog } = useEntity<any>('blog_post', INITIAL_BLOG_POSTS, {
+  const localLookbook = LOOKBOOK_POSTS;
+  const setLocalLookbook2 = setLocalLookbook;
+  // Fusionné : BLOG_POSTS + localBlogPosts lisaient toutes les deux 'blog_post'
+  // avec exactement la même condition enabled(['blog']).
+  const {
+    data: BLOG_POSTS,
+    setData: setLocalBlogPosts,
+    addEntity: addBlogPost,
+    updateEntity: updateBlogPost,
+    isLoading: isLoadingBlog,
+  } = useEntity<any>('blog_post', INITIAL_BLOG_POSTS, {
     enabled: isActiveTab(['blog'])
   });
-  const { data: REVIEWS, setData: setLocalReviews, deleteEntity: deleteReview, isLoading: isLoadingReviews } = useEntity<any>('review', INITIAL_REVIEWS, {
+  const localBlogPosts = BLOG_POSTS;
+  const setLocalBlogPosts2 = setLocalBlogPosts;
+  // Fusionné : REVIEWS + localReviews lisaient toutes les deux 'review'
+  // avec exactement la même condition enabled(['reviews']).
+  const {
+    data: REVIEWS,
+    setData: setLocalReviews,
+    deleteEntity: deleteReview,
+    updateEntity: updateReview,
+    addEntity: addReview,
+    isLoading: isLoadingReviews,
+  } = useEntity<Review>('review', INITIAL_REVIEWS, {
     enabled: isActiveTab(['reviews'])
   });
-  const { data: ABANDONED_CARTS, setData: setLocalAbandonedCarts, deleteEntity: deleteAbandonedCart, isLoading: isLoadingAbandoned } = useEntity<any>('abandoned_cart', INITIAL_ABANDONED_CARTS, {
+  const localReviews = REVIEWS;
+  const setLocalReviews2 = setLocalReviews;
+  // Fusionné : ABANDONED_CARTS + localAbandonedCarts lisaient toutes les deux
+  // 'abandoned_cart' avec exactement la même condition enabled(['abandoned-carts']).
+  const {
+    data: ABANDONED_CARTS,
+    setData: setLocalAbandonedCarts,
+    deleteEntity: deleteAbandonedCart,
+    isLoading: isLoadingAbandoned,
+  } = useEntity<AbandonedCart>('abandoned_cart', INITIAL_ABANDONED_CARTS, {
     enabled: isActiveTab(['abandoned-carts'])
   });
-  const { data: CUSTOMER_GROUPS, setData: setLocalCustomerGroups, deleteEntity: deleteCustomerGroup, isLoading: isLoadingGroups } = useEntity<any>('customer_group', INITIAL_CUSTOMER_GROUPS, {
+  const localAbandonedCarts = ABANDONED_CARTS;
+  const setLocalAbandonedCarts2 = setLocalAbandonedCarts;
+  // Fusionné : CUSTOMER_GROUPS + localCustomerGroups lisaient toutes les deux
+  // 'customer_group' avec exactement la même condition enabled.
+  const {
+    data: CUSTOMER_GROUPS,
+    setData: setLocalCustomerGroups,
+    deleteEntity: deleteCustomerGroup,
+    addEntity: addCustomerGroup,
+    updateEntity: updateCustomerGroup,
+    isLoading: isLoadingGroups,
+  } = useEntity<CustomerGroup>('customer_group', INITIAL_CUSTOMER_GROUPS, {
     enabled: isActiveTab(['customer-groups', 'customer-group-detail'])
   });
-  const { data: TAX_RULES, setData: setLocalTaxRules, deleteEntity: deleteTaxRule, isLoading: isLoadingTax } = useEntity<any>('tax_rule', INITIAL_TAX_RULES, {
+  const localCustomerGroups = CUSTOMER_GROUPS;
+  const setLocalCustomerGroups2 = setLocalCustomerGroups;
+  // Fusionné : TAX_RULES + localTaxRules lisaient toutes les deux 'tax_rule'
+  // avec exactement la même condition enabled(['taxes']).
+  const {
+    data: TAX_RULES,
+    setData: setLocalTaxRules,
+    deleteEntity: deleteTaxRule,
+    addEntity: addTaxRule,
+    updateEntity: updateTaxRule,
+    isLoading: isLoadingTax,
+  } = useEntity<TaxRule>('tax_rule', INITIAL_TAX_RULES, {
     enabled: isActiveTab(['taxes'])
   });
-  const { data: SHIPPING_RULES, setData: setLocalShippingRules, deleteEntity: deleteShippingRule, isLoading: isLoadingShipping } = useEntity<any>('shipping_rule', INITIAL_SHIPPING_RULES, {
+  const localTaxRules = TAX_RULES;
+  const setLocalTaxRules2 = setLocalTaxRules;
+  // Fusionné : SHIPPING_RULES + localShippingRules lisaient toutes les deux
+  // 'shipping_rule' avec exactement la même condition enabled(['shipping']).
+  const {
+    data: SHIPPING_RULES,
+    setData: setLocalShippingRules,
+    deleteEntity: deleteShippingRule,
+    addEntity: addShippingRule,
+    updateEntity: updateShippingRule,
+    isLoading: isLoadingShipping,
+  } = useEntity<ShippingRule>('shipping_rule', INITIAL_SHIPPING_RULES, {
     enabled: isActiveTab(['shipping'])
   });
+  const localShippingRules = SHIPPING_RULES;
+  const setLocalShippingRules2 = setLocalShippingRules;
   const localNavItems = NAV_ITEMS; // Use the one from useEntity
   // const { data: CATALOG_PRICE_RULES, isLoading: isLoadingCatalog } = useEntity<any>('catalog_price_rule', INITIAL_CATALOG_PRICE_RULES); // REMOVED DUPLICATE
   const { data: SUBSCRIBERS, setData: setLocalSubscribers, deleteEntity: deleteSubscriber, isLoading: isLoadingSubscribers } = useEntity<NewsletterSubscriber>('subscriber', [], {
@@ -480,6 +580,10 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
   const { data: localProducts, setData: setLocalProducts, updateEntity: updateProduct, addEntity: addProduct, deleteEntity: deleteProduct, isLoading: isLoadingProducts } = useEntity<Product>('product', [], {
     enabled: isActiveTab(['overview', 'products', 'product-create', 'product-edit', 'inventory', 'search-results', 'notifications', 'messages', 'stats'])
   });
+  // PRODUCTS / fetchedProducts : alias sur localProducts (voir note plus haut sur la
+  // suppression du useProducts({isAdmin:true}) mort). Conservés pour ne rien casser.
+  const PRODUCTS = localProducts;
+  const fetchedProducts = localProducts;
   const localOrders = allOrders;
   const localCategories = CATEGORIES;
 
@@ -523,21 +627,11 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
   // 🚀 Les données proviennent uniquement de Firestore via les hooks useEntity
   // Pas de données seed, pas d'initialisation - données réelles uniquement
 
-  const { data: localSystemNotifications, setData: setLocalSystemNotifications } = useEntity<Notification>('notification', [], {
-    enabled: true
-  });
-  const { data: localUsers, setData: setLocalUsers, updateEntity: updateLocalUser, setEntity: setLocalUser } = useEntity<UserType>('user', [], {
-    enabled: isActiveTab(['customers', 'customer-detail', 'customer-groups', 'customer-group-detail', 'overview', 'search-results', 'notifications', 'messages', 'stats'])
-  });
-  const { data: localExpenses, addEntity: addExpense, updateEntity: updateExpense, setData: setLocalExpenses } = useEntity<Expense>('expense', [], {
-    enabled: isActiveTab(['expenses'])
-  });
-  const { data: localLookbook, addEntity: addLookbook, updateEntity: updateLookbook, setData: setLocalLookbook2 } = useEntity<any>('lookbook_post', [], {
-    enabled: isActiveTab(['lookbook'])
-  });
-  const { data: localBlogPosts, addEntity: addBlogPost, updateEntity: updateBlogPost, setData: setLocalBlogPosts2 } = useEntity<any>('blog_post', [], {
-    enabled: isActiveTab(['blog'])
-  });
+  // 'notification' : voir NOTIFICATIONS/localSystemNotifications fusionnés plus haut.
+  // 'user' : voir USERS/localUsers fusionnés plus haut (une seule lecture Firestore).
+  // 'expense' : voir EXPENSES/localExpenses fusionnés plus haut.
+  // 'lookbook_post' : voir LOOKBOOK_POSTS/localLookbook fusionnés plus haut.
+  // 'blog_post' : voir BLOG_POSTS/localBlogPosts fusionnés plus haut.
   const { data: realLogs, isLoading: isLogsLoading } = useEntity<any>('log', [], {
     enabled: isActiveTab(['logs'])
   });
@@ -545,24 +639,14 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
   // New Magento-like states (UI state from store)
   const newRMANote = useAdminStore((s) => s.newRMANote);
   const setNewRMANote = useAdminStore((s) => s.setNewRMANote);
-  const { data: localReviews, updateEntity: updateReview, addEntity: addReview, setData: setLocalReviews2 } = useEntity<Review>('review', [], {
-    enabled: isActiveTab(['reviews'])
-  });
+  // 'review' : voir REVIEWS/localReviews fusionnés plus haut.
   const { data: localRMAs, updateEntity: updateRMA, addEntity: addRMA } = useEntity<RMA>('rma', [], {
     enabled: isActiveTab(['rmas'])
   });
-  const { data: localAbandonedCarts, setData: setLocalAbandonedCarts2 } = useEntity<AbandonedCart>('abandoned_cart', [], {
-    enabled: isActiveTab(['abandoned-carts'])
-  });
-  const { data: localCustomerGroups, addEntity: addCustomerGroup, updateEntity: updateCustomerGroup, setData: setLocalCustomerGroups2 } = useEntity<CustomerGroup>('customer_group', [], {
-    enabled: isActiveTab(['customer-groups', 'customer-group-detail'])
-  });
-  const { data: localTaxRules, addEntity: addTaxRule, updateEntity: updateTaxRule, setData: setLocalTaxRules2 } = useEntity<TaxRule>('tax_rule', [], {
-    enabled: isActiveTab(['taxes'])
-  });
-  const { data: localShippingRules, addEntity: addShippingRule, updateEntity: updateShippingRule, setData: setLocalShippingRules2 } = useEntity<ShippingRule>('shipping_rule', [], {
-    enabled: isActiveTab(['shipping'])
-  });
+  // 'abandoned_cart' : voir ABANDONED_CARTS/localAbandonedCarts fusionnés plus haut.
+  // 'customer_group' : voir CUSTOMER_GROUPS/localCustomerGroups fusionnés plus haut.
+  // 'tax_rule' : voir TAX_RULES/localTaxRules fusionnés plus haut.
+  // 'shipping_rule' : voir SHIPPING_RULES/localShippingRules fusionnés plus haut.
   const { data: localCurrencies, addEntity: addCurrency, updateEntity: updateCurrency, deleteEntity: deleteCurrency, setData: setLocalCurrencies } = useEntity<Currency>('currency', [], {
     enabled: isActiveTab(['payments'])
   });
@@ -709,7 +793,7 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
         }
     } else if (notification.type === 'customer' || notification.type === 'user') {
         if (notification.relatedId) {
-            const customer = USERS.find(u => u.id === notification.relatedId);
+            const customer = localUsers.find(u => u.id === notification.relatedId);
             if (customer) {
                 setSelectedCustomer(customer);
                 setActiveTab('customer-detail');
@@ -788,7 +872,7 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
 
   const menuItems = getAdminMenuItems();
 
-  const currentUserDoc = USERS.find(u => u.id === user?.uid);
+  const currentUserDoc = localUsers.find(u => u.id === user?.uid);
   const userRoleSlug = currentUserDoc?.role || 'customer';
   
   const roleData = localRoles.find((r: any) => 
@@ -918,7 +1002,7 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
     SUBSCRIBERS,
     TAX_RULES,
     TRAFFIC_SOURCES,
-    USERS,
+    localUsers,
     activeMenuItem,
     activeTab,
     addBlogPost,

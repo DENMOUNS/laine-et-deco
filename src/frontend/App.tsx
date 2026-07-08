@@ -5,6 +5,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useConfigStore } from '../stores/configStore';
 import { SiteConfig, PromoEvent, NavItem } from '../types';
 import { DEFAULT_SITE_CONFIG, DEFAULT_NAV_ITEMS } from '../siteDefaults';
+import { readCache, writeCache, getTTLForEntity } from './utils/cacheStorage';
 
 const AppRoutes = lazy(() =>
   import('./components/AppRoutes').then((m) => ({ default: m.AppRoutes }))
@@ -43,7 +44,28 @@ function useDeferredConfigSync() {
 
     let cancelled = false;
 
+    // Même format de clé que useEntity, pour partager le cache IndexedDB
+    // entre ce bootstrap et les hooks d'entité (évite une double lecture Firestore).
+    const cacheKeyFor = (entityType: string) => `entityCache:${entityType}`;
+
     void (async () => {
+      // 1. Applique immédiatement les valeurs en cache si elles sont encore valides
+      //    (TTL défini dans getTTLForEntity) — aucune lecture Firestore nécessaire.
+      const [cachedSiteConfigs, cachedPromoEvents, cachedNavItems] = await Promise.all([
+        readCache<SiteConfig[]>(cacheKeyFor('site_config')),
+        readCache<PromoEvent[]>(cacheKeyFor('promo_event')),
+        readCache<NavItem[]>(cacheKeyFor('nav_item')),
+      ]);
+
+      if (cancelled) return;
+
+      if (cachedSiteConfigs?.[0]) setSiteConfig(cachedSiteConfigs[0]);
+      if (cachedNavItems?.length) resolveNavItems(cachedNavItems);
+      if (cachedPromoEvents) setEvents(cachedPromoEvents);
+
+      // Si les trois entrées sont en cache et valides, on ne fait aucun appel réseau.
+      if (cachedSiteConfigs && cachedPromoEvents && cachedNavItems) return;
+
       const [{ initFirebase }, { getDocs, collection, query, limit }] = await Promise.all([
         import('../backend/firebase'),
         import('firebase/firestore'),
@@ -64,9 +86,9 @@ function useDeferredConfigSync() {
       };
 
       const [siteConfigs, promoEvents, navItems] = await Promise.all([
-        fetchCollection<SiteConfig>('site_config', 5),
-        fetchCollection<PromoEvent>('promo_event', 20),
-        fetchCollection<NavItem>('nav_item', 30),
+        cachedSiteConfigs ? Promise.resolve(cachedSiteConfigs) : fetchCollection<SiteConfig>('site_config', 5),
+        cachedPromoEvents ? Promise.resolve(cachedPromoEvents) : fetchCollection<PromoEvent>('promo_event', 20),
+        cachedNavItems ? Promise.resolve(cachedNavItems) : fetchCollection<NavItem>('nav_item', 30),
       ]);
 
       if (cancelled) return;
@@ -75,6 +97,10 @@ function useDeferredConfigSync() {
       if (navItems.length > 0) resolveNavItems(navItems);
       else resolveNavItems(DEFAULT_NAV_ITEMS);
       setEvents(promoEvents);
+
+      if (!cachedSiteConfigs) writeCache(cacheKeyFor('site_config'), siteConfigs, getTTLForEntity('site_config'));
+      if (!cachedPromoEvents) writeCache(cacheKeyFor('promo_event'), promoEvents, getTTLForEntity('promo_event'));
+      if (!cachedNavItems) writeCache(cacheKeyFor('nav_item'), navItems, getTTLForEntity('nav_item'));
     })();
 
     return () => {
@@ -98,11 +124,12 @@ export function App() {
     };
   }, [initAuthListener]);
 
-  useEffect(() => {
-    return scheduleIdle(() => {
-      void import('./utils/firebaseSeed').then(({ seedFirebase }) => seedFirebase());
-    }, 30_000);
-  }, []);
+  // NOTE: le seed automatique global (seedFirebase) a été retiré du boot client.
+  // Il exécutait un getDocs() sur ~35 collections entières (product, order, user, ...)
+  // à CHAQUE visite de CHAQUE visiteur (juste pour vérifier si elles étaient vides),
+  // ce qui épuisait le quota de lectures Firestore du plan gratuit en quelques visites.
+  // Le seed initial reste disponible via AdminDashboard (useAdminDashboardContext ->
+  // autoSeedIfEmpty), qui ne vérifie que 2 collections et seulement pour un admin connecté.
 
   useEffect(() => {
     useConfigStore.getState().setSiteConfig(DEFAULT_SITE_CONFIG);

@@ -28,6 +28,8 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
   setActiveTab,
   onSearch
 }) => {
+  const notifications = Array.isArray(localSystemNotifications) ? localSystemNotifications : [];
+
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-primary/5 py-4 px-6 lg:px-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 shadow-sm">
       <div className="flex items-center gap-4">
@@ -72,9 +74,9 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
             className={`relative p-2 transition-colors ${showNotifications ? 'text-primary' : 'text-primary/60 hover:text-primary'}`}
           >
             <Bell size={20} />
-            {localSystemNotifications.filter(n => !n.read).length > 0 && (
+            {notifications.filter(n => !n.read).length > 0 && (
               <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-700 rounded-full text-[10px] font-bold text-white flex items-center justify-center border-2 border-white">
-                {localSystemNotifications.filter(n => !n.read).length}
+                {notifications.filter(n => !n.read).length}
               </span>
             )}
           </button>
@@ -90,11 +92,11 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
                 <div className="p-6 border-b border-primary/5 flex justify-between items-center bg-secondary/50">
                   <h4 className="font-serif font-bold text-primary">Notifications</h4>
                   <span className="text-[10px] font-bold uppercase tracking-widest text-accent bg-primary/5 px-2 py-1 rounded-full">
-                    {localSystemNotifications.filter(n => !n.read).length} Nouvelles
+                    {notifications.filter(n => !n.read).length} Nouvelles
                   </span>
                 </div>
                 <div className="max-h-96 overflow-y-auto">
-                  {localSystemNotifications.map((notif) => (
+                  {notifications.map((notif) => (
                     <div 
                       key={notif.id} 
                       onClick={() => {

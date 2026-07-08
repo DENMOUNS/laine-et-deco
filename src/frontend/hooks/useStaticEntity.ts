@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { QueryConstraint } from 'firebase/firestore';
 import type { BaseEntity } from '../../domain/entities/BaseEntity';
-import { readCache, writeCache } from '../utils/cacheStorage';
+import { readCache, writeCache, getTTLForEntity } from '../utils/cacheStorage';
 
 interface UseStaticEntityOptions {
   enabled?: boolean;
@@ -21,8 +21,6 @@ export function dispatchStaticEntityUpdate<T>(entityType: string, payload: { ful
   window.dispatchEvent(new CustomEvent('staticEntity:update', { detail: { entityType, ...payload } }));
 }
 
-const CACHEABLE_STATIC_ENTITIES = new Set(['site_logo']);
-const CACHE_TTL_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 const getStaticEntityCacheKey = (entityType: string) => `staticEntity:${entityType}:v1`;
 
 /**
@@ -54,16 +52,27 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
     }
 
     const cacheKey = getStaticEntityCacheKey(entityType);
+    // On ne met en cache (et ne saute la lecture réseau) que pour les requêtes
+    // "collection entière" sans filtre. Les requêtes avec contraintes (where/limit
+    // spécifiques) sont trop variables pour partager un cache fiable et restent
+    // donc en lecture directe (déjà généralement limitées via `limit(...)`).
+    const isCacheableQuery = constraints.length === 0;
     let cancelled = false;
 
     const fetchData = async () => {
-      const cachedData = await readCache<T[]>(cacheKey);
+      const cachedData = isCacheableQuery ? await readCache<T[]>(cacheKey) : null;
       if (cancelled) return;
-      
-      if (cachedData?.length) {
-        setData(cachedData);
+
+      if (cachedData) {
+        // Cache encore valide (TTL non expiré) : on l'utilise et on
+        // n'effectue AUCUNE lecture Firestore.
+        setData(cachedData.length > 0 ? cachedData : initialData);
         setIsLoading(false);
+        setError(null);
+        hasFetched.current = true;
+        return;
       }
+
       try {
         const [{ collection, getDocs, query, limit }, { initFirebase }] = await Promise.all([
           import('firebase/firestore'),
@@ -99,8 +108,8 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
         })) as T[];
 
         setData(items.length > 0 ? items : initialData);
-        if (CACHEABLE_STATIC_ENTITIES.has(entityType)) {
-          writeCache(cacheKey, items, CACHE_TTL_YEAR_MS);
+        if (isCacheableQuery) {
+          writeCache(cacheKey, items, getTTLForEntity(entityType));
         }
         setIsLoading(false);
         setError(null);

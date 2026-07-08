@@ -61,12 +61,38 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           });
 
           if (db) {
-            void getDoc(doc(db, 'user', currentUser.uid)).then((snap) => {
-              if (!snap.exists()) return;
-              const profile = { id: snap.id, ...snap.data() };
-              set({ currentUserDoc: profile });
-              void writeCache(userProfileCacheKey(currentUser.uid), profile);
-            });
+            // Try to read the profile by UID first. If not found, fallback to a
+            // lookup by email — this handles legacy data where the document id
+            // might not match the auth UID.
+            void (async () => {
+              try {
+                const snap = await getDoc(doc(db, 'user', currentUser.uid));
+                if (snap.exists()) {
+                  const profile = { id: snap.id, ...snap.data() };
+                  set({ currentUserDoc: profile });
+                  void writeCache(userProfileCacheKey(currentUser.uid), profile);
+                  return;
+                }
+
+                // If no doc by UID, try to find by email (may match an existing admin record)
+                if (currentUser.email) {
+                  const { collection, query, where, getDocs } = await import('firebase/firestore');
+                  const q = query(collection(db, 'user'), where('email', '==', currentUser.email));
+                  const snaps = await getDocs(q);
+                  if (!snaps.empty) {
+                    const first = snaps.docs[0];
+                    const profile = { id: first.id, ...first.data() };
+                    set({ currentUserDoc: profile });
+                    // Cache under the current UID key to speed up next loads.
+                    void writeCache(userProfileCacheKey(currentUser.uid), profile as any);
+                    return;
+                  }
+                }
+              } catch (err) {
+                // Don't block auth flow on cache/DB lookup errors.
+                console.warn('Erreur lecture profil utilisateur:', err);
+              }
+            })();
           }
         } else {
           set({ currentUserDoc: null });
