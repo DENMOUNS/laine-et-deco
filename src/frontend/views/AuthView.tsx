@@ -17,7 +17,6 @@ import {
 } from 'firebase/auth';
 import { initFirebase } from '../../backend/firebase';
 import { serverTimestamp, setDoc, doc, getDoc } from 'firebase/firestore';
-import { USERS } from '../../constants';
 
 const authSchema = z.object({
   name: z.string().min(2, 'Le nom est trop court').optional(),
@@ -105,20 +104,16 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
           const userDocSnap = await getDoc(userDocRef);
           
           if (!userDocSnap.exists()) {
-            // User document doesn't exist, create it
-            // Try to find predefined role from USERS constants
-            const predefinedUser = USERS.find(u => u.email.toLowerCase() === user.email?.toLowerCase());
-            const role = predefinedUser?.role || 'customer';
-            
+            // User document doesn't exist, create it with customer role
             await setDoc(userDocRef, {
               uid: user.uid,
-              name: user.displayName || predefinedUser?.name || 'Utilisateur',
+              name: user.displayName || 'Utilisateur',
               email: user.email,
-              role: role,
-              points: predefinedUser?.points || 0,
-              orders: predefinedUser?.orders || 0,
+              role: 'customer',
+              points: 0,
+              orders: 0,
               joinDate: new Date().toISOString().split('T')[0],
-              status: predefinedUser?.status || 'active',
+              status: 'active',
               createdAt: serverTimestamp()
             });
           }
@@ -133,21 +128,17 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
           await updateProfile(user, { displayName: data.name });
         }
         
-        // Create user document in Firestore with potential referral
-        // Check if user has predefined role from USERS constants
-        const predefinedUser = USERS.find(u => u.email.toLowerCase() === user.email?.toLowerCase());
-        const role = predefinedUser?.role || 'customer';
-        
+        // Create user document in Firestore with customer role
         const referralCode = sessionStorage.getItem('referralCode');
         await setDoc(doc(firebaseDb!, 'user', user.uid), {
           uid: user.uid,
-          name: data.name || user.displayName || predefinedUser?.name || 'Utilisateur',
+          name: data.name || user.displayName || 'Utilisateur',
           email: user.email,
-          role: role,
-          points: predefinedUser?.points || 0,
-          orders: predefinedUser?.orders || 0,
+          role: 'customer',
+          points: 0,
+          orders: 0,
           joinDate: new Date().toISOString().split('T')[0],
-          status: predefinedUser?.status || 'active',
+          status: 'active',
           referredBy: referralCode || null,
           createdAt: serverTimestamp()
         });
