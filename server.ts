@@ -90,21 +90,10 @@ async function startServer() {
   app.use('/api/dashboard', dashboardRoutes);
   app.use('/api/storage', storageRoutes);
 
-  // Simple request logger to aid debugging (dev only)
-  app.use((req, _res, next) => {
-    next();
-  });
-
- 
-
   // Test route to verify API routing works
   app.get('/api/test', (_req, res) => {
     return res.json({ ok: true, message: 'API routing works' });
   });
-
-  // --- API Routes ---
-  app.use('/api/entity', entityRoutes);
-  app.use('/api/dashboard', dashboardRoutes);
 
   app.use((err: any, _req: any, res: any, next: any) => {
     console.error('Unhandled server error:', err);
