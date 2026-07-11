@@ -92,7 +92,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
   const { data: RECENT_FLASH_SALES } = useStaticEntity<FlashSale>('flash_sale', [], secondaryOpts);
   const { data: LOOKBOOKS } = useStaticEntity<Lookbook>('lookbook', [], secondaryOpts);
   // Les bannières Hero viennent uniquement de Firestore / cache, pas des constantes locales.
-  const { data: ALL_HERO_BANNERS } = useStaticEntity<HeroBannerConfig>('hero_banner', [], secondaryOpts);
+  const { data: ALL_HERO_BANNERS } = useStaticEntity<HeroBannerConfig>('hero_banner', [], { enabled: true });
   const HERO_BANNERS = ALL_HERO_BANNERS.filter((b) => b.status === 'active');
   const activeFlashSales = RECENT_FLASH_SALES.filter(fs => fs.status === 'active' && new Date(fs.endDate) > new Date());
   const activeLookbooks = LOOKBOOKS.filter(lb => lb.status === 'active');
@@ -108,7 +108,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
   const [trackingStatus, setTrackingStatus] = React.useState<{ steps: { label: string, date: string, completed: boolean }[] } | null>(null);
   const [isTrackingLoading, setIsTrackingLoading] = React.useState(false);
   const [liveSearchResults, setLiveSearchResults] = React.useState<Product[]>([]);
-  const [isHeroLoading, setIsHeroLoading] = React.useState(true);
   const HERO_SLIDES = HERO_BANNERS.map((item) => ({
     image: optimizeImageUrl(item.image, 960),
     title: item.title,
@@ -117,10 +116,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
     link: 'shop',
   }));
   const currentHeroSlide = HERO_SLIDES[currentSlide] || HERO_SLIDES[0] || null;
-
-  React.useEffect(() => {
-    setIsHeroLoading(Boolean(currentHeroSlide?.image));
-  }, [currentHeroSlide?.image]);
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -287,19 +282,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
       <section className="relative min-h-[90vh] flex items-center py-20 overflow-hidden">
         {/* Background */}
         <div className="absolute inset-0 z-0">
-          {isHeroLoading && currentHeroSlide && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/90">
-              <div className="flex flex-col items-center gap-4">
-                <div className="relative w-16 h-16 rounded-full bg-slate-200 shadow-xl overflow-hidden">
-                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-slate-300 via-slate-400 to-slate-500 opacity-90 animate-spin" />
-                  <div className="absolute inset-0 rounded-full border border-white/70 mix-blend-screen" />
-                  <div className="absolute inset-x-4 top-6 h-1 rounded-full bg-slate-600 opacity-90 rotate-12" />
-                  <div className="absolute inset-x-4 bottom-6 h-1 rounded-full bg-slate-600 opacity-90 -rotate-12" />
-                </div>
-                <span className="text-sm font-medium uppercase tracking-[0.35em] text-white/90">Chargement du hero</span>
-              </div>
-            </div>
-          )}
           <AnimatePresence mode="sync">
             {HERO_SLIDES.map((slide, i) => {
               if (i !== currentSlide) return null;
@@ -312,9 +294,8 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                     muted
                     loop
                     playsInline
-                    onLoadedData={() => setIsHeroLoading(false)}
                     initial={{ opacity: 0 }}
-                    animate={{ opacity: isHeroLoading ? 0 : 1 }}
+                    animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.75 }}
                     className="absolute inset-0 w-full h-full object-cover pointer-events-none"
@@ -326,10 +307,8 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                   key={`img-${i}`}
                   src={slide.image}
                   alt={slide.title || 'Collection Laine et Déco'}
-                  onLoad={() => setIsHeroLoading(false)}
-                  onError={() => setIsHeroLoading(false)}
                   initial={{ opacity: 0 }}
-                  animate={{ opacity: isHeroLoading ? 0 : 1 }}
+                  animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.75 }}
                   className="absolute inset-0 w-full h-full object-cover pointer-events-none"

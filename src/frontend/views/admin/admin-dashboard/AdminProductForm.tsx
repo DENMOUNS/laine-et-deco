@@ -96,11 +96,20 @@ export function AdminProductForm({ ctx }: { ctx: any }) {
               };
               const now = new Date().toISOString();
               if (activeTab === 'product-edit') {
-                  newProduct.updatedAt = now;
-                  // update backend and optimistic local update
-                  await updateProduct(newProduct.id, newProduct);
-                  setLocalProducts(prev => prev.map(p => p.id === newProduct.id ? { ...p, ...newProduct } : p));
-                  toast.success('Produit mis à jour avec succès');
+                  const updatePayload = { ...newProduct };
+                  delete updatePayload.id;
+                  delete updatePayload.stock;
+                  delete updatePayload.quantity;
+                  updatePayload.updatedAt = now;
+
+                  try {
+                    await updateProduct(newProduct.id, updatePayload);
+                    setLocalProducts(prev => prev.map(p => p.id === newProduct.id ? { ...p, ...updatePayload } : p));
+                    toast.success('Produit mis à jour avec succès');
+                  } catch (err: any) {
+                    toast.error(err?.message || 'Erreur lors de la mise à jour du produit');
+                    return;
+                  }
               } else {
                   newProduct.createdAt = now;
                   newProduct.updatedAt = now;
@@ -113,6 +122,7 @@ export function AdminProductForm({ ctx }: { ctx: any }) {
                     toast.success('Produit créé avec succès');
                   } catch (err: any) {
                     toast.error('Échec de la création du produit');
+                    return;
                   }
               }
               setActiveTab('products');
