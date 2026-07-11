@@ -100,6 +100,7 @@ export function AdminCategoryForm({ ctx }: { ctx: any }) {
                      />
                   </div>
                   <input type="hidden" name="image" value={currentImage || editingItem?.image || ''} />
+                  <input type="hidden" name="slug" value={currentSlug || editingItem?.slug || ''} />
                </div>
                <div className="space-y-2">
                  <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Statut</label>

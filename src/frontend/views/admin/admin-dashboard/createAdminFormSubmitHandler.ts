@@ -20,26 +20,24 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
           const slugValue = formData.get('slug') as string;
           const finalSlug = slugValue || (nameValue ? nameValue.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') : '');
           
-          const newCategory: any = {
-              id: editingItem ? editingItem.id : `cat-${Date.now()}`,
+          const categoryPayload: any = {
               name: nameValue,
               slug: finalSlug,
               image: formData.get('image') as string || 'https://picsum.photos/seed/cat/300/200',
               count: editingItem ? editingItem.count : 0,
-              status: formData.get('status') as 'active' | 'inactive' || 'active'
+              status: (formData.get('status') as 'active' | 'inactive') || 'active'
           };
           const now = new Date().toISOString();
           if (editingItem) {
-              newCategory.updatedAt = now;
-
+              categoryPayload.updatedAt = now;
+              await updateCategory(editingItem.id, categoryPayload);
           } else {
-              newCategory.createdAt = now;
-              newCategory.updatedAt = now;
-          }
-          if (editingItem) {
-              updateCategory(editingItem.id, newCategory);
-          } else {
-              addCategory(newCategory);
+              await addCategory({
+                ...categoryPayload,
+                id: `cat-${Date.now()}`,
+                createdAt: now,
+                updatedAt: now
+              });
           }
       } else if (modalType === 'badge') {
         const newBadge: any = {

@@ -22,7 +22,7 @@ export function AdminHeroBanners({ ctx }: { ctx: any }) {
     e.preventDefault();
     try {
       if (isTooLargeBase64(formData.image)) {
-        return toast.error('Image trop volumineuse pour Firestore (max 1 MB).');
+        return toast.error('Erreur image : le fichier est trop volumineux pour Firestore (max 1 Mo).');
       }
 
       if (editingItem) {
@@ -40,7 +40,9 @@ export function AdminHeroBanners({ ctx }: { ctx: any }) {
       setIsModalOpen(false);
       setEditingItem(null);
     } catch (error: any) {
-      toast.error(error?.message || 'Erreur lors de la sauvegarde');
+      const message = error?.message?.toString() || 'Impossible de sauvegarder la bannière';
+      const isImageError = message.toLowerCase().includes('image');
+      toast.error(isImageError ? `Erreur image : ${message}` : `Autre erreur : ${message}`);
     }
   };
 

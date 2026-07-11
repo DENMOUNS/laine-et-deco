@@ -22,7 +22,7 @@ export function AdminSiteLogos({ ctx }: { ctx: any }) {
     if (!formData.image && !formData.lien) return toast.error('Veuillez fournir une image ou un lien.');
 
     if (isTooLargeBase64(formData.image)) {
-      return toast.error('Image trop volumineuse pour Firestore (max 1 MB).');
+      return toast.error('Erreur image : le fichier est trop volumineux pour Firestore (max 1 Mo).');
     }
 
     const payload: Partial<SiteLogo> = {};
@@ -55,7 +55,9 @@ export function AdminSiteLogos({ ctx }: { ctx: any }) {
       setFormData({ image: '', lien: '' });
       setEditingItem(null);
     } catch (error: any) {
-      toast.error(error?.message || 'Erreur lors de la sauvegarde');
+      const message = error?.message?.toString() || 'Impossible de sauvegarder le logo';
+      const isImageError = message.toLowerCase().includes('image');
+      toast.error(isImageError ? `Erreur image : ${message}` : `Autre erreur : ${message}`);
     }
   };
 
