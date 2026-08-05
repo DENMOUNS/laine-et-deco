@@ -445,6 +445,15 @@ const entityApiRequest = async (entityType: string, method: string, id?: string,
     ? `/api/entity/${encodeURIComponent(entityType)}/${encodeURIComponent(id)}`
     : `/api/entity/${encodeURIComponent(entityType)}`;
 
+  console.info('[entity-api-client]', {
+    message: 'request:start',
+    method,
+    entityType,
+    id: id || null,
+    url,
+    payloadKeys: payload && typeof payload === 'object' ? Object.keys(payload) : [],
+  });
+
   const response = await fetch(url, {
     method,
     headers: {
@@ -456,6 +465,16 @@ const entityApiRequest = async (entityType: string, method: string, id?: string,
   });
 
   const body = await response.json().catch(() => null);
+  console.info('[entity-api-client]', {
+    message: 'request:finish',
+    method,
+    entityType,
+    id: id || null,
+    url,
+    status: response.status,
+    ok: response.ok,
+    responseBody: body,
+  });
   if (!response.ok) {
     const message = body?.error || response.statusText || 'Erreur API';
     const error = new Error(message);

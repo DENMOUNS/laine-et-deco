@@ -71,6 +71,14 @@ function useDeferredConfigSync() {
 
       const hasCachedNavItems = Array.isArray(cachedNavItems) && cachedNavItems.length > 0;
 
+      console.info('[config-sync]', {
+        message: 'cache:read',
+        host: window.location.host,
+        hasCachedSiteConfig: Boolean(cachedSiteConfigs?.[0]),
+        cachedNavCount: cachedNavItems?.length || 0,
+        cachedPromoCount: cachedPromoEvents?.length || 0,
+      });
+
       if (cachedSiteConfigs?.[0]) setSiteConfig(cachedSiteConfigs[0]);
       if (hasCachedNavItems) resolveNavItems(cachedNavItems);
       if (cachedPromoEvents) setEvents(cachedPromoEvents);
@@ -106,6 +114,16 @@ function useDeferredConfigSync() {
       ]);
 
       if (cancelled) return;
+
+      console.info('[config-sync]', {
+        message: 'firestore:read',
+        host: window.location.host,
+        siteConfigCount: siteConfigs.length,
+        navCount: navItems.length,
+        navIds: navItems.slice(0, 10).map((item) => item.id),
+        navStatuses: navItems.slice(0, 10).map((item) => item.status),
+        promoCount: promoEvents.length,
+      });
 
       if (siteConfigs[0]) setSiteConfig(siteConfigs[0]);
       if (navItems.length > 0) resolveNavItems(navItems);

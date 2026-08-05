@@ -10,6 +10,24 @@ interface UseStaticEntityOptions {
 }
 
 const DEFAULT_LIMIT = 0;
+const DIAGNOSTIC_ENTITIES = new Set(['site_logo', 'nav_item', 'category']);
+
+const logStaticEntity = (entityType: string, message: string, meta: Record<string, unknown> = {}) => {
+  if (!DIAGNOSTIC_ENTITIES.has(entityType)) return;
+  console.info('[static-entity]', { entityType, message, ...meta });
+};
+
+const logStaticEntityError = (entityType: string, message: string, error: any, meta: Record<string, unknown> = {}) => {
+  if (!DIAGNOSTIC_ENTITIES.has(entityType)) return;
+  console.error('[static-entity]', {
+    entityType,
+    message,
+    ...meta,
+    errorName: error?.name,
+    errorCode: error?.code,
+    errorMessage: error?.message,
+  });
+};
 interface StaticEntityUpdatePayload<T> {
   entityType: string;
   fullData?: T[];
@@ -60,6 +78,10 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
       if (cancelled) return;
 
       if (cachedData) {
+        logStaticEntity(entityType, 'cache:hit', {
+          count: cachedData.length,
+          ids: cachedData.slice(0, 5).map((item: any) => item?.id),
+        });
         // Cache encore valide (TTL non expiré) : on l'utilise et on
         // n'effectue AUCUNE lecture Firestore.
         setData(cachedData.length > 0 ? cachedData : initialData);
@@ -70,11 +92,16 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
       }
 
       if (!enabled) {
+        logStaticEntity(entityType, 'fetch:disabled');
         setIsLoading(false);
         return;
       }
 
       try {
+        logStaticEntity(entityType, 'fetch:start', {
+          constraints: constraints.length,
+          host: typeof window !== 'undefined' ? window.location.host : 'server',
+        });
         const [{ collection, getDocs, query, limit }, { initFirebase }] = await Promise.all([
           import('firebase/firestore'),
           import('../../backend/firebase'),
@@ -84,6 +111,7 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
 
         const { db: firestoreDb } = initFirebase();
         if (!firestoreDb) {
+          logStaticEntity(entityType, 'firebase:not-initialized');
           if (isMounted.current) setIsLoading(false);
           return;
         }
@@ -108,6 +136,13 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
           ...docSnap.data(),
         })) as T[];
 
+        logStaticEntity(entityType, 'fetch:success', {
+          count: items.length,
+          ids: items.slice(0, 5).map((item: any) => item?.id),
+          statuses: items.slice(0, 5).map((item: any) => item?.status),
+          images: items.slice(0, 5).map((item: any) => item?.image || item?.lien || null),
+        });
+
         setData(items.length > 0 ? items : initialData);
         if (isCacheableQuery) {
           writeEntityCache(entityType, items);
@@ -117,6 +152,9 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
         hasFetched.current = true;
       } catch (err) {
         if (!isMounted.current || cancelled) return;
+        logStaticEntityError(entityType, 'fetch:failed', err, {
+          constraints: constraints.length,
+        });
         setError(err as Error);
         setIsLoading(false);
       }

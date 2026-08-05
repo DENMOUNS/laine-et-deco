@@ -19,13 +19,45 @@ const LogoDisplay = () => {
   useEffect(() => {
     setImgError(false);
   }, [logoSrc]);
+
+  useEffect(() => {
+    console.info('[nav-logo]', {
+      message: 'state',
+      host: window.location.host,
+      logoCount: logos?.length || 0,
+      activeLogoId: activeLogo?.id || null,
+      activeLogoStatus: activeLogo?.status || null,
+      hasImage: Boolean(activeLogo?.image),
+      hasLien: Boolean(activeLogo?.lien),
+      logoSrc: logoSrc || null,
+      imgError,
+    });
+  }, [logos, activeLogo?.id, activeLogo?.status, activeLogo?.image, activeLogo?.lien, logoSrc, imgError]);
   
   if (logoSrc && !imgError && logoSrc !== '/logo.png') {
     return (
       <img 
         src={logoSrc} 
         alt="Laine & Déco" 
-        onError={() => setImgError(true)}
+        onLoad={() => {
+          console.info('[nav-logo]', {
+            message: 'image:loaded',
+            host: window.location.host,
+            logoSrc,
+            activeLogoId: activeLogo?.id || null,
+          });
+        }}
+        onError={(event) => {
+          console.error('[nav-logo]', {
+            message: 'image:failed',
+            host: window.location.host,
+            logoSrc,
+            activeLogoId: activeLogo?.id || null,
+            naturalWidth: event.currentTarget.naturalWidth,
+            naturalHeight: event.currentTarget.naturalHeight,
+          });
+          setImgError(true);
+        }}
         className="h-10 md:h-12 w-auto object-contain transition-transform group-hover:scale-105" 
       />
     );

@@ -17,7 +17,57 @@ interface AuthenticatedRequest extends Request {
     email?: string;
     role?: UserRole | null;
   };
+  requestId?: string;
+  startedAt?: number;
 }
+
+const shortUid = (uid?: string) => uid ? `${uid.slice(0, 6)}...${uid.slice(-4)}` : 'none';
+
+const logEntity = (requestId: string | undefined, message: string, meta: Record<string, unknown> = {}) => {
+  console.info('[entity-api]', { requestId, message, ...meta });
+};
+
+const logEntityError = (requestId: string | undefined, message: string, error: any, meta: Record<string, unknown> = {}) => {
+  console.error('[entity-api]', {
+    requestId,
+    message,
+    ...meta,
+    errorName: error?.name,
+    errorCode: error?.code,
+    errorMessage: error?.message,
+    errorStack: error?.stack,
+  });
+};
+
+router.use((req: AuthenticatedRequest, res, next) => {
+  req.requestId =
+    String(req.headers['x-vercel-id'] || '') ||
+    `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  req.startedAt = Date.now();
+
+  logEntity(req.requestId, 'request:start', {
+    method: req.method,
+    path: req.originalUrl,
+    entity: req.params?.entity,
+    hasAuth: Boolean(req.headers.authorization),
+    contentLength: req.headers['content-length'] || '0',
+    nodeEnv: process.env.NODE_ENV,
+    vercelEnv: process.env.VERCEL_ENV,
+  });
+
+  res.on('finish', () => {
+    logEntity(req.requestId, 'request:finish', {
+      method: req.method,
+      path: req.originalUrl,
+      statusCode: res.statusCode,
+      durationMs: req.startedAt ? Date.now() - req.startedAt : undefined,
+      uid: shortUid(req.user?.uid),
+      role: req.user?.role || null,
+    });
+  });
+
+  next();
+});
 
 const STAFF_READ_COLLECTIONS = [
   'product',
@@ -119,9 +169,14 @@ const verifyToken = async (
 
     const decoded = await auth.verifyIdToken(token);
     req.user = decoded as any;
+    logEntity(req.requestId, 'auth:verified', {
+      uid: shortUid(req.user?.uid),
+      email: req.user?.email || null,
+    });
 
     next();
-  } catch {
+  } catch (error: any) {
+    logEntityError(req.requestId, 'auth:failed', error);
     return res.status(401).json({ error: 'Unauthorized' });
   }
 };
@@ -136,9 +191,15 @@ const resolveRole = async (
       return next(new Error('Unauthorized')); 
     }
     req.user.role = await getUserRole(req.user.uid, req.user.email, req.user.role as string);
+    logEntity(req.requestId, 'role:resolved', {
+      uid: shortUid(req.user.uid),
+      role: req.user.role || null,
+    });
     next();
   } catch (error: any) {
-    console.error('resolveRole error:', error);
+    logEntityError(req.requestId, 'role:failed', error, {
+      uid: shortUid(req.user?.uid),
+    });
     return next(error);
   }
 };
@@ -151,12 +212,20 @@ router.post('/:entity', verifyToken, resolveRole, async (req: any, res) => {
   const { entity } = req.params;
   const role = req.user?.role ?? null;
   const uid = req.user?.uid;
+  const bodyKeys = req.body && typeof req.body === 'object' ? Object.keys(req.body) : [];
 
   if (!uid) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
   try {
+    logEntity(req.requestId, 'create:attempt', {
+      entity,
+      role,
+      uid: shortUid(uid),
+      bodyKeys,
+    });
+
     // admin + super-admin
     if (isAdminLevel(role)) {
       // If creating a user, record notification
@@ -168,6 +237,7 @@ router.post('/:entity', verifyToken, resolveRole, async (req: any, res) => {
         };
 
         const ref = await db.collection(entity).add(userData);
+        logEntity(req.requestId, 'create:success', { entity, docId: ref.id });
 
         // create system notification for user creation
         const notifId = `sys-user-${Date.now()}`;
@@ -195,6 +265,7 @@ router.post('/:entity', verifyToken, resolveRole, async (req: any, res) => {
         };
 
         const ref = await db.collection(entity).add(productData);
+        logEntity(req.requestId, 'create:success', { entity, docId: ref.id });
 
         // create system notification for product creation
         const notifId = `sys-prod-${Date.now()}`;
@@ -220,6 +291,7 @@ router.post('/:entity', verifyToken, resolveRole, async (req: any, res) => {
           createdAt: new Date(),
           updatedAt: new Date(),
         });
+        logEntity(req.requestId, 'create:success', { entity, docId });
         return res.status(201).json({ id: docId });
       }
 
@@ -239,10 +311,12 @@ router.post('/:entity', verifyToken, resolveRole, async (req: any, res) => {
           const docRef = db.collection(entity).doc();
           batch.set(docRef, newLogoData);
           await batch.commit();
+          logEntity(req.requestId, 'create:success', { entity, docId: docRef.id, activeLogo: true });
           return res.status(201).json({ id: docRef.id });
         }
 
         const ref = await db.collection(entity).add(newLogoData);
+        logEntity(req.requestId, 'create:success', { entity, docId: ref.id });
         return res.status(201).json({ id: ref.id });
       }
 
@@ -252,6 +326,7 @@ router.post('/:entity', verifyToken, resolveRole, async (req: any, res) => {
         updatedAt: new Date(),
       });
 
+      logEntity(req.requestId, 'create:success', { entity, docId: ref.id });
       return res.status(201).json({ id: ref.id });
     }
 
@@ -264,12 +339,19 @@ router.post('/:entity', verifyToken, resolveRole, async (req: any, res) => {
         updatedAt: new Date(),
       });
 
+      logEntity(req.requestId, 'create:success', { entity, docId: ref.id, owner: true });
       return res.status(201).json({ id: ref.id });
     }
 
+    logEntity(req.requestId, 'create:forbidden', { entity, role, uid: shortUid(uid) });
     return res.status(403).json({ error: 'Forbidden' });
   } catch (e: any) {
-    console.error(`Entity create error for ${entity}:`, e);
+    logEntityError(req.requestId, 'create:failed', e, {
+      entity,
+      role,
+      uid: shortUid(uid),
+      bodyKeys,
+    });
     return res.status(400).json({ error: e.message });
   }
 });
