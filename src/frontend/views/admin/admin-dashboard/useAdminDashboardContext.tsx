@@ -916,12 +916,20 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
   );
   
   const permissions = roleData?.permissions || [];
-  const isSuperAdmin = userRoleSlug === 'super-admin' || permissions.includes('all');
+
+  // IMPORTANT: Les rôles admin-level ont TOUJOURS accès à tout,
+  // indépendamment de localRoles (qui est tab-gated et peut être vide).
+  // Ne pas dépendre de permissions.includes('all') ici.
+  const ADMIN_LEVEL_ROLES = new Set(['super-admin', 'admin']);
+  const isSuperAdmin = ADMIN_LEVEL_ROLES.has(userRoleSlug) || permissions.includes('all');
 
   const hasPermission = (permission?: string) => {
-    if (isSuperAdmin) return true;
+    // super-admin et admin ont accès à tout, sans exception
+    if (ADMIN_LEVEL_ROLES.has(userRoleSlug)) return true;
+    // Si les permissions Firestore indiquent 'all'
+    if (permissions.includes('all')) return true;
     if (!permission) return true;
-    if (permission === 'super-admin') return isSuperAdmin;
+    if (permission === 'super-admin') return false;
     return permissions.includes(permission);
   };
 
