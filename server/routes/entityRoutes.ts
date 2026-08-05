@@ -278,7 +278,7 @@ router.post('/:entity', verifyToken, resolveRole, async (req: any, res) => {
 // UPDATE
 // ==========================
 
-router.put('/:entity/:id', verifyToken, resolveRole, async (req: any, res) => {
+const updateEntityHandler = async (req: any, res: Response) => {
   const { entity, id } = req.params;
   const role = req.user.role;
   const uid = req.user.uid;
@@ -439,7 +439,10 @@ router.put('/:entity/:id', verifyToken, resolveRole, async (req: any, res) => {
   } catch (e: any) {
     return res.status(400).json({ error: e.message });
   }
-});
+};
+
+router.put('/:entity/:id', verifyToken, resolveRole, updateEntityHandler);
+router.patch('/:entity/:id', verifyToken, resolveRole, updateEntityHandler);
 
 // ==========================
 // DELETE

@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
+import { compressImageDataUrl } from '../../utils/imageCompression';
 
 interface ImageUploadProps {
   name: string;
@@ -17,8 +18,8 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ name, defaultValue, cl
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
+      reader.onloadend = async () => {
+        const base64String = await compressImageDataUrl(reader.result as string);
         setPreview(base64String);
         if (hiddenInputRef.current) {
           hiddenInputRef.current.value = base64String;
