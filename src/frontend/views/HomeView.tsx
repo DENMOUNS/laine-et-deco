@@ -70,7 +70,7 @@ interface HomeViewProps {
 }
 
 export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onAddToWishlist, onQuickView, onAddToComparison, onProductClick, siteConfig, events = [] }) => {
-  const dataReady = useDeferUntilInteraction(20_000);
+  const dataReady = useDeferUntilInteraction(2_500);
   const [secondaryReady, setSecondaryReady] = React.useState(false);
 
   React.useEffect(() => {

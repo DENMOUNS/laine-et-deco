@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { QueryConstraint } from 'firebase/firestore';
 import type { BaseEntity } from '../../domain/entities/BaseEntity';
-import { readEntityCache, writeEntityCache } from '../utils/cacheStorage';
+import { getStaticEntityCacheKey, readCache, writeCache, getTTLForEntity } from '../utils/cacheStorage';
 
 interface UseStaticEntityOptions {
   enabled?: boolean;
@@ -10,24 +10,7 @@ interface UseStaticEntityOptions {
 }
 
 const DEFAULT_LIMIT = 0;
-const DIAGNOSTIC_ENTITIES = new Set(['site_logo', 'nav_item', 'category']);
 
-const logStaticEntity = (entityType: string, message: string, meta: Record<string, unknown> = {}) => {
-  if (!DIAGNOSTIC_ENTITIES.has(entityType)) return;
-  console.info('[static-entity]', { entityType, message, ...meta });
-};
-
-const logStaticEntityError = (entityType: string, message: string, error: any, meta: Record<string, unknown> = {}) => {
-  if (!DIAGNOSTIC_ENTITIES.has(entityType)) return;
-  console.error('[static-entity]', {
-    entityType,
-    message,
-    ...meta,
-    errorName: error?.name,
-    errorCode: error?.code,
-    errorMessage: error?.message,
-  });
-};
 interface StaticEntityUpdatePayload<T> {
   entityType: string;
   fullData?: T[];
@@ -39,9 +22,6 @@ export function dispatchStaticEntityUpdate<T>(entityType: string, payload: { ful
   window.dispatchEvent(new CustomEvent('staticEntity:update', { detail: { entityType, ...payload } }));
 }
 
-/**
- * Charge les données une fois (getDocs). Import Firebase différé pour ne pas bloquer le LCP.
- */
 export function useStaticEntity<T extends BaseEntity = BaseEntity>(
   entityType: string,
   initialData: T[] = [],
@@ -51,8 +31,9 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const isMounted = useRef(true);
-  const hasFetched = useRef(false);
+  const hasFetchedFromNetwork = useRef(false);
   const { enabled = true, constraints = [], deps = [] } = options;
+  const cacheKey = getStaticEntityCacheKey(entityType, constraints);
 
   useEffect(() => {
     isMounted.current = true;
@@ -62,57 +43,35 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
   }, []);
 
   useEffect(() => {
-    if (hasFetched.current) {
-      return;
-    }
-
-    // On ne met en cache (et ne saute la lecture réseau) que pour les requêtes
-    // "collection entière" sans filtre. Les requêtes avec contraintes (where/limit
-    // spécifiques) sont trop variables pour partager un cache fiable et restent
-    // donc en lecture directe (déjà généralement limitées via `limit(...)`).
-    const isCacheableQuery = constraints.length === 0;
     let cancelled = false;
 
-    const fetchData = async () => {
-      const cachedData = isCacheableQuery ? await readEntityCache<T[]>(entityType) : null;
-      if (cancelled) return;
+    const load = async () => {
+      const cachedData = await readCache<T[]>(cacheKey);
+      if (cancelled || !isMounted.current) return;
 
       if (cachedData) {
-        logStaticEntity(entityType, 'cache:hit', {
-          count: cachedData.length,
-          ids: cachedData.slice(0, 5).map((item: any) => item?.id),
-        });
-        // Cache encore valide (TTL non expiré) : on l'utilise et on
-        // n'effectue AUCUNE lecture Firestore.
         setData(cachedData.length > 0 ? cachedData : initialData);
         setIsLoading(false);
         setError(null);
-        hasFetched.current = true;
         return;
       }
 
-      if (!enabled) {
-        logStaticEntity(entityType, 'fetch:disabled');
-        setIsLoading(false);
+      if (!enabled || hasFetchedFromNetwork.current) {
+        if (!cachedData) setIsLoading(false);
         return;
       }
 
       try {
-        logStaticEntity(entityType, 'fetch:start', {
-          constraints: constraints.length,
-          host: typeof window !== 'undefined' ? window.location.host : 'server',
-        });
         const [{ collection, getDocs, query, limit }, { initFirebase }] = await Promise.all([
           import('firebase/firestore'),
           import('../../backend/firebase'),
         ]);
 
-        if (cancelled) return;
+        if (cancelled || !isMounted.current) return;
 
         const { db: firestoreDb } = initFirebase();
         if (!firestoreDb) {
-          logStaticEntity(entityType, 'firebase:not-initialized');
-          if (isMounted.current) setIsLoading(false);
+          setIsLoading(false);
           return;
         }
 
@@ -128,44 +87,31 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
             : collection(firestoreDb, entityType);
 
         const snapshot = await getDocs(q);
-
-        if (!isMounted.current || cancelled) return;
+        if (cancelled || !isMounted.current) return;
 
         const items = snapshot.docs.map((docSnap) => ({
           id: docSnap.id,
           ...docSnap.data(),
         })) as T[];
 
-        logStaticEntity(entityType, 'fetch:success', {
-          count: items.length,
-          ids: items.slice(0, 5).map((item: any) => item?.id),
-          statuses: items.slice(0, 5).map((item: any) => item?.status),
-          images: items.slice(0, 5).map((item: any) => item?.image || item?.lien || null),
-        });
-
         setData(items.length > 0 ? items : initialData);
-        if (isCacheableQuery) {
-          writeEntityCache(entityType, items);
-        }
+        writeCache(cacheKey, items, getTTLForEntity(entityType));
         setIsLoading(false);
         setError(null);
-        hasFetched.current = true;
+        hasFetchedFromNetwork.current = true;
       } catch (err) {
         if (!isMounted.current || cancelled) return;
-        logStaticEntityError(entityType, 'fetch:failed', err, {
-          constraints: constraints.length,
-        });
         setError(err as Error);
         setIsLoading(false);
       }
     };
 
-    void fetchData();
+    void load();
 
     return () => {
       cancelled = true;
     };
-  }, [entityType, enabled, ...deps]);
+  }, [cacheKey, enabled, entityType, ...deps]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -177,14 +123,19 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
 
       if (detail.fullData) {
         setData(detail.fullData);
+        writeCache(cacheKey, detail.fullData, getTTLForEntity(entityType));
       } else if (detail.record) {
-        setData((prev) => prev.map((item) => (item.id === detail.record?.id ? { ...item, ...detail.record } : item)));
+        setData((prev) => {
+          const next = prev.map((item) => (item.id === detail.record?.id ? { ...item, ...detail.record } : item));
+          writeCache(cacheKey, next, getTTLForEntity(entityType));
+          return next;
+        });
       }
     };
 
     window.addEventListener('staticEntity:update', onStaticEntityUpdate as EventListener);
     return () => window.removeEventListener('staticEntity:update', onStaticEntityUpdate as EventListener);
-  }, [entityType]);
+  }, [cacheKey, entityType]);
 
   return {
     data,

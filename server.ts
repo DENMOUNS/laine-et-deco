@@ -11,6 +11,7 @@ import { auth, db } from './server/firebaseAdmin.js';
 import entityRoutes from './server/routes/entityRoutes';
 import dashboardRoutes from './server/routes/dashboardRoutes';
 import storageRoutes from './server/routes/storageRoutes';
+import { logWriteRequests } from './server/utils/requestLogger.js';
 
 async function startServer() {
   const app = express();
@@ -79,6 +80,7 @@ async function startServer() {
     process.env.SERVE_WITH_VITE === 'true' || process.env.NODE_ENV !== 'production';
 
   app.use(express.json({ limit: '10mb' }));
+  app.use(logWriteRequests);
   app.use('/api/', attachAuthRole);
   app.use("/api/", apiLimiter);
   const invoiceDir = path.join(process.cwd(), 'public', 'invoices');

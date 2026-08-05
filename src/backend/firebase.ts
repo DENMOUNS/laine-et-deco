@@ -76,12 +76,15 @@ function ensureFirebaseInitialized() {
   try {
     app = initializeApp(firebaseConfig);
 
+    const envDatabaseId = import.meta.env.VITE_FIRESTORE_DATABASE_ID;
     const databaseId =
-      firebaseConfig.firestoreDatabaseId &&
-      typeof firebaseConfig.firestoreDatabaseId === 'string' &&
-      firebaseConfig.firestoreDatabaseId.trim() !== ''
-        ? firebaseConfig.firestoreDatabaseId
-        : '(default)';
+      typeof envDatabaseId === 'string' && envDatabaseId.trim() !== ''
+        ? envDatabaseId
+        : firebaseConfig.firestoreDatabaseId &&
+            typeof firebaseConfig.firestoreDatabaseId === 'string' &&
+            firebaseConfig.firestoreDatabaseId.trim() !== ''
+          ? firebaseConfig.firestoreDatabaseId
+          : '(default)';
 
     // Cache mémoire uniquement : pas d'IndexedDB Firestore (meilleur LCP / Lighthouse).
     db = initializeFirestore(app, { localCache: memoryLocalCache() }, databaseId);

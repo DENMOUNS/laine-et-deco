@@ -12,6 +12,7 @@ type CachedValue<T> = {
 };
 
 import { get, set, del } from 'idb-keyval';
+import type { QueryConstraint } from 'firebase/firestore';
 
 export async function readCache<T>(key: string): Promise<T | null> {
   try {
@@ -32,7 +33,25 @@ export async function readCache<T>(key: string): Promise<T | null> {
 }
 
 export const getSharedEntityCacheKey = (entityType: string) => `entityCache:${entityType}`;
-export const getStaticEntityCacheKey = (entityType: string) => `staticEntity:${entityType}:v1`;
+export const describeCacheConstraint = (constraint: QueryConstraint) => {
+  const raw = constraint as any;
+  if (raw.type === 'limit') {
+    return `limit:${raw._limit ?? raw.limit ?? 'unknown'}`;
+  }
+  if (raw.type === 'where') {
+    const fieldPath = raw._field?.segments?.join('.') || raw._field?._path?.segments?.join('.') || 'field';
+    return `where:${fieldPath}:${raw._op ?? 'op'}:${JSON.stringify(raw._value ?? null)}`;
+  }
+  if (raw.type === 'orderBy') {
+    const fieldPath = raw._field?.segments?.join('.') || raw._field?._path?.segments?.join('.') || 'field';
+    return `orderBy:${fieldPath}:${raw._direction ?? 'asc'}`;
+  }
+  return raw.type || 'constraint';
+};
+export const getStaticEntityCacheKey = (entityType: string, constraints: QueryConstraint[] = []) => {
+  if (constraints.length === 0) return `staticEntity:${entityType}:v2`;
+  return `staticEntity:${entityType}:v2:${constraints.map(describeCacheConstraint).join('|')}`;
+};
 export const getLegacyEntityCacheKey = (entityType: string) => `entity:${entityType}:v1`;
 
 export const getEntityCacheKeys = (entityType: string) => [
@@ -88,9 +107,7 @@ export function getTTLForEntity(entityType: string): number {
     case 'lookbook':
     case 'promo_event':
     case 'flash_sale':
-      return WEEK_MS;
     case 'category':
-    case 'faq':
     case 'site_config':
     case 'site_logo':
     case 'site_color':
@@ -98,6 +115,8 @@ export function getTTLForEntity(entityType: string): number {
     case 'hero_banner':
     case 'announcement_banner':
     case 'scrolling_banner':
+      return DAY_MS;
+    case 'faq':
       return THREE_MONTHS_MS;
     case 'city':
     case 'shipping_rule':

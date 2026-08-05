@@ -5,20 +5,20 @@ import { useAuthStore } from '../stores/authStore';
 import { useConfigStore } from '../stores/configStore';
 import { SiteConfig, PromoEvent, NavItem } from '../types';
 import { DEFAULT_NAV_ITEMS } from '../siteDefaults';
-import { readCache, writeCache, getTTLForEntity, writeEntityCache } from './utils/cacheStorage';
+import { getStaticEntityCacheKey, readCache, writeCache, getTTLForEntity } from './utils/cacheStorage';
 
 const AppRoutes = lazy(() =>
   import('./components/AppRoutes').then((m) => ({ default: m.AppRoutes }))
 );
 
 const HOME_CACHE_COLLECTIONS = [
-  'product',
-  'category',
-  'pack',
-  'blog_post',
-  'flash_sale',
-  'lookbook',
-  'hero_banner',
+  { name: 'product', max: 24 },
+  { name: 'category' },
+  { name: 'pack' },
+  { name: 'blog_post' },
+  { name: 'flash_sale' },
+  { name: 'lookbook' },
+  { name: 'hero_banner' },
 ];
 
 function scheduleIdle(task: () => void, timeoutMs: number) {
@@ -56,7 +56,7 @@ function useDeferredConfigSync() {
 
     // Même format de clé que useEntity, pour partager le cache IndexedDB
     // entre ce bootstrap et les hooks d'entité (évite une double lecture Firestore).
-    const cacheKeyFor = (entityType: string) => `entityCache:${entityType}`;
+    const cacheKeyFor = (entityType: string) => `appBootstrap:${entityType}:v2`;
 
     void (async () => {
       // 1. Applique immédiatement les valeurs en cache si elles sont encore valides
@@ -83,9 +83,8 @@ function useDeferredConfigSync() {
       if (hasCachedNavItems) resolveNavItems(cachedNavItems);
       if (cachedPromoEvents) setEvents(cachedPromoEvents);
 
-      // Si les trois entrées sont en cache et valides, on ne fait aucun appel réseau.
-      // Navigation is visible immediately and edited often enough that it should
-      // revalidate in the background even when a local cache exists.
+      // Si les trois entrees sont en cache et valides, on ne fait aucun appel reseau.
+      if (cachedSiteConfigs && cachedPromoEvents && hasCachedNavItems) return;
 
       const [{ initFirebase }, { getDocs, collection, query, limit }] = await Promise.all([
         import('../backend/firebase'),
@@ -110,7 +109,7 @@ function useDeferredConfigSync() {
       const [siteConfigs, promoEvents, navItems] = await Promise.all([
         cachedSiteConfigs ? Promise.resolve(cachedSiteConfigs) : fetchCollection<SiteConfig>('site_config', 5),
         cachedPromoEvents ? Promise.resolve(cachedPromoEvents) : fetchCollection<PromoEvent>('promo_event', 20),
-        fetchCollection<NavItem>('nav_item', 30),
+        hasCachedNavItems ? Promise.resolve(cachedNavItems) : fetchCollection<NavItem>('nav_item', 30),
       ]);
 
       if (cancelled) return;
@@ -132,14 +131,15 @@ function useDeferredConfigSync() {
 
       if (!cachedSiteConfigs) writeCache(cacheKeyFor('site_config'), siteConfigs, getTTLForEntity('site_config'));
       if (!cachedPromoEvents) writeCache(cacheKeyFor('promo_event'), promoEvents, getTTLForEntity('promo_event'));
-      writeCache(cacheKeyFor('nav_item'), navItems, getTTLForEntity('nav_item'));
+      if (!hasCachedNavItems) writeCache(cacheKeyFor('nav_item'), navItems, getTTLForEntity('nav_item'));
 
       void Promise.all(
-        HOME_CACHE_COLLECTIONS.map(async (collectionName) => {
-          const cached = await readCache<unknown[]>(cacheKeyFor(collectionName));
+        HOME_CACHE_COLLECTIONS.map(async ({ name, max }) => {
+          const cacheKey = getStaticEntityCacheKey(name, max ? [limit(max)] : []);
+          const cached = await readCache<unknown[]>(cacheKey);
           if (cached) return;
-          const items = await fetchCollection(collectionName);
-          if (!cancelled) await writeEntityCache(collectionName, items);
+          const items = await fetchCollection(name, max);
+          if (!cancelled) await writeCache(cacheKey, items, getTTLForEntity(name));
         })
       );
     })();
