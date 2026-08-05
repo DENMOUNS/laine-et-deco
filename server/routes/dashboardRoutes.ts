@@ -41,9 +41,15 @@ const SYSTEM_CONFIG_COLLECTIONS = new Set([
   'custom_section_config',
 ]);
 
+function compactData(data: Record<string, any>) {
+  return Object.fromEntries(Object.entries(data).filter(([, value]) => value !== undefined));
+}
+
 function buildSystemConfigDocs(siteConfig: any) {
   const branding = siteConfig?.branding || {};
   const newsletter = siteConfig?.newsletterPopup || {};
+  const invoiceConfig = siteConfig?.invoiceConfig || {};
+  const qrConfig = siteConfig?.qrConfig || {};
   const now = firebaseAdmin.firestore.FieldValue.serverTimestamp();
   const meta = { createdAt: now, updatedAt: now };
   const docs: { collectionName: string; id: string; data: any }[] = [
@@ -51,14 +57,16 @@ function buildSystemConfigDocs(siteConfig: any) {
       collectionName: 'invoice_config',
       id: 'global',
       data: {
-        phone: '+237 000 000 000',
-        email: 'contact@laine-deco.com',
-        paymentPhone: '+237 000 000 000',
-        paymentName: 'Laine et Déco',
-        address: 'Douala, Cameroun',
-        message1: 'Les articles faits sur-mesure ne sont ni repris ni échangés.',
-        message2: 'Merci de vérifier votre commande à la réception.',
-        footerMessage: 'Merci pour votre confiance !',
+        ...compactData({
+          phone: invoiceConfig.phone,
+          email: invoiceConfig.email,
+          paymentPhone: invoiceConfig.paymentPhone,
+          paymentName: invoiceConfig.paymentName,
+          address: invoiceConfig.address,
+          message1: invoiceConfig.message1,
+          message2: invoiceConfig.message2,
+          footerMessage: invoiceConfig.footerMessage,
+        }),
         ...meta,
       },
     },
@@ -66,47 +74,72 @@ function buildSystemConfigDocs(siteConfig: any) {
       collectionName: 'qr_config',
       id: 'global',
       data: {
-        whatsappNumber: siteConfig?.qrConfig?.whatsappNumber || '+237600000000',
-        whatsappMessage: siteConfig?.qrConfig?.whatsappMessage || 'Bonjour Laine et Déco, je souhaite passer commande.',
-        welcomeMessage: siteConfig?.qrConfig?.welcomeMessage || 'Bienvenue chez Laine et Déco ! Découvrez nos créations uniques.',
+        ...compactData({
+          whatsappNumber: qrConfig.whatsappNumber,
+          whatsappMessage: qrConfig.whatsappMessage,
+          welcomeMessage: qrConfig.welcomeMessage,
+        }),
         ...meta,
       },
     },
     {
       collectionName: 'site_logo',
       id: 'default-logo',
-      data: { image: '', lien: branding.logo || siteConfig?.hero?.backgroundImages?.[0] || '/logo.png', status: 'active', ...meta },
+      data: {
+        image: '',
+        ...compactData({
+          lien: branding.logo || siteConfig?.hero?.backgroundImages?.[0],
+          status: 'active',
+        }),
+        ...meta,
+      },
     },
     {
       collectionName: 'site_color',
       id: 'default-color',
       data: {
-        primaryColor: branding.primaryColor || siteConfig?.primaryColor || '#3E4A3D',
-        secondaryColor: branding.secondaryColor || '#B85535',
-        accentColor: siteConfig?.accentColor || '#5C6B5A',
-        backgroundColor: '#fbf9f6',
-        status: 'active',
+        ...compactData({
+          primaryColor: branding.primaryColor || siteConfig?.primaryColor,
+          secondaryColor: branding.secondaryColor,
+          accentColor: siteConfig?.accentColor,
+          backgroundColor: siteConfig?.backgroundColor,
+          status: 'active',
+        }),
         ...meta,
       },
     },
     {
       collectionName: 'announcement_banner',
       id: 'default-announcement',
-      data: { message: siteConfig?.adBannerText || '', status: siteConfig?.showAdBanner ? 'active' : 'inactive', ...meta },
+      data: {
+        ...compactData({
+          message: siteConfig?.adBannerText,
+          status: siteConfig?.showAdBanner ? 'active' : undefined,
+        }),
+        ...meta,
+      },
     },
     {
       collectionName: 'loyalty_config_history',
       id: 'default-loyalty',
-      data: { config: siteConfig?.loyaltyConfig || constants.SITE_CONFIG.loyaltyConfig, status: 'active', ...meta },
+      data: {
+        ...compactData({
+          config: siteConfig?.loyaltyConfig,
+          status: siteConfig?.loyaltyConfig ? 'active' : undefined,
+        }),
+        ...meta,
+      },
     },
     {
       collectionName: 'maintenance_config_history',
       id: 'default-maintenance',
       data: {
-        isActive: siteConfig?.maintenance?.isActive || false,
-        message: siteConfig?.maintenance?.message || '',
-        endDate: siteConfig?.maintenance?.endDate || '',
-        status: 'active',
+        ...compactData({
+          isActive: siteConfig?.maintenance?.isActive,
+          message: siteConfig?.maintenance?.message,
+          endDate: siteConfig?.maintenance?.endDate,
+          status: siteConfig?.maintenance ? 'active' : undefined,
+        }),
         ...meta,
       },
     },
@@ -114,14 +147,16 @@ function buildSystemConfigDocs(siteConfig: any) {
       collectionName: 'newsletter_config_history',
       id: 'default-newsletter',
       data: {
-        isActive: newsletter.isActive || false,
-        title: newsletter.title || '',
-        message: newsletter.message || '',
-        delay: newsletter.delay || 5000,
-        image: newsletter.image || '',
-        button1Text: "S'inscrire",
-        button2Text: 'Non merci',
-        status: 'active',
+        ...compactData({
+          isActive: newsletter.isActive,
+          title: newsletter.title,
+          message: newsletter.message,
+          delay: newsletter.delay,
+          image: newsletter.image,
+          button1Text: newsletter.button1Text,
+          button2Text: newsletter.button2Text,
+          status: newsletter.isActive !== undefined ? 'active' : undefined,
+        }),
         ...meta,
       },
     },
@@ -135,7 +170,7 @@ function buildSystemConfigDocs(siteConfig: any) {
         image: slide.image,
         title: slide.title,
         subtitle: slide.subtitle || '',
-        ctaText: siteConfig?.hero?.ctaText || 'Découvrir',
+        ctaText: siteConfig?.hero?.ctaText,
         status: 'active',
         ...meta,
       },

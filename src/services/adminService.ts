@@ -8,7 +8,10 @@ import { updateDoc, doc, getDocs, collection, serverTimestamp, setDoc } from 'fi
 import { db } from '../backend/firebase';
 import { toast } from 'sonner';
 import { SiteConfig, Order, PromoEvent, Coupon, City, FAQ, CatalogPriceRule } from '../types';
-import { BADGES, ADMIN_ROLES as INITIAL_ADMIN_ROLES } from '../constants';
+
+const DEFAULT_ADMIN_ROLES = [
+  { id: 'super-admin', slug: 'super-admin', name: 'Super Admin', permissions: ['all'] }
+];
 
 // ── Date Formatting ──
 
@@ -48,7 +51,7 @@ export function normalizeSiteConfig(rawConfig: any, fallback: SiteConfig): SiteC
     loyaltyConfig: {
       pointsPerPurchase: rawConfig.loyaltyConfig?.pointsPerPurchase ?? 10,
       pointsPerReview: rawConfig.loyaltyConfig?.pointsPerReview ?? 50,
-      badges: rawConfig.loyaltyConfig?.badges?.length > 0 ? rawConfig.loyaltyConfig.badges : BADGES
+      badges: rawConfig.loyaltyConfig?.badges?.length > 0 ? rawConfig.loyaltyConfig.badges : []
     }
   };
 }
@@ -179,7 +182,7 @@ export async function autoSeedIfEmpty(seedFirebaseFn: () => Promise<void>): Prom
     // Seed roles if empty
     const rolesSnapshot = await getDocs(collection(db, 'admin_role'));
     if (rolesSnapshot.empty) {
-      for (const role of INITIAL_ADMIN_ROLES) {
+      for (const role of DEFAULT_ADMIN_ROLES) {
         await setDoc(doc(db, 'admin_role', role.id), {
           ...role,
           createdAt: serverTimestamp(),

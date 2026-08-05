@@ -106,7 +106,6 @@ import {
   LOGIN_LOGS as INITIAL_LOGIN_LOGS, 
   NOTIFICATIONS as INITIAL_NOTIFICATIONS, 
   SALES_DATA as INITIAL_SALES_DATA, 
-  SITE_CONFIG as INITIAL_SITE_CONFIG, 
   CHAT_MESSAGES as INITIAL_CHAT_MESSAGES, 
   CONVERSATIONS as INITIAL_CONVERSATIONS, 
   COUPONS as INITIAL_COUPONS, 
@@ -137,6 +136,7 @@ import {
   FAQ_ITEMS as INITIAL_FAQ_ITEMS,
   CURRENCIES as INITIAL_CURRENCIES
 } from '../../../../constants';
+import { DEFAULT_SITE_CONFIG as INITIAL_SITE_CONFIG } from '../../../../siteDefaults';
 import { CouponEditor } from '../../../components/dashboard/CouponEditor';
 import { CityEditor } from '../../../components/dashboard/CityEditor';
 import { FAQEditor } from '../../../components/dashboard/FAQEditor';

@@ -52,82 +52,97 @@ export const updateEntity = async (entity: string, id: string, data: any) => {
   }
 };
 
+const compactData = (data: Record<string, any>) =>
+  Object.fromEntries(Object.entries(data).filter(([, value]) => value !== undefined));
+
 const buildSystemConfigDocs = (siteConfig: any) => {
   const branding = siteConfig?.branding || {};
   const newsletter = siteConfig?.newsletterPopup || {};
+  const invoiceConfig = siteConfig?.invoiceConfig || {};
+  const qrConfig = siteConfig?.qrConfig || {};
   const docs: { collectionName: string; id: string; data: any }[] = [
     {
       collectionName: 'invoice_config',
       id: 'global',
-      data: {
-        phone: '+237 000 000 000',
-        email: 'contact@laine-deco.com',
-        paymentPhone: '+237 000 000 000',
-        paymentName: 'Laine et Déco',
-        address: 'Douala, Cameroun',
-        message1: 'Les articles faits sur-mesure ne sont ni repris ni échangés.',
-        message2: 'Merci de vérifier votre commande à la réception.',
-        footerMessage: 'Merci pour votre confiance !',
-      },
+      data: compactData({
+        phone: invoiceConfig.phone,
+        email: invoiceConfig.email,
+        paymentPhone: invoiceConfig.paymentPhone,
+        paymentName: invoiceConfig.paymentName,
+        address: invoiceConfig.address,
+        message1: invoiceConfig.message1,
+        message2: invoiceConfig.message2,
+        footerMessage: invoiceConfig.footerMessage,
+      }),
     },
     {
       collectionName: 'qr_config',
       id: 'global',
-      data: {
-        whatsappNumber: siteConfig?.qrConfig?.whatsappNumber || '+237600000000',
-        whatsappMessage: siteConfig?.qrConfig?.whatsappMessage || 'Bonjour Laine et Déco, je souhaite passer commande.',
-        welcomeMessage: siteConfig?.qrConfig?.welcomeMessage || 'Bienvenue chez Laine et Déco ! Découvrez nos créations uniques.',
-      },
+      data: compactData({
+        whatsappNumber: qrConfig.whatsappNumber,
+        whatsappMessage: qrConfig.whatsappMessage,
+        welcomeMessage: qrConfig.welcomeMessage,
+      }),
     },
     {
       collectionName: 'site_logo',
       id: 'default-logo',
-      data: { image: '', lien: branding.logo || siteConfig?.hero?.backgroundImages?.[0] || '/logo.png', status: 'active' },
+      data: compactData({
+        image: '',
+        lien: branding.logo || siteConfig?.hero?.backgroundImages?.[0],
+        status: 'active',
+      }),
     },
     {
       collectionName: 'site_color',
       id: 'default-color',
-      data: {
-        primaryColor: branding.primaryColor || siteConfig?.primaryColor || '#3E4A3D',
-        secondaryColor: branding.secondaryColor || '#B85535',
-        accentColor: siteConfig?.accentColor || '#5C6B5A',
-        backgroundColor: '#fbf9f6',
+      data: compactData({
+        primaryColor: branding.primaryColor || siteConfig?.primaryColor,
+        secondaryColor: branding.secondaryColor,
+        accentColor: siteConfig?.accentColor,
+        backgroundColor: siteConfig?.backgroundColor,
         status: 'active',
-      },
+      }),
     },
     {
       collectionName: 'announcement_banner',
       id: 'default-announcement',
-      data: { message: siteConfig?.adBannerText || '', status: siteConfig?.showAdBanner ? 'active' : 'inactive' },
+      data: compactData({
+        message: siteConfig?.adBannerText,
+        status: siteConfig?.showAdBanner ? 'active' : undefined,
+      }),
     },
     {
       collectionName: 'loyalty_config_history',
       id: 'default-loyalty',
-      data: { config: siteConfig?.loyaltyConfig, status: 'active' },
+      data: compactData({
+        config: siteConfig?.loyaltyConfig,
+        status: siteConfig?.loyaltyConfig ? 'active' : undefined,
+      }),
     },
     {
       collectionName: 'maintenance_config_history',
       id: 'default-maintenance',
-      data: {
-        isActive: siteConfig?.maintenance?.isActive || false,
-        message: siteConfig?.maintenance?.message || '',
-        endDate: siteConfig?.maintenance?.endDate || '',
-        status: 'active',
-      },
+      data: compactData({
+        isActive: siteConfig?.maintenance?.isActive,
+        message: siteConfig?.maintenance?.message,
+        endDate: siteConfig?.maintenance?.endDate,
+        status: siteConfig?.maintenance ? 'active' : undefined,
+      }),
     },
     {
       collectionName: 'newsletter_config_history',
       id: 'default-newsletter',
-      data: {
-        isActive: newsletter.isActive || false,
-        title: newsletter.title || '',
-        message: newsletter.message || '',
-        delay: newsletter.delay || 5000,
-        image: newsletter.image || '',
-        button1Text: "S'inscrire",
-        button2Text: 'Non merci',
-        status: 'active',
-      },
+      data: compactData({
+        isActive: newsletter.isActive,
+        title: newsletter.title,
+        message: newsletter.message,
+        delay: newsletter.delay,
+        image: newsletter.image,
+        button1Text: newsletter.button1Text,
+        button2Text: newsletter.button2Text,
+        status: newsletter.isActive !== undefined ? 'active' : undefined,
+      }),
     },
   ];
 
@@ -139,7 +154,7 @@ const buildSystemConfigDocs = (siteConfig: any) => {
         image: slide.image,
         title: slide.title,
         subtitle: slide.subtitle || '',
-        ctaText: siteConfig?.hero?.ctaText || 'Découvrir',
+        ctaText: siteConfig?.hero?.ctaText,
         status: 'active',
       },
     });

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { QueryConstraint } from 'firebase/firestore';
 import type { BaseEntity } from '../../domain/entities/BaseEntity';
-import { readCache, writeCache, getTTLForEntity } from '../utils/cacheStorage';
+import { readEntityCache, writeEntityCache } from '../utils/cacheStorage';
 
 interface UseStaticEntityOptions {
   enabled?: boolean;
@@ -20,8 +20,6 @@ export function dispatchStaticEntityUpdate<T>(entityType: string, payload: { ful
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new CustomEvent('staticEntity:update', { detail: { entityType, ...payload } }));
 }
-
-const getStaticEntityCacheKey = (entityType: string) => `staticEntity:${entityType}:v1`;
 
 /**
  * Charge les données une fois (getDocs). Import Firebase différé pour ne pas bloquer le LCP.
@@ -46,12 +44,10 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
   }, []);
 
   useEffect(() => {
-    if (!enabled || hasFetched.current) {
-      if (!enabled) setIsLoading(false);
+    if (hasFetched.current) {
       return;
     }
 
-    const cacheKey = getStaticEntityCacheKey(entityType);
     // On ne met en cache (et ne saute la lecture réseau) que pour les requêtes
     // "collection entière" sans filtre. Les requêtes avec contraintes (where/limit
     // spécifiques) sont trop variables pour partager un cache fiable et restent
@@ -60,7 +56,7 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
     let cancelled = false;
 
     const fetchData = async () => {
-      const cachedData = isCacheableQuery ? await readCache<T[]>(cacheKey) : null;
+      const cachedData = isCacheableQuery ? await readEntityCache<T[]>(entityType) : null;
       if (cancelled) return;
 
       if (cachedData) {
@@ -70,6 +66,11 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
         setIsLoading(false);
         setError(null);
         hasFetched.current = true;
+        return;
+      }
+
+      if (!enabled) {
+        setIsLoading(false);
         return;
       }
 
@@ -109,7 +110,7 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
 
         setData(items.length > 0 ? items : initialData);
         if (isCacheableQuery) {
-          writeCache(cacheKey, items, getTTLForEntity(entityType));
+          writeEntityCache(entityType, items);
         }
         setIsLoading(false);
         setError(null);

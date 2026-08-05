@@ -1,4 +1,4 @@
-import './server/loadEnv.js';
+import '../server/loadEnv.js';
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import entityRoutes from '../server/routes/entityRoutes.js';
@@ -17,12 +17,19 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-app.use('/api/', apiLimiter);
+app.use(apiLimiter);
 app.use('/api/entity', entityRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/storage', storageRoutes);
+app.use('/entity', entityRoutes);
+app.use('/dashboard', dashboardRoutes);
+app.use('/storage', storageRoutes);
 
 app.get('/api/test', (_req, res) => {
+  res.json({ ok: true, message: 'API routing works' });
+});
+
+app.get('/test', (_req, res) => {
   res.json({ ok: true, message: 'API routing works' });
 });
 

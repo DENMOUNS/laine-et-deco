@@ -4,12 +4,22 @@ import { RouteFallback } from './components/RouteFallback';
 import { useAuthStore } from '../stores/authStore';
 import { useConfigStore } from '../stores/configStore';
 import { SiteConfig, PromoEvent, NavItem } from '../types';
-import { DEFAULT_SITE_CONFIG, DEFAULT_NAV_ITEMS } from '../siteDefaults';
-import { readCache, writeCache, getTTLForEntity } from './utils/cacheStorage';
+import { DEFAULT_NAV_ITEMS } from '../siteDefaults';
+import { readCache, writeCache, getTTLForEntity, writeEntityCache } from './utils/cacheStorage';
 
 const AppRoutes = lazy(() =>
   import('./components/AppRoutes').then((m) => ({ default: m.AppRoutes }))
 );
+
+const HOME_CACHE_COLLECTIONS = [
+  'product',
+  'category',
+  'pack',
+  'blog_post',
+  'flash_sale',
+  'lookbook',
+  'hero_banner',
+];
 
 function scheduleIdle(task: () => void, timeoutMs: number) {
   if ('requestIdleCallback' in window) {
@@ -31,7 +41,7 @@ function useDeferredConfigSync() {
     const start = () => setSync(true);
     window.addEventListener('pointerdown', start, { once: true, passive: true });
     window.addEventListener('keydown', start, { once: true });
-    const idleTimer = scheduleIdle(start, 25_000);
+    const idleTimer = scheduleIdle(start, 2_000);
     return () => {
       window.removeEventListener('pointerdown', start);
       window.removeEventListener('keydown', start);
@@ -59,12 +69,15 @@ function useDeferredConfigSync() {
 
       if (cancelled) return;
 
+      const hasCachedNavItems = Array.isArray(cachedNavItems) && cachedNavItems.length > 0;
+
       if (cachedSiteConfigs?.[0]) setSiteConfig(cachedSiteConfigs[0]);
-      if (cachedNavItems?.length) resolveNavItems(cachedNavItems);
+      if (hasCachedNavItems) resolveNavItems(cachedNavItems);
       if (cachedPromoEvents) setEvents(cachedPromoEvents);
 
       // Si les trois entrées sont en cache et valides, on ne fait aucun appel réseau.
-      if (cachedSiteConfigs && cachedPromoEvents && cachedNavItems) return;
+      // Navigation is visible immediately and edited often enough that it should
+      // revalidate in the background even when a local cache exists.
 
       const [{ initFirebase }, { getDocs, collection, query, limit }] = await Promise.all([
         import('../backend/firebase'),
@@ -76,9 +89,10 @@ function useDeferredConfigSync() {
       const { db: firestore } = initFirebase();
       if (!firestore) return;
 
-      const fetchCollection = async <T,>(name: string, max = 50): Promise<T[]> => {
+      const fetchCollection = async <T,>(name: string, max?: number): Promise<T[]> => {
         try {
-          const snap = await getDocs(query(collection(firestore, name), limit(max)));
+          const ref = collection(firestore, name);
+          const snap = await getDocs(max ? query(ref, limit(max)) : ref);
           return snap.docs.map((d) => ({ id: d.id, ...d.data() })) as T[];
         } catch {
           return [];
@@ -88,7 +102,7 @@ function useDeferredConfigSync() {
       const [siteConfigs, promoEvents, navItems] = await Promise.all([
         cachedSiteConfigs ? Promise.resolve(cachedSiteConfigs) : fetchCollection<SiteConfig>('site_config', 5),
         cachedPromoEvents ? Promise.resolve(cachedPromoEvents) : fetchCollection<PromoEvent>('promo_event', 20),
-        cachedNavItems ? Promise.resolve(cachedNavItems) : fetchCollection<NavItem>('nav_item', 30),
+        fetchCollection<NavItem>('nav_item', 30),
       ]);
 
       if (cancelled) return;
@@ -100,7 +114,16 @@ function useDeferredConfigSync() {
 
       if (!cachedSiteConfigs) writeCache(cacheKeyFor('site_config'), siteConfigs, getTTLForEntity('site_config'));
       if (!cachedPromoEvents) writeCache(cacheKeyFor('promo_event'), promoEvents, getTTLForEntity('promo_event'));
-      if (!cachedNavItems) writeCache(cacheKeyFor('nav_item'), navItems, getTTLForEntity('nav_item'));
+      writeCache(cacheKeyFor('nav_item'), navItems, getTTLForEntity('nav_item'));
+
+      void Promise.all(
+        HOME_CACHE_COLLECTIONS.map(async (collectionName) => {
+          const cached = await readCache<unknown[]>(cacheKeyFor(collectionName));
+          if (cached) return;
+          const items = await fetchCollection(collectionName);
+          if (!cancelled) await writeEntityCache(collectionName, items);
+        })
+      );
     })();
 
     return () => {
@@ -132,7 +155,6 @@ export function App() {
   // autoSeedIfEmpty), qui ne vérifie que 2 collections et seulement pour un admin connecté.
 
   useEffect(() => {
-    useConfigStore.getState().setSiteConfig(DEFAULT_SITE_CONFIG);
     useConfigStore.getState().resolveNavItems(DEFAULT_NAV_ITEMS);
   }, []);
 

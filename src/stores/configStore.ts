@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { SiteConfig, PromoEvent, NavItem } from '../types';
-import { DEFAULT_SITE_CONFIG, DEFAULT_NAV_ITEMS } from '../siteDefaults';
+import { DEFAULT_NAV_ITEMS, DEFAULT_SITE_CONFIG } from '../siteDefaults';
 
 interface ConfigState {
   siteConfig: SiteConfig;
@@ -8,18 +8,61 @@ interface ConfigState {
   events: PromoEvent[];
 
   // Actions
-  setSiteConfig: (config: SiteConfig) => void;
+  setSiteConfig: (config: SiteConfig | ((previous: SiteConfig) => SiteConfig)) => void;
   setNavItems: (items: NavItem[]) => void;
   setEvents: (events: PromoEvent[]) => void;
   resolveNavItems: (rawNavItems: NavItem[]) => void;
 }
+
+const normalizeSiteConfig = (config: Partial<SiteConfig> = {}): SiteConfig => ({
+  ...DEFAULT_SITE_CONFIG,
+  ...config,
+  loyaltyConfig: {
+    ...DEFAULT_SITE_CONFIG.loyaltyConfig,
+    ...config.loyaltyConfig,
+    badges: config.loyaltyConfig?.badges ?? DEFAULT_SITE_CONFIG.loyaltyConfig.badges,
+    levels: config.loyaltyConfig?.levels ?? DEFAULT_SITE_CONFIG.loyaltyConfig.levels,
+  },
+  maintenance: {
+    ...DEFAULT_SITE_CONFIG.maintenance,
+    ...config.maintenance,
+  },
+  branding: {
+    ...DEFAULT_SITE_CONFIG.branding,
+    ...config.branding,
+  },
+  seo: {
+    ...DEFAULT_SITE_CONFIG.seo,
+    ...config.seo,
+  },
+  hero: {
+    ...DEFAULT_SITE_CONFIG.hero,
+    ...config.hero,
+    backgroundImages: config.hero?.backgroundImages ?? DEFAULT_SITE_CONFIG.hero.backgroundImages,
+  },
+  newsletterPopup: {
+    ...DEFAULT_SITE_CONFIG.newsletterPopup,
+    ...config.newsletterPopup,
+  },
+  homeFeaturedProducts: config.homeFeaturedProducts ?? DEFAULT_SITE_CONFIG.homeFeaturedProducts,
+  homeFeaturedCategories: config.homeFeaturedCategories ?? DEFAULT_SITE_CONFIG.homeFeaturedCategories,
+  sliderItems: config.sliderItems ?? DEFAULT_SITE_CONFIG.sliderItems,
+  customSections: config.customSections ?? DEFAULT_SITE_CONFIG.customSections,
+  features: config.features ?? DEFAULT_SITE_CONFIG.features,
+  marqueeItems: config.marqueeItems ?? DEFAULT_SITE_CONFIG.marqueeItems,
+});
 
 export const useConfigStore = create<ConfigState>((set) => ({
   siteConfig: DEFAULT_SITE_CONFIG,
   navItems: DEFAULT_NAV_ITEMS,
   events: [],
 
-  setSiteConfig: (config) => set({ siteConfig: config }),
+  setSiteConfig: (config) =>
+    set((state) => ({
+      siteConfig: normalizeSiteConfig(
+        typeof config === 'function' ? config(state.siteConfig) : config
+      ),
+    })),
 
   setNavItems: (items) => set({ navItems: items }),
 

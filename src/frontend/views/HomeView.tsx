@@ -4,7 +4,6 @@ import { ArrowRight, Package, Truck, ShieldCheck, Heart, Calendar, User, Search,
 
 import { useStaticEntity } from '../hooks/useStaticEntity';
 import { useProducts } from '../hooks/useProducts';
-import { limit } from 'firebase/firestore';
 import { ProductCard } from '../components/ProductCard';
 import { Button } from '../components/ui/Button';
 import { Product, SiteConfig, PromoEvent, Pack, FlashSale, Lookbook, HeroBannerConfig } from '../../types';
@@ -82,7 +81,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
 
   const { products: fetchedProducts, isLoading: isProductsLoading } = useProducts({
     enabled: dataReady,
-    constraints: [limit(24)],
   });
   const PRODUCTS = fetchedProducts;
   const secondaryOpts = { enabled: secondaryReady };

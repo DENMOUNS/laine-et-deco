@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, useMotionValue, useTransform, useSpring } from 'framer-motion';
 import { MessageCircle, Home, Loader2, ArrowRight, Smartphone, Smile, Sparkles, Heart } from 'lucide-react';
-import { SITE_CONFIG } from '../../constants';
 
 interface QRLandingViewProps {
   onNavigate: (view: string) => void;
@@ -53,9 +52,9 @@ export const QRLandingView: React.FC<QRLandingViewProps> = ({ onNavigate }) => {
 
     const fetchConfig = async () => {
       const defaultQrConfig = {
-        whatsappNumber: SITE_CONFIG.qrConfig?.whatsappNumber || '+237655500443',
-        whatsappMessage: SITE_CONFIG.qrConfig?.whatsappMessage || 'Bonjour Laine et Déco, je souhaite passer commande.',
-        welcomeMessage: SITE_CONFIG.qrConfig?.welcomeMessage || 'Bienvenue chez Laine et Déco ! Découvrez nos créations uniques.'
+        whatsappNumber: '',
+        whatsappMessage: '',
+        welcomeMessage: ''
       };
 
       try {

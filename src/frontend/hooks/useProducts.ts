@@ -23,7 +23,7 @@ export const useProducts = (options: UseProductsOptions = {}) => {
       : typeof (p as any).quantity === 'number'
         ? (p as any).quantity
         : 0;
-    return { ...p, stock: normalizedStock, quantity: normalizedStock } as T & { quantity: number };
+    return { ...p, stock: normalizedStock, quantity: normalizedStock } as Product & { quantity: number };
   });
 
   // Pour le front-office (isAdmin = false), on ne renvoie que les produits actifs (isAvailable n'est pas faux)

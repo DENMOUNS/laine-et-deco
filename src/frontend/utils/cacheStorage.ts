@@ -31,6 +31,28 @@ export async function readCache<T>(key: string): Promise<T | null> {
   }
 }
 
+export const getSharedEntityCacheKey = (entityType: string) => `entityCache:${entityType}`;
+export const getStaticEntityCacheKey = (entityType: string) => `staticEntity:${entityType}:v1`;
+export const getLegacyEntityCacheKey = (entityType: string) => `entity:${entityType}:v1`;
+
+export const getEntityCacheKeys = (entityType: string) => [
+  getSharedEntityCacheKey(entityType),
+  getStaticEntityCacheKey(entityType),
+  getLegacyEntityCacheKey(entityType),
+];
+
+export async function readEntityCache<T>(entityType: string): Promise<T | null> {
+  for (const key of getEntityCacheKeys(entityType)) {
+    const value = await readCache<T>(key);
+    if (value) return value;
+  }
+  return null;
+}
+
+export async function writeEntityCache<T>(entityType: string, value: T, ttlMs = getTTLForEntity(entityType)): Promise<void> {
+  await Promise.all(getEntityCacheKeys(entityType).map((key) => writeCache(key, value, ttlMs)));
+}
+
 export async function readCacheCreatedAt(key: string): Promise<number | null> {
   try {
     const raw = await get<string>(key);

@@ -3,7 +3,6 @@ import { toast } from 'sonner';
 import { updateDoc, doc, getDocs, collection, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '../backend/firebase';
 import { SiteConfig, Order, Product, Category, NavItem, FAQ, Coupon, City, PromoEvent, Pack, Expense, Review, RMA, CatalogPriceRule, ShippingRule, TaxRule, Currency, NewsletterSubscriber, Notification, AbandonedCart, CustomerGroup } from '../types';
-import { BADGES } from '../constants';
 
 /**
  * Admin Dashboard Store
