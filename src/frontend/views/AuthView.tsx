@@ -65,6 +65,55 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
     }
   };
 
+  const syncGoogleUserProfile = async (firebaseDb: any, user: any) => {
+    const userDocRef = doc(firebaseDb, 'user', user.uid);
+    const { getDoc, query, collection, where, getDocs, updateDoc } = await import('firebase/firestore');
+    const userSnap = await getDoc(userDocRef);
+
+    if (!userSnap.exists()) {
+      const emailQuery = query(collection(firebaseDb, 'user'), where('email', '==', user.email));
+      const emailSnap = await getDocs(emailQuery);
+
+      if (!emailSnap.empty) {
+        const existingDoc = emailSnap.docs[0];
+        await setDoc(existingDoc.ref, {
+          ...existingDoc.data(),
+          uid: user.uid,
+          name: existingDoc.data()?.name || user.displayName || 'Utilisateur',
+          email: user.email,
+          profileImage: existingDoc.data()?.profileImage || user.photoURL || null,
+          updatedAt: serverTimestamp(),
+        }, { merge: true });
+      } else {
+        const referralCode = sessionStorage.getItem('referralCode');
+        await setDoc(userDocRef, {
+          uid: user.uid,
+          name: user.displayName || 'Utilisateur',
+          email: user.email,
+          profileImage: user.photoURL || null,
+          role: 'customer',
+          points: 0,
+          orders: 0,
+          joinDate: new Date().toISOString().split('T')[0],
+          status: 'active',
+          referredBy: referralCode || null,
+          createdAt: serverTimestamp()
+        });
+      }
+      return;
+    }
+
+    const existingData = userSnap.data();
+    const updates: any = {};
+    if (user.photoURL && existingData?.profileImage !== user.photoURL) {
+      updates.profileImage = user.photoURL;
+    }
+    if (Object.keys(updates).length > 0) {
+      updates.updatedAt = serverTimestamp();
+      await updateDoc(userDocRef, updates);
+    }
+  };
+
   const onSubmit = async (data: any) => {
     // Check honeypot
     if (hpValue) {
@@ -195,52 +244,10 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate, initialMode = 'l
       const result = await signInWithPopup(firebaseAuth, provider, browserPopupRedirectResolver);
       const user = result.user;
       
-      // Check if user document exists, if not create it
-      const userDocRef = doc(firebaseDb!, 'user', user.uid);
-      const { getDoc, query, collection, where, getDocs, updateDoc } = await import('firebase/firestore');
-      const userSnap = await getDoc(userDocRef);
-      
-      if (!userSnap.exists()) {
-        const emailQuery = query(collection(firebaseDb, 'user'), where('email', '==', user.email));
-        const emailSnap = await getDocs(emailQuery);
-
-        if (!emailSnap.empty) {
-          const existingDoc = emailSnap.docs[0];
-          await setDoc(existingDoc.ref, {
-            ...existingDoc.data(),
-            uid: user.uid,
-            name: existingDoc.data()?.name || user.displayName || 'Utilisateur',
-            email: user.email,
-            profileImage: existingDoc.data()?.profileImage || user.photoURL || null,
-            updatedAt: serverTimestamp(),
-          }, { merge: true });
-        } else {
-          const referralCode = sessionStorage.getItem('referralCode');
-          await setDoc(userDocRef, {
-            uid: user.uid,
-            name: user.displayName || 'Utilisateur',
-            email: user.email,
-            profileImage: user.photoURL || null,
-            role: 'customer',
-            points: 0,
-            orders: 0,
-            joinDate: new Date().toISOString().split('T')[0],
-            status: 'active',
-            referredBy: referralCode || null,
-            createdAt: serverTimestamp()
-          });
-        }
-      } else {
-        // Update profile metadata without changing the role managed in Firestore.
-        const existingData = userSnap.data();
-        let updates: any = {};
-        if (user.photoURL && existingData?.profileImage !== user.photoURL) {
-          updates.profileImage = user.photoURL;
-        }
-        if (Object.keys(updates).length > 0) {
-          updates.updatedAt = serverTimestamp();
-          await updateDoc(userDocRef, updates);
-        }
+      try {
+        await syncGoogleUserProfile(firebaseDb, user);
+      } catch (profileError) {
+        console.warn('Connexion Google reussie, mais synchronisation du profil impossible:', profileError);
       }
       
       toast.success('Connexion Google réussie !');

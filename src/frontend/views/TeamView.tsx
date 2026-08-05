@@ -73,7 +73,7 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate }) => {
           >
             <div className="relative mb-8 aspect-[4/5] overflow-hidden rounded-[3rem] shadow-lg">
               <img 
-                src={member.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80'} 
+                src={member.avatar || '/icons/icon-192.png'} 
                 alt={member.name} 
                 className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105"
                 referrerPolicy="no-referrer"

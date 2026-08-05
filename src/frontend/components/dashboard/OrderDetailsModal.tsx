@@ -132,7 +132,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                     <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-50 rounded-2xl gap-4">
                       <div className="flex items-center gap-4">
                         <div className="w-16 h-16 bg-white rounded-xl overflow-hidden shadow-sm border border-primary/5">
-                          <img src={products.find(p => p.id === item.productId)?.image || item.image || 'https://images.unsplash.com/photo-1584992236310-6edddc08acff?auto=format&fit=crop&q=80'} alt={item.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          <img src={products.find(p => p.id === item.productId)?.image || item.image || '/icons/icon-192.png'} alt={item.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                         </div>
                         <div>
                           <p className="text-sm font-bold text-primary">{item.name}</p>
