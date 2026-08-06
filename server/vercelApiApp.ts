@@ -8,8 +8,60 @@ import { logWriteRequests } from './utils/requestLogger.js';
 
 const app = express();
 
+const isAdminRole = (role: string | undefined | null) => {
+  return ['super-admin', 'admin', 'editor', 'stock-manager', 'support-client'].includes(role ?? '');
+};
+
+const resolveUserRoleFromToken = async (token: string) => {
+  try {
+    const { auth } = await import('./firebaseAdmin.js');
+    const decoded = await auth.verifyIdToken(token);
+    const uid = decoded.uid;
+    const email = decoded.email;
+    let role: string | null = null;
+
+    const db = (await import('./firebaseAdmin.js')).db;
+    const userSnap = await db.collection('user').doc(uid).get();
+    if (userSnap.exists) {
+      role = userSnap.data()?.role;
+    }
+
+    if (!role && email) {
+      const emailQuery = await db.collection('user').where('email', '==', email).limit(1).get();
+      if (!emailQuery.empty) {
+        role = emailQuery.docs[0].data()?.role;
+      }
+    }
+
+    if (!role) {
+      const uidQuery = await db.collection('user').where('uid', '==', uid).limit(1).get();
+      if (!uidQuery.empty) {
+        role = uidQuery.docs[0].data()?.role;
+      }
+    }
+
+    return role;
+  } catch {
+    return null;
+  }
+};
+
+const attachAuthRole = async (req: any, _res: any, next: any) => {
+  if (req.method === 'GET') {
+    return next();
+  }
+
+  const bearer = req.headers.authorization;
+  if (bearer?.startsWith('Bearer ')) {
+    const token = bearer.replace('Bearer ', '');
+    req.authRole = await resolveUserRoleFromToken(token);
+  }
+  next();
+};
+
 app.use(express.json({ limit: '10mb' }));
 app.use(logWriteRequests);
+app.use('/api/', attachAuthRole);
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -17,6 +69,9 @@ const apiLimiter = rateLimit({
   message: { error: 'Trop de requetes, veuillez reessayer plus tard.' },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    return req.method === 'GET' || isAdminRole((req as any).authRole);
+  },
 });
 
 app.use(apiLimiter);
