@@ -1,6 +1,16 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { db, auth, ensureFirestoreConnection } from '../firebaseAdmin';
 import retryFirestoreOperation from '../utils/firestoreRetry';
+import {
+  firestoreRestGetCollection,
+  firestoreRestGetDocument,
+  firestoreRestQueryByField,
+} from '../utils/firestoreRest.js';
+import {
+  getFreshCachedResponse,
+  getFallbackCachedResponse,
+  setCachedResponse,
+} from '../utils/firestoreCache.js';
 
 const router = Router();
 
@@ -69,6 +79,80 @@ const logEntityError = (requestId: string | undefined, message: string, error: a
     errorMessage: error?.message,
     errorStack: error?.stack,
   });
+};
+
+const PUBLIC_FIRESTORE_CACHE_TTL_MS = Number(process.env.FIRESTORE_CACHE_TTL_MS || '300000');
+const getPublicCacheKey = (entity: string, id?: string) => `public-firestore:${entity}:${id ?? 'list'}`;
+
+const setPublicCache = async (entity: string, id: string | undefined, value: unknown) => {
+  const key = getPublicCacheKey(entity, id);
+  await setCachedResponse(key, value);
+};
+
+const getPublicFreshCache = async (entity: string, id: string | undefined) => {
+  const key = getPublicCacheKey(entity, id);
+  return getFreshCachedResponse(key, PUBLIC_FIRESTORE_CACHE_TTL_MS);
+};
+
+const getPublicFallbackCache = async (entity: string, id: string | undefined) => {
+  const key = getPublicCacheKey(entity, id);
+  return getFallbackCachedResponse(key);
+};
+
+const sendPublicReadResponse = (res: Response, data: unknown) => {
+  res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
+  return res.json(data);
+};
+
+const readPublicEntity = async (req: AuthenticatedRequest, res: Response, entity: string, id?: string) => {
+  const staleCache = await getPublicFallbackCache(entity, id);
+
+  try {
+    const result = id
+      ? await firestoreRestGetDocument(entity, id)
+      : await firestoreRestGetCollection(entity);
+
+    await setPublicCache(entity, id, result);
+    logEntity(req.requestId, 'public:read:rest', { entity, id, source: 'rest' });
+    return sendPublicReadResponse(res, result);
+  } catch (restError: any) {
+    logEntityError(req.requestId, 'public:read:rest-failed', restError, { entity, id });
+
+    if (staleCache !== null) {
+      logEntity(req.requestId, 'public:read:cache-fallback', {
+        entity,
+        id,
+      });
+      return sendPublicReadResponse(res, staleCache);
+    }
+
+    if (db) {
+      try {
+        const fallbackResult = id
+          ? await retryFirestoreOperation<any>(() => (db as any).collection(entity).doc(id).get())
+          : await retryFirestoreOperation<any>(() => (db as any).collection(entity).get());
+
+        const response = id
+          ? fallbackResult.exists
+            ? { id: fallbackResult.id, ...fallbackResult.data() }
+            : null
+          : fallbackResult.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+
+        await setPublicCache(entity, id, response);
+        logEntity(req.requestId, 'public:read:admin-fallback', { entity, id });
+        return sendPublicReadResponse(res, response);
+      } catch (adminError: any) {
+        logEntityError(req.requestId, 'public:read:admin-fallback-failed', adminError, {
+          entity,
+          id,
+        });
+      }
+    }
+
+    const defaultResult = id ? null : [];
+    logEntity(req.requestId, 'public:read:empty-fallback', { entity, id, defaultResultType: id ? 'null' : 'array' });
+    return sendPublicReadResponse(res, defaultResult);
+  }
 };
 
 router.use((req: AuthenticatedRequest, res, next) => {
@@ -720,14 +804,30 @@ const optionalAuth = async (
 };
 
 const readEntity = async (req: any, res: any) => {
-  if (!(await ensureFirebaseReady(req, res))) {
-    return;
-  }
-
   const entity = normalizeEntityName(req.params?.entity as string | undefined, req.path);
   const id = req.params?.id as string | undefined;
   const role = req.user?.role || null;
   const uid = req.user?.uid || null;
+
+  if (!entity) {
+    return rejectInvalidEntity(res, req.params?.entity as string | undefined);
+  }
+
+  if (PUBLIC_READ_COLLECTIONS.has(entity)) {
+    return readPublicEntity(req, res, entity, id);
+  }
+
+  if (!(await ensureFirebaseReady(req, res))) {
+    return;
+  }
+
+  logEntity(req.requestId, 'entity:resolve', {
+    entity,
+    id,
+    uid: shortUid(uid),
+    role,
+    path: req.originalUrl,
+  });
 
   if (!entity) {
     return rejectInvalidEntity(res, req.params?.entity as string | undefined);
