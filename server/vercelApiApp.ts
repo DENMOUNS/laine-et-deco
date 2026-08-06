@@ -5,6 +5,7 @@ import entityRoutes from './routes/entityRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import storageRoutes from './routes/storageRoutes.js';
 import { logWriteRequests } from './utils/requestLogger.js';
+import { ensureFirestoreConnection, initializationError, db, auth } from './firebaseAdmin.js';
 
 const app = express();
 
@@ -109,6 +110,34 @@ app.get('/api/debug/routes', (_req, res) => {
       'POST /api/dashboard/invoice/generate',
     ],
   });
+});
+
+// Endpoint to check Firebase status without guessing
+app.get('/api/debug/firebase-status', async (_req, res) => {
+  const ok = await ensureFirestoreConnection(1, 200).catch(() => false);
+  res.json({
+    ok,
+    env: process.env.VERCEL_ENV || process.env.NODE_ENV || 'unknown',
+    projectId: process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || null,
+    dbReady: Boolean(db),
+    authReady: Boolean(auth),
+    initError: initializationError ? initializationError.message : null,
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// Log unhandled rejections and uncaught exceptions for improved observability
+process.on('unhandledRejection', (reason) => {
+  try {
+    process.stderr.write(JSON.stringify({ tag: '[unhandledRejection]', reason: String(reason) }) + '\n');
+  } catch (e) {}
+});
+
+process.on('uncaughtException', (err) => {
+  try {
+    process.stderr.write(JSON.stringify({ tag: '[uncaughtException]', message: err?.message, stack: err?.stack }) + '\n');
+    // In serverless env, best effort logging; do not exit
+  } catch (e) {}
 });
 
 const serializeError = (error: any) => {

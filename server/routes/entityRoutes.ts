@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { db, auth } from '../firebaseAdmin';
+import { db, auth, ensureFirestoreConnection } from '../firebaseAdmin';
+import retryFirestoreOperation from '../utils/firestoreRetry';
 
 const router = Router();
 
@@ -34,8 +35,16 @@ const rejectInvalidEntity = (res: Response, entity?: string) => {
   return res.status(400).json({ error: `Invalid entity name${entity ? `: ${entity}` : ''}` });
 };
 
-const ensureFirebaseReady = (req: AuthenticatedRequest, res: Response) => {
-  if (!db || !auth) {
+const ensureFirebaseReady = async (req: AuthenticatedRequest, res: Response) => {
+  if (db && auth) return true;
+
+  logEntity(req.requestId, 'firebase:attempt-reconnect', {
+    path: req.originalUrl,
+    method: req.method,
+  });
+
+  const ok = await ensureFirestoreConnection(3, 500).catch((e) => false);
+  if (!ok) {
     logEntity(req.requestId, 'firebase:unavailable', {
       path: req.originalUrl,
       method: req.method,
@@ -210,7 +219,7 @@ const verifyToken = async (
   res: Response,
   next: NextFunction
 ) => {
-  if (!ensureFirebaseReady(req, res)) {
+  if (!(await ensureFirebaseReady(req, res))) {
     return;
   }
 
@@ -282,7 +291,7 @@ const resolveRole = async (
 // ==========================
 
 router.post('/:entity', verifyToken, resolveRole, async (req: any, res) => {
-  if (!ensureFirebaseReady(req, res)) {
+  if (!(await ensureFirebaseReady(req, res))) {
     return;
   }
 
@@ -442,7 +451,7 @@ router.post('/:entity', verifyToken, resolveRole, async (req: any, res) => {
 // ==========================
 
 const updateEntityHandler = async (req: any, res: Response) => {
-  if (!ensureFirebaseReady(req, res)) {
+  if (!(await ensureFirebaseReady(req, res))) {
     return;
   }
 
@@ -621,7 +630,7 @@ router.patch('/:entity/:id', verifyToken, resolveRole, updateEntityHandler);
 // ==========================
 
 router.delete('/:entity/:id', verifyToken, resolveRole, async (req: any, res) => {
-  if (!ensureFirebaseReady(req, res)) {
+  if (!(await ensureFirebaseReady(req, res))) {
     return;
   }
 
@@ -703,14 +712,14 @@ const readEntity = async (req: any, res: any) => {
     if (PUBLIC_READ_COLLECTIONS.has(entity)) {
       res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
       if (id) {
-        const snap = await db.collection(entity).doc(id).get();
+        const snap = await retryFirestoreOperation(() => (db as any).collection(entity).doc(id).get());
         if (!snap.exists) return res.json(null);
         return res.json({ id: snap.id, ...snap.data() });
       }
 
-      const snap = await db.collection(entity).get();
+      const snap = await retryFirestoreOperation(() => (db as any).collection(entity).get());
       return res.json(
-        snap.docs.map((d) => ({
+        snap.docs.map((d: any) => ({
           id: d.id,
           ...d.data(),
         }))
@@ -725,12 +734,12 @@ const readEntity = async (req: any, res: any) => {
     // 3. Admin Level
     if (isAdminLevel(role)) {
       if (id) {
-        const snap = await db.collection(entity).doc(id).get();
+        const snap = await retryFirestoreOperation(() => (db as any).collection(entity).doc(id).get());
         return res.json(snap.exists ? { id: snap.id, ...snap.data() } : null);
       }
 
-      const snap = await db.collection(entity).get();
-      return res.json(snap.docs.map((d) => ({
+      const snap = await retryFirestoreOperation(() => (db as any).collection(entity).get());
+      return res.json(snap.docs.map((d: any) => ({
         id: d.id,
         ...d.data(),
       })));
@@ -739,12 +748,12 @@ const readEntity = async (req: any, res: any) => {
     // 4. Stock Manager
     if (isStockManager(role) && STAFF_READ_COLLECTIONS.has(entity)) {
       if (id) {
-        const snap = await db.collection(entity).doc(id).get();
+        const snap = await retryFirestoreOperation(() => (db as any).collection(entity).doc(id).get());
         return res.json(snap.exists ? { id: snap.id, ...snap.data() } : null);
       }
 
-      const snap = await db.collection(entity).get();
-      return res.json(snap.docs.map((d) => ({
+      const snap = await retryFirestoreOperation(() => (db as any).collection(entity).get());
+      return res.json(snap.docs.map((d: any) => ({
         id: d.id,
         ...d.data(),
       })));
@@ -752,12 +761,10 @@ const readEntity = async (req: any, res: any) => {
 
     // 5. Propriétaire de la ressource (Commande, avis, etc.)
     if (OWNER_COLLECTIONS.has(entity)) {
-      const snap = await db.collection(entity)
-        .where('userId', '==', uid)
-        .get();
+      const snap = await retryFirestoreOperation(() => (db as any).collection(entity).where('userId', '==', uid).get());
 
       return res.json(
-        snap.docs.map((d) => ({
+        snap.docs.map((d: any) => ({
           id: d.id,
           ...d.data(),
         }))
