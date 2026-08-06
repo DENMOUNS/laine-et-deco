@@ -972,6 +972,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
       </section>
 
       {/* Laines Section */}
+      {PRODUCTS.filter(p => p.category === 'Laine').length > 0 && (
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex justify-between items-end mb-12">
           <div>
@@ -997,8 +998,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
           ))}
         </div>
       </section>
+      )}
 
       {/* Artisanat & Décoration (Gypsum / Moules) */}
+      {PRODUCTS.filter(p => p.category === 'Artisanat').length > 0 && (
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex justify-between items-end mb-12">
           <div>
@@ -1024,8 +1027,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
           ))}
         </div>
       </section>
+      )}
 
       {/* High-Tech Section */}
+      {PRODUCTS.filter(p => p.category === 'Électronique' || p.isElectronic).length > 0 && (
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex justify-between items-end mb-12">
           <div>
@@ -1051,6 +1056,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
           ))}
         </div>
       </section>
+      )}
 
       {/* Featured Products */}
       <section className="bg-primary/5 py-24">

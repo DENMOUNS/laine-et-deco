@@ -175,6 +175,10 @@ export interface Product {
   image: string;
   /** Galerie de sous-images optionnelles (vues supplémentaires du produit) */
   images?: string[];
+  /** Mapping des images par couleur: clé = couleur (hex ou nom), valeur = liste d'urls */
+  imagesByColor?: Record<string, string[]>;
+  /** Quantités par couleur (variant stock) */
+  stockByColor?: Record<string, number>;
   description: string;
   stock: number;
   /** Alias of stock — kept for backward-compat with legacy data */

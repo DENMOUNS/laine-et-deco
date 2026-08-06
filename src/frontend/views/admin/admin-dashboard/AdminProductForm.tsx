@@ -101,6 +101,10 @@ export function AdminProductForm({ ctx }: { ctx: any }) {
                   image: editingItem?.image || 'https://picsum.photos/seed/wool/300/300',
                   // Sous-images optionnelles (galerie)
                   images: editingItem?.images || [],
+                  // Images associées aux couleurs (variant images)
+                  imagesByColor: editingItem?.imagesByColor || {},
+                  // Quantités par couleur
+                  stockByColor: editingItem?.stockByColor || {},
                   description: formData.get('description') as string,
                   colors: editingItem?.colors || ['#FFFFFF'],
                   seo: {

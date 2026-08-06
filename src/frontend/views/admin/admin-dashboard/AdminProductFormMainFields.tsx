@@ -109,6 +109,28 @@ export function AdminProductFormMainFields({ ctx }: { ctx: any }) {
                       </div>
                     </div>
                     <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Stock total</label>
+                      <input
+                        name="stock"
+                        type="number"
+                        min={0}
+                        className="w-full px-6 py-4 bg-secondary/50 border border-primary/10 rounded-2xl focus:outline-none focus:border-primary focus:bg-card transition-all font-bold text-primary"
+                        defaultValue={editingItem?.stock ?? 0}
+                        onChange={(e) => {
+                          const val = Math.max(0, Number(e.target.value) || 0);
+                          setEditingItem((prev: any) => {
+                            const next = { ...(prev || {}), stock: val };
+                            const colorMap = next.stockByColor || {};
+                            const totalColors = Object.values(colorMap).reduce((a: number, b: any) => a + Number(b || 0), 0);
+                            if (totalColors > val) {
+                              toast.error('Le total des quantités par couleur dépasse le stock total. Ajustez les quantités par couleur.');
+                            }
+                            return next;
+                          });
+                        }}
+                      />
+                    </div>
+                    <div className="space-y-2">
                       <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Prix Promotionnel (FCFA)</label>
                       <div className="relative">
                         <input 

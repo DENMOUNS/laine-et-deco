@@ -81,18 +81,43 @@ export function AdminProductFormSidebarFields({ ctx }: { ctx: any }) {
                     <input 
                       type="file" 
                       accept="image/*"
+                      multiple
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            const dataUrl = reader.result as string;
-                            setCurrentImage(dataUrl);
-                            setEditingItem((prev: any) => ({ ...(prev || {}), image: dataUrl }));
-                          };
-                          reader.readAsDataURL(file);
+                      onChange={async (e) => {
+                        const files = Array.from(e.target.files || []);
+                        if (!files.length) return;
+                        toast.loading(`Compression de ${files.length} image(s)…`, { id: 'main-image-upload' });
+                        try {
+                          const dataUrls = await Promise.all(
+                            files.map((file) =>
+                              new Promise<string>((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onloadend = async () => {
+                                  try {
+                                    const compressed = await compressImageDataUrl(reader.result as string);
+                                    resolve(compressed);
+                                  } catch {
+                                    resolve(reader.result as string);
+                                  }
+                                };
+                                reader.onerror = reject;
+                                reader.readAsDataURL(file);
+                              })
+                            )
+                          );
+
+                          const [first, ...rest] = dataUrls;
+                          setCurrentImage(first);
+                          setEditingItem((prev: any) => ({
+                            ...(prev || {}),
+                            image: first,
+                            images: [...(prev?.images || []), ...rest],
+                          }));
+                          toast.success(`${dataUrls.length} image(s) traitée(s)`, { id: 'main-image-upload' });
+                        } catch {
+                          toast.error('Erreur lors de l\'upload', { id: 'main-image-upload' });
                         }
+                        e.target.value = '';
                       }}
                     />
                   </div>
@@ -170,6 +195,40 @@ export function AdminProductFormSidebarFields({ ctx }: { ctx: any }) {
                         <div className="absolute bottom-1 left-1 bg-black/50 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
                           #{idx + 1}
                         </div>
+                        {/* Color assignment selector */}
+                        <div className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <select
+                            value={(() => {
+                              const map = editingItem?.imagesByColor || {};
+                              for (const c of Object.keys(map)) {
+                                if (map[c]?.includes(imgUrl)) return c;
+                              }
+                              return '';
+                            })()}
+                            onChange={(e) => {
+                              const newColor = e.target.value;
+                              setEditingItem((prev: any) => {
+                                const next = { ...(prev || {}) };
+                                next.imagesByColor = { ...(next.imagesByColor || {}) };
+                                // remove from previous
+                                for (const c of Object.keys(next.imagesByColor)) {
+                                  next.imagesByColor[c] = (next.imagesByColor[c] || []).filter((u: string) => u !== imgUrl);
+                                  if (next.imagesByColor[c].length === 0) delete next.imagesByColor[c];
+                                }
+                                if (newColor) {
+                                  next.imagesByColor[newColor] = Array.from(new Set([...(next.imagesByColor[newColor] || []), imgUrl]));
+                                }
+                                return next;
+                              });
+                            }}
+                            className="bg-white text-xs rounded-md px-2 py-1"
+                          >
+                            <option value="">Aucune</option>
+                            {(editingItem?.colors || []).map((c: string) => (
+                              <option key={c} value={c}>{c}</option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
                     ))}
                     {(editingItem?.images?.length || 0) === 0 && (
@@ -195,16 +254,52 @@ export function AdminProductFormSidebarFields({ ctx }: { ctx: any }) {
                         <button 
                           type="button" 
                           onClick={() => {
-                            setEditingItem((prev: any) => ({ 
-                              ...prev, 
-                              colors: (prev?.colors || []).filter((c: string) => c !== color) 
-                            }));
+                            setEditingItem((prev: any) => {
+                              const next = { ...(prev || {}) };
+                              next.colors = (next.colors || []).filter((c: string) => c !== color);
+                              if (next.imagesByColor && next.imagesByColor[color]) {
+                                delete next.imagesByColor[color];
+                              }
+                              if (next.stockByColor && next.stockByColor[color]) {
+                                delete next.stockByColor[color];
+                              }
+                              return next;
+                            });
                           }}
                           className="absolute -top-2 -right-2 bg-rose-500 text-white rounded-full p-1 shadow-lg flex items-center justify-center transform hover:scale-110 active:scale-95 transition-all z-10"
                           title="Supprimer cette couleur"
                         >
                           <X size={14} strokeWidth={3} />
                         </button>
+                        <div className="absolute -bottom-9 left-0 w-full flex items-center justify-center gap-2">
+                          <input
+                            type="number"
+                            min={0}
+                            value={editingItem?.stockByColor?.[color] ?? 1}
+                            onChange={(e) => {
+                              const newVal = Math.max(0, Number(e.target.value) || 0);
+                              setEditingItem((prev: any) => {
+                                const next = { ...(prev || {}) };
+                                next.stockByColor = { ...(next.stockByColor || {}) };
+                                // sum of other colors
+                                const otherSum = Object.entries(next.stockByColor).reduce((acc: number, [k, v]: any) => {
+                                  if (k === color) return acc;
+                                  return acc + Number(v || 0);
+                                }, 0);
+                                const totalStock = Number(next.stock || 0);
+                                const allowed = Math.max(0, totalStock - otherSum);
+                                const finalVal = Math.min(newVal || 0, allowed);
+                                next.stockByColor[color] = finalVal || 0;
+                                if (newVal > allowed) {
+                                  toast.error('Le total des quantités par couleur ne peut pas dépasser le stock total.');
+                                }
+                                return next;
+                              });
+                            }}
+                            className="w-14 text-xs px-2 py-1 rounded-md border border-primary/10 bg-secondary/20"
+                            title="Quantité pour cette couleur"
+                          />
+                        </div>
                       </div>
                     ))}
                     <div className="flex flex-col items-center gap-2">
@@ -217,7 +312,13 @@ export function AdminProductFormSidebarFields({ ctx }: { ctx: any }) {
                             const newColor = e.target.value;
                             const currentColors = editingItem?.colors || [];
                             if (!currentColors.includes(newColor)) {
-                              setEditingItem((prev: any) => ({ ...(prev || {}), colors: [...currentColors, newColor] }));
+                              setEditingItem((prev: any) => {
+                                const next = { ...(prev || {}) };
+                                next.colors = [...(next.colors || []), newColor];
+                                next.stockByColor = { ...(next.stockByColor || {}) };
+                                if (!next.stockByColor[newColor]) next.stockByColor[newColor] = 1;
+                                return next;
+                              });
                             }
                           }}
                         />
