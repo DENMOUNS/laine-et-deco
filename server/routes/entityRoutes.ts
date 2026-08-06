@@ -69,6 +69,34 @@ router.use((req: AuthenticatedRequest, res, next) => {
   next();
 });
 
+const PUBLIC_READ_COLLECTIONS = [
+  'hero_banner',
+  'site_logo',
+  'nav_item',
+  'marquee_item',
+  'product',
+  'category',
+  'pack',
+  'blog_post',
+  'promo_event',
+  'lookbook',
+  'lookbook_post',
+  'flash_sale',
+  'review',
+  'site_config',
+  'site_color',
+  'currency',
+  'badge',
+  'city',
+  'faq',
+  'announcement_banner',
+  'scrolling_banner',
+  'seo_page',
+  'custom_section_config',
+  'shipping_rule',
+  'tax_rule',
+];
+
 const STAFF_READ_COLLECTIONS = [
   'product',
   'category',
@@ -552,17 +580,64 @@ router.delete('/:entity/:id', verifyToken, resolveRole, async (req: any, res) =>
 // READ
 // ==========================
 
+const optionalAuth = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const bearer = req.headers.authorization;
+    if (bearer && bearer.startsWith('Bearer ')) {
+      const token = bearer.replace('Bearer ', '');
+      try {
+        const decoded = await auth.verifyIdToken(token);
+        req.user = decoded as any;
+        if (req.user?.uid) {
+          req.user.role = await getUserRole(req.user.uid, req.user.email, req.user.role as string);
+        }
+      } catch (err) {
+        // Mode public anonyme si le token expire ou est invalide
+      }
+    }
+    next();
+  } catch (error) {
+    next();
+  }
+};
+
 const readEntity = async (req: any, res: any) => {
   const { entity, id } = req.params;
-  const role = req.user.role;
-  const uid = req.user.uid;
+  const role = req.user?.role || null;
+  const uid = req.user?.uid || null;
 
   try {
-    // admin
+    // 1. Accès public universel pour les collections publiques (Bannières, Logos, Nav, Produits, etc.)
+    if (PUBLIC_READ_COLLECTIONS.includes(entity)) {
+      if (id) {
+        const snap = await db.collection(entity).doc(id).get();
+        if (!snap.exists) return res.json(null);
+        return res.json({ id: snap.id, ...snap.data() });
+      }
+
+      const snap = await db.collection(entity).get();
+      return res.json(
+        snap.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        }))
+      );
+    }
+
+    // 2. Si non connecté pour une ressource privée
+    if (!uid) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // 3. Admin Level
     if (isAdminLevel(role)) {
       if (id) {
         const snap = await db.collection(entity).doc(id).get();
-        return res.json(snap.data());
+        return res.json(snap.exists ? { id: snap.id, ...snap.data() } : null);
       }
 
       const snap = await db.collection(entity).get();
@@ -572,11 +647,11 @@ const readEntity = async (req: any, res: any) => {
       })));
     }
 
-    // stock manager
+    // 4. Stock Manager
     if (isStockManager(role) && STAFF_READ_COLLECTIONS.includes(entity)) {
       if (id) {
         const snap = await db.collection(entity).doc(id).get();
-        return res.json(snap.data());
+        return res.json(snap.exists ? { id: snap.id, ...snap.data() } : null);
       }
 
       const snap = await db.collection(entity).get();
@@ -586,7 +661,7 @@ const readEntity = async (req: any, res: any) => {
       })));
     }
 
-    // owner
+    // 5. Propriétaire de la ressource (Commande, avis, etc.)
     if (OWNER_COLLECTIONS.includes(entity)) {
       const snap = await db.collection(entity)
         .where('userId', '==', uid)
@@ -606,7 +681,7 @@ const readEntity = async (req: any, res: any) => {
   }
 };
 
-router.get('/:entity', verifyToken, resolveRole, readEntity);
-router.get('/:entity/:id', verifyToken, resolveRole, readEntity);
+router.get('/:entity', optionalAuth, readEntity);
+router.get('/:entity/:id', optionalAuth, readEntity);
 
 export default router;

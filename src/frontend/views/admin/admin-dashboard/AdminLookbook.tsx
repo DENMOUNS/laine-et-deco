@@ -19,6 +19,7 @@ import { PromoEventEditor } from '../../../components/dashboard/PromoEventEditor
 import { CatalogPriceRuleEditor } from '../../../components/dashboard/CatalogPriceRuleEditor';
 import { cn } from '../../../utils/utils';
 
+import { ImageWithFallback } from '../../../components/ui/ImageWithFallback';
 import { AdminFlashSales } from '../AdminFlashSales';
 import { AdminLookbooks } from '../AdminLookbooks';
 import { AdminPortfolios } from '../AdminPortfolios';
@@ -44,7 +45,7 @@ export function AdminLookbook({ ctx }: { ctx: any }) {
               onRowClick={(l) => { setEditingItem(l); setModalType('lookbook'); }}
               title="Lookbook"
               columns={[
-                { header: 'Image', accessor: (l) => <img src={l.image} alt="Lookbook" className="w-12 h-12 rounded-lg object-cover" referrerPolicy="no-referrer" /> },
+                { header: 'Image', accessor: (l) => <ImageWithFallback src={l.image} alt="Lookbook" className="w-12 h-12 rounded-lg object-cover" /> },
                 { header: 'Légende', accessor: 'caption', className: 'line-clamp-1 max-w-[200px]' },
                 { header: 'Tags', accessor: (l) => l.tags.length, className: 'text-center font-bold' },
                 { header: 'J\'aime', accessor: 'initialLikes', className: 'text-right' },

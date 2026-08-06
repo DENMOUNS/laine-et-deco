@@ -13,7 +13,7 @@ app.use(logWriteRequests);
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 500,
   message: { error: 'Trop de requetes, veuillez reessayer plus tard.' },
   standardHeaders: true,
   legacyHeaders: false,

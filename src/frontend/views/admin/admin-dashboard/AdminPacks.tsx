@@ -2,6 +2,7 @@ import React from 'react';
 import { useAdminPacks } from './hooks/useAdminPacks';
 import { useAdminStore } from '../../../../stores/adminStore';
 import { DataTable } from '../../../components/DataTable';
+import { ImageWithFallback } from '../../../components/ui/ImageWithFallback';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
 import type { Pack } from '../../../../types';
 
@@ -36,6 +37,16 @@ export function AdminPacks({ ctx }: { ctx: any }) {
         onDelete={(item) => deletePack(item.id!, item.name)}
         title="Packs"
         columns={[
+          { 
+            header: 'Image', 
+            accessor: (p: Pack) => (
+              <ImageWithFallback 
+                src={p.coverImage || (p.products?.[0] as any)?.image} 
+                alt={p.name} 
+                className="w-12 h-12 rounded-xl object-cover shadow-sm border border-primary/10"
+              />
+            )
+          },
           { header: 'Nom', accessor: 'name', className: 'font-bold', sortable: true },
           { 
             header: 'Produits', 

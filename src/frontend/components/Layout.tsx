@@ -6,6 +6,7 @@ import { where } from 'firebase/firestore';
 import { initialsAvatarDataUri } from '../utils/avatarFallback';
 import { useStaticEntity } from '../hooks/useStaticEntity';
 import { Product, NavItem } from '../../types';
+import { DEFAULT_NAV_ITEMS } from '../../siteDefaults';
 import type { User as FirebaseUser } from 'firebase/auth';
 
 const LogoDisplay = () => {
@@ -20,44 +21,14 @@ const LogoDisplay = () => {
     setImgError(false);
   }, [logoSrc]);
 
-  useEffect(() => {
-    console.info('[nav-logo]', {
-      message: 'state',
-      host: window.location.host,
-      logoCount: logos?.length || 0,
-      activeLogoId: activeLogo?.id || null,
-      activeLogoStatus: activeLogo?.status || null,
-      hasImage: Boolean(activeLogo?.image),
-      hasLien: Boolean(activeLogo?.lien),
-      logoSrc: logoSrc || null,
-      imgError,
-    });
-  }, [logos, activeLogo?.id, activeLogo?.status, activeLogo?.image, activeLogo?.lien, logoSrc, imgError]);
+
   
   if (logoSrc && !imgError && logoSrc !== '/logo.png') {
     return (
       <img 
         src={logoSrc} 
         alt="Laine & Déco" 
-        onLoad={() => {
-          console.info('[nav-logo]', {
-            message: 'image:loaded',
-            host: window.location.host,
-            logoSrc,
-            activeLogoId: activeLogo?.id || null,
-          });
-        }}
-        onError={(event) => {
-          console.error('[nav-logo]', {
-            message: 'image:failed',
-            host: window.location.host,
-            logoSrc,
-            activeLogoId: activeLogo?.id || null,
-            naturalWidth: event.currentTarget.naturalWidth,
-            naturalHeight: event.currentTarget.naturalHeight,
-          });
-          setImgError(true);
-        }}
+        onError={() => setImgError(true)}
         className="h-10 md:h-12 w-auto object-contain transition-transform group-hover:scale-105" 
       />
     );
@@ -83,7 +54,6 @@ interface NavbarProps {
   user: FirebaseUser | null;
   userRole: string;
   comparisonList?: Product[];
-  navItems?: NavItem[];
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ 
@@ -94,15 +64,28 @@ export const Navbar: React.FC<NavbarProps> = ({
   user,
   userRole,
   comparisonList = [],
-  navItems = []
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { data: CATEGORIES } = useStaticEntity<any>('category', [], { enabled: isMenuOpen });
 
+  // Lecture directe Firestore — plus fiable que le store configStore
+  const { data: firestoreNavItems, isLoading: navLoading } = useStaticEntity<NavItem>('nav_item');
 
-  const mainNavLinks = navItems.filter(item => item.status === 'active' && (!item.position || item.position === 'top')).sort((a, b) => a.order - b.order);
+  // Pendant le chargement ou si Firestore est vide → DEFAULT_NAV_ITEMS
+  const resolvedNavItems: NavItem[] = (!navLoading && firestoreNavItems && firestoreNavItems.length > 0)
+    ? firestoreNavItems
+    : DEFAULT_NAV_ITEMS;
 
-  const dynamicSidebarLinks = navItems.filter(item => item.status === 'active' && item.position === 'side' && item.view !== 'loyalty' && item.name !== 'Points VIP').sort((a, b) => a.order - b.order).map(item => ({ name: item.name, view: item.view, icon: <ChevronRight size={18} /> }));
+  // order === 1 → top navbar  |  order > 1 → sidebar
+  const mainNavLinks = resolvedNavItems
+    .filter(item => item.status === 'active' && item.order === 1)
+    .sort((a, b) => a.order - b.order);
+
+  const dynamicSidebarLinks = resolvedNavItems
+    .filter(item => item.status === 'active' && item.order > 1 && item.view !== 'loyalty' && item.name !== 'Points VIP')
+    .sort((a, b) => a.order - b.order)
+    .map(item => ({ name: item.name, view: item.view, icon: <ChevronRight size={18} /> }));
+
 
   const sidebarLinks = dynamicSidebarLinks.length > 0 ? dynamicSidebarLinks : [
     { name: 'Compagnon Tricot', view: 'knitting-companion', icon: <ChevronRight size={18} /> },
@@ -123,7 +106,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <>
-      <nav className="sticky top-0 z-50 glass border-b border-primary/10">
+      <nav className="sticky top-0 z-50 bg-white shadow-md border-b border-primary/10 transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20 relative">
           <div className="flex items-center gap-3 z-20 flex-shrink-0">

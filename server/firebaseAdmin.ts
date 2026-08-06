@@ -18,11 +18,6 @@ function getServiceAccount() {
     const privateKey = process.env.FIREBASE_PRIVATE_KEY;
 
     if (projectId && clientEmail && privateKey) {
-      console.info('[firebase-admin] using split env service account', {
-        projectId,
-        clientEmail: maskEmail(clientEmail),
-        hasPrivateKey: true,
-      });
       return {
         project_id: projectId,
         client_email: clientEmail,
@@ -43,24 +38,12 @@ function getServiceAccount() {
   try {
     serviceAccount = JSON.parse(normalizedRawKey);
   } catch (error: any) {
-    console.error('[firebase-admin] invalid FIREBASE_SERVICE_ACCOUNT_KEY JSON', {
-      rawLength: rawKey.length,
-      startsWithBrace: normalizedRawKey.startsWith('{'),
-      endsWithBrace: normalizedRawKey.endsWith('}'),
-      message: error?.message,
-    });
     throw error;
   }
 
   if (typeof serviceAccount.private_key === 'string') {
     serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
   }
-
-  console.info('[firebase-admin] using JSON service account', {
-    projectId: serviceAccount.project_id,
-    clientEmail: maskEmail(serviceAccount.client_email),
-    hasPrivateKey: Boolean(serviceAccount.private_key),
-  });
 
   return serviceAccount;
 }
@@ -70,11 +53,6 @@ const firebaseConfig = (config as any).default || config;
 const storageBucket = process.env.VITE_FIREBASE_STORAGE_BUCKET || process.env.FIREBASE_STORAGE_BUCKET || firebaseConfig.storageBucket;
 
 if (!firebaseAdmin.apps.length) {
-  console.info('[firebase-admin] initializing app', {
-    nodeEnv: process.env.NODE_ENV,
-    vercelEnv: process.env.VERCEL_ENV,
-    storageBucket: storageBucket || 'none',
-  });
   firebaseAdmin.initializeApp({
     credential: firebaseAdmin.credential.cert(getServiceAccount()),
     storageBucket: storageBucket || undefined,
@@ -88,10 +66,5 @@ const databaseId =
 
 const db = getFirestore(firebaseAdmin.app(), databaseId);
 const auth = firebaseAdmin.auth();
-
-console.info('[firebase-admin] firestore ready', {
-  projectId: firebaseAdmin.app().options.projectId,
-  databaseId,
-});
 
 export { firebaseAdmin, db, auth };

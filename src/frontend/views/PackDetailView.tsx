@@ -5,6 +5,7 @@ import { useStaticEntity } from '../hooks/useStaticEntity';
 import { useProducts } from '../hooks/useProducts';
 import { Button } from '../components/ui/Button';
 import { Pack, Product } from '../../types';
+import { ImageWithFallback } from '../components/ui/ImageWithFallback';
 
 interface PackDetailViewProps {
   packId: string;
@@ -58,11 +59,10 @@ export const PackDetailView: React.FC<PackDetailViewProps> = ({ packId, onNaviga
       <div className="bg-card rounded-[3rem] border border-primary/5 shadow-sm overflow-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-2">
           <div className="h-[400px] lg:h-auto relative">
-            <img 
+            <ImageWithFallback 
               src={packImage} 
               alt={pack.name} 
               className="w-full h-full object-cover"
-              referrerPolicy="no-referrer"
             />
             <div className="absolute top-8 left-8 bg-accent text-white px-6 py-2 rounded-full font-bold shadow-xl">
               -{pack.discountPercentage}% de réduction
@@ -88,7 +88,7 @@ export const PackDetailView: React.FC<PackDetailViewProps> = ({ packId, onNaviga
                     className="flex items-center gap-3 p-3 bg-secondary/30 rounded-2xl border border-primary/5 cursor-pointer hover:bg-secondary/50 transition-colors group"
                     onClick={() => onNavigate('product-detail', p.id)}
                   >
-                    <img src={p.image} alt={p.name} className="w-12 h-12 rounded-xl object-cover group-hover:scale-105 transition-transform" referrerPolicy="no-referrer" />
+                    <ImageWithFallback src={p.image} alt={p.name} className="w-12 h-12 rounded-xl object-cover group-hover:scale-105 transition-transform" />
                     <div className="flex flex-col">
                       <span className="text-sm font-medium text-primary group-hover:text-accent transition-colors">{p.name}</span>
                       <span className="text-[10px] text-primary/70 font-bold uppercase">Quantité: {p.quantity} par unité</span>
@@ -150,7 +150,7 @@ export const PackDetailView: React.FC<PackDetailViewProps> = ({ packId, onNaviga
               onClick={() => onNavigate('product-detail', p.id)}
             >
               <div className="overflow-hidden rounded-2xl mb-6">
-                <img src={p.image} alt={p.name} className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500" referrerPolicy="no-referrer" />
+                <ImageWithFallback src={p.image} alt={p.name} className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500" />
               </div>
               <h4 className="text-xl font-serif text-primary mb-2 group-hover:text-accent transition-colors">{p.name}</h4>
               <p className="text-primary/70 text-sm mb-6 line-clamp-3">{p.description}</p>

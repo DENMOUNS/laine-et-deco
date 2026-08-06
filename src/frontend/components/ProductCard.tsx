@@ -3,6 +3,7 @@ import { Star, Heart, ShoppingCart, Share2, ArrowRightLeft } from 'lucide-react'
 import { Product, PromoEvent } from '../../types';
 import { motion } from 'motion/react';
 import { getEffectivePrice } from '../utils/siteUtils';
+import { generateSvgPlaceholder } from './ui/ImageWithFallback';
 import { toast } from 'sonner';
 
 interface ProductCardProps {
@@ -61,13 +62,16 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, on
       {/* Image Container */}
       <div className="relative aspect-square sm:aspect-[3/4] overflow-hidden cursor-pointer group/img" onClick={() => onClick(product)}>
         <img
-          src={product.image}
+          src={product.image || generateSvgPlaceholder(product.name)}
           alt={product.name}
           className="w-full h-full object-cover transition-transform duration-1000 ease-out group-hover/img:scale-110"
           referrerPolicy="no-referrer"
           loading="lazy"
           width="400"
           height="400"
+          onError={(e) => {
+            e.currentTarget.src = generateSvgPlaceholder(product.name);
+          }}
         />
         {/* Gradient Overlay for better contrast */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover/img:opacity-100 transition-opacity duration-500" />

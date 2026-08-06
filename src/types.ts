@@ -783,6 +783,9 @@ export interface HeroBannerConfig extends BaseEntity {
   title: string;
   subtitle: string;
   ctaText: string;
+  /** Lien de destination du bouton CTA. Vide = boutique par défaut. */
+  link?: string;
+  order?: number;
   status: 'active' | 'inactive';
   createdAt?: string;
   updatedAt?: string;
@@ -800,6 +803,16 @@ export interface ScrollingBannerConfig extends BaseEntity {
   id?: string;
   text: string;
   iconName: string;
+  status: 'active' | 'inactive';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MarqueeItem extends BaseEntity {
+  id: string;
+  text: string;
+  iconName: string;
+  order?: number;
   status: 'active' | 'inactive';
   createdAt?: string;
   updatedAt?: string;

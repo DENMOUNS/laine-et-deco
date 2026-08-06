@@ -65,12 +65,12 @@ async function startServer() {
    // --- Security: Rate Limiting (DDoS & Brute Force protection) ---
   const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per window
+    max: 500, // Limit each IP to 3000 requests per window
     message: { error: "Trop de requêtes, veuillez réessayer plus tard." },
     standardHeaders: true,
     legacyHeaders: false,
     skip: (req) => {
-      return isAdminRole(req.authRole);
+      return req.method === 'GET' || isAdminRole((req as any).authRole);
     },
   });
 

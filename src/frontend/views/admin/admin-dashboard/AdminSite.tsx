@@ -41,7 +41,7 @@ export function AdminSite({ ctx }: { ctx: any }) {
       <AdminSiteHeroSection ctx={ctx} />
       <AdminSiteFeaturesSection ctx={ctx} />
       <AdminSiteAdBannerSection ctx={ctx} />
-      <AdminSiteMarqueeSection ctx={ctx} />
+      <AdminSiteMarqueeSection />
       <AdminSiteHomeSection ctx={ctx} />
       <AdminSiteCustomSectionsSection ctx={ctx} />
       <AdminSiteSeoSection ctx={ctx} />

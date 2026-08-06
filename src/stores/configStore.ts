@@ -69,15 +69,40 @@ export const useConfigStore = create<ConfigState>((set) => ({
   setEvents: (events) => set({ events }),
 
   resolveNavItems: (rawNavItems) => {
-    const items = [...rawNavItems];
+    const firestoreItems = rawNavItems || [];
+    const navMap = new Map<string, NavItem>();
 
-    // Fix legacy name for 'about'
+    // 1. Initialiser avec la liste par défaut complète
+    DEFAULT_NAV_ITEMS.forEach((defItem) => {
+      const key = defItem.view || defItem.id;
+      navMap.set(key, defItem);
+    });
+
+    // 2. Fusionner/Surcharger avec les éléments issus de Firestore
+    // On retire les champs undefined pour ne pas écraser les valeurs du default
+    // (ex: position, order, status non définis dans Firestore ne doivent pas effacer le default)
+    firestoreItems.forEach((item) => {
+      const key = item.view || item.id;
+      const existing = navMap.get(key);
+      const cleanItem = Object.fromEntries(
+        Object.entries(item).filter(([, v]) => v !== undefined && v !== null)
+      ) as NavItem;
+      if (existing) {
+        navMap.set(key, { ...existing, ...cleanItem });
+      } else {
+        navMap.set(key, cleanItem);
+      }
+    });
+
+    const items = Array.from(navMap.values());
+
+    // Correction du nom hérité pour 'about'
     const aboutItem = items.find((i) => i.view === 'about');
     if (aboutItem && aboutItem.name === 'Notre Équipe') {
       aboutItem.name = 'À propos';
     }
 
-    // Ensure 'team' exists in sidebar
+    // S'assurer que 'team' existe
     if (!items.find((i) => i.view === 'team')) {
       items.push({
         id: 'nav-11-5',
@@ -90,6 +115,6 @@ export const useConfigStore = create<ConfigState>((set) => ({
       });
     }
 
-    set({ navItems: items });
+    set({ navItems: items.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) });
   },
 }));

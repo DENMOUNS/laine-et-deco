@@ -7,6 +7,7 @@ import { useEntity } from '../../../hooks/useEntity';
 import { SiteLogo } from '../../../../types';
 import { toast } from 'sonner';
 import { ImageUpload } from '../../../components/ui/ImageUpload';
+import { ImageWithFallback } from '../../../components/ui/ImageWithFallback';
 
 export function AdminSiteLogos({ ctx }: { ctx: any }) {
   const { data: logos, createEntity, updateEntity, deleteEntity } = useEntity<SiteLogo>('site_logo');
@@ -91,7 +92,7 @@ export function AdminSiteLogos({ ctx }: { ctx: any }) {
 
       <div className="bg-card rounded-3xl border border-primary/10 shadow-sm overflow-hidden">
         <DataTable data={logos || []} columns={[
-          { header: 'Image', accessor: (logo: SiteLogo) => (<div className="w-16 h-16 bg-secondary/50 rounded-lg p-2 flex items-center justify-center">{(logo.image || logo.lien) ? <img src={logo.image || logo.lien} alt="Logo" className="max-w-full max-h-full object-contain" /> : <ImageIcon className="text-primary/20" />}</div>) },
+          { header: 'Image', accessor: (logo: SiteLogo) => (<div className="w-16 h-16 bg-secondary/50 rounded-lg p-2 flex items-center justify-center"><ImageWithFallback src={logo.image || logo.lien} alt="Logo" className="max-w-full max-h-full object-contain" /></div>) },
           { header: 'Lien', accessor: (logo: SiteLogo) => logo.lien ? <span className="text-xs text-primary/70 break-all">{logo.lien}</span> : 'N/A' },
           { header: 'Statut', accessor: (logo: SiteLogo) => <StatusBadge status={logo.status} /> },
           { header: "Date d'ajout", accessor: (logo: SiteLogo) => logo.createdAt ? new Date(logo.createdAt).toLocaleDateString() : 'N/A' },

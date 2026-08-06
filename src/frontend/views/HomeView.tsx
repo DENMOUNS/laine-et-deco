@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowRight, Package, Truck, ShieldCheck, Heart, Calendar, User, Search, Camera, Zap, Clock, Loader2, Mic, X as CloseIcon, HelpCircle, Star, Sparkles } from 'lucide-react';
+import { ArrowRight, Package, Truck, ShieldCheck, Heart, Calendar, User, Search, Camera, Zap, Clock, Loader2, Mic, X as CloseIcon, HelpCircle, Star, Sparkles, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 
 import { useStaticEntity } from '../hooks/useStaticEntity';
+import { where, orderBy, limit as fsLimit } from 'firebase/firestore';
 import { useProducts } from '../hooks/useProducts';
 import { ProductCard } from '../components/ProductCard';
 import { Button } from '../components/ui/Button';
@@ -11,6 +12,9 @@ import { AdBanner } from '../components/AdBanner';
 import { productSearch } from '../utils/searchUtils';
 import { useDeferUntilInteraction } from '../hooks/useAfterIdle';
 import { optimizeImageUrl } from '../utils/imageUtils';
+import { ImageWithFallback } from '../components/ui/ImageWithFallback';
+import { YarnLoadingBanner } from '../components/ui/YarnLoadingBanner';
+import { HeroTrustWidget } from '../components/ui/HeroTrustWidget';
 import { toast } from 'sonner';
 
 const CountdownTimer: React.FC<{ endDate: string }> = ({ endDate }) => {
@@ -89,9 +93,13 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
   const { data: PACKS } = useStaticEntity<any>('pack', [], secondaryOpts);
   const { data: RECENT_FLASH_SALES } = useStaticEntity<FlashSale>('flash_sale', [], secondaryOpts);
   const { data: LOOKBOOKS } = useStaticEntity<Lookbook>('lookbook', [], secondaryOpts);
-  // Les bannières Hero viennent uniquement de Firestore / cache, pas des constantes locales.
-  const { data: ALL_HERO_BANNERS } = useStaticEntity<HeroBannerConfig>('hero_banner', [], { enabled: true });
-  const HERO_BANNERS = ALL_HERO_BANNERS.filter((b) => b.status === 'active');
+  // Hero banners : chargé immédiatement, sans attendre dataReady
+  const { data: rawHeroBanners, isLoading: isHeroLoading } = useStaticEntity<HeroBannerConfig>('hero_banner', []);
+  const HERO_BANNERS = React.useMemo(() => {
+    return (rawHeroBanners || [])
+      .filter((b) => b.status === 'active')
+      .sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+  }, [rawHeroBanners]);
   const activeFlashSales = RECENT_FLASH_SALES.filter(fs => fs.status === 'active' && new Date(fs.endDate) > new Date());
   const activeLookbooks = LOOKBOOKS.filter(lb => lb.status === 'active');
 
@@ -110,13 +118,24 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
     image: optimizeImageUrl(item.image, 960),
     title: item.title,
     subtitle: item.subtitle,
-    ctaText: item.ctaText || 'Découvrir la collection',
-    link: 'shop',
+    ctaText: item.ctaText || 'Découvrir la boutique',
+    // Lien CTA configurable : si item.link est renseigné on l'utilise, sinon boutique par défaut
+    link: (item.link || 'shop') as string,
   }));
-  const currentHeroSlide = HERO_SLIDES[currentSlide] || HERO_SLIDES[0] || null;
+
+  const currentHeroSlide = HERO_SLIDES[currentSlide] ?? HERO_SLIDES[0] ?? null;
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  // Défilement automatique du carrousel Hero (toutes les 12 secondes)
+  React.useEffect(() => {
+    if (HERO_SLIDES.length <= 1) return;
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
+    }, 12_000);
+    return () => clearInterval(timer);
+  }, [HERO_SLIDES.length]);
+
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
@@ -144,13 +163,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
     }
   }, [searchQuery]);
 
-  useEffect(() => {
-    if (HERO_SLIDES.length <= 1) return;
-    const timer = setInterval(() => {
-      setCurrentSlide(prev => (prev + 1) % HERO_SLIDES.length);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, [HERO_SLIDES.length]);
+  // (timer unique géré ci-dessus, pas de doublon)
 
   const featuredProducts = PRODUCTS.filter(p => siteConfig.homeFeaturedProducts.includes(p.id));
   const featuredCategories = CATEGORIES.filter(c => siteConfig.homeFeaturedCategories.includes(c.id));
@@ -276,65 +289,79 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
       )}
       <AdBanner />
       
-      {/* Hero Section Slider */}
-      <section className="relative min-h-[90vh] flex items-center py-20 overflow-hidden">
+      {/* Hero Section Slider — Hauteur fixe responsive par breakpoint, images non zoomées */}
+      <section className="relative h-[420px] sm:h-[520px] md:h-[600px] lg:h-[680px] xl:h-[720px] flex items-center overflow-hidden">
         {/* Background */}
-        <div className="absolute inset-0 z-0">
-          <AnimatePresence mode="sync">
-            {HERO_SLIDES.map((slide, i) => {
-              if (i !== currentSlide) return null;
-              if (slide.image.endsWith('.mp4')) {
-                return (
-                  <motion.video
-                    key={`video-${i}`}
-                    src={slide.image}
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.75 }}
-                    className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-                  />
-                );
-              }
-              return (
-                <motion.img
-                  key={`img-${i}`}
-                  src={slide.image}
-                  alt={slide.title || 'Collection Laine et Déco'}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.75 }}
-                  className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-                  referrerPolicy="no-referrer"
-                  loading={i === 0 ? "eager" : "lazy"}
-                  decoding="async"
-                  width={960}
-                  height={540}
-                  sizes="100vw"
-                />
-              );
-            })}
-          </AnimatePresence>
-          <div className="absolute inset-0 bg-black/40 pointer-events-none z-[1]" aria-hidden />
+        <div className="absolute inset-0 z-0 bg-slate-950">
+          {isHeroLoading || HERO_SLIDES.length === 0 ? (
+            <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-primary/80" />
+          ) : (
+            <>
+              <AnimatePresence mode="sync">
+                {HERO_SLIDES.map((slide, i) => {
+                  if (i !== currentSlide) return null;
+                  if (slide.image.endsWith('.mp4')) {
+                    return (
+                      <motion.video
+                        key={`video-${i}`}
+                        src={slide.image}
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.75 }}
+                        className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+                      />
+                    );
+                  }
+                  return (
+                    <motion.img
+                      key={`img-${i}`}
+                      src={slide.image}
+                      alt={slide.title || 'Collection Laine et Déco'}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.75 }}
+                      className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+                      referrerPolicy="no-referrer"
+                      loading={i === 0 ? "eager" : "lazy"}
+                      decoding="async"
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 1280px"
+                    />
+                  );
+                })}
+              </AnimatePresence>
+              <div className="absolute inset-0 bg-black/40 pointer-events-none z-[1]" aria-hidden />
+            </>
+          )}
         </div>
         
-        {/* Content Overlay */}
+        {/* Content Overlay — Recherche et animation de chargement parfaitement ordonnées */}
         <div className={`relative ${isSearchFocused ? 'z-[50]' : 'z-10'} max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full`}>
-          <div className="max-w-3xl text-white">
-            {/* Animated Title/Subtitle */}
-            <motion.div key={currentSlide} className="mb-10 animate-hero-fade-in">
-              <span className="inline-block text-xs font-bold uppercase tracking-[0.3em] mb-6 text-accent">
-                {currentHeroSlide?.subtitle}
-              </span>
-              <h1 className="text-4xl sm:text-6xl md:text-8xl font-serif leading-[1.1]">
-                {currentHeroSlide?.title}
-              </h1>
-            </motion.div>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center w-full">
+            <div className="lg:col-span-7 text-white">
+            {/* Carte de chargement SVG (Pelote & message) — AU-DESSUS de la barre de recherche */}
+            {(isHeroLoading || HERO_SLIDES.length === 0) && (
+              <YarnLoadingBanner />
+            )}
+
+            {/* Animated Title/Subtitle — Quand les bannières sont chargées */}
+            {!isHeroLoading && HERO_SLIDES.length > 0 && currentHeroSlide?.title && (
+              <motion.div key={currentSlide} className="mb-8 animate-hero-fade-in">
+                {currentHeroSlide.subtitle && (
+                  <span className="inline-block text-xs font-bold uppercase tracking-[0.3em] mb-4 text-white/90">
+                    {currentHeroSlide.subtitle}
+                  </span>
+                )}
+                <h1 className="text-4xl sm:text-6xl md:text-8xl font-serif leading-[1.1] text-white">
+                  {currentHeroSlide.title}
+                </h1>
+              </motion.div>
+            )}
 
             {/* Static Controls */}
             <div className="max-w-3xl mb-12 relative z-50" ref={searchContainerRef}>
@@ -561,26 +588,60 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
               </AnimatePresence>
             </div>
 
-            <div className="flex flex-wrap gap-6">
-              <button 
-                onClick={() => onNavigate('shop')}
-                className="bg-white text-slate-900 px-12 py-5 rounded-full font-bold hover:bg-accent hover:text-white transition-all duration-300 flex items-center group shadow-xl animate-shine"
-              >
-                Voir plus
-                <ArrowRight className="ml-3 group-hover:translate-x-1 transition-transform" size={24} />
-              </button>
-              <div className="flex gap-2 items-center ml-auto">
-                {HERO_SLIDES.map((_, i) => (
-                  <button
-                    key={i}
-                    aria-label={`Aller à la diapositive ${i + 1}`}
-                    onClick={() => setCurrentSlide(i)}
-                    className={`w-3 h-3 rounded-full transition-all ${currentSlide === i ? 'bg-accent w-8' : 'bg-white/30 hover:bg-white/50'}`}
-                  />
-                ))}
+            {!isHeroLoading && currentHeroSlide && (
+              <div className="flex flex-wrap gap-6 pt-4">
+                <button 
+                  onClick={() => onNavigate(currentHeroSlide.link || 'shop')}
+                  className="bg-white text-slate-900 px-12 py-5 rounded-full font-bold hover:bg-accent hover:text-white transition-all duration-300 flex items-center group shadow-xl animate-shine"
+                >
+                  {currentHeroSlide.ctaText || 'Découvrir la boutique'}
+                  <ArrowRight className="ml-3 group-hover:translate-x-1 transition-transform" size={24} />
+                </button>
               </div>
+            )}
+            </div>
+
+            {/* Colonne de Droite (Desktop) — Widget de Réassurance & Avantages clés Artisanats */}
+            <div className="lg:col-span-5 hidden lg:block">
+              <HeroTrustWidget onNavigate={onNavigate} />
             </div>
           </div>
+
+          {/* Flèches gauche / droite */}
+          {HERO_SLIDES.length > 1 && (
+            <>
+              <button
+                type="button"
+                aria-label="Bannière précédente"
+                onClick={() => setCurrentSlide((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)}
+                className="absolute left-4 top-1/2 -translate-y-1/2 z-20 p-3 bg-black/30 hover:bg-black/60 text-white rounded-full backdrop-blur-sm border border-white/15 transition-all shadow-xl"
+              >
+                <ChevronLeft size={24} />
+              </button>
+              <button
+                type="button"
+                aria-label="Bannière suivante"
+                onClick={() => setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 z-20 p-3 bg-black/30 hover:bg-black/60 text-white rounded-full backdrop-blur-sm border border-white/15 transition-all shadow-xl"
+              >
+                <ChevronRight size={24} />
+              </button>
+            </>
+          )}
+
+
+
+          {/* Scroll Indicator — invite l'utilisateur à défiler vers les produits */}
+          <motion.div
+            animate={{ y: [0, 6, 0] }}
+            transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
+            className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1 text-white/70 hover:text-white cursor-pointer"
+            onClick={() => window.scrollTo({ top: window.innerHeight * 0.7, behavior: 'smooth' })}
+            title="Découvrir la suite de la boutique"
+          >
+            <span className="text-[10px] font-bold uppercase tracking-widest text-accent">Découvrir nos créations</span>
+            <ChevronDown size={18} className="text-accent" />
+          </motion.div>
         </div>
       </section>
 
@@ -626,13 +687,13 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                   className="absolute inset-0 border-2 border-dashed border-primary/30 rounded-full"
                 />
                 <img 
-                  src={flashSaleProduct?.image} 
-                  alt="Flash Sale" 
-                  className="w-full h-full object-cover rounded-full p-8 relative z-10"
+                  src={flashSaleProduct?.image || 'https://picsum.photos/seed/flash/600/600'} 
+                  alt={flashSaleProduct?.name || "Vente Flash"} 
+                  className="w-full h-full object-cover rounded-full relative z-10"
                   referrerPolicy="no-referrer"
                   loading="lazy"
-                  width="400"
-                  height="400"
+                  width={400}
+                  height={400}
                 />
                 <div className="absolute top-1/4 -right-4 bg-white p-4 rounded-2xl shadow-2xl z-20 rotate-12">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-primary/70">À partir de</p>
@@ -883,11 +944,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                 }`}
                 onClick={() => onNavigate('shop', undefined, cat.name)}
               >
-                <img
+                <ImageWithFallback
                   src={cat.image}
                   alt={cat.name}
                   className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
-                  referrerPolicy="no-referrer"
                   loading="lazy"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
@@ -1099,11 +1159,11 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                 <div key={pack.id} className="bg-white rounded-[2rem] p-8 shadow-sm border border-primary/5 flex flex-col gap-6 group cursor-pointer hover:shadow-md transition-shadow" onClick={() => onNavigate('pack-detail', pack.id)}>
                   <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-100">
                      {pack.coverImage ? (
-                        <img src={pack.coverImage} alt={pack.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" loading="lazy" />
+                        <ImageWithFallback src={pack.coverImage} alt={pack.name} className="w-full h-full object-cover" loading="lazy" />
                      ) : (
                         <div className="grid grid-cols-2 gap-1 h-full">
                            {packProducts.slice(0, 4).map((p, i) => (
-                               <img key={i} src={p?.image} alt={p?.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" loading="lazy" width="200" height="200" />
+                               <ImageWithFallback key={i} src={p?.image} alt={p?.name} className="w-full h-full object-cover" loading="lazy" width={200} height={200} />
                            ))}
                         </div>
                      )}

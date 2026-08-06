@@ -5,6 +5,7 @@ import { useStaticEntity } from '../hooks/useStaticEntity';
 import { useProducts } from '../hooks/useProducts';
 import { Button } from '../components/ui/Button';
 import { Pack, Product } from '../../types';
+import { ImageWithFallback } from '../components/ui/ImageWithFallback';
 
 interface PacksViewProps {
   onNavigate: (view: string, id?: string) => void;
@@ -61,11 +62,10 @@ export const PacksView: React.FC<PacksViewProps> = ({ onNavigate, onAddToCart, o
               className="group bg-card rounded-[3rem] border border-primary/5 shadow-sm hover:shadow-xl transition-all overflow-hidden flex flex-col"
             >
               <div className="relative h-64 overflow-hidden">
-                <img 
+                <ImageWithFallback 
                   src={packImage} 
                   alt={pack.name} 
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                  referrerPolicy="no-referrer"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-primary/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl text-accent font-bold shadow-lg">

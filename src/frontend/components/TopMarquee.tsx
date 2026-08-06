@@ -1,42 +1,49 @@
 import React from 'react';
-import { Package, Sparkles, Heart, Star } from 'lucide-react';
-import { SiteConfig } from '../../types';
+import { Package, Sparkles, Heart, Star, Truck, ShieldCheck, Tag, Gift, Award } from 'lucide-react';
+import { useStaticEntity } from '../hooks/useStaticEntity';
+import { MarqueeItem, SiteConfig } from '../../types';
 
 interface TopMarqueeProps {
   siteConfig?: SiteConfig;
 }
 
-export const TopMarquee: React.FC<TopMarqueeProps> = ({ siteConfig }) => {
-  const fallbackItems = [
-    { id: '1', text: 'LIVRAISON OFFERTE DÈS 200 000 FCFA', Icon: Package },
-    { id: '2', text: 'NOUVELLE COLLECTION DISPONIBLE', Icon: Sparkles },
-    { id: '3', text: 'TRICOTÉ AVEC AMOUR', Icon: Heart },
-  ];
+const iconMap: Record<string, typeof Package> = {
+  Package,
+  Sparkles,
+  Heart,
+  Star,
+  Truck,
+  ShieldCheck,
+  Tag,
+  Gift,
+  Award,
+};
 
-  const baseItems = siteConfig?.marqueeItems?.length
-    ? siteConfig.marqueeItems.map((item) => ({
-        ...item,
-        Icon: ({ size, className }: { size?: number; className?: string }) => {
-          const icons: Record<string, typeof Package> = { Package, Sparkles, Heart, Star };
-          const IconComp = icons[item.iconName || 'Star'] || Star;
-          return <IconComp size={size} className={className} />;
-        },
-      }))
-    : fallbackItems;
+export const TopMarquee: React.FC<TopMarqueeProps> = () => {
+  const { data: marqueeData } = useStaticEntity<MarqueeItem>('marquee_item');
 
-  if (baseItems.length === 0) return null;
+  const activeItems = (marqueeData || [])
+    .filter((item) => !item.status || item.status === 'active')
+    .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+  if (!activeItems || activeItems.length === 0) return null;
+
+  const baseItems = activeItems.map((item) => ({
+    ...item,
+    Icon: iconMap[item.iconName] || Star,
+  }));
 
   const items = [...baseItems, ...baseItems, ...baseItems, ...baseItems];
 
   return (
-    <div className="bg-primary text-secondary overflow-hidden py-2 sticky top-0 z-[60] flex w-full">
+    <div className="bg-primary text-secondary overflow-hidden py-2 relative z-30 flex w-full">
       <div className="flex w-max animate-marquee">
         {[0, 1].map((setIndex) => (
           <div key={setIndex} className="flex gap-16 items-center pr-16 whitespace-nowrap">
             {items.map((item, index) => {
               const Icon = item.Icon;
               return (
-                <div key={`${setIndex}-${index}`} className="flex items-center gap-3">
+                <div key={`${setIndex}-${index}-${item.id || index}`} className="flex items-center gap-3">
                   <Icon size={14} className="text-secondary/70" />
                   <span className="text-xs font-bold uppercase tracking-widest">{item.text}</span>
                 </div>

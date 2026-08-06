@@ -8,6 +8,7 @@ import { TabFilter } from '../../../components/TabFilter';
 import { getStatusStyles } from '../../../components/ui/StatusBadge';
 import { formatFirestoreDate as formatDate } from '../../../../services/adminService';
 import { cn } from '../../../utils/utils';
+import { ImageWithFallback } from '../../../components/ui/ImageWithFallback';
 import type { Product } from '../../../../types';
 
 export function AdminProducts({ ctx }: { ctx: any }) {
@@ -58,7 +59,7 @@ export function AdminProducts({ ctx }: { ctx: any }) {
             header: 'Produit',
             accessor: (product: Product) => (
               <div className="flex items-center gap-4">
-                <img src={product.image} alt={product.name} className="w-10 h-12 object-cover rounded-lg" referrerPolicy="no-referrer" />
+                <ImageWithFallback src={product.image} alt={product.name} className="w-10 h-12 object-cover rounded-lg" />
                 <div className="flex flex-col">
                   <span className="font-medium text-primary">{product.name}</span>
                   {!product.isAvailable && <span className="text-[10px] text-primary/40 font-bold uppercase">Désactivé</span>}

@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import type { QueryConstraint } from 'firebase/firestore';
+import { collection, getDocs, query, limit, type QueryConstraint } from 'firebase/firestore';
 import type { BaseEntity } from '../../domain/entities/BaseEntity';
 import { getStaticEntityCacheKey, readCache, writeCache, getTTLForEntity } from '../utils/cacheStorage';
+import { initFirebase } from '../../backend/firebase';
 
 interface UseStaticEntityOptions {
   enabled?: boolean;
@@ -46,56 +47,73 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
     let cancelled = false;
 
     const load = async () => {
-      const cachedData = await readCache<T[]>(cacheKey);
+      // 1. Essai de lecture dans le cache local (Fast Read)
+      let cachedData: T[] | null = null;
+      try {
+        cachedData = await readCache<T[]>(cacheKey);
+      } catch (e) {
+        cachedData = null;
+      }
+
       if (cancelled || !isMounted.current) return;
 
-      if (cachedData) {
-        setData(cachedData.length > 0 ? cachedData : initialData);
+      if (cachedData && cachedData.length > 0) {
+        setData(cachedData);
         setIsLoading(false);
         setError(null);
         return;
       }
 
       if (!enabled || hasFetchedFromNetwork.current) {
-        if (!cachedData) setIsLoading(false);
+        setIsLoading(false);
         return;
       }
 
+      // 2. Si le cache est vide ou absent, appel immédiat à Firestore (avec fallback API backend en cas d'erreur d'index)
       try {
-        const [{ collection, getDocs, query, limit }, { initFirebase }] = await Promise.all([
-          import('firebase/firestore'),
-          import('../../backend/firebase'),
-        ]);
-
-        if (cancelled || !isMounted.current) return;
-
         const { db: firestoreDb } = initFirebase();
-        if (!firestoreDb) {
-          setIsLoading(false);
-          return;
+        let items: T[] = [];
+
+        if (firestoreDb) {
+          try {
+            const finalConstraints: QueryConstraint[] = [...constraints];
+            const hasLimit = finalConstraints.some((c) => (c as { type?: string }).type === 'limit');
+            if (!hasLimit && DEFAULT_LIMIT > 0) {
+              finalConstraints.push(limit(DEFAULT_LIMIT));
+            }
+
+            const q =
+              finalConstraints.length > 0
+                ? query(collection(firestoreDb, entityType), ...finalConstraints)
+                : collection(firestoreDb, entityType);
+
+            const snapshot = await getDocs(q);
+            items = snapshot.docs.map((docSnap) => ({
+              id: docSnap.id,
+              ...docSnap.data(),
+            })) as T[];
+          } catch {
+            const res = await fetch(`/api/entity/${encodeURIComponent(entityType)}`).catch(() => null);
+            if (res && res.ok) {
+              const body = await res.json().catch(() => null);
+              items = Array.isArray(body) ? body : (body?.data || []);
+            }
+          }
+        } else {
+          const res = await fetch(`/api/entity/${encodeURIComponent(entityType)}`).catch(() => null);
+          if (res && res.ok) {
+            const body = await res.json().catch(() => null);
+            items = Array.isArray(body) ? body : (body?.data || []);
+          }
         }
 
-        const finalConstraints: QueryConstraint[] = [...constraints];
-        const hasLimit = finalConstraints.some((c) => (c as { type?: string }).type === 'limit');
-        if (!hasLimit && DEFAULT_LIMIT > 0) {
-          finalConstraints.push(limit(DEFAULT_LIMIT));
-        }
-
-        const q =
-          finalConstraints.length > 0
-            ? query(collection(firestoreDb, entityType), ...finalConstraints)
-            : collection(firestoreDb, entityType);
-
-        const snapshot = await getDocs(q);
         if (cancelled || !isMounted.current) return;
 
-        const items = snapshot.docs.map((docSnap) => ({
-          id: docSnap.id,
-          ...docSnap.data(),
-        })) as T[];
-
-        setData(items.length > 0 ? items : initialData);
-        writeCache(cacheKey, items, getTTLForEntity(entityType));
+        const finalData = items.length > 0 ? items : initialData;
+        setData(finalData);
+        if (items.length > 0) {
+          writeCache(cacheKey, items, getTTLForEntity(entityType));
+        }
         setIsLoading(false);
         setError(null);
         hasFetchedFromNetwork.current = true;

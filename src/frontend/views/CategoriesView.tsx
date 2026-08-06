@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { useStaticEntity } from '../hooks/useStaticEntity';
 import { ChevronRight, ShoppingBag } from 'lucide-react';
+import { ImageWithFallback } from '../components/ui/ImageWithFallback';
 
 interface CategoriesViewProps {
   onNavigate: (view: string, id?: string, query?: string) => void;
@@ -42,11 +43,10 @@ export const CategoriesView: React.FC<CategoriesViewProps> = ({ onNavigate }) =>
               className="group relative bg-white rounded-[2.5rem] overflow-hidden shadow-xl shadow-primary/5 cursor-pointer border border-primary/5 hover:border-primary/20 transition-all duration-500"
             >
               <div className="aspect-[4/5] overflow-hidden">
-                <img 
+                <ImageWithFallback 
                   src={category.image} 
                   alt={category.name} 
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  referrerPolicy="no-referrer"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
               </div>

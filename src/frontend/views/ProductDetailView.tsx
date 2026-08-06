@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Product, PromoEvent } from '../../types';
 import { Button } from '../components/ui/Button';
 import { Minus, Plus, ShoppingBag } from 'lucide-react';
+import { ImageWithFallback } from '../components/ui/ImageWithFallback';
 
 interface FlyingDot {
   id: number;
@@ -42,7 +43,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
       <div className="bg-card p-8 md:p-12 rounded-[3rem] border border-primary/5 shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
           <div className="relative">
-            <img src={product.image} alt={product.name} className="w-full aspect-square object-cover rounded-3xl" referrerPolicy="no-referrer" loading="lazy" width="800" height="800" />
+            <ImageWithFallback src={product.image} alt={product.name} className="w-full aspect-square object-cover rounded-3xl" loading="lazy" width={800} height={800} />
             {product.isSale && (
               <span className="absolute top-4 left-4 bg-accent text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest">
                 Promo
@@ -143,7 +144,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {recommendedProducts.map(p => (
               <div key={p.id} className="bg-card p-6 rounded-[2rem] border border-primary/5 shadow-sm">
-                <img src={p.image} alt={p.name} className="w-full h-64 object-cover rounded-2xl mb-4" referrerPolicy="no-referrer" loading="lazy" />
+                <ImageWithFallback src={p.image} alt={p.name} className="w-full h-64 object-cover rounded-2xl mb-4" loading="lazy" />
                 <h3 className="font-serif text-xl text-primary mb-2">{p.name}</h3>
                 <p className="text-accent font-bold mb-4">{p.price.toLocaleString()} FCFA</p>
                 <Button variant="outline" className="w-full" onClick={() => onNavigate('product-detail', p.id)}>

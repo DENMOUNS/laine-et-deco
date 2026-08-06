@@ -37,7 +37,6 @@ export const AppLayout: React.FC = () => {
   const removeFromComparison = useComparisonStore((s) => s.removeFromComparison);
   const clearComparison = useComparisonStore((s) => s.clearComparison);
   const siteConfig = useConfigStore((s) => s.siteConfig);
-  const navItems = useConfigStore((s) => s.navItems);
 
   const [showInstallBanner, setShowInstallBanner] = React.useState(false);
   const [deferredWidgets, setDeferredWidgets] = React.useState(false);
@@ -166,7 +165,6 @@ export const AppLayout: React.FC = () => {
           user={user}
           userRole={userRole}
           comparisonList={comparisonList}
-          navItems={navItems}
         />
       )}
 
