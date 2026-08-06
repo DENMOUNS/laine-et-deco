@@ -122,20 +122,34 @@ const serializeError = (error: any) => {
 
   const payload: any = {
     error: error.message || String(error),
+    name: error.name || undefined,
+    code: error.code || undefined,
+    details: error.details || undefined,
+    stack: error.stack || undefined,
   };
 
-  if (error.name) payload.name = error.name;
-  if (error.code) payload.code = error.code;
-  if (error.details) payload.details = error.details;
   if (typeof error === 'object') {
     for (const key of Object.keys(error)) {
-      if (['message', 'name', 'code', 'details', 'stack'].includes(key)) continue;
+      if (['message', 'name', 'code', 'details', 'stack', 'response', 'request'].includes(key)) continue;
       payload[key] = (error as any)[key];
     }
-  }
 
-  if (process.env.NODE_ENV !== 'production') {
-    payload.stack = error.stack;
+    if (error.response && typeof error.response === 'object') {
+      payload.response = {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data,
+        headers: error.response.headers,
+      };
+    }
+
+    if (error.request && typeof error.request === 'object') {
+      payload.request = {
+        method: error.request.method,
+        path: error.request.path || error.request._currentUrl,
+        headers: error.request._header || error.request.headers,
+      };
+    }
   }
 
   return payload;
