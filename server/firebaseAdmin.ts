@@ -11,21 +11,30 @@ const maskEmail = (value?: string) => {
 
 function getServiceAccount() {
   const rawKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.trim();
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+
+  const envSummary = {
+    hasFIREBASE_SERVICE_ACCOUNT_KEY: Boolean(rawKey),
+    hasFIREBASE_PROJECT_ID: Boolean(projectId),
+    hasFIREBASE_CLIENT_EMAIL: Boolean(clientEmail),
+    hasFIREBASE_PRIVATE_KEY: Boolean(privateKey),
+  };
+
+  if (!rawKey && projectId && clientEmail && privateKey) {
+    return {
+      project_id: projectId,
+      client_email: clientEmail,
+      private_key: privateKey.replace(/\\n/g, '\n'),
+    };
+  }
 
   if (!rawKey) {
-    const projectId = process.env.FIREBASE_PROJECT_ID;
-    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-    const privateKey = process.env.FIREBASE_PRIVATE_KEY;
-
-    if (projectId && clientEmail && privateKey) {
-      return {
-        project_id: projectId,
-        client_email: clientEmail,
-        private_key: privateKey.replace(/\\n/g, '\n'),
-      };
-    }
-
-    throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY missing');
+    console.error('[firebaseAdmin] Missing Firebase service account configuration', envSummary);
+    throw new Error(
+      'FIREBASE_SERVICE_ACCOUNT_KEY or FIREBASE_PROJECT_ID/FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY is missing in environment variables.'
+    );
   }
 
   const normalizedRawKey =
@@ -38,7 +47,11 @@ function getServiceAccount() {
   try {
     serviceAccount = JSON.parse(normalizedRawKey);
   } catch (error: any) {
-    throw error;
+    console.error('[firebaseAdmin] Invalid FIREBASE_SERVICE_ACCOUNT_KEY JSON', {
+      error: error?.message,
+      envSummary,
+    });
+    throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY contains invalid JSON: ' + error?.message);
   }
 
   if (typeof serviceAccount.private_key === 'string') {

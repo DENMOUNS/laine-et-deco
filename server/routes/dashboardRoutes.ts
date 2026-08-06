@@ -29,9 +29,7 @@ const isAdminLevel = (role: UserRole | null) => isSuperAdmin(role) || isAdmin(ro
 const SYSTEM_CONFIG_COLLECTIONS = new Set([
   'invoice_config',
   'qr_config',
-  'site_logo',
   'site_color',
-  'hero_banner',
   'announcement_banner',
   'scrolling_banner',
   'seo_page',

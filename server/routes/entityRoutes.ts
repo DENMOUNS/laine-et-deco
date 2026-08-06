@@ -189,7 +189,18 @@ const verifyToken = async (
   try {
     const bearer = req.headers.authorization;
 
-    if (!bearer?.startsWith('Bearer ')) {
+    if (!bearer) {
+      logEntity(req.requestId, 'auth:missing-header', {
+        path: req.originalUrl,
+        method: req.method,
+      });
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    if (!bearer.startsWith('Bearer ')) {
+      logEntity(req.requestId, 'auth:invalid-scheme', {
+        authorizationHeader: bearer.slice(0, 60),
+      });
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
@@ -204,7 +215,9 @@ const verifyToken = async (
 
     next();
   } catch (error: any) {
-    logEntityError(req.requestId, 'auth:failed', error);
+    logEntityError(req.requestId, 'auth:failed', error, {
+      authorizationHeader: req.headers.authorization?.slice(0, 60) || null,
+    });
     return res.status(401).json({ error: 'Unauthorized' });
   }
 };
@@ -606,13 +619,23 @@ const optionalAuth = async (
 };
 
 const readEntity = async (req: any, res: any) => {
-  const { entity, id } = req.params;
+  const rawEntity = req.params?.entity as string | undefined;
+  const entity = rawEntity?.trim() || String(req.path || '').split('/').filter(Boolean).pop() || undefined;
+  const id = req.params?.id as string | undefined;
   const role = req.user?.role || null;
   const uid = req.user?.uid || null;
 
+  logEntity(req.requestId, 'entity:resolve', {
+    entity,
+    id,
+    uid: shortUid(uid),
+    role,
+    path: req.originalUrl,
+  });
+
   try {
     // 1. Accès public universel pour les collections publiques (Bannières, Logos, Nav, Produits, etc.)
-    if (PUBLIC_READ_COLLECTIONS.includes(entity)) {
+    if (entity && PUBLIC_READ_COLLECTIONS.includes(entity)) {
       res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
       if (id) {
         const snap = await db.collection(entity).doc(id).get();
