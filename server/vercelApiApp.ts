@@ -111,6 +111,36 @@ app.get('/api/debug/routes', (_req, res) => {
   });
 });
 
+const serializeError = (error: any) => {
+  if (!error) {
+    return { error: 'Internal Server Error' };
+  }
+
+  if (typeof error === 'string') {
+    return { error };
+  }
+
+  const payload: any = {
+    error: error.message || String(error),
+  };
+
+  if (error.name) payload.name = error.name;
+  if (error.code) payload.code = error.code;
+  if (error.details) payload.details = error.details;
+  if (typeof error === 'object') {
+    for (const key of Object.keys(error)) {
+      if (['message', 'name', 'code', 'details', 'stack'].includes(key)) continue;
+      payload[key] = (error as any)[key];
+    }
+  }
+
+  if (process.env.NODE_ENV !== 'production') {
+    payload.stack = error.stack;
+  }
+
+  return payload;
+};
+
 // Handler d'erreur global — utilise process.stderr.write pour ne PAS être supprimé par esbuild drop:console
 app.use((err: any, req: any, res: any, next: any) => {
   process.stderr.write(
@@ -130,7 +160,7 @@ app.use((err: any, req: any, res: any, next: any) => {
   if (res.headersSent) {
     return next(err);
   }
-  res.status(500).json({ error: err?.message || 'Internal Server Error' });
+  res.status(500).json(serializeError(err));
 });
 
 export default app;
