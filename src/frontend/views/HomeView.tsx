@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArrowRight, Package, Truck, ShieldCheck, Heart, Calendar, User, Search, Camera, Zap, Clock, Loader2, Mic, X as CloseIcon, HelpCircle, Star, Sparkles, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 
 import { useStaticEntity } from '../hooks/useStaticEntity';
+import { useHeroBannersService } from '../hooks/useHeroBannersService';
+import { useLoadingSequence, setHeroReady } from '../hooks/useLoadingSequence';
 import { where, orderBy, limit as fsLimit } from 'firebase/firestore';
 import { useProducts } from '../hooks/useProducts';
 import { ProductCard } from '../components/ProductCard';
@@ -74,31 +76,36 @@ interface HomeViewProps {
 }
 
 export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onAddToWishlist, onQuickView, onAddToComparison, onProductClick, siteConfig, events = [] }) => {
-  const dataReady = useDeferUntilInteraction(2_500);
-  const [secondaryReady, setSecondaryReady] = React.useState(false);
+  const { isMarqueeReady, isAllReady } = useLoadingSequence();
+
+  // Étape 2 : Chargement du Hero Banner via le Repository & Use-case dédié
+  const { data: rawHeroBanners, isLoading: isHeroLoading } = useHeroBannersService({
+    enabled: isMarqueeReady,
+  });
 
   React.useEffect(() => {
-    if (!dataReady) return;
-    const t = setTimeout(() => setSecondaryReady(true), 5000);
-    return () => clearTimeout(t);
-  }, [dataReady]);
+    if (!isHeroLoading && isMarqueeReady) {
+      setHeroReady(true);
+    }
+  }, [isHeroLoading, isMarqueeReady]);
 
+  // Étape 3 : Chargement de toutes les autres entités une fois Marquee ET Hero Banner chargés
   const { products: fetchedProducts, isLoading: isProductsLoading } = useProducts({
-    enabled: dataReady,
+    enabled: isAllReady,
   });
   const PRODUCTS = fetchedProducts;
-  const secondaryOpts = { enabled: secondaryReady };
+  const secondaryOpts = { enabled: isAllReady };
   const { data: CATEGORIES } = useStaticEntity<any>('category', [], secondaryOpts);
   const { data: BLOG_POSTS } = useStaticEntity<any>('blog_post', [], secondaryOpts);
   const { data: PACKS } = useStaticEntity<any>('pack', [], secondaryOpts);
   const { data: RECENT_FLASH_SALES } = useStaticEntity<FlashSale>('flash_sale', [], secondaryOpts);
   const { data: LOOKBOOKS } = useStaticEntity<Lookbook>('lookbook', [], secondaryOpts);
-  // Hero banners : chargé immédiatement, sans attendre dataReady
-  const { data: rawHeroBanners, isLoading: isHeroLoading } = useStaticEntity<HeroBannerConfig>('hero_banner', []);
+
   const HERO_BANNERS = React.useMemo(() => {
     return (rawHeroBanners || [])
       .filter((b) => b.status === 'active')
-      .sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+      .sort((a, b) => (a.order ?? 999) - (b.order ?? 999))
+      .slice(0, 15);
   }, [rawHeroBanners]);
   const activeFlashSales = RECENT_FLASH_SALES.filter(fs => fs.status === 'active' && new Date(fs.endDate) > new Date());
   const activeLookbooks = LOOKBOOKS.filter(lb => lb.status === 'active');

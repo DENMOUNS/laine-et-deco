@@ -133,6 +133,21 @@ service cloud.firestore {
       allow write: if isSuperAdmin() || isAdmin();
     }
 
+    match /marquee_item/{docId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || isAdmin();
+    }
+
+    match /flash_sale/{docId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || isAdmin() || isEditor();
+    }
+
+    match /lookbook/{docId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || isAdmin() || isEditor();
+    }
+
     match /announcement_banner/{docId} {
       allow read: if true;
       allow write: if isSuperAdmin() || isAdmin();

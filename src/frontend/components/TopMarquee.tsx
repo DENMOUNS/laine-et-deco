@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Package, Sparkles, Heart, Star, Truck, ShieldCheck, Tag, Gift, Award } from 'lucide-react';
-import { useStaticEntity } from '../hooks/useStaticEntity';
+import { useMarqueeService } from '../hooks/useMarqueeService';
+import { setMarqueeReady } from '../hooks/useLoadingSequence';
 import { MarqueeItem, SiteConfig } from '../../types';
 
 interface TopMarqueeProps {
@@ -20,7 +21,13 @@ const iconMap: Record<string, typeof Package> = {
 };
 
 export const TopMarquee: React.FC<TopMarqueeProps> = () => {
-  const { data: marqueeData } = useStaticEntity<MarqueeItem>('marquee_item');
+  const { data: marqueeData, isLoading } = useMarqueeService();
+
+  useEffect(() => {
+    if (!isLoading) {
+      setMarqueeReady(true);
+    }
+  }, [isLoading]);
 
   const activeItems = (marqueeData || [])
     .filter((item) => !item.status || item.status === 'active')

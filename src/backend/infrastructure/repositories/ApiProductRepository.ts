@@ -1,13 +1,13 @@
 import { ProductRepository } from '../../domain/repositories/ProductRepository';
 import { Product } from '../../domain/entities/Product';
 import { Result, success, failure } from '../../domain/shared/Result';
-import { db } from '../../../server/firebaseAdmin';
 
 export class ApiProductRepository implements ProductRepository {
   async getProducts(): Promise<Result<Product[]>> {
     try {
-      const snap = await db.collection('product').get();
-      const products = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+      const res = await fetch('/api/entity/product');
+      if (!res.ok) return failure(new Error('Failed to fetch products'));
+      const products = await res.json();
       return success(products as Product[]);
     } catch (error) {
       return failure(error instanceof Error ? error : new Error('Failed to fetch products'));
@@ -16,9 +16,10 @@ export class ApiProductRepository implements ProductRepository {
 
   async getProductById(id: string): Promise<Result<Product>> {
     try {
-      const doc = await db.collection('product').doc(id).get();
-      if (!doc.exists) return failure(new Error('Product not found'));
-      return success({ id: doc.id, ...(doc.data() as any) } as Product);
+      const res = await fetch(`/api/entity/product/${id}`);
+      if (!res.ok) return failure(new Error('Product not found'));
+      const doc = await res.json();
+      return success(doc as Product);
     } catch (error) {
       return failure(error instanceof Error ? error : new Error('Failed to fetch product'));
     }

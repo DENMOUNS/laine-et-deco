@@ -54,6 +54,10 @@ async function startServer() {
   };
 
   const attachAuthRole = async (req: any, _res: any, next: any) => {
+    // Les requêtes GET d'entités ne nécessitent pas la résolution synchrone de rôle d'admin
+    if (req.method === 'GET') {
+      return next();
+    }
     const bearer = req.headers.authorization;
     if (bearer?.startsWith('Bearer ')) {
       const token = bearer.replace('Bearer ', '');
@@ -65,7 +69,7 @@ async function startServer() {
    // --- Security: Rate Limiting (DDoS & Brute Force protection) ---
   const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 500, // Limit each IP to 3000 requests per window
+    max: 3000, // Limit each IP to 3000 requests per window
     message: { error: "Trop de requêtes, veuillez réessayer plus tard." },
     standardHeaders: true,
     legacyHeaders: false,

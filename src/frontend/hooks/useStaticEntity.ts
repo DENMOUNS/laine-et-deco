@@ -44,9 +44,15 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
   }, []);
 
   useEffect(() => {
+    if (!enabled) {
+      setIsLoading(true);
+      return;
+    }
+
     let cancelled = false;
 
     const load = async () => {
+      setIsLoading(true);
       // 1. Essai de lecture dans le cache local (Fast Read)
       let cachedData: T[] | null = null;
       try {
@@ -64,12 +70,13 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
         return;
       }
 
-      if (!enabled || hasFetchedFromNetwork.current) {
+      if (hasFetchedFromNetwork.current) {
         setIsLoading(false);
         return;
       }
 
-      // 2. Si le cache est vide ou absent, appel immédiat à Firestore (avec fallback API backend en cas d'erreur d'index)
+      // 2. Si le cache est vide ou absent, appel immédiat
+      hasFetchedFromNetwork.current = true;
       try {
         const { db: firestoreDb } = initFirebase();
         let items: T[] = [];
@@ -87,12 +94,19 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
                 ? query(collection(firestoreDb, entityType), ...finalConstraints)
                 : collection(firestoreDb, entityType);
 
-            const snapshot = await getDocs(q);
+            // Timeout rapide de 1.5s sur le SDK Firestore client pour ne pas faire patienter l'utilisateur des minutes
+            const fetchPromise = getDocs(q);
+            const timeoutPromise = new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error('Firestore timeout')), 1500)
+            );
+
+            const snapshot = await Promise.race([fetchPromise, timeoutPromise]);
             items = snapshot.docs.map((docSnap) => ({
               id: docSnap.id,
               ...docSnap.data(),
             })) as T[];
           } catch {
+            // En cas d'erreur de permissions ou de timeout, appel direct à l'API backend
             const res = await fetch(`/api/entity/${encodeURIComponent(entityType)}`).catch(() => null);
             if (res && res.ok) {
               const body = await res.json().catch(() => null);
@@ -116,7 +130,6 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
         }
         setIsLoading(false);
         setError(null);
-        hasFetchedFromNetwork.current = true;
       } catch (err) {
         if (!isMounted.current || cancelled) return;
         setError(err as Error);

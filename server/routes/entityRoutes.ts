@@ -613,6 +613,7 @@ const readEntity = async (req: any, res: any) => {
   try {
     // 1. Accès public universel pour les collections publiques (Bannières, Logos, Nav, Produits, etc.)
     if (PUBLIC_READ_COLLECTIONS.includes(entity)) {
+      res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
       if (id) {
         const snap = await db.collection(entity).doc(id).get();
         if (!snap.exists) return res.json(null);

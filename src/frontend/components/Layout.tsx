@@ -5,12 +5,15 @@ import { where } from 'firebase/firestore';
 
 import { initialsAvatarDataUri } from '../utils/avatarFallback';
 import { useStaticEntity } from '../hooks/useStaticEntity';
+import { useLoadingSequence } from '../hooks/useLoadingSequence';
 import { Product, NavItem } from '../../types';
 import { DEFAULT_NAV_ITEMS } from '../../siteDefaults';
 import type { User as FirebaseUser } from 'firebase/auth';
 
 const LogoDisplay = () => {
+  const { isMarqueeReady } = useLoadingSequence();
   const { data: logos } = useStaticEntity<any>('site_logo', [], {
+    enabled: isMarqueeReady,
     constraints: [where('status', '==', 'active')],
   });
   const activeLogo = logos?.[0];
@@ -65,11 +68,14 @@ export const Navbar: React.FC<NavbarProps> = ({
   userRole,
   comparisonList = [],
 }) => {
+  const { isMarqueeReady } = useLoadingSequence();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { data: CATEGORIES } = useStaticEntity<any>('category', [], { enabled: isMenuOpen });
 
-  // Lecture directe Firestore — plus fiable que le store configStore
-  const { data: firestoreNavItems, isLoading: navLoading } = useStaticEntity<NavItem>('nav_item');
+  // Lecture directe Firestore — chargé après le marquee
+  const { data: firestoreNavItems, isLoading: navLoading } = useStaticEntity<NavItem>('nav_item', [], {
+    enabled: isMarqueeReady,
+  });
 
   // Pendant le chargement ou si Firestore est vide → DEFAULT_NAV_ITEMS
   const resolvedNavItems: NavItem[] = (!navLoading && firestoreNavItems && firestoreNavItems.length > 0)
