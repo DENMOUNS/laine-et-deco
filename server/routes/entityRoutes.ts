@@ -23,6 +23,17 @@ interface AuthenticatedRequest extends Request {
 
 const shortUid = (uid?: string) => uid ? `${uid.slice(0, 6)}...${uid.slice(-4)}` : 'none';
 
+const VALID_ENTITY_NAME_REGEX = /^[a-zA-Z0-9_]+$/;
+
+const normalizeEntityName = (rawEntity?: string, fallbackPath?: string): string | undefined => {
+  const entity = rawEntity?.trim() || String(fallbackPath || '').split('/').filter(Boolean).pop() || undefined;
+  return entity && VALID_ENTITY_NAME_REGEX.test(entity) ? entity : undefined;
+};
+
+const rejectInvalidEntity = (res: Response, entity?: string) => {
+  return res.status(400).json({ error: `Invalid entity name${entity ? `: ${entity}` : ''}` });
+};
+
 const ensureFirebaseReady = (req: AuthenticatedRequest, res: Response) => {
   if (!db || !auth) {
     logEntity(req.requestId, 'firebase:unavailable', {
@@ -81,7 +92,7 @@ router.use((req: AuthenticatedRequest, res, next) => {
   next();
 });
 
-const PUBLIC_READ_COLLECTIONS = [
+const PUBLIC_READ_COLLECTIONS = new Set([
   'hero_banner',
   'site_logo',
   'nav_item',
@@ -108,9 +119,9 @@ const PUBLIC_READ_COLLECTIONS = [
   'custom_section_config',
   'shipping_rule',
   'tax_rule',
-];
+]);
 
-const STAFF_READ_COLLECTIONS = [
+const STAFF_READ_COLLECTIONS = new Set([
   'product',
   'category',
   'order',
@@ -118,9 +129,9 @@ const STAFF_READ_COLLECTIONS = [
   'knitting_tool',
   'lookbook',
   'blog_post',
-];
+]);
 
-const OWNER_COLLECTIONS = [
+const OWNER_COLLECTIONS = new Set([
   'order',
   'review',
   'community_post',
@@ -128,7 +139,7 @@ const OWNER_COLLECTIONS = [
   'chat_message',
   'wishlist',
   'rma',
-];
+]);
 
 // ==========================
 // ROLE
@@ -241,13 +252,17 @@ const verifyToken = async (
 
 const resolveRole = async (
   req: AuthenticatedRequest,
-  _: Response,
+  res: Response,
   next: NextFunction
 ) => {
   try {
     if (!req.user?.uid) {
-      return next(new Error('Unauthorized')); 
+      logEntity(req.requestId, 'role:missing-user', {
+        authorizationHeader: req.headers.authorization?.slice(0, 60) || null,
+      });
+      return res.status(401).json({ error: 'Unauthorized' });
     }
+
     req.user.role = await getUserRole(req.user.uid, req.user.email, req.user.role as string);
     logEntity(req.requestId, 'role:resolved', {
       uid: shortUid(req.user.uid),
@@ -258,7 +273,7 @@ const resolveRole = async (
     logEntityError(req.requestId, 'role:failed', error, {
       uid: shortUid(req.user?.uid),
     });
-    return next(error);
+    return res.status(500).json({ error: 'Unable to resolve user role' });
   }
 };
 
@@ -271,10 +286,14 @@ router.post('/:entity', verifyToken, resolveRole, async (req: any, res) => {
     return;
   }
 
-  const { entity } = req.params;
+  const entity = normalizeEntityName(req.params.entity, req.path);
   const role = req.user?.role ?? null;
   const uid = req.user?.uid;
   const bodyKeys = req.body && typeof req.body === 'object' ? Object.keys(req.body) : [];
+
+  if (!entity) {
+    return rejectInvalidEntity(res, req.params.entity);
+  }
 
   if (!uid) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -393,7 +412,7 @@ router.post('/:entity', verifyToken, resolveRole, async (req: any, res) => {
     }
 
     // owner
-    if (OWNER_COLLECTIONS.includes(entity)) {
+    if (OWNER_COLLECTIONS.has(entity)) {
       const ref = await db.collection(entity).add({
         ...req.body,
         userId: uid,
@@ -427,9 +446,14 @@ const updateEntityHandler = async (req: any, res: Response) => {
     return;
   }
 
-  const { entity, id } = req.params;
+  const entity = normalizeEntityName(req.params.entity, req.path);
+  const id = req.params.id;
   const role = req.user.role;
   const uid = req.user.uid;
+
+  if (!entity) {
+    return rejectInvalidEntity(res, req.params.entity);
+  }
 
   try {
     const ref = db.collection(entity).doc(id);
@@ -574,7 +598,7 @@ const updateEntityHandler = async (req: any, res: Response) => {
     }
 
     // owner
-    if (OWNER_COLLECTIONS.includes(entity) && isOwner) {
+    if (OWNER_COLLECTIONS.has(entity) && isOwner) {
       await ref.update({
         ...req.body,
         updatedAt: new Date(),
@@ -601,8 +625,13 @@ router.delete('/:entity/:id', verifyToken, resolveRole, async (req: any, res) =>
     return;
   }
 
-  const { entity, id } = req.params;
+  const entity = normalizeEntityName(req.params.entity, req.path);
+  const id = req.params.id;
   const role = req.user.role;
+
+  if (!entity) {
+    return rejectInvalidEntity(res, req.params.entity);
+  }
 
   try {
     const ref = db.collection(entity).doc(id);
@@ -652,11 +681,14 @@ const readEntity = async (req: any, res: any) => {
     return;
   }
 
-  const rawEntity = req.params?.entity as string | undefined;
-  const entity = rawEntity?.trim() || String(req.path || '').split('/').filter(Boolean).pop() || undefined;
+  const entity = normalizeEntityName(req.params?.entity as string | undefined, req.path);
   const id = req.params?.id as string | undefined;
   const role = req.user?.role || null;
   const uid = req.user?.uid || null;
+
+  if (!entity) {
+    return rejectInvalidEntity(res, req.params?.entity as string | undefined);
+  }
 
   logEntity(req.requestId, 'entity:resolve', {
     entity,
@@ -668,7 +700,7 @@ const readEntity = async (req: any, res: any) => {
 
   try {
     // 1. Accès public universel pour les collections publiques (Bannières, Logos, Nav, Produits, etc.)
-    if (entity && PUBLIC_READ_COLLECTIONS.includes(entity)) {
+    if (PUBLIC_READ_COLLECTIONS.has(entity)) {
       res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
       if (id) {
         const snap = await db.collection(entity).doc(id).get();
@@ -705,7 +737,7 @@ const readEntity = async (req: any, res: any) => {
     }
 
     // 4. Stock Manager
-    if (isStockManager(role) && STAFF_READ_COLLECTIONS.includes(entity)) {
+    if (isStockManager(role) && STAFF_READ_COLLECTIONS.has(entity)) {
       if (id) {
         const snap = await db.collection(entity).doc(id).get();
         return res.json(snap.exists ? { id: snap.id, ...snap.data() } : null);
@@ -719,7 +751,7 @@ const readEntity = async (req: any, res: any) => {
     }
 
     // 5. Propriétaire de la ressource (Commande, avis, etc.)
-    if (OWNER_COLLECTIONS.includes(entity)) {
+    if (OWNER_COLLECTIONS.has(entity)) {
       const snap = await db.collection(entity)
         .where('userId', '==', uid)
         .get();
