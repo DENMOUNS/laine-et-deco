@@ -56,77 +56,98 @@ export function AdminProductForm({ ctx }: { ctx: any }) {
                 <button 
                   form="product-form"
                   type="submit"
+                  disabled={isSaving}
                   className="px-8 py-2.5 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/20 hover:bg-accent transition-all flex items-center gap-2"
                 >
-                  <CheckCircle2 size={18} />
-                  {activeTab === 'product-create' ? 'Créer le produit' : 'Enregistrer les modifications'}
+                  {isSaving ? <Loader text="" /> : (
+                    <>
+                      <CheckCircle2 size={18} />
+                      {activeTab === 'product-create' ? 'Créer le produit' : 'Enregistrer les modifications'}
+                    </>
+                  )}
                 </button>
               </div>
             </div>
 
             <form id="product-form" onSubmit={async (e) => {
               e.preventDefault();
-              const formData = new FormData(e.currentTarget);
-              const nameValue = formData.get('name') as string;
-              const slugValue = formData.get('slug') as string;
-              const finalSlug = slugValue || (nameValue ? nameValue.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') : '');
-              
-              const newProduct: any = {
-                // Do not generate a client-side id for creations — let the server assign the document id.
-                id: (activeTab === 'product-edit' && editingItem?.id) ? editingItem.id : undefined,
-                name: nameValue,
-                slug: finalSlug,
-                price: Number(formData.get('price')),
-                purchasePrice: Number(formData.get('purchasePrice')),
-                promoPrice: formData.get('promoPrice') ? Number(formData.get('promoPrice')) : undefined,
-                stock: editingItem?.stock || 0,
-                category: formData.get('category') as string,
-                condition: formData.get('condition') as string || 'new',
-                image: editingItem?.image || 'https://picsum.photos/seed/wool/300/300',
-                description: formData.get('description') as string,
-                colors: editingItem?.colors || ['#FFFFFF'],
-                seo: {
-                    title: formData.get('seoTitle') as string,
-                    description: formData.get('seoDescription') as string
-                },
-                isAvailable: editingItem?.isAvailable ?? false,
-                rating: editingItem?.rating || 5,
-                specs: editingItem?.specs || {},
-                in_stock: (editingItem?.stock || 0) > 0
-              };
-              const now = new Date().toISOString();
-              if (activeTab === 'product-edit') {
-                  const updatePayload = { ...newProduct };
-                  delete updatePayload.id;
-                  delete updatePayload.stock;
-                  delete updatePayload.quantity;
-                  updatePayload.updatedAt = now;
+              setIsSaving(true);
+              try {
+                const formData = new FormData(e.currentTarget);
+                const nameValue = formData.get('name') as string;
+                const slugValue = (formData.get('slug') as string || '').trim();
+                const finalSlug = slugValue || (nameValue ? nameValue.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') : '');
 
-                  try {
-                    await updateProduct(newProduct.id, updatePayload);
-                    setLocalProducts(prev => prev.map(p => p.id === newProduct.id ? { ...p, ...updatePayload } : p));
-                    toast.success('Produit mis à jour avec succès');
-                  } catch (err: any) {
-                    toast.error(err?.message || 'Erreur lors de la mise à jour du produit');
-                    return;
-                  }
-              } else {
-                  newProduct.createdAt = now;
-                  newProduct.updatedAt = now;
-                  try {
-                    // Let backend create the document and return the real id
-                    const createdId = await addProduct(newProduct);
-                    newProduct.id = createdId;
-                    // Add to local list using server id to avoid duplicates
-                    setLocalProducts(prev => [...prev, newProduct]);
-                    toast.success('Produit créé avec succès');
-                  } catch (err: any) {
-                    toast.error('Échec de la création du produit');
-                    return;
-                  }
+                // Vérification d'unicité du slug dans la table produit
+                const slugConflict = localProducts.find(
+                  (p: any) => p.slug === finalSlug && p.id !== editingItem?.id
+                );
+                if (slugConflict) {
+                  toast.error(`Le slug "${finalSlug}" est déjà utilisé par le produit "${slugConflict.name}". Choisissez un autre nom ou modifiez le slug.`);
+                  return;
+                }
+
+                const newProduct: any = {
+                  // Do not generate a client-side id for creations — let the server assign the document id.
+                  id: (activeTab === 'product-edit' && editingItem?.id) ? editingItem.id : undefined,
+                  name: nameValue,
+                  slug: finalSlug,
+                  price: Number(formData.get('price')),
+                  purchasePrice: Number(formData.get('purchasePrice')),
+                  promoPrice: formData.get('promoPrice') ? Number(formData.get('promoPrice')) : undefined,
+                  stock: editingItem?.stock || 0,
+                  category: formData.get('category') as string,
+                  condition: formData.get('condition') as string || 'new',
+                  image: editingItem?.image || 'https://picsum.photos/seed/wool/300/300',
+                  // Sous-images optionnelles (galerie)
+                  images: editingItem?.images || [],
+                  description: formData.get('description') as string,
+                  colors: editingItem?.colors || ['#FFFFFF'],
+                  seo: {
+                      title: formData.get('seoTitle') as string,
+                      description: formData.get('seoDescription') as string
+                  },
+                  isAvailable: editingItem?.isAvailable ?? false,
+                  rating: editingItem?.rating || 5,
+                  specs: editingItem?.specs || {},
+                  in_stock: (editingItem?.stock || 0) > 0
+                };
+                const now = new Date().toISOString();
+                if (activeTab === 'product-edit') {
+                    const updatePayload = { ...newProduct };
+                    delete updatePayload.id;
+                    delete updatePayload.stock;
+                    delete updatePayload.quantity;
+                    updatePayload.updatedAt = now;
+
+                    try {
+                      await updateProduct(newProduct.id, updatePayload);
+                      setLocalProducts((prev: any[]) => prev.map((p: any) => p.id === newProduct.id ? { ...p, ...updatePayload } : p));
+                      toast.success('Produit mis à jour avec succès');
+                    } catch (err: any) {
+                      toast.error(err?.message || 'Erreur lors de la mise à jour du produit');
+                      return;
+                    }
+                } else {
+                    newProduct.createdAt = now;
+                    newProduct.updatedAt = now;
+                    try {
+                      // Let backend create the document and return the real id
+                      const createdId = await addProduct(newProduct);
+                      newProduct.id = createdId;
+                      // Add to local list using server id to avoid duplicates
+                      setLocalProducts((prev: any[]) => [...prev, newProduct]);
+                      toast.success('Produit créé avec succès');
+                    } catch (err: any) {
+                      toast.error('Échec de la création du produit');
+                      return;
+                    }
+                }
+                setActiveTab('products');
+                setEditingItem(null);
+              } finally {
+                setIsSaving(false);
               }
-              setActiveTab('products');
-              setEditingItem(null);
             }} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <AdminProductFormMainFields ctx={ctx} />
               <AdminProductFormSidebarFields ctx={ctx} />

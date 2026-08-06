@@ -1,7 +1,6 @@
 import React from 'react';
 import { Settings, Plus } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAdminProducts } from './hooks/useAdminProducts';
 import { useAdminStore } from '../../../../stores/adminStore';
 import { DataTable } from '../../../components/DataTable';
 import { TabFilter } from '../../../components/TabFilter';
@@ -12,20 +11,41 @@ import { ImageWithFallback } from '../../../components/ui/ImageWithFallback';
 import type { Product } from '../../../../types';
 
 export function AdminProducts({ ctx }: { ctx: any }) {
-  const {
-    products,
-    totalCount,
-    isLoading,
-    productFilter,
-    setProductFilter,
-    updateProductFields,
-    deleteProduct,
-    handlePageChange,
-    currentPage
-  } = useAdminProducts();
+  const [productFilter, setProductFilter] = React.useState<'all' | 'stock_low' | 'stock_out'>('all');
+  
+  const rawProducts: Product[] = ctx?.PRODUCTS || ctx?.localProducts || [];
+  
+  const updateProductFields = async (id: string, fields: Partial<Product>) => {
+    try {
+      await ctx.updateProduct(id, fields);
+      toast.success('Produit mis à jour');
+    } catch {
+      toast.error('Erreur lors de la mise à jour');
+    }
+  };
+
+  const deleteProduct = async (id: string) => {
+    if (!window.confirm('Voulez-vous vraiment supprimer ce produit ?')) return;
+    try {
+      await ctx.deleteProduct(id);
+      toast.success('Produit supprimé');
+    } catch {
+      toast.error('Erreur lors de la suppression');
+    }
+  };
 
   const setEditingItem = useAdminStore((s) => s.setEditingItem);
   const setActiveTab = useAdminStore((s) => s.setActiveTab);
+
+  const filteredProducts = React.useMemo(() => {
+    if (productFilter === 'stock_low') {
+      return rawProducts.filter((p: Product) => (p.stock || 0) < 10 && (p.stock || 0) > 0);
+    }
+    if (productFilter === 'stock_out') {
+      return rawProducts.filter((p: Product) => (p.stock || 0) <= 0);
+    }
+    return rawProducts;
+  }, [rawProducts, productFilter]);
 
   return (
     <div className="space-y-6">
@@ -50,7 +70,8 @@ export function AdminProducts({ ctx }: { ctx: any }) {
         dateFilterKey="createdAt"
         searchable={true}
         defaultSort={{ key: 'createdAt', direction: 'desc' }}
-        data={products}
+        data={filteredProducts}
+        defaultItemsPerPage={10}
         onRowClick={(p) => { setEditingItem(p); setActiveTab('product-edit'); }}
         onDelete={(item) => deleteProduct(item.id!)}
         title="Catalogue Produits"
@@ -82,7 +103,6 @@ export function AdminProducts({ ctx }: { ctx: any }) {
                     const newPrice = Number(e.target.value);
                     if (newPrice !== product.price) {
                       await updateProductFields(product.id, { price: newPrice });
-                      toast.success(`Prix de ${product.name} mis à jour`);
                     }
                   }}
                   className="w-24 bg-transparent border-b border-dashed border-primary/10 focus:border-primary focus:outline-none font-bold text-right text-primary"
@@ -156,11 +176,6 @@ export function AdminProducts({ ctx }: { ctx: any }) {
             )
           }
         ]}
-        serverPagination={{
-          totalItems: totalCount,
-          isLoading: isLoading,
-          onPageChange: handlePageChange
-        }}
       />
     </div>
   );

@@ -27,6 +27,24 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       icon: 'p-2',
     };
 
+    // Spinner size matches button size
+    const spinnerSizes = {
+      sm: 'h-3 w-3 border',
+      md: 'h-4 w-4 border-2',
+      lg: 'h-5 w-5 border-2',
+      icon: 'h-4 w-4 border-2',
+    };
+
+    // Spinner color matches button variant
+    const spinnerColors = {
+      primary: 'border-white/30 border-t-white',
+      secondary: 'border-primary/30 border-t-primary',
+      accent: 'border-white/30 border-t-white',
+      outline: 'border-primary/30 border-t-primary',
+      ghost: 'border-primary/30 border-t-primary',
+      danger: 'border-white/30 border-t-white',
+    };
+
     return (
       <motion.button
         ref={ref}
@@ -34,17 +52,26 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         whileTap={{ scale: 0.98 }}
         disabled={disabled || isLoading}
         className={cn(
-          'inline-flex items-center justify-center rounded-full font-bold transition-colors disabled:opacity-50 disabled:pointer-events-none animate-shine',
+          'relative inline-flex items-center justify-center rounded-full font-bold transition-colors disabled:opacity-50 disabled:pointer-events-none animate-shine',
           variants[variant],
           sizes[size],
           className
         )}
         {...props}
       >
-        {isLoading ? (
-          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-        ) : null}
-        {children}
+        {/* Children are hidden (not removed) during loading to preserve button width */}
+        <span className={cn('inline-flex items-center gap-2', isLoading ? 'invisible' : 'visible')}>
+          {children}
+        </span>
+        {isLoading && (
+          <span className="absolute inset-0 flex items-center justify-center">
+            <span className={cn(
+              'animate-spin rounded-full',
+              spinnerSizes[size],
+              spinnerColors[variant]
+            )} />
+          </span>
+        )}
       </motion.button>
     );
   }

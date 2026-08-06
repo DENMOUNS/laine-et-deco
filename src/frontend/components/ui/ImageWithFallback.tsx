@@ -102,6 +102,13 @@ export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
         src={src}
         alt={alt}
         className={`w-full h-full object-cover transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+        style={{
+          imageRendering: '-webkit-optimize-contrast',
+          filter: 'contrast(1.04) brightness(1.02) saturate(1.04)',
+          transform: 'translateZ(0)',
+          backfaceVisibility: 'hidden',
+          ...props.style
+        }}
         referrerPolicy="no-referrer"
         onLoad={(e) => {
           setIsLoaded(true);

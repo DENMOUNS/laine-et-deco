@@ -371,7 +371,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
             )}
 
             {/* Static Controls */}
-            <div className="max-w-3xl mb-12 relative z-50" ref={searchContainerRef}>
+            <div className="max-w-3xl mt-16 mb-12 relative z-50" ref={searchContainerRef}>
               <form onSubmit={handleSearch} className="relative group">
                 {/* ... search input ... */}
                 <label htmlFor="home-search" className="sr-only">

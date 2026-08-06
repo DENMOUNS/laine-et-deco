@@ -535,6 +535,18 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
   });
   const localBlogPosts = BLOG_POSTS;
   const setLocalBlogPosts2 = setLocalBlogPosts;
+  const {
+    data: BLOG_CATEGORIES,
+    setData: setLocalBlogCategories,
+    addEntity: addBlogCategory,
+    updateEntity: updateBlogCategory,
+    deleteEntity: deleteBlogCategory,
+    isLoading: isLoadingBlogCategories,
+  } = useEntity<any>('blog_category', [], {
+    enabled: isActiveTab(['blog'])
+  });
+  const localBlogCategories = BLOG_CATEGORIES;
+  const setLocalBlogCategories2 = setLocalBlogCategories;
   // Fusionné : REVIEWS + localReviews lisaient toutes les deux 'review'
   // avec exactement la même condition enabled(['reviews']).
   const {
@@ -1018,6 +1030,7 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
   const dashboardContext = {
     ABANDONED_CARTS,
     BLOG_POSTS,
+    BLOG_CATEGORIES,
     CATEGORIES,
     CATEGORY_DISTRIBUTION,
     CHAT_MESSAGES,
@@ -1167,6 +1180,7 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
     itemsPerPage,
     localAbandonedCarts,
     localBlogPosts,
+    localBlogCategories,
     localCatalogPriceRules,
     localCategories,
     localCurrencies,
@@ -1239,6 +1253,8 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
     setLocalAbandonedCarts2,
     setLocalBlogPosts,
     setLocalBlogPosts2,
+    setLocalBlogCategories,
+    setLocalBlogCategories2,
     setLocalCategories,
     setLocalCurrencies,
     setLocalCustomerGroups,
@@ -1296,6 +1312,9 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
     totalCustomers,
     totalOrdersCount,
     totalSales,
+    addBlogCategory,
+    updateBlogCategory,
+    deleteBlogCategory,
     updateBlogPost,
     updateCatalogRule,
     updateCategory,

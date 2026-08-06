@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { collection, getDocs, query, limit, type QueryConstraint } from 'firebase/firestore';
 import type { BaseEntity } from '../../domain/entities/BaseEntity';
-import { getStaticEntityCacheKey, readCache, writeCache, getTTLForEntity } from '../utils/cacheStorage';
+import { getStaticEntityCacheKey, readCache, writeCache, getTTLForEntity, readEntityCache } from '../utils/cacheStorage';
 import { initFirebase } from '../../backend/firebase';
 
 interface UseStaticEntityOptions {
@@ -57,6 +57,9 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
       let cachedData: T[] | null = null;
       try {
         cachedData = await readCache<T[]>(cacheKey);
+        if (!cachedData) {
+          cachedData = await readEntityCache<T[]>(entityType);
+        }
       } catch (e) {
         cachedData = null;
       }
@@ -147,6 +150,7 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
+    // Mise à jour optimiste (patch en mémoire sans re-fetch)
     const onStaticEntityUpdate = (event: Event) => {
       const customEvent = event as CustomEvent<StaticEntityUpdatePayload<T>>;
       const detail = customEvent.detail;
@@ -164,9 +168,57 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
       }
     };
 
+    // Invalidation après create/update/delete : re-fetch immédiat depuis Firestore
+    const onStaticEntityInvalidate = (event: Event) => {
+      const customEvent = event as CustomEvent<{ entityType: string }>;
+      if (!customEvent.detail || customEvent.detail.entityType !== entityType) return;
+
+      hasFetchedFromNetwork.current = false;
+      setIsLoading(true);
+
+      const doRefetch = async () => {
+        try {
+          const { db: firestoreDb } = initFirebase();
+          let items: T[] = [];
+
+          if (firestoreDb) {
+            const finalConstraints: QueryConstraint[] = [...constraints];
+            const q =
+              finalConstraints.length > 0
+                ? query(collection(firestoreDb, entityType), ...finalConstraints)
+                : collection(firestoreDb, entityType);
+            const snapshot = await getDocs(q);
+            items = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })) as T[];
+          } else {
+            const res = await fetch(`/api/entity/${encodeURIComponent(entityType)}`).catch(() => null);
+            if (res && res.ok) {
+              const body = await res.json().catch(() => null);
+              items = Array.isArray(body) ? body : (body?.data || []);
+            }
+          }
+
+          if (items.length > 0) {
+            setData(items);
+            writeCache(cacheKey, items, getTTLForEntity(entityType));
+          }
+        } catch {
+          // Silencieux : on garde les données déjà affichées
+        } finally {
+          setIsLoading(false);
+          hasFetchedFromNetwork.current = true;
+        }
+      };
+
+      void doRefetch();
+    };
+
     window.addEventListener('staticEntity:update', onStaticEntityUpdate as EventListener);
-    return () => window.removeEventListener('staticEntity:update', onStaticEntityUpdate as EventListener);
-  }, [cacheKey, entityType]);
+    window.addEventListener('staticEntity:invalidate', onStaticEntityInvalidate as EventListener);
+    return () => {
+      window.removeEventListener('staticEntity:update', onStaticEntityUpdate as EventListener);
+      window.removeEventListener('staticEntity:invalidate', onStaticEntityInvalidate as EventListener);
+    };
+  }, [cacheKey, entityType, constraints]);
 
   return {
     data,

@@ -173,6 +173,8 @@ export interface Product {
   promoPrice?: number; // Added for strikethrough pricing
   category: string;
   image: string;
+  /** Galerie de sous-images optionnelles (vues supplémentaires du produit) */
+  images?: string[];
   description: string;
   stock: number;
   /** Alias of stock — kept for backward-compat with legacy data */

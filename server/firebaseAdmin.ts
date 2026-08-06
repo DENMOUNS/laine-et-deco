@@ -11,7 +11,7 @@ const maskEmail = (value?: string) => {
 
 function getServiceAccount() {
   const rawKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.trim();
-  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const privateKey = process.env.FIREBASE_PRIVATE_KEY;
 
@@ -31,10 +31,7 @@ function getServiceAccount() {
   }
 
   if (!rawKey) {
-    console.error('[firebaseAdmin] Missing Firebase service account configuration', envSummary);
-    throw new Error(
-      'FIREBASE_SERVICE_ACCOUNT_KEY or FIREBASE_PROJECT_ID/FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY is missing in environment variables.'
-    );
+    return null;
   }
 
   const normalizedRawKey =
@@ -64,20 +61,66 @@ function getServiceAccount() {
 const firebaseConfig = (config as any).default || config;
 // Prefer VITE_FIREBASE_STORAGE_BUCKET (set in env) for local/dev usage, fallback to FIREBASE_STORAGE_BUCKET or config
 const storageBucket = process.env.VITE_FIREBASE_STORAGE_BUCKET || process.env.FIREBASE_STORAGE_BUCKET || firebaseConfig.storageBucket;
-
-if (!firebaseAdmin.apps.length) {
-  firebaseAdmin.initializeApp({
-    credential: firebaseAdmin.credential.cert(getServiceAccount()),
-    storageBucket: storageBucket || undefined,
-  });
-}
-
+const projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || firebaseConfig.projectId;
 const databaseId =
   process.env.FIRESTORE_DATABASE_ID ||
+  process.env.VITE_FIRESTORE_DATABASE_ID ||
   firebaseConfig.firestoreDatabaseId ||
   '(default)';
 
-const db = getFirestore(firebaseAdmin.app(), databaseId);
-const auth = firebaseAdmin.auth();
+let initializationError: Error | null = null;
+export let db: any = null;
+export let auth: any = null;
 
-export { firebaseAdmin, db, auth };
+if (!firebaseAdmin.apps.length) {
+  const serviceAccount = getServiceAccount();
+
+  try {
+    if (serviceAccount) {
+      firebaseAdmin.initializeApp({
+        credential: firebaseAdmin.credential.cert(serviceAccount),
+        storageBucket: storageBucket || undefined,
+      });
+    } else {
+      firebaseAdmin.initializeApp({
+        projectId: projectId || undefined,
+        storageBucket: storageBucket || undefined,
+      });
+    }
+  } catch (error: any) {
+    initializationError = new Error('Firebase Admin initialization failed: ' + error?.message);
+    console.error('[firebaseAdmin] Initialization failed, retrying with application default credentials', error);
+
+    try {
+      firebaseAdmin.initializeApp({
+        credential: firebaseAdmin.credential.applicationDefault(),
+        projectId: projectId || undefined,
+        storageBucket: storageBucket || undefined,
+      });
+    } catch (fallbackError: any) {
+      initializationError = new Error('Firebase Admin initialization failed: ' + fallbackError?.message);
+      console.error('[firebaseAdmin] Application default credentials also failed', fallbackError);
+    }
+  }
+}
+
+if (firebaseAdmin.apps.length) {
+  try {
+    db = getFirestore(firebaseAdmin.app(), databaseId);
+    auth = firebaseAdmin.auth();
+  } catch (error: any) {
+    initializationError = new Error('Firebase Firestore/Auth initialization failed: ' + error?.message);
+    console.error('[firebaseAdmin] Firestore/Auth initialization failed', error);
+  }
+}
+
+if (!db || !auth) {
+  console.error('[firebaseAdmin] Firebase backend unavailable for API routes', {
+    projectId,
+    databaseId,
+    hasServiceAccount: Boolean(getServiceAccount()),
+    initializationError: initializationError?.message || null,
+  });
+}
+
+export { firebaseAdmin, initializationError };

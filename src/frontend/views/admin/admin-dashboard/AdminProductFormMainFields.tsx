@@ -22,10 +22,11 @@ import { cn } from '../../../utils/utils';
 import { AdminFlashSales } from '../AdminFlashSales';
 import { AdminLookbooks } from '../AdminLookbooks';
 import { AdminPortfolios } from '../AdminPortfolios';
-
-
+import { RichTextEditor } from '../../../components/ui/RichTextEditor';
 export function AdminProductFormMainFields({ ctx }: { ctx: any }) {
   const { ABANDONED_CARTS, ANALYTICS, BLOG_POSTS, CATEGORIES, CATEGORY_DISTRIBUTION, CHAT_MESSAGES, CITIES, CONVERSATIONS, COUPONS, CUSTOMER_GROUPS, DEVICE_DATA, EMAILS, EXPENSES, FAQS, LOGIN_LOGS, LOOKBOOK_POSTS, NAV_ITEMS, NOTIFICATIONS, ORDERS, PACKS, PRODUCTS, PROMO_EVENTS, PUSH_NOTIFICATIONS, REQUEST_LOGS, RETENTION_DATA, REVENUE_BY_PAYMENT, REVIEWS, SALES_DATA, SHIPPING_RULES, SUBSCRIBERS, TAX_RULES, TRAFFIC_SOURCES, USERS, activeMenuItem, activeTab, addBlogPost, addCatalogRule, addCategory, addCity, addCoupon, addCurrency, addCustomerGroup, addEvent, addExpense, addFAQ, addLocalRole, addLookbook, addNavItem, addPack, addProduct, addRMA, addReview, addShippingRule, addTaxRule, allOrders, averageOrderValue, catalogRulesWithDefaults, categoryPage, currentImage, currentSlug, currentUserDoc, customerDetailTab, customerFilter, deleteAbandonedCart, deleteCatalogRule, deleteCategory, deleteChatMessage, deleteCity, deleteConversation, deleteCoupon, deleteCurrency, deleteCustomerGroup, deleteEvent, deleteFAQ, deleteLocalRole, deleteLoginLog, deleteNavItem, deleteNotification, deleteOrder, deletePack, deleteProduct, deleteRequestLog, deleteReview, deleteShippingRule, deleteSiteConfig, deleteSubscriber, deleteTaxRule, deleteUser, editedOrder, editingItem, events, fetchedProducts, filteredMenuItems, formatDate, handleDeleteCatalogRule, handleDeleteCity, handleDeleteEvent, handleDeleteFAQ, handleEditCatalogRule, handleEditCity, handleEditCoupon, handleEditEvent, handleEditFAQ, handleFormSubmit, handleNotificationClick, handleSaveCatalogRule, handleSaveCity, handleSaveCoupon, handleSaveEvent, handleSaveFAQ, handleSearch, handleSeed, handleSendMessage, hasPermission, isAddModalOpen, isAuthLoading, isCatalogRuleEditorOpen, isCityEditorOpen, isCouponEditorOpen, isDataLoading, isEditingOrder, isEventEditorOpen, isFAQEditorOpen, isLoadingAbandoned, isLoadingBlog, isLoadingCatalog, isLoadingCategories, isLoadingCategoryDist, isLoadingDevice, isLoadingEmails, isLoadingExpenses, isLoadingGroups, isLoadingLookbook, isLoadingOrders, isLoadingPacks, isLoadingProducts, isLoadingPush, isLoadingRetention, isLoadingRevenue, isLoadingReviews, isLoadingRoles, isLoadingShipping, isLoadingSubscribers, isLoadingTax, isLoadingTraffic, isLogsLoading, isSaving, isSidebarOpen, isSuperAdmin, isTabAllowed, isUserCustomer, itemsPerPage, localAbandonedCarts, localBlogPosts, localCatalogPriceRules, localCategories, localCurrencies, localCustomerGroups, localExpenses, localLookbook, localNavItems, localOrders, localPacks, localProducts, localRMAs, localReviews, localRoles, localShippingRules, localSystemNotifications, localTaxRules, localUsers, logFilter, menuItems, messageInput, modalType, navItemsWithDefaults, newNote, newRMANote, notificationFilter, notificationPage, onNavigate, orderFilter, overviewOrderFilter, permissions, productFilter, propSetSiteConfig, propSiteConfig, rawSiteConfig, realLogs, requestLogFilter, reviewFilter, roleData, saveAllSiteConfig, saveSiteSection, searchResults, selectedCatalogRule, selectedCity, selectedConversation, selectedCoupon, selectedCustomer, selectedCustomerGroup, selectedEvent, selectedFAQ, selectedOrder, selectedPackProducts, setActiveTab, setCategoryPage, setCurrentImage, setCurrentSlug, setCustomerDetailTab, setCustomerFilter, setEditedOrder, setEditingItem, setEvents, setIsAddModalOpen, setIsCatalogRuleEditorOpen, setIsCityEditorOpen, setIsCouponEditorOpen, setIsEditingOrder, setIsEventEditorOpen, setIsFAQEditorOpen, setIsSaving, setIsSidebarOpen, setLocalAbandonedCarts, setLocalAbandonedCarts2, setLocalBlogPosts, setLocalBlogPosts2, setLocalCategories, setLocalCurrencies, setLocalCustomerGroups, setLocalCustomerGroups2, setLocalEmails, setLocalExpenses, setLocalLookbook, setLocalLookbook2, setLocalOrders, setLocalPacks, setLocalProducts, setLocalPushNotifications, setLocalReviews, setLocalReviews2, setLocalRole, setLocalRoles, setLocalShippingRules, setLocalShippingRules2, setLocalSubscribers, setLocalSystemNotifications, setLocalTaxRules, setLocalTaxRules2, setLocalUser, setLocalUsers, setLogFilter, setMessageInput, setModalType, setNewNote, setNewRMANote, setNotificationFilter, setNotificationPage, setOrderFilter, setOverviewOrderFilter, setProductFilter, setRequestLogFilter, setReviewFilter, setSearchResults, setSelectedCatalogRule, setSelectedCity, setSelectedConversation, setSelectedCoupon, setSelectedCustomer, setSelectedCustomerGroup, setSelectedEvent, setSelectedFAQ, setSelectedOrder, setSelectedPackProducts, setShowNotifications, setSiteConfig, setViewingCustomer, showNotifications, siteConfig, siteConfigs, sortByDate, stats, totalCustomers, totalOrdersCount, totalSales, totalVisitors, updateBlogPost, updateCatalogRule, updateCategory, updateCity, updateCoupon, updateCurrency, updateCustomerGroup, updateEvent, updateExpense, updateFAQ, updateLocalRole, updateLocalUser, updateLookbook, updateNavItem, updatePack, updateProduct, updateRMA, updateReview, updateShippingRule, updateSiteConfig, updateTaxRule, user, userRoleSlug, viewingCustomer } = ctx;
+  const [showBulkSpecsModal, setShowBulkSpecsModal] = React.useState(false);
+  const [bulkSpecsText, setBulkSpecsText] = React.useState('');
   return (
     <>
               {/* Main Content */}
@@ -45,7 +46,10 @@ export function AdminProductFormMainFields({ ctx }: { ctx: any }) {
                           defaultValue={editingItem?.name}
                           onChange={(e) => {
                             const val = e.target.value;
-                            const slug = val.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+                            const slug = val.toLowerCase()
+                              .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // retirer les accents
+                              .replace(/[^a-z0-9]+/g, '-')
+                              .replace(/(^-|-$)+/g, '');
                             setCurrentSlug(slug);
                           }}
                         />
@@ -64,13 +68,11 @@ export function AdminProductFormMainFields({ ctx }: { ctx: any }) {
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Description détaillée</label>
-                      <textarea 
+                      <RichTextEditor 
                         name="description"
-                        required
-                        className="w-full px-6 py-4 bg-secondary/50 border border-primary/10 rounded-2xl focus:outline-none focus:border-primary focus:bg-card text-primary transition-all h-48 resize-none" 
-                        placeholder="Décrivez votre produit, ses caractéristiques, ses avantages..."
-                        defaultValue={editingItem?.description}
-                      ></textarea>
+                        defaultValue={editingItem?.description || ''}
+                        className="w-full"
+                      />
                     </div>
                   </div>
                 </div>
@@ -147,19 +149,28 @@ export function AdminProductFormMainFields({ ctx }: { ctx: any }) {
                 </div>
 
                 <div className="bg-card p-8 rounded-3xl shadow-sm border border-primary/10 space-y-6">
-                  <div className="flex items-center justify-between border-b border-primary/5 pb-4">
+                  <div className="flex flex-wrap items-center justify-between gap-4 border-b border-primary/5 pb-4">
                     <h4 className="text-lg font-bold text-primary">Caractéristiques</h4>
-                    <button 
-                      type="button" 
-                      onClick={() => {
-                        const newSpecs = { ...(editingItem?.specs || {}) };
-                        newSpecs['Nouvelle_caracteristique_' + Date.now()] = '';
-                        setEditingItem(prev => ({ ...(prev || {}), specs: newSpecs }));
-                      }}
-                      className="text-xs font-bold uppercase tracking-widest text-primary/60 hover:text-primary transition-colors flex items-center gap-1"
-                    >
-                      <Plus size={14} /> Ajouter
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        type="button" 
+                        onClick={() => setShowBulkSpecsModal(true)}
+                        className="text-xs font-bold uppercase tracking-widest text-accent hover:text-accent/80 transition-colors flex items-center gap-1.5 bg-accent/10 px-3 py-1.5 rounded-xl border border-accent/20"
+                      >
+                        <FileText size={14} /> Coller en masse
+                      </button>
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          const newSpecs = { ...(editingItem?.specs || {}) };
+                          newSpecs['Nouvelle_caracteristique_' + Date.now()] = '';
+                          setEditingItem(prev => ({ ...(prev || {}), specs: newSpecs }));
+                        }}
+                        className="text-xs font-bold uppercase tracking-widest text-primary/60 hover:text-primary transition-colors flex items-center gap-1 bg-secondary/50 px-3 py-1.5 rounded-xl border border-primary/10"
+                      >
+                        <Plus size={14} /> Ajouter 1 à 1
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-4">
                     {Object.entries(editingItem?.specs || {}).map(([key, value], idx) => (
@@ -204,11 +215,89 @@ export function AdminProductFormMainFields({ ctx }: { ctx: any }) {
                     ))}
                     {Object.keys(editingItem?.specs || {}).length === 0 && (
                       <p className="text-sm text-primary/60 text-center italic py-4">
-                        Aucune caractéristique ajoutée. Parfait pour préciser le poids, les dimensions, la matière, etc.
+                        Aucune caractéristique ajoutée. Utilisez "Coller en masse" pour copier-coller toute votre liste d'un coup !
                       </p>
                     )}
                   </div>
                 </div>
+
+                {/* Bulk Specs Paste Modal */}
+                {showBulkSpecsModal && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
+                    <div className="bg-card w-full max-w-lg p-6 rounded-3xl border border-primary/10 shadow-2xl space-y-4">
+                      <div className="flex items-center justify-between border-b border-primary/10 pb-3">
+                        <h3 className="text-lg font-serif font-bold text-primary flex items-center gap-2">
+                          <FileText size={18} className="text-accent" /> Coller les Caractéristiques
+                        </h3>
+                        <button 
+                          type="button"
+                          onClick={() => setShowBulkSpecsModal(false)}
+                          className="p-1 text-primary/40 hover:text-primary transition-colors"
+                        >
+                          <X size={20} />
+                        </button>
+                      </div>
+
+                      <p className="text-xs text-primary/70 leading-relaxed">
+                        Collez ci-dessous vos caractéristiques au format <strong className="text-primary">Nom : Valeur</strong> (un élément par ligne). Les séparateurs admis sont le deux-points (<code className="bg-secondary px-1 py-0.5 rounded">:</code>), le tiret (<code className="bg-secondary px-1 py-0.5 rounded">-</code>) ou l'égal (<code className="bg-secondary px-1 py-0.5 rounded">=</code>).
+                      </p>
+
+                      <textarea
+                        rows={6}
+                        value={bulkSpecsText}
+                        onChange={(e) => setBulkSpecsText(e.target.value)}
+                        placeholder={`Exemple :\nMatière : 100% Laine Mérinos\nPoids : 100g\nLongueur - 200m\nOrigine = France`}
+                        className="w-full p-4 bg-secondary/50 border border-primary/10 rounded-2xl focus:outline-none focus:border-accent text-sm text-primary font-mono"
+                      />
+
+                      <div className="flex justify-end gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowBulkSpecsModal(false)}
+                          className="px-4 py-2.5 rounded-xl border border-primary/10 text-xs font-bold text-primary/70 hover:bg-secondary transition-colors"
+                        >
+                          Annuler
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!bulkSpecsText.trim()) return;
+                            const newSpecs = { ...(editingItem?.specs || {}) };
+                            const lines = bulkSpecsText.split('\n');
+                            let addedCount = 0;
+
+                            lines.forEach((line) => {
+                              const trimmed = line.replace(/^[•*\-\s]+/, '').trim();
+                              if (!trimmed) return;
+
+                              const match = trimmed.match(/^([^:\-=\t]+)[:\-=\t](.+)$/);
+                              if (match) {
+                                const key = match[1].trim();
+                                const val = match[2].trim();
+                                if (key && val) {
+                                  newSpecs[key] = val;
+                                  addedCount++;
+                                }
+                              }
+                            });
+
+                            if (addedCount > 0) {
+                              setEditingItem((prev: any) => ({ ...(prev || {}), specs: newSpecs }));
+                              toast.success(`${addedCount} caractéristique(s) ajoutée(s) !`);
+                              setBulkSpecsText('');
+                              setShowBulkSpecsModal(false);
+                            } else {
+                              toast.error('Format "Nom : Valeur" non détecté.');
+                            }
+                          }}
+                          className="px-5 py-2.5 rounded-xl bg-accent text-white text-xs font-bold shadow-lg hover:bg-accent/90 transition-all"
+                        >
+                          Générer les champs
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="bg-card p-8 rounded-3xl shadow-sm border border-primary/10 space-y-6">
                   <h4 className="text-lg font-bold text-primary border-b border-primary/5 pb-4">Optimisation SEO</h4>

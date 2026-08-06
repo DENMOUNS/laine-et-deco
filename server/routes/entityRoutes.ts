@@ -23,6 +23,18 @@ interface AuthenticatedRequest extends Request {
 
 const shortUid = (uid?: string) => uid ? `${uid.slice(0, 6)}...${uid.slice(-4)}` : 'none';
 
+const ensureFirebaseReady = (req: AuthenticatedRequest, res: Response) => {
+  if (!db || !auth) {
+    logEntity(req.requestId, 'firebase:unavailable', {
+      path: req.originalUrl,
+      method: req.method,
+    });
+    res.status(503).json({ error: 'Firebase backend unavailable' });
+    return false;
+  }
+  return true;
+};
+
 const logEntity = (requestId: string | undefined, message: string, meta: Record<string, unknown> = {}) => {
   console.info('[entity-api]', { requestId, message, ...meta });
 };
@@ -78,6 +90,7 @@ const PUBLIC_READ_COLLECTIONS = [
   'category',
   'pack',
   'blog_post',
+  'blog_category',
   'promo_event',
   'lookbook',
   'lookbook_post',
@@ -186,6 +199,10 @@ const verifyToken = async (
   res: Response,
   next: NextFunction
 ) => {
+  if (!ensureFirebaseReady(req, res)) {
+    return;
+  }
+
   try {
     const bearer = req.headers.authorization;
 
@@ -250,6 +267,10 @@ const resolveRole = async (
 // ==========================
 
 router.post('/:entity', verifyToken, resolveRole, async (req: any, res) => {
+  if (!ensureFirebaseReady(req, res)) {
+    return;
+  }
+
   const { entity } = req.params;
   const role = req.user?.role ?? null;
   const uid = req.user?.uid;
@@ -402,6 +423,10 @@ router.post('/:entity', verifyToken, resolveRole, async (req: any, res) => {
 // ==========================
 
 const updateEntityHandler = async (req: any, res: Response) => {
+  if (!ensureFirebaseReady(req, res)) {
+    return;
+  }
+
   const { entity, id } = req.params;
   const role = req.user.role;
   const uid = req.user.uid;
@@ -572,6 +597,10 @@ router.patch('/:entity/:id', verifyToken, resolveRole, updateEntityHandler);
 // ==========================
 
 router.delete('/:entity/:id', verifyToken, resolveRole, async (req: any, res) => {
+  if (!ensureFirebaseReady(req, res)) {
+    return;
+  }
+
   const { entity, id } = req.params;
   const role = req.user.role;
 
@@ -619,6 +648,10 @@ const optionalAuth = async (
 };
 
 const readEntity = async (req: any, res: any) => {
+  if (!ensureFirebaseReady(req, res)) {
+    return;
+  }
+
   const rawEntity = req.params?.entity as string | undefined;
   const entity = rawEntity?.trim() || String(req.path || '').split('/').filter(Boolean).pop() || undefined;
   const id = req.params?.id as string | undefined;

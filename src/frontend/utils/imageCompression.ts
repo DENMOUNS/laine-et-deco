@@ -54,14 +54,14 @@ export async function compressImageDataUrl(value: string, maxBytes = FIRESTORE_S
   const image = await loadImage(value);
   let width = image.naturalWidth || image.width;
   let height = image.naturalHeight || image.height;
-  let quality = 0.82;
+  let quality = 0.92;
   let output = value;
 
   for (let attempt = 0; attempt < 12; attempt += 1) {
-    const scale = Math.min(1, Math.sqrt(maxBytes / Math.max(byteLength(output), 1)) * 0.95);
+    const scale = Math.min(1, Math.sqrt(maxBytes / Math.max(byteLength(output), 1)) * 0.98);
     if (attempt > 0 || scale < 1) {
-      width = Math.max(320, Math.floor(width * scale));
-      height = Math.max(320, Math.floor(height * scale));
+      width = Math.max(480, Math.floor(width * scale));
+      height = Math.max(480, Math.floor(height * scale));
     }
 
     const canvas = document.createElement('canvas');
@@ -70,12 +70,15 @@ export async function compressImageDataUrl(value: string, maxBytes = FIRESTORE_S
     const ctx = canvas.getContext('2d');
     if (!ctx) return output;
 
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
     ctx.drawImage(image, 0, 0, width, height);
     const blob = await canvasToBlob(canvas, 'image/jpeg', quality);
     output = await blobToDataUrl(blob);
 
     if (byteLength(output) <= maxBytes) return output;
-    quality = Math.max(0.45, quality - 0.08);
+    quality = Math.max(0.65, quality - 0.05);
   }
 
   return output;

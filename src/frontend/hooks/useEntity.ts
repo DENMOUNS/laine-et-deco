@@ -9,7 +9,7 @@ interface UseEntityOptions {
   deps?: unknown[];
 }
 
-import { readCache, writeCache, getTTLForEntity } from '../utils/cacheStorage';
+import { readCache, writeCache, getTTLForEntity, readEntityCache, writeEntityCache } from '../utils/cacheStorage';
 
 const CACHEABLE_ENTITIES = [
   'product',
@@ -78,7 +78,7 @@ export function useEntity<T extends BaseEntity = BaseEntity>(
       let cacheTime: number | null = null;
       
       if (CACHEABLE_ENTITIES.includes(entityType)) {
-        cached = await readCache<T[]>(cacheKey);
+        cached = await readEntityCache<T[]>(entityType);
         if (cached && !cancelled) {
           setData(cached);
           setIsLoading(false);
@@ -137,7 +137,7 @@ export function useEntity<T extends BaseEntity = BaseEntity>(
           if (cancelled) return;
           setData(items);
           if (CACHEABLE_ENTITIES.includes(entityType)) {
-            writeCache(cacheKey, items, getTTLForEntity(entityType));
+            void writeEntityCache(entityType, items, getTTLForEntity(entityType));
           }
           setIsLoading(false);
           setError(null);

@@ -17,8 +17,16 @@ import {
 } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { initFirebase, handleFirestoreError, OperationType } from '../../backend/firebase';
-import { readCache, writeCache } from '../utils/cacheStorage';
+import { readCache, writeCache, getEntityCacheKeys, removeCache } from '../utils/cacheStorage';
 import type { BaseEntity } from '../../domain/entities/BaseEntity';
+
+/** Invalide toutes les clés de cache IDB pour une entité et notifie les listeners React. */
+async function invalidateEntityCache(entityType: string): Promise<void> {
+  await Promise.all(getEntityCacheKeys(entityType).map((key) => removeCache(key)));
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('staticEntity:invalidate', { detail: { entityType } }));
+  }
+}
 
 const PUBLIC_COLLECTIONS = [
   'product',
@@ -476,6 +484,8 @@ export const createFirestoreEntity = async <T extends BaseEntity>(
 
   try {
     const result = await entityApiRequest(entityType, 'POST', undefined, newItem);
+    // Invalider le cache immédiatement pour que la liste se rafraîchisse
+    await invalidateEntityCache(entityType);
     return result.id;
   } catch (err) {
     handleFirestoreError(err, OperationType.CREATE, entityType);
@@ -492,6 +502,8 @@ export const updateFirestoreEntity = async <T extends BaseEntity>(
 
   try {
     await entityApiRequest(entityType, 'PUT', id, updates);
+    // Invalider le cache immédiatement pour que la liste se rafraîchisse
+    await invalidateEntityCache(entityType);
   } catch (err) {
     handleFirestoreError(err, OperationType.UPDATE, `${entityType}/${id}`);
     throw err;
@@ -507,6 +519,8 @@ export const setFirestoreEntity = async <T extends BaseEntity>(
 
   try {
     await entityApiRequest(entityType, 'PUT', id, data);
+    // Invalider le cache immédiatement pour que la liste se rafraîchisse
+    await invalidateEntityCache(entityType);
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, `${entityType}/${id}`);
     throw err;
@@ -518,6 +532,8 @@ export const deleteFirestoreEntity = async (entityType: string, id: string): Pro
 
   try {
     await entityApiRequest(entityType, 'DELETE', id);
+    // Invalider le cache immédiatement pour que la liste se rafraîchisse
+    await invalidateEntityCache(entityType);
   } catch (err) {
     handleFirestoreError(err, OperationType.DELETE, `${entityType}/${id}`);
     throw err;

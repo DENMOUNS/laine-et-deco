@@ -22,6 +22,7 @@ import { cn } from '../../../utils/utils';
 import { AdminFlashSales } from '../AdminFlashSales';
 import { AdminLookbooks } from '../AdminLookbooks';
 import { AdminPortfolios } from '../AdminPortfolios';
+import { compressImageDataUrl } from '../../../utils/imageCompression';
 
 
 export function AdminProductFormSidebarFields({ ctx }: { ctx: any }) {
@@ -96,6 +97,90 @@ export function AdminProductFormSidebarFields({ ctx }: { ctx: any }) {
                     />
                   </div>
                   <p className="text-[10px] text-primary/60 text-center uppercase tracking-widest font-bold">L'image est uploadée depuis votre appareil</p>
+                </div>
+
+                <div className="bg-card p-8 rounded-3xl shadow-sm border border-primary/10 space-y-6">
+                  <div className="flex items-center justify-between border-b border-primary/5 pb-4">
+                    <div>
+                      <h4 className="text-lg font-bold text-primary">Galerie de sous-images</h4>
+                      <p className="text-xs text-primary/50 mt-0.5">Vues supplémentaires du produit — sélectionnez plusieurs à la fois</p>
+                    </div>
+                    <label className="text-xs font-bold uppercase tracking-widest text-accent hover:text-accent/80 transition-colors flex items-center gap-1.5 bg-accent/10 px-3 py-1.5 rounded-xl border border-accent/20 cursor-pointer">
+                      <Plus size={14} /> Ajouter des images
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        onChange={async (e) => {
+                          const files = Array.from(e.target.files || []);
+                          if (!files.length) return;
+                          toast.loading(`Compression de ${files.length} image(s)…`, { id: 'gallery-upload' });
+                          try {
+                            const dataUrls = await Promise.all(
+                              files.map((file) =>
+                                new Promise<string>((resolve, reject) => {
+                                  const reader = new FileReader();
+                                  reader.onloadend = async () => {
+                                    try {
+                                      const compressed = await compressImageDataUrl(reader.result as string);
+                                      resolve(compressed);
+                                    } catch { resolve(reader.result as string); }
+                                  };
+                                  reader.onerror = reject;
+                                  reader.readAsDataURL(file);
+                                })
+                              )
+                            );
+                            setEditingItem((prev: any) => ({
+                              ...prev,
+                              images: [...(prev?.images || []), ...dataUrls],
+                            }));
+                            toast.success(`${dataUrls.length} image(s) ajoutée(s) à la galerie`, { id: 'gallery-upload' });
+                          } catch {
+                            toast.error('Erreur lors de l\'upload', { id: 'gallery-upload' });
+                          }
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    {(editingItem?.images || []).map((imgUrl: string, idx: number) => (
+                      <div key={idx} className="relative group aspect-square rounded-xl overflow-hidden border border-primary/10 bg-secondary/30">
+                        <img
+                          src={imgUrl}
+                          alt={`Sous-image ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setEditingItem((prev: any) => ({
+                              ...prev,
+                              images: (prev?.images || []).filter((_: string, i: number) => i !== idx),
+                            }))
+                          }
+                          className="absolute top-1 right-1 bg-rose-500/90 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                          title="Supprimer"
+                        >
+                          <X size={12} strokeWidth={3} />
+                        </button>
+                        <div className="absolute bottom-1 left-1 bg-black/50 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                          #{idx + 1}
+                        </div>
+                      </div>
+                    ))}
+                    {(editingItem?.images?.length || 0) === 0 && (
+                      <div className="col-span-3 py-6 text-center">
+                        <ImageIcon size={32} className="mx-auto text-primary/20 mb-2" />
+                        <p className="text-xs text-primary/40 italic">
+                          Aucune sous-image. Cliquez sur "Ajouter des images" pour en sélectionner plusieurs d'un coup.
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="bg-card p-8 rounded-3xl shadow-sm border border-primary/10 space-y-6">

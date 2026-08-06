@@ -32,6 +32,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
 }) => {
   const [quantity, setQuantity] = useState(1);
   const [flyingDots, setFlyingDots] = useState<FlyingDot[]>([]);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   // Filter for similar products: same category, not the current product
   const recommendedProducts = allProducts
@@ -42,12 +43,33 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
     <div className="max-w-7xl mx-auto px-4 py-12">
       <div className="bg-card p-8 md:p-12 rounded-[3rem] border border-primary/5 shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-          <div className="relative">
-            <ImageWithFallback src={product.image} alt={product.name} className="w-full aspect-square object-cover rounded-3xl" loading="lazy" width={800} height={800} />
-            {product.isSale && (
-              <span className="absolute top-4 left-4 bg-accent text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest">
-                Promo
-              </span>
+          <div className="flex flex-col gap-4">
+            <div className="relative">
+              <ImageWithFallback src={selectedImage || product.image} alt={product.name} className="w-full aspect-square object-cover rounded-3xl transition-opacity duration-300" loading="lazy" width={800} height={800} />
+              {product.isSale && (
+                <span className="absolute top-4 left-4 bg-accent text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest">
+                  Promo
+                </span>
+              )}
+            </div>
+            {product.images && product.images.length > 0 && (
+              <div className="grid grid-cols-4 gap-4">
+                <button 
+                  onClick={() => setSelectedImage(product.image)}
+                  className={`relative rounded-xl overflow-hidden aspect-square border-2 ${selectedImage === product.image || !selectedImage ? 'border-accent shadow-md scale-95' : 'border-transparent hover:scale-95 transition-transform'}`}
+                >
+                  <ImageWithFallback src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                </button>
+                {product.images.map((img, idx) => (
+                  <button 
+                    key={idx}
+                    onClick={() => setSelectedImage(img)}
+                    className={`relative rounded-xl overflow-hidden aspect-square border-2 ${selectedImage === img ? 'border-accent shadow-md scale-95' : 'border-transparent hover:scale-95 transition-transform'}`}
+                  >
+                    <ImageWithFallback src={img} alt={`${product.name} ${idx + 1}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
             )}
           </div>
           <div className="space-y-6">
@@ -65,7 +87,28 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
               </p>
             </div>
             
-            <p className="text-primary/70 leading-relaxed">{product.description}</p>
+            {product.colors && product.colors.length > 0 && (
+              <div className="space-y-3">
+                <h4 className="font-bold text-primary uppercase text-xs tracking-widest">Couleurs disponibles</h4>
+                <div className="flex flex-wrap gap-2">
+                  {product.colors.map((color, idx) => (
+                    <div 
+                      key={idx} 
+                      className="w-8 h-8 rounded-full border border-primary/20 shadow-sm"
+                      style={{ backgroundColor: color }}
+                      title={color}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <div 
+              className="text-primary/80 leading-relaxed prose prose-sm max-w-none space-y-2" 
+              dangerouslySetInnerHTML={{ 
+                __html: product.description ? product.description.replace(/\n/g, '<br />') : '' 
+              }} 
+            />
             
             {product.specs && Object.keys(product.specs).length > 0 && (
               <div className="pt-6 border-t border-primary/5 space-y-4">
@@ -74,7 +117,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                   {Object.entries(product.specs).map(([key, value]) => (
                     <div key={key}>
                       <dt className="text-primary/50 uppercase text-[10px] tracking-wider mb-1 font-bold">{key}</dt>
-                      <dd className="font-medium text-primary">{value}</dd>
+                      <dd className="font-medium text-primary">{value as React.ReactNode}</dd>
                     </div>
                   ))}
                 </dl>
