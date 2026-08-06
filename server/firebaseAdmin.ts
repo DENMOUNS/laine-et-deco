@@ -84,10 +84,21 @@ export const ensureFirestoreConnection = async (attempts = 3, delayMs = 500) => 
       if (db && auth) return true;
     } catch (e: any) {
       initializationError = e;
+      console.error('[firebaseAdmin] ensureFirestoreConnection catch', {
+        attempt: i + 1,
+        attempts,
+        errorName: e?.name,
+        errorMessage: e?.message,
+        errorStack: e?.stack,
+      });
     }
     // exponential backoff
     await new Promise((r) => setTimeout(r, delayMs * Math.pow(2, i)));
   }
+  console.error('[firebaseAdmin] ensureFirestoreConnection failed after retries', {
+    attempts,
+    initializationError: initializationError?.message,
+  });
   return false;
 };
 

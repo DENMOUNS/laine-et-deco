@@ -29,7 +29,15 @@ export async function retryFirestoreOperation<T>(fn: () => Promise<T>, opts: Ret
     } catch (err) {
       lastError = err;
       // If not a transient error, rethrow immediately
-      if (!isTransientGrpcError(err)) throw err;
+      if (!isTransientGrpcError(err)) {
+        console.error('[firestoreRetry] non-transient error', {
+          attempt,
+          errorName: err?.name,
+          errorMessage: err?.message,
+          errorStack: err?.stack,
+        });
+        throw err;
+      }
 
       if (attempt === retries) break;
       const delay = Math.min(maxDelayMs, minDelayMs * Math.pow(factor, attempt));
@@ -39,6 +47,12 @@ export async function retryFirestoreOperation<T>(fn: () => Promise<T>, opts: Ret
     }
   }
 
+  console.error('[firestoreRetry] retries exhausted', {
+    retries,
+    lastErrorName: lastError?.name,
+    lastErrorMessage: lastError?.message,
+    lastErrorStack: lastError?.stack,
+  });
   throw lastError;
 }
 

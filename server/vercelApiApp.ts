@@ -42,7 +42,13 @@ const resolveUserRoleFromToken = async (token: string) => {
     }
 
     return role;
-  } catch {
+  } catch (error: any) {
+    console.error('[vercelApiApp] resolveUserRoleFromToken catch', {
+      tokenPrefix: token?.slice(0, 8),
+      errorName: error?.name,
+      errorMessage: error?.message,
+      errorStack: error?.stack,
+    });
     return null;
   }
 };

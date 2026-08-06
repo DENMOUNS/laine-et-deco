@@ -377,6 +377,12 @@ router.put('/order/status', verifyToken, resolveRole, async (req: any, res) => {
 
     return res.json({ message: 'Statut de commande mis à jour.', orderId, status });
   } catch (e: any) {
+    console.error('[dashboardRoutes] catch', {
+      location: 'update order status',
+      errorName: e?.name,
+      errorMessage: e?.message,
+      errorStack: e?.stack,
+    });
     return res.status(500).json({ error: e.message || 'Impossible de mettre à jour la commande.' });
   }
 });
@@ -401,6 +407,12 @@ router.post('/cities/reset', verifyToken, resolveRole, async (_req: any, res) =>
 
     return res.json({ message: 'Villes réinitialisées.' });
   } catch (e: any) {
+    console.error('[dashboardRoutes] catch', {
+      location: 'reset cities',
+      errorName: e?.name,
+      errorMessage: e?.message,
+      errorStack: e?.stack,
+    });
     return res.status(500).json({ error: e.message || 'Impossible de réinitialiser les villes.' });
   }
 });
@@ -417,6 +429,12 @@ router.post('/seed', verifyToken, resolveRole, async (_req: any, res) => {
     await seedDashboardData();
     return res.json({ message: 'Seed et migration exécutés.' });
   } catch (e: any) {
+    console.error('[dashboardRoutes] catch', {
+      location: 'seed',
+      errorName: e?.name,
+      errorMessage: e?.message,
+      errorStack: e?.stack,
+    });
     return res.status(500).json({ error: e.message || 'Impossible de lancer le seed.' });
   }
 });
@@ -451,6 +469,12 @@ router.get('/config/:collectionName/:id', verifyToken, resolveRole, async (req: 
     }
     return res.json({ id: snap.id, ...snap.data() });
   } catch (e: any) {
+    console.error('[dashboardRoutes] catch', {
+      location: 'get config by id',
+      errorName: e?.name,
+      errorMessage: e?.message,
+      errorStack: e?.stack,
+    });
     return res.status(500).json({ error: e.message || 'Impossible de lire la configuration.' });
   }
 });
@@ -489,6 +513,12 @@ router.put('/config/:collectionName/:id', verifyToken, resolveRole, async (req: 
     }, { merge: true });
     return res.json({ message: 'Configuration enregistrée.' });
   } catch (e: any) {
+    console.error('[dashboardRoutes] catch', {
+      location: 'put config by id',
+      errorName: e?.name,
+      errorMessage: e?.message,
+      errorStack: e?.stack,
+    });
     return res.status(500).json({ error: e.message || 'Impossible d\'enregistrer la configuration.' });
   }
 });
@@ -543,6 +573,12 @@ router.post('/send-push-notification', verifyToken, resolveRole, async (req: any
       message: `Notification envoyée à ${customersSnap.size} client(s)`,
     });
   } catch (e: any) {
+    console.error('[dashboardRoutes] catch', {
+      location: 'send push notification',
+      errorName: e?.name,
+      errorMessage: e?.message,
+      errorStack: e?.stack,
+    });
     return res.status(500).json({ error: e.message || 'Impossible d\'envoyer la notification' });
   }
 });
@@ -659,6 +695,12 @@ router.post('/stock/transaction', verifyToken, resolveRole, async (req: any, res
       return res.json({ message: 'Transaction de stock enregistrée', transaction: result.txDoc, product: result.product });
     }
   } catch (e: any) {
+    console.error('[dashboardRoutes] catch', {
+      location: 'stock transaction',
+      errorName: e?.name,
+      errorMessage: e?.message,
+      errorStack: e?.stack,
+    });
     return res.status(400).json({ error: e.message || 'Impossible d\'effectuer la transaction' });
   }
 });
@@ -695,6 +737,13 @@ router.get('/config/:type', verifyToken, resolveRole, async (req: any, res) => {
 
     return res.json({ id: snap.id, ...snap.data() });
   } catch (e: any) {
+    console.error('[dashboardRoutes] catch', {
+      location: 'get config by type',
+      type,
+      errorName: e?.name,
+      errorMessage: e?.message,
+      errorStack: e?.stack,
+    });
     return res.status(500).json({ error: e.message });
   }
 });
@@ -733,6 +782,13 @@ router.put('/config/:type', verifyToken, resolveRole, async (req: any, res) => {
     });
     return res.json({ message: 'Mis à jour avec succès' });
   } catch (e: any) {
+    console.error('[dashboardRoutes] catch', {
+      location: 'put config by type',
+      type,
+      errorName: e?.name,
+      errorMessage: e?.message,
+      errorStack: e?.stack,
+    });
     return res.status(500).json({ error: e.message });
   }
 });
@@ -770,6 +826,14 @@ router.get('/public/config/:collection/:docId', async (req, res) => {
 
     return res.json(data);
   } catch (e: any) {
+    console.error('[dashboardRoutes] catch', {
+      location: 'public config get',
+      collection,
+      docId,
+      errorName: e?.name,
+      errorMessage: e?.message,
+      errorStack: e?.stack,
+    });
     return res.json({}); // ← toujours du JSON, jamais de HTML
   }
 });
@@ -805,6 +869,13 @@ router.put('/config/:collection', verifyToken, resolveRole, async (req: any, res
     });
     return res.json({ message: 'Mis à jour' });
   } catch (e: any) {
+    console.error('[dashboardRoutes] catch', {
+      location: 'put config public',
+      collection,
+      errorName: e?.name,
+      errorMessage: e?.message,
+      errorStack: e?.stack,
+    });
     return res.status(500).json({ error: e.message });
   }
 });
@@ -825,6 +896,13 @@ router.post('/invoice/generate', verifyToken, resolveRole, async (req: any, res)
   try {
     order = await findOrderDoc(orderId);
   } catch (e: any) {
+    console.error('[dashboardRoutes] catch', {
+      location: 'findOrderDoc',
+      orderId,
+      errorName: e?.name,
+      errorMessage: e?.message,
+      errorStack: e?.stack,
+    });
     return res.status(500).json({ error: e.message || 'Impossible de charger la commande' });
   }
   
@@ -858,6 +936,12 @@ router.post('/invoice/generate', verifyToken, resolveRole, async (req: any, res)
 
     return res.json({ jobId, status: 'pending' });
   } catch (e: any) {
+    console.error('[dashboardRoutes] catch', {
+      location: 'invoice generate',
+      errorName: e?.name,
+      errorMessage: e?.message,
+      errorStack: e?.stack,
+    });
     return res.status(500).json({ error: e.message || 'Impossible de créer la tâche' });
   }
 });
@@ -887,6 +971,12 @@ router.get('/invoice/job/:jobId', verifyToken, resolveRole, async (req: any, res
       error: jobData.error,
     });
   } catch (e: any) {
+    console.error('[dashboardRoutes] catch', {
+      location: 'invoice job poll',
+      errorName: e?.name,
+      errorMessage: e?.message,
+      errorStack: e?.stack,
+    });
     return res.status(500).json({ error: e.message });
   }
 });
@@ -909,6 +999,12 @@ router.get('/public/config/qr_config/global', async (_req, res) => {
     }
     return res.json({ id: snap.id, ...snap.data() });
   } catch (e: any) {
+    console.error('[dashboardRoutes] catch', {
+      location: 'public qr config',
+      errorName: e?.name,
+      errorMessage: e?.message,
+      errorStack: e?.stack,
+    });
     return res.status(500).json({ error: e.message || 'Erreur lecture configuration QR.' });
   }
 });
