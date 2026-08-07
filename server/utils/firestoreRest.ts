@@ -1,4 +1,5 @@
 import * as crypto from 'node:crypto';
+import config from '../../firebase-applet-config.json';
 
 interface ServiceAccount {
   type: string;
@@ -15,6 +16,14 @@ interface AccessTokenCache {
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const FIRESTORE_SCOPE = 'https://www.googleapis.com/auth/datastore';
 let tokenCache: AccessTokenCache | null = null;
+const firebaseConfig = (config as any).default ?? config;
+
+const normalizeDatabaseId = (value?: string | null): string | null => {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed === '(default)') return null;
+  return trimmed;
+};
 
 const parseServiceAccount = (rawKey?: string): ServiceAccount | null => {
   if (!rawKey) return null;
@@ -58,8 +67,9 @@ const getProjectId = (): string => {
 
 const getDatabaseId = (): string => {
   return (
-    process.env.FIRESTORE_DATABASE_ID ||
-    process.env.VITE_FIRESTORE_DATABASE_ID ||
+    normalizeDatabaseId(process.env.FIRESTORE_DATABASE_ID) ||
+    normalizeDatabaseId(process.env.VITE_FIRESTORE_DATABASE_ID) ||
+    normalizeDatabaseId(firebaseConfig?.firestoreDatabaseId) ||
     '(default)'
   );
 };

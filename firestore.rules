@@ -13,6 +13,13 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/user/$(request.auth.uid)).data;
     }
 
+    function isCurrentUserOrMatchingEmailOrUid(userId) {
+      return isAuthenticated() &&
+        (request.auth.uid == userId ||
+          resource.data.uid == request.auth.uid ||
+          (request.auth.token.email != null && resource.data.email == request.auth.token.email));
+    }
+
     function hasRole(role) {
       return isAuthenticated() &&
         exists(/databases/$(database)/documents/user/$(request.auth.uid)) &&
@@ -281,7 +288,7 @@ service cloud.firestore {
     // ==========================================
     match /user/{userId} {
       allow read: if isSuperAdmin() || isAdmin() || isSupportClient() ||
-        (isAuthenticated() && request.auth.uid == userId);
+        isCurrentUserOrMatchingEmailOrUid(userId);
 
       allow create: if isSuperAdmin() ||
         // Auto-création à l'inscription (role forcé à 'customer')

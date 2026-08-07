@@ -31,12 +31,18 @@ function parseServiceAccount(rawKey?: string) {
 }
 
 const firebaseConfig = (config as any).default || config;
+const normalizeDatabaseId = (value?: string | null) => {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed === '(default)') return null;
+  return trimmed;
+};
 const storageBucket = process.env.VITE_FIREBASE_STORAGE_BUCKET || process.env.FIREBASE_STORAGE_BUCKET || firebaseConfig.storageBucket;
 const projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || firebaseConfig.projectId;
 const databaseId =
-  process.env.FIRESTORE_DATABASE_ID ||
-  process.env.VITE_FIRESTORE_DATABASE_ID ||
-  firebaseConfig.firestoreDatabaseId ||
+  normalizeDatabaseId(process.env.FIRESTORE_DATABASE_ID) ||
+  normalizeDatabaseId(process.env.VITE_FIRESTORE_DATABASE_ID) ||
+  normalizeDatabaseId(firebaseConfig.firestoreDatabaseId) ||
   '(default)';
 
 let initializationError: Error | null = null;

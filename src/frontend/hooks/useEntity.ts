@@ -11,11 +11,26 @@ interface UseEntityOptions {
 
 import { readCache, writeCache, getTTLForEntity, readEntityCache, writeEntityCache } from '../utils/cacheStorage';
 
+const ENTITY_TYPE_ALIASES: Record<string, string> = {
+  hero_banners: 'hero_banner',
+  nav_items: 'nav_item',
+  marquee_items: 'marquee_item',
+  products: 'product',
+  categories: 'category',
+  blog_posts: 'blog_post',
+  promo_events: 'promo_event',
+  flash_sales: 'flash_sale',
+  lookbook: 'lookbook_post',
+  lookbooks: 'lookbook_post',
+  lookbook_posts: 'lookbook_post',
+};
+
 const CACHEABLE_ENTITIES = [
   'product',
   'pack',
   'blog_post',
   'lookbook',
+  'lookbook_post',
   'category',
   'faq',
   'sales_data',
@@ -43,12 +58,15 @@ const CACHEABLE_ENTITIES = [
   'tax_rule'
 ];
 
+const resolveEntityType = (entityType: string) => ENTITY_TYPE_ALIASES[entityType] ?? entityType;
+
 export function useEntity<T extends BaseEntity = BaseEntity>(
   entityType: string,
   initialData: T[] = [],
   options: UseEntityOptions = {}
 ) {
-  const cacheKey = `entityCache:${entityType}`;
+  const resolvedEntityType = resolveEntityType(entityType);
+  const cacheKey = `entityCache:${resolvedEntityType}`;
   const isAdmin = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
   
   const [data, setData] = useState<T[]>(initialData);
@@ -105,7 +123,7 @@ export function useEntity<T extends BaseEntity = BaseEntity>(
           if (!firestoreDb) return;
           
           const q = query(
-            collection(firestoreDb, entityType),
+            collection(firestoreDb, resolvedEntityType),
             where('updatedAt', '>', new Date(cacheTime).toISOString())
           );
           
@@ -131,7 +149,7 @@ export function useEntity<T extends BaseEntity = BaseEntity>(
       if (cancelled) return;
 
       unsubscribe = subscribeToEntityCollection<T>(
-        entityType,
+        resolvedEntityType,
         { constraints },
         (items) => {
           if (cancelled) return;
@@ -166,16 +184,16 @@ export function useEntity<T extends BaseEntity = BaseEntity>(
   };
 
   const addEntity = async (newItem: EntityPayload<T>) =>
-    withService((svc) => svc.createFirestoreEntity<T>(entityType, newItem));
+    withService((svc) => svc.createFirestoreEntity<T>(resolvedEntityType, newItem));
 
   const updateEntity = async (id: string, updates: Partial<T>) =>
-    withService((svc) => svc.updateFirestoreEntity<T>(entityType, id, updates));
+    withService((svc) => svc.updateFirestoreEntity<T>(resolvedEntityType, id, updates));
 
   const setEntity = async (id: string, entityData: Partial<T>) =>
-    withService((svc) => svc.setFirestoreEntity<T>(entityType, id, entityData));
+    withService((svc) => svc.setFirestoreEntity(resolvedEntityType, id, entityData));
 
   const deleteEntity = async (id: string) =>
-    withService((svc) => svc.deleteFirestoreEntity(entityType, id));
+    withService((svc) => svc.deleteFirestoreEntity(resolvedEntityType, id));
 
   return {
     data,

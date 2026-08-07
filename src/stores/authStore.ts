@@ -77,8 +77,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 // If no doc by UID, try to find by email (may match an existing admin record)
                 if (currentUser.email) {
                   const { collection, query, where, getDocs } = await import('firebase/firestore');
-                  const q = query(collection(db, 'user'), where('email', '==', currentUser.email));
-                  const snaps = await getDocs(q);
+                  let snaps = await getDocs(query(collection(db, 'user'), where('email', '==', currentUser.email)));
+                  if (snaps.empty) {
+                    snaps = await getDocs(query(collection(db, 'user'), where('uid', '==', currentUser.uid)));
+                  }
+
                   if (!snaps.empty) {
                     const first = snaps.docs[0];
                     const profile = { id: first.id, ...first.data() };

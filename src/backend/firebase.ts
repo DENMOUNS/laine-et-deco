@@ -13,6 +13,13 @@ const firebaseConfig = ((config as FirebaseConfigInput).default ?? config) as Fi
 let app: FirebaseApp | null = null;
 let initialized = false;
 
+function normalizeDatabaseId(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed === '(default)') return null;
+  return trimmed;
+}
+
 export let db!: Firestore;
 export let auth!: Auth;
 
@@ -76,15 +83,11 @@ function ensureFirebaseInitialized() {
   try {
     app = initializeApp(firebaseConfig);
 
-    const envDatabaseId = import.meta.env.VITE_FIRESTORE_DATABASE_ID;
+    const envDatabaseId = normalizeDatabaseId(import.meta.env.VITE_FIRESTORE_DATABASE_ID);
     const databaseId =
-      typeof envDatabaseId === 'string' && envDatabaseId.trim() !== ''
-        ? envDatabaseId
-        : firebaseConfig.firestoreDatabaseId &&
-            typeof firebaseConfig.firestoreDatabaseId === 'string' &&
-            firebaseConfig.firestoreDatabaseId.trim() !== ''
-          ? firebaseConfig.firestoreDatabaseId
-          : '(default)';
+      envDatabaseId ||
+      normalizeDatabaseId(firebaseConfig.firestoreDatabaseId) ||
+      '(default)';
 
     // Cache mémoire uniquement : pas d'IndexedDB Firestore (meilleur LCP / Lighthouse).
     db = initializeFirestore(app, { localCache: memoryLocalCache() }, databaseId);

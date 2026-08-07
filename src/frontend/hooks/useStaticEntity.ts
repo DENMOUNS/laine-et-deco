@@ -12,6 +12,22 @@ interface UseStaticEntityOptions {
 
 const DEFAULT_LIMIT = 0;
 
+const ENTITY_TYPE_ALIASES: Record<string, string> = {
+  hero_banners: 'hero_banner',
+  nav_items: 'nav_item',
+  marquee_items: 'marquee_item',
+  products: 'product',
+  categories: 'category',
+  blog_posts: 'blog_post',
+  promo_events: 'promo_event',
+  flash_sales: 'flash_sale',
+  lookbook: 'lookbook_post',
+  lookbooks: 'lookbook_post',
+  lookbook_posts: 'lookbook_post',
+};
+
+const resolveEntityType = (entityType: string) => ENTITY_TYPE_ALIASES[entityType] ?? entityType;
+
 interface StaticEntityUpdatePayload<T> {
   entityType: string;
   fullData?: T[];
@@ -28,13 +44,28 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
   initialData: T[] = [],
   options: UseStaticEntityOptions = {}
 ) {
+  const resolvedEntityType = resolveEntityType(entityType);
   const [data, setData] = useState<T[]>(initialData);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const isMounted = useRef(true);
   const hasFetchedFromNetwork = useRef(false);
   const { enabled = true, constraints = [], deps = [] } = options;
-  const cacheKey = getStaticEntityCacheKey(entityType, constraints);
+  const cacheKey = getStaticEntityCacheKey(resolvedEntityType, constraints);
+
+  const getAuthHeaders = async () => {
+    const headers: Record<string, string> = {};
+    try {
+      const { auth } = initFirebase();
+      const token = await auth?.currentUser?.getIdToken();
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+    } catch {
+      // Ignore missing auth / token retrieval errors.
+    }
+    return headers;
+  };
 
   useEffect(() => {
     isMounted.current = true;
@@ -45,7 +76,7 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
 
   useEffect(() => {
     if (!enabled) {
-      setIsLoading(true);
+      setIsLoading(false);
       return;
     }
 
@@ -58,7 +89,7 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
       try {
         cachedData = await readCache<T[]>(cacheKey);
         if (!cachedData) {
-          cachedData = await readEntityCache<T[]>(entityType);
+          cachedData = await readEntityCache<T[]>(resolvedEntityType);
         }
       } catch (e) {
         cachedData = null;
@@ -94,8 +125,8 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
 
             const q =
               finalConstraints.length > 0
-                ? query(collection(firestoreDb, entityType), ...finalConstraints)
-                : collection(firestoreDb, entityType);
+                ? query(collection(firestoreDb, resolvedEntityType), ...finalConstraints)
+                : collection(firestoreDb, resolvedEntityType);
 
             // Timeout rapide de 1.5s sur le SDK Firestore client pour ne pas faire patienter l'utilisateur des minutes
             const fetchPromise = getDocs(q);
@@ -110,16 +141,44 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
             })) as T[];
           } catch {
             // En cas d'erreur de permissions ou de timeout, appel direct à l'API backend
-            const res = await fetch(`/api/entity/${encodeURIComponent(entityType)}`).catch(() => null);
+            const res = await fetch(`/api/entity/${encodeURIComponent(resolvedEntityType)}`, {
+              credentials: 'same-origin',
+              headers: await getAuthHeaders(),
+            }).catch(() => null);
             if (res && res.ok) {
               const body = await res.json().catch(() => null);
+              if (!body) {
+                const txt = await res.text().catch(() => null);
+                // eslint-disable-next-line no-console
+                console.warn('[useStaticEntity] empty JSON body from /api/entity (fallback after getDocs)', {
+                  entityType,
+                  status: res.status,
+                  statusText: res.statusText,
+                  text: txt,
+                  headers: Array.from(res.headers.entries()),
+                });
+              }
               items = Array.isArray(body) ? body : (body?.data || []);
             }
           }
         } else {
-          const res = await fetch(`/api/entity/${encodeURIComponent(entityType)}`).catch(() => null);
+          const res = await fetch(`/api/entity/${encodeURIComponent(resolvedEntityType)}`, {
+            credentials: 'same-origin',
+            headers: await getAuthHeaders(),
+          }).catch(() => null);
           if (res && res.ok) {
             const body = await res.json().catch(() => null);
+            if (!body) {
+              const txt = await res.text().catch(() => null);
+              // eslint-disable-next-line no-console
+              console.warn('[useStaticEntity] empty JSON body from /api/entity (no firestoreDb)', {
+                entityType,
+                status: res.status,
+                statusText: res.statusText,
+                text: txt,
+                headers: Array.from(res.headers.entries()),
+              });
+            }
             items = Array.isArray(body) ? body : (body?.data || []);
           }
         }
@@ -129,7 +188,7 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
         const finalData = items.length > 0 ? items : initialData;
         setData(finalData);
         if (items.length > 0) {
-          writeCache(cacheKey, items, getTTLForEntity(entityType));
+          writeCache(cacheKey, items, getTTLForEntity(resolvedEntityType));
         }
         setIsLoading(false);
         setError(null);
@@ -154,15 +213,17 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
     const onStaticEntityUpdate = (event: Event) => {
       const customEvent = event as CustomEvent<StaticEntityUpdatePayload<T>>;
       const detail = customEvent.detail;
-      if (!detail || detail.entityType !== entityType) return;
+      if (!detail) return;
+      const isMatching = detail.entityType === entityType || resolveEntityType(detail.entityType) === resolvedEntityType;
+      if (!isMatching) return;
 
       if (detail.fullData) {
         setData(detail.fullData);
-        writeCache(cacheKey, detail.fullData, getTTLForEntity(entityType));
+        writeCache(cacheKey, detail.fullData, getTTLForEntity(resolvedEntityType));
       } else if (detail.record) {
         setData((prev) => {
           const next = prev.map((item) => (item.id === detail.record?.id ? { ...item, ...detail.record } : item));
-          writeCache(cacheKey, next, getTTLForEntity(entityType));
+          writeCache(cacheKey, next, getTTLForEntity(resolvedEntityType));
           return next;
         });
       }
@@ -171,7 +232,9 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
     // Invalidation après create/update/delete : re-fetch immédiat depuis Firestore
     const onStaticEntityInvalidate = (event: Event) => {
       const customEvent = event as CustomEvent<{ entityType: string }>;
-      if (!customEvent.detail || customEvent.detail.entityType !== entityType) return;
+      if (!customEvent.detail) return;
+      const isMatching = customEvent.detail.entityType === entityType || resolveEntityType(customEvent.detail.entityType) === resolvedEntityType;
+      if (!isMatching) return;
 
       hasFetchedFromNetwork.current = false;
       setIsLoading(true);
@@ -185,21 +248,35 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
             const finalConstraints: QueryConstraint[] = [...constraints];
             const q =
               finalConstraints.length > 0
-                ? query(collection(firestoreDb, entityType), ...finalConstraints)
-                : collection(firestoreDb, entityType);
+                ? query(collection(firestoreDb, resolvedEntityType), ...finalConstraints)
+                : collection(firestoreDb, resolvedEntityType);
             const snapshot = await getDocs(q);
             items = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })) as T[];
           } else {
-            const res = await fetch(`/api/entity/${encodeURIComponent(entityType)}`).catch(() => null);
+            const res = await fetch(`/api/entity/${encodeURIComponent(resolvedEntityType)}`, {
+              credentials: 'same-origin',
+              headers: await getAuthHeaders(),
+            }).catch(() => null);
             if (res && res.ok) {
               const body = await res.json().catch(() => null);
+              if (!body) {
+                const txt = await res.text().catch(() => null);
+                // eslint-disable-next-line no-console
+                console.warn('[useStaticEntity] empty JSON body from /api/entity (invalidate refetch)', {
+                  entityType,
+                  status: res.status,
+                  statusText: res.statusText,
+                  text: txt,
+                  headers: Array.from(res.headers.entries()),
+                });
+              }
               items = Array.isArray(body) ? body : (body?.data || []);
             }
           }
 
           if (items.length > 0) {
             setData(items);
-            writeCache(cacheKey, items, getTTLForEntity(entityType));
+            writeCache(cacheKey, items, getTTLForEntity(resolvedEntityType));
           }
         } catch {
           // Silencieux : on garde les données déjà affichées

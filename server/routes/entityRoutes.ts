@@ -105,15 +105,16 @@ const sendPublicReadResponse = (res: Response, data: unknown) => {
 };
 
 const readPublicEntity = async (req: AuthenticatedRequest, res: Response, entity: string, id?: string) => {
-  const staleCache = await getPublicFallbackCache(entity, id);
+    const collectionName = resolvePublicCollectionName(entity);
+  const staleCache = await getPublicFallbackCache(collectionName, id);
 
   try {
     const result = id
-      ? await firestoreRestGetDocument(entity, id)
-      : await firestoreRestGetCollection(entity);
+      ? await firestoreRestGetDocument(collectionName, id)
+      : await firestoreRestGetCollection(collectionName);
 
-    await setPublicCache(entity, id, result);
-    logEntity(req.requestId, 'public:read:rest', { entity, id, source: 'rest' });
+    await setPublicCache(collectionName, id, result);
+    logEntity(req.requestId, 'public:read:rest', { entity, collectionName, id, source: 'rest' });
     return sendPublicReadResponse(res, result);
   } catch (restError: any) {
     logEntityError(req.requestId, 'public:read:rest-failed', restError, { entity, id });
@@ -161,10 +162,12 @@ router.use((req: AuthenticatedRequest, res, next) => {
     `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   req.startedAt = Date.now();
 
+  const entity = normalizeEntityName(req.params?.entity as string | undefined, req.path);
+
   logEntity(req.requestId, 'request:start', {
     method: req.method,
     path: req.originalUrl,
-    entity: req.params?.entity,
+    entity,
     hasAuth: Boolean(req.headers.authorization),
     contentLength: req.headers['content-length'] || '0',
     nodeEnv: process.env.NODE_ENV,
@@ -216,13 +219,24 @@ const PUBLIC_READ_COLLECTIONS = new Set([
   'badge',
   'city',
   'faq',
-  'announcement_banner',
-  'scrolling_banner',
-  'seo_page',
-  'custom_section_config',
-  'shipping_rule',
-  'tax_rule',
 ]);
+
+const PUBLIC_ENTITY_COLLECTION_ALIASES: Record<string, string> = {
+  hero_banners: 'hero_banner',
+  nav_items: 'nav_item',
+  marquee_items: 'marquee_item',
+  products: 'product',
+  categories: 'category',
+  blog_posts: 'blog_post',
+  blog_categories: 'blog_category',
+  promo_events: 'promo_event',
+  flash_sales: 'flash_sale',
+  lookbooks: 'lookbook_post',
+  lookbook: 'lookbook_post',
+  lookbook_posts: 'lookbook_post',
+};
+
+const resolvePublicCollectionName = (entity: string) => PUBLIC_ENTITY_COLLECTION_ALIASES[entity] ?? entity;
 
 const STAFF_READ_COLLECTIONS = new Set([
   'product',
@@ -833,14 +847,6 @@ const readEntity = async (req: any, res: any) => {
     return rejectInvalidEntity(res, req.params?.entity as string | undefined);
   }
 
-  logEntity(req.requestId, 'entity:resolve', {
-    entity,
-    id,
-    uid: shortUid(uid),
-    role,
-    path: req.originalUrl,
-  });
-
   try {
     // 1. Accès public universel pour les collections publiques (Bannières, Logos, Nav, Produits, etc.)
     if (PUBLIC_READ_COLLECTIONS.has(entity)) {
@@ -848,16 +854,23 @@ const readEntity = async (req: any, res: any) => {
       if (id) {
         const snap = await retryFirestoreOperation<any>(() => (db as any).collection(entity).doc(id).get());
         if (!snap.exists) return res.json(null);
+        // Diagnostic log: taille + aperçu avant envoi
+        // eslint-disable-next-line no-console
+        console.log('[entityRoutes] public read single', { requestId: req.requestId, entity, id: snap.id });
         return res.json({ id: snap.id, ...snap.data() });
       }
 
       const snap = await retryFirestoreOperation<any>(() => (db as any).collection(entity).get());
-      return res.json(
-        snap.docs.map((d: any) => ({
-          id: d.id,
-          ...d.data(),
-        }))
-      );
+      const docs = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+      // Diagnostic log: nombre de docs et aperçu du premier document envoyé
+      // eslint-disable-next-line no-console
+      console.log('[entityRoutes] public read list', {
+        requestId: req.requestId,
+        entity,
+        count: docs.length,
+        first: docs.length > 0 ? { id: docs[0].id } : null,
+      });
+      return res.json(docs);
     }
 
     // 2. Si non connecté pour une ressource privée
