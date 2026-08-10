@@ -6,7 +6,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
 import { doc, updateDoc, increment, query, where, getDoc, writeBatch, addDoc } from 'firebase/firestore';
 import { auth, db } from '../../../../backend/firebase';
-import { BADGES, ADMIN_ROLES as INITIAL_ADMIN_ROLES } from '../../../../constants';
+import { BADGES, ADMIN_ROLES as INITIAL_ADMIN_ROLES, INITIAL_CUSTOMER_GROUPS } from '../../../../constants';
 import { DataTable } from '../../../components/DataTable';
 import { TabFilter } from '../../../components/TabFilter';
 import { StatusBadge, getStatusStyles } from '../../../components/ui/StatusBadge';

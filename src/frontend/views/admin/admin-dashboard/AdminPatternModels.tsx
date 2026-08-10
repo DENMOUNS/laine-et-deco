@@ -63,7 +63,7 @@ export const AdminPatternModels: React.FC = () => {
     try {
       const compressed = await compressImage(file);
       const now = new Date().toISOString();
-      await addEntity({ id: crypto.randomUUID(), name: name.trim(), type, ...compressed, createdAt: now, updatedAt: now });
+      await addEntity({ id: crypto.randomUUID(), name: name.trim(), type, ...compressed, createdAt: now, updatedAt: now } as any);
       setName('');
       if (fileInputRef.current) fileInputRef.current.value = '';
       toast.success('Modèle enregistré et compressé sous 250 Ko.');

@@ -98,6 +98,8 @@ export interface BlogPost {
   image: string;
   date: string;
   author: string;
+  authorBio?: string;
+  tags?: string[];
   category: string;
   status?: 'active' | 'inactive';
   createdAt?: string;
@@ -435,6 +437,7 @@ export interface User {
   orders: number; // Only relevant for customers
   status?: 'active' | 'inactive';
   phone?: string;
+  whatsapp?: string;
   avatar?: string;
   password?: string; // In a real app, this wouldn't be here, but for mock CRUD
   passwordHistory?: string[]; // Array of timestamps when password was changed

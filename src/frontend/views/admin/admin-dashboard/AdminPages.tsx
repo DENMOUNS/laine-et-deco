@@ -1,8 +1,9 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
+import { Edit, Trash2, Search, Plus } from 'lucide-react';
 
 import { useEntity } from '../../../hooks/useEntity';
-import { PageContent } from '../../../../types';
+import { DataTable } from '../../../components/DataTable';
 import { toast } from 'sonner';
 
 function PageStatus({ item }: Readonly<{ item: PageContent }>) {
@@ -55,11 +56,12 @@ export function AdminPages({ ctx }: Readonly<{ ctx: any }>) {
   const handleSave = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
+      const payload = { ...formData, slug: formData.page };
       if (editingItem?.id) {
-        await updateEntity(editingItem.id, formData);
+        await updateEntity(editingItem.id, payload as any);
         toast.success('Page mise à jour');
       } else {
-        await createEntity(formData);
+        await createEntity(payload as any);
         toast.success('Nouvelle page ajoutée');
       }
       setIsModalOpen(false);
@@ -79,7 +81,7 @@ export function AdminPages({ ctx }: Readonly<{ ctx: any }>) {
 
   const handleEditItem = useCallback((item: PageContent) => {
     setEditingItem(item);
-    setFormData({ page: item.page, title: item.title, content: item.content, notes: item.notes || '', status: item.status });
+    setFormData({ page: item.page || item.slug || '', title: item.title, content: item.content, notes: item.notes || '', status: item.status });
     setIsModalOpen(true);
   }, []);
 
@@ -92,7 +94,7 @@ export function AdminPages({ ctx }: Readonly<{ ctx: any }>) {
     [deleteEntity]
   );
 
-  const columns = useMemo(
+  const columns: any[] = useMemo(
     () => [
       { header: 'Page', accessor: 'page' },
       { header: 'Titre', accessor: 'title' },

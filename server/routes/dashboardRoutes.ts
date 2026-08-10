@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { firebaseAdmin, db, auth } from '../firebaseAdmin';
-import * as constants from '../../src/constants';
-import { migrateCreatedAt, seedDashboardData } from '../dashboardSeed';
+import { firebaseAdmin, db, auth, ensureFirestoreConnection } from '../firebaseAdmin.js';
+import * as constants from '../../src/constants.js';
+import { migrateCreatedAt, seedDashboardData } from '../dashboardSeed.js';
 
 const router = Router();
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Download, X } from 'lucide-react';
 import { Button } from './ui/Button';
+import { toast } from 'sonner';
 
 interface InstallBannerProps {
   showInstallBanner: boolean;
@@ -9,6 +10,15 @@ interface InstallBannerProps {
 }
 
 export const InstallBanner: React.FC<InstallBannerProps> = ({ showInstallBanner, setShowInstallBanner }) => {
+  const handleInstallClick = () => {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    if (isIOS) {
+      toast.info("Sur iOS : appuyez sur le bouton de partage de votre navigateur, puis 'Sur l'écran d'accueil'.");
+    } else {
+      toast.info("Pour installer Laine et Déco, ouvrez le menu de votre navigateur (Chrome/Safari) et sélectionnez 'Installer l'application' ou 'Ajouter à l'écran d'accueil'.");
+    }
+  };
+
   return (
     <AnimatePresence>
       {showInstallBanner && (
@@ -33,6 +43,7 @@ export const InstallBanner: React.FC<InstallBannerProps> = ({ showInstallBanner,
                 variant="secondary"
                 size="sm"
                 aria-label="Installer l'application"
+                onClick={handleInstallClick}
                 className="text-xs font-bold bg-white text-primary px-4 py-2 rounded-full h-auto"
               >
                 Installer

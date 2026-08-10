@@ -545,7 +545,10 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
                 </div>
 
                 <button 
-                  onClick={() => setStep(2)}
+                  onClick={() => {
+                    setStep(2);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
                   className="w-full bg-[#5c5e46] text-white py-6 rounded-[2rem] font-bold hover:opacity-90 transition-all shadow-xl shadow-[#5c5e46]/20 text-lg"
                 >
                   Continuer vers le paiement
@@ -623,13 +626,19 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
 
                 <div className="flex gap-6">
                   <button 
-                    onClick={() => setStep(1)}
+                    onClick={() => {
+                      setStep(1);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
                     className="flex-grow bg-white text-primary border border-primary/10 py-6 rounded-[2rem] font-bold hover:bg-primary/5 transition-all text-lg"
                   >
                     Retour
                   </button>
                   <button 
-                    onClick={() => setStep(3)}
+                    onClick={() => {
+                      setStep(3);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
                     className="flex-grow bg-[#5c5e46] text-white py-6 rounded-[2rem] font-bold hover:opacity-90 transition-all shadow-xl shadow-[#5c5e46]/20 text-lg"
                   >
                     Définir la commande
@@ -671,72 +680,87 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
                     </Button>
                   </div>
                 ) : (
-                  <div className="bg-white rounded-[3rem] border border-primary/5 shadow-xl overflow-hidden relative">
+                  <div className="bg-white rounded-[3rem] border border-primary/10 shadow-xl overflow-hidden relative">
                     <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-accent to-[#5c5e46]" />
-                    <div className="p-10 space-y-8">
-                      <div className="flex items-center gap-4 border-b border-primary/5 pb-8">
-                        <div className="w-12 h-12 bg-primary/5 rounded-full flex items-center justify-center text-primary">
+                    <div className="p-8 sm:p-10 space-y-8">
+                      <div className="flex items-center gap-4 border-b border-primary/10 pb-6">
+                        <div className="w-12 h-12 bg-accent/10 rounded-2xl flex items-center justify-center text-accent">
                           <Package size={24} />
                         </div>
                         <div>
-                          <h3 className="text-xl font-serif font-bold text-primary">Prêt à valider ?</h3>
-                          <p className="text-sm text-primary/70">Vérifiez vos informations avant de confirmer.</p>
+                          <h3 className="text-xl font-serif font-bold text-primary">Récapitulatif de votre commande</h3>
+                          <p className="text-sm text-primary/70">Vérifiez vos informations et le total avant de valider.</p>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
-                        <div className="space-y-4 bg-secondary/30 p-6 rounded-3xl">
-                          <h4 className="flex items-center gap-2 text-[10px] font-bold tracking-widest text-primary/70 uppercase">
-                            <MapPin size={14} /> Adresse de livraison
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-3 bg-[#FDFBF7] p-6 rounded-[2rem] border border-primary/5">
+                          <h4 className="flex items-center gap-2 text-[11px] font-bold tracking-widest text-primary/70 uppercase">
+                            <MapPin size={14} className="text-accent" /> Adresse de livraison
                           </h4>
                           <div>
-                            <p className="font-serif text-lg font-bold text-primary">{formData.firstName} {formData.lastName}</p>
-                            <p className="text-primary/80 mt-1">{formData.address}</p>
-                            <p className="text-primary/80">{formData.city}</p>
+                            <p className="font-serif text-base font-bold text-primary">{formData.firstName} {formData.lastName}</p>
+                            <p className="text-primary/80 text-sm mt-1">{formData.address}</p>
+                            <p className="text-primary/80 text-sm">{formData.city}</p>
                             {formData.coordinates && (
-                              <p className="text-[10px] text-accent font-mono mt-3 bg-accent/10 px-3 py-1.5 rounded-lg inline-block border border-accent/20">
+                              <p className="text-[10px] text-accent font-mono mt-2 bg-accent/10 px-3 py-1 rounded-lg inline-block border border-accent/20">
                                 📍 GPS: {formData.coordinates}
                               </p>
                             )}
                           </div>
                         </div>
 
-                        <div className="space-y-4 bg-secondary/30 p-6 rounded-3xl">
-                          <h4 className="flex items-center gap-2 text-[10px] font-bold tracking-widest text-primary/70 uppercase">
-                            <Phone size={14} /> Contact
+                        <div className="space-y-3 bg-[#FDFBF7] p-6 rounded-[2rem] border border-primary/5">
+                          <h4 className="flex items-center gap-2 text-[11px] font-bold tracking-widest text-primary/70 uppercase">
+                            <Phone size={14} className="text-accent" /> Contact & Paiement
                           </h4>
-                          <div>
-                            <p className="text-primary/80 font-medium">{formData.phone}</p>
-                            <p className="text-primary/80 mt-1">{user?.email}</p>
+                          <div className="space-y-1">
+                            <p className="text-primary/90 text-sm font-medium">Tél: {formData.phone}</p>
+                            <p className="text-primary/80 text-sm">{user?.email}</p>
+                            <div className="pt-2 mt-2 border-t border-primary/5 flex items-center gap-2">
+                              <Truck size={16} className="text-accent" />
+                              <span className="text-xs font-bold text-primary">
+                                {formData.paymentMethod === 'delivery' ? 'Paiement à la livraison' : 'Paiement en ligne'}
+                              </span>
+                            </div>
                           </div>
                         </div>
+                      </div>
 
-                        <div className="md:col-span-2 space-y-4 bg-accent/5 p-6 rounded-3xl border border-accent/10">
-                          <h4 className="flex items-center gap-2 text-[10px] font-bold tracking-widest text-accent uppercase">
-                            <CreditCard size={14} /> Mode de paiement
-                          </h4>
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-accent">
-                              {formData.paymentMethod === 'delivery' ? <Truck size={24} /> : <CreditCard size={24} />}
+                      {/* Votre commande summary card */}
+                      <div className="bg-[#FDFBF7] p-6 rounded-[2.5rem] border border-accent/20 space-y-4">
+                        <h4 className="text-xs font-bold uppercase tracking-widest text-accent">Détails financiers</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between text-primary/80">
+                            <span>Sous-total ({cart.reduce((a, c) => a + c.quantity, 0)} articles)</span>
+                            <span className="font-medium">{subtotal.toLocaleString()} FCFA</span>
+                          </div>
+                          <div className="flex justify-between text-primary/80">
+                            <span>Frais de livraison</span>
+                            <span className="font-medium">{shipping === 0 ? 'Gratuit' : `${shipping.toLocaleString()} FCFA`}</span>
+                          </div>
+                          {discount > 0 && (
+                            <div className="flex justify-between text-emerald-600 font-medium">
+                              <span>Réduction</span>
+                              <span>-{discount.toLocaleString()} FCFA</span>
                             </div>
-                            <div>
-                              <p className="font-serif text-lg font-bold text-primary">
-                                {formData.paymentMethod === 'delivery' ? 'Paiement à la livraison' : 
-                                 formData.paymentMethod === 'mobile' ? 'Mobile Money' : 'Carte Bancaire'}
-                              </p>
-                              <p className="text-xs text-primary/70 mt-1">
-                                {formData.paymentMethod === 'delivery' ? 'Vous paierez en espèces lors de la réception.' : 'Paiement en ligne sécurisé.'}
-                              </p>
-                            </div>
+                          )}
+                          <div className="pt-3 border-t border-primary/10 flex justify-between items-baseline">
+                            <span className="font-serif font-bold text-lg text-primary">Total de la commande</span>
+                            <span className="font-serif font-bold text-2xl text-accent">{total.toLocaleString()} FCFA</span>
                           </div>
                         </div>
-                      </div></div>
+                      </div>
+                    </div>
                   </div>
                 )}
 
                 <div className="flex gap-6">
                   <button 
-                    onClick={() => setStep(2)}
+                    onClick={() => {
+                      setStep(2);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
                     className="flex-grow bg-white text-primary border border-primary/10 py-6 rounded-[2rem] font-bold hover:bg-primary/5 transition-all text-lg"
                   >
                     Retour
@@ -744,9 +768,16 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
                   <button 
                     onClick={handleSubmit} 
                     disabled={isSubmitting || !user}
-                    className="flex-grow bg-[#5c5e46] text-white py-6 rounded-[2rem] font-bold hover:opacity-90 transition-all shadow-xl shadow-[#5c5e46]/20 text-lg disabled:opacity-50"
+                    className="flex-grow bg-[#5c5e46] text-white py-6 rounded-[2rem] font-bold hover:opacity-90 transition-all shadow-xl shadow-[#5c5e46]/20 text-lg disabled:opacity-50 flex items-center justify-center gap-3"
                   >
-                    {isSubmitting ? 'Validation...' : 'Confirmer et payer'}
+                    {isSubmitting ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Validation en cours...</span>
+                      </>
+                    ) : (
+                      <span>Valider la commande</span>
+                    )}
                   </button>
                 </div>
               </motion.div>

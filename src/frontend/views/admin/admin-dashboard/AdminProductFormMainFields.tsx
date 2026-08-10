@@ -122,7 +122,7 @@ export function AdminProductFormMainFields({ ctx }: { ctx: any }) {
                           setEditingItem((prev: any) => {
                             const next = { ...(prev || {}), stock: val };
                             const colorMap = next.stockByColor || {};
-                            const totalColors = Object.values(colorMap).reduce((a: number, b: any) => a + Number(b || 0), 0);
+                            const totalColors = (Object.values(colorMap) as any[]).reduce((acc, val) => acc + Number(val || 0), 0);
                             if (totalColors > val) {
                               toast.error('Le total des quantités par couleur dépasse le stock total. Ajustez les quantités par couleur.');
                             }

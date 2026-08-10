@@ -2,6 +2,7 @@ import React from 'react';
 import { Scissors, ChevronRight, Trash2 } from 'lucide-react';
 import { KnittingProject } from '../../../types';
 import { Button } from '../ui/Button';
+import { StatusBadge } from '../ui/StatusBadge';
 
 interface DashboardProjectsProps {
   knittingProjects: KnittingProject[];

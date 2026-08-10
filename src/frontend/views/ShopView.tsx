@@ -29,7 +29,7 @@ interface FilterContentProps {
   CATEGORIES: any[];
   PRODUCTS: Product[];
   priceRange: number;
-  setPriceRange: (price: number) => void;
+  setPriceRange: React.Dispatch<React.SetStateAction<number>>;
   isPriceFilterActive: boolean;
   setIsPriceFilterActive: (active: boolean) => void;
   selectedCondition: string;

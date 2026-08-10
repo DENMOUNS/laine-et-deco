@@ -12,22 +12,37 @@ const maskEmail = (value?: string) => {
 
 function parseServiceAccount(rawKey?: string) {
   if (!rawKey) return null;
-  const normalizedRawKey =
-    (rawKey.startsWith("'") && rawKey.endsWith("'")) ||
-    (rawKey.startsWith('"') && rawKey.endsWith('"'))
-      ? rawKey.slice(1, -1)
-      : rawKey;
+  let normalizedRawKey = rawKey.trim();
+  if (
+    (normalizedRawKey.startsWith("'") && normalizedRawKey.endsWith("'")) ||
+    (normalizedRawKey.startsWith('"') && normalizedRawKey.endsWith('"'))
+  ) {
+    normalizedRawKey = normalizedRawKey.slice(1, -1).trim();
+  }
 
   try {
     const serviceAccount = JSON.parse(normalizedRawKey);
-    if (typeof serviceAccount.private_key === 'string') {
-      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+    if (serviceAccount && typeof serviceAccount === 'object') {
+      if (typeof serviceAccount.private_key === 'string') {
+        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+      }
+      return serviceAccount;
     }
-    return serviceAccount;
   } catch (err: any) {
-    console.error('[firebaseAdmin] Invalid FIREBASE_SERVICE_ACCOUNT_KEY JSON', { error: err?.message });
-    return null;
+    try {
+      const decoded = Buffer.from(normalizedRawKey, 'base64').toString('utf8');
+      const serviceAccount = JSON.parse(decoded);
+      if (serviceAccount && typeof serviceAccount === 'object') {
+        if (typeof serviceAccount.private_key === 'string') {
+          serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+        }
+        return serviceAccount;
+      }
+    } catch (err2: any) {
+      console.error('[firebaseAdmin] Invalid FIREBASE_SERVICE_ACCOUNT_KEY (JSON and base64 parsing failed):', err2?.message);
+    }
   }
+  return null;
 }
 
 const firebaseConfig = (config as any).default || config;
@@ -53,21 +68,22 @@ export let auth: any = null;
 let initialized = false;
 
 const initializeFirebase = async () => {
-  if (initialized) return;
-  initialized = true;
+  if (initialized && db && auth) return;
   const rawKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.trim();
   const serviceAccount = parseServiceAccount(rawKey) || undefined;
+  const resolvedProjectId = serviceAccount?.project_id || projectId;
 
   try {
     if (!firebaseAdmin.apps.length) {
       if (serviceAccount) {
         firebaseAdmin.initializeApp({
           credential: firebaseAdmin.credential.cert(serviceAccount as any),
+          projectId: resolvedProjectId || undefined,
           storageBucket: storageBucket || undefined,
         } as any);
       } else {
         firebaseAdmin.initializeApp({
-          projectId: projectId || undefined,
+          projectId: resolvedProjectId || undefined,
           storageBucket: storageBucket || undefined,
         } as any);
       }
@@ -82,16 +98,19 @@ const initializeFirebase = async () => {
       db.settings({ host: emulatorHost, ssl: false });
     }
     auth = firebaseAdmin.auth();
+    initializationError = null;
+    initialized = true;
   } catch (error: any) {
     initializationError = new Error('Firebase Admin initialization failed: ' + error?.message);
     console.error('[firebaseAdmin] Initialization failed', error);
-    // keep db/auth as null; ensureFirestoreConnection will retry later
     db = null;
     auth = null;
+    initialized = false;
   }
 };
 
-export const ensureFirestoreConnection = async (attempts = 3, delayMs = 500) => {
+export const ensureFirestoreConnection = async (attempts = 3, delayMs = 200) => {
+  if (db && auth) return true;
   for (let i = 0; i < attempts; i++) {
     try {
       await initializeFirebase();
@@ -103,17 +122,13 @@ export const ensureFirestoreConnection = async (attempts = 3, delayMs = 500) => 
         attempts,
         errorName: e?.name,
         errorMessage: e?.message,
-        errorStack: e?.stack,
       });
     }
-    // exponential backoff
-    await new Promise((r) => setTimeout(r, delayMs * Math.pow(2, i)));
+    if (i < attempts - 1) {
+      await new Promise((r) => setTimeout(r, delayMs * Math.pow(2, i)));
+    }
   }
-  console.error('[firebaseAdmin] ensureFirestoreConnection failed after retries', {
-    attempts,
-    initializationError: initializationError?.message,
-  });
-  return false;
+  return Boolean(db && auth);
 };
 
 export { firebaseAdmin, initializationError };

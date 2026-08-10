@@ -70,7 +70,7 @@ export function AdminMaintenanceConfig({ ctx }: { ctx: any }) {
               accessor: (c: MaintenanceModeConfig) => (
                 <div className="flex items-center gap-2">
                   {c.status !== 'active' && <button onClick={() => handleSetActive(c)} className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100"><CheckCircle2 size={16} /></button>}
-                  <button onClick={() => { setEditingItem(c); setFormData(c); setIsModalOpen(true); }} className="p-2 bg-primary/5 text-primary rounded-lg hover:bg-primary/10"><Edit size={16} /></button>
+                  <button onClick={() => { setEditingItem(c); setFormData(c as any); setIsModalOpen(true); }} className="p-2 bg-primary/5 text-primary rounded-lg hover:bg-primary/10"><Edit size={16} /></button>
                   <button onClick={() => { if(confirm('Supprimer ?')) deleteEntity(c.id!); }} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100"><Trash2 size={16} /></button>
                 </div>
               )

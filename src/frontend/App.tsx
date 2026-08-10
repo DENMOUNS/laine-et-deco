@@ -163,6 +163,7 @@ export function App() {
 
   const initAuthListener = useAuthStore((s) => s.initAuthListener);
   const networkWarningShownRef = useRef(false);
+  const offlineTimestampRef = useRef<number | null>(null);
 
   useEffect(() => {
     const handleNetworkIssue = (event: Event) => {
@@ -176,19 +177,37 @@ export function App() {
       networkWarningShownRef.current = true;
       toast.warning(getNetworkWarningMessage(isOffline), {
         duration: 6000,
+        closeButton: true,
       });
     };
 
     const handleOnline = () => {
+      const offlineAt = offlineTimestampRef.current;
+      offlineTimestampRef.current = null;
+
+      const elapsedMs = offlineAt ? Date.now() - offlineAt : 0;
+      const FIVE_MINUTES_MS = 5 * 60 * 1000;
+
+      if (offlineAt && elapsedMs > FIVE_MINUTES_MS) {
+        toast.info("Connexion rétablie après plus de 5 minutes. Actualisation de la page...", { closeButton: true });
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+        return;
+      }
+
       if (!networkWarningShownRef.current) {
         return;
       }
 
       networkWarningShownRef.current = false;
-      toast.success('Connexion rétablie. Le site peut reprendre son fonctionnement normal.');
+      toast.success('Connexion rétablie.', { closeButton: true });
     };
 
     const handleOffline = () => {
+      if (!offlineTimestampRef.current) {
+        offlineTimestampRef.current = Date.now();
+      }
       dispatchNetworkIssue(true);
     };
 
@@ -231,7 +250,7 @@ export function App() {
 
   return (
     <>
-      <Toaster position="top-center" />
+      <Toaster position="top-center" duration={5000} closeButton />
       <Suspense fallback={<RouteFallback />}>
         <AppRoutes />
       </Suspense>

@@ -22,6 +22,7 @@ export const TAX_RULES: any[] = [];
 export const CATALOG_PRICE_RULES: any[] = [];
 export const CURRENCIES: any[] = [];
 export const CUSTOMER_GROUPS: any[] = [];
+export const INITIAL_CUSTOMER_GROUPS = CUSTOMER_GROUPS;
 export const NOTIFICATIONS: any[] = [];
 export const CHAT_MESSAGES: any[] = [];
 export const CONVERSATIONS: any[] = [];
@@ -34,5 +35,6 @@ export const ABANDONED_CARTS: any[] = [];
 export const INITIAL_CITIES: any[] = [];
 export const USERS: any[] = [];
 export const ORDERS: any[] = [];
+export const INITIAL_NAV_ITEMS = NAV_ITEMS;
 
 export default {};

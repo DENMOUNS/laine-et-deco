@@ -41,7 +41,7 @@ export const useCartStore = create<CartState>((set, get) => ({
       const spaceLeft = Math.max(0, availability.total - currentQty);
       
       if (spaceLeft <= 0) {
-        sonnerToast.error(`Désolé, la limite disponible (${availability.total}) est atteinte pour ${product.name}.`);
+        sonnerToast.error(`Désolé, la limite disponible (${availability.total}) est atteinte pour ${product.name}.`, { closeButton: true });
         return state;
       }
 
@@ -71,9 +71,9 @@ export const useCartStore = create<CartState>((set, get) => ({
       }
       persistCart(newCart);
       if (qtyToAdd < quantity) {
-        sonnerToast.warning(`Seulement ${qtyToAdd} exemplaire(s) de ${product.name} ajouté(s) (limite de stock).`);
+        sonnerToast.warning(`Seulement ${qtyToAdd} exemplaire(s) de ${product.name} ajouté(s) (limite de stock).`, { closeButton: true });
       } else {
-        sonnerToast.success(`${product.name} ajouté au panier !`);
+        sonnerToast.success(`${product.name} ajouté au panier !`, { closeButton: true });
       }
       return { cart: newCart };
     });
@@ -87,7 +87,7 @@ export const useCartStore = create<CartState>((set, get) => ({
       const availability = getProductAvailability(product, configuration.color);
       const qtyToAdd = Math.min(quantity, Math.max(0, availability.total - currentQty));
       if (qtyToAdd <= 0) {
-        sonnerToast.error(`La laine ${product.name} n'est pas disponible dans cette couleur.`);
+        sonnerToast.error(`La laine ${product.name} n'est pas disponible dans cette couleur.`, { closeButton: true });
         return state;
       }
       const item: CartItem = {
@@ -97,7 +97,7 @@ export const useCartStore = create<CartState>((set, get) => ({
       };
       const newCart = existingIndex >= 0 ? state.cart.map((entry, index) => index === existingIndex ? item : entry) : [...state.cart, item];
       persistCart(newCart);
-      sonnerToast.success(`${configuration.modelName} ajouté au panier.`);
+      sonnerToast.success(`${configuration.modelName} ajouté au panier.`, { closeButton: true });
       return { cart: newCart };
     });
   },
@@ -112,7 +112,7 @@ export const useCartStore = create<CartState>((set, get) => ({
             newQty = Math.min(newQty, availability.total);
             const fulfillment = getFulfillment(item.product, newQty);
             if (newQty < item.quantity + delta) {
-               sonnerToast.error(`Limite de stock atteinte pour ${item.product.name}.`);
+               sonnerToast.error(`Limite de stock atteinte pour ${item.product.name}.`, { closeButton: true });
             }
             return { ...item, quantity: newQty, ...fulfillment };
           }
@@ -163,7 +163,7 @@ export const useCartStore = create<CartState>((set, get) => ({
       persistCart(newCart);
       return { cart: newCart };
     });
-    sonnerToast.success(`Pack ${pack.name} ajouté au panier !`);
+    sonnerToast.success(`Pack ${pack.name} ajouté au panier !`, { closeButton: true });
   },
 
   clearCart: () => {

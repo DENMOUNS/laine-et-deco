@@ -11,6 +11,7 @@ import { auth, db } from './server/firebaseAdmin.js';
 import entityRoutes from './server/routes/entityRoutes';
 import dashboardRoutes from './server/routes/dashboardRoutes';
 import storageRoutes from './server/routes/storageRoutes';
+import checkoutRoutes from './server/routes/checkoutRoutes.js';
 import { logWriteRequests } from './server/utils/requestLogger.js';
 
 async function startServer() {
@@ -89,6 +90,19 @@ async function startServer() {
 
   app.use(express.json({ limit: '10mb' }));
   app.use(logWriteRequests);
+
+  // Auto-connect Firebase middleware
+  app.use(async (_req: any, _res: any, next: any) => {
+    if (db && auth) return next();
+    try {
+      const { ensureFirestoreConnection } = await import('./server/firebaseAdmin.js');
+      await ensureFirestoreConnection(2, 200);
+    } catch (e) {
+      console.error('[server] Firebase auto-connect failed:', e);
+    }
+    next();
+  });
+
   app.use('/api/', attachAuthRole);
   app.use("/api/", apiLimiter);
   const invoiceDir = path.join(process.cwd(), 'public', 'invoices');
@@ -99,6 +113,8 @@ async function startServer() {
   app.use('/api/entity', entityRoutes);
   app.use('/api/dashboard', dashboardRoutes);
   app.use('/api/storage', storageRoutes);
+  app.use('/api/checkout', checkoutRoutes);
+  app.use('/checkout', checkoutRoutes);
 
   // Test route to verify API routing works
   app.get('/api/test', (_req, res) => {

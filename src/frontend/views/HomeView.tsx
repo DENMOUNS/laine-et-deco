@@ -373,7 +373,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
             {!isHeroLoading && HERO_SLIDES.length > 0 && currentHeroSlide?.title && (
               <motion.div key={currentSlide} className="mb-8 animate-hero-fade-in">
                 {currentHeroSlide.subtitle && (
-                  <span className="inline-block text-xs font-bold uppercase tracking-[0.3em] mb-4 text-white/90">
+                  <span className="block text-xs sm:text-sm font-bold uppercase tracking-[0.2em] sm:tracking-[0.3em] mb-4 text-white/90 leading-relaxed max-w-2xl whitespace-normal break-words">
                     {currentHeroSlide.subtitle}
                   </span>
                 )}
@@ -384,7 +384,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
             )}
 
             {/* Static Controls */}
-            <div className="max-w-3xl mt-16 mb-12 relative z-50" ref={searchContainerRef}>
+            <div className="max-w-3xl mt-8 sm:mt-16 mb-6 sm:mb-12 relative z-50" ref={searchContainerRef}>
               <form onSubmit={handleSearch} className="relative group">
                 {/* ... search input ... */}
                 <label htmlFor="home-search" className="sr-only">
@@ -401,7 +401,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => setIsSearchFocused(true)}
                   autoComplete="off"
-                  className={`w-full backdrop-blur-2xl border rounded-full py-4 sm:py-6 pl-14 sm:pl-16 pr-32 sm:pr-48 text-base sm:text-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-white transition-all shadow-2xl relative z-0 ${
+                  className={`w-full backdrop-blur-2xl border rounded-full py-3.5 sm:py-6 pl-14 sm:pl-16 pr-32 sm:pr-48 text-base sm:text-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-white transition-all shadow-2xl relative z-0 ${
                     isSearchFocused 
                       ? 'bg-white/95 border-white text-primary placeholder:text-primary' 
                       : 'bg-white/10 border-white/20 text-white placeholder:text-white hover:bg-white/15'
@@ -448,11 +448,11 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
               </form>
 
               {/* ... tracking ... */}
-              <div className="mt-6 flex flex-col items-center sm:items-start">
+              <div className="mt-4 sm:mt-6 flex flex-col items-center sm:items-start">
                 {!isTrackingExpanded ? (
                   <button 
                     onClick={() => setIsTrackingExpanded(true)}
-                    className="flex items-center gap-2 text-white/90 hover:text-accent transition-all text-sm font-bold uppercase tracking-widest bg-white/5 px-6 py-3 rounded-full backdrop-blur-2xl border border-white/10 hover:bg-white/10 hover:scale-105 active:scale-95 shadow-xl"
+                    className="flex items-center gap-2 text-white/90 hover:text-accent transition-all text-sm font-bold uppercase tracking-widest bg-white/5 px-6 py-2.5 sm:py-3 rounded-full backdrop-blur-2xl border border-white/10 hover:bg-white/10 hover:scale-105 active:scale-95 shadow-xl"
                   >
                     <Package size={16} />
                     Suivre ma commande
@@ -461,7 +461,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                   <motion.div 
                     initial={{ opacity: 0, scale: 0.9, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
-                    className="bg-white/5 backdrop-blur-3xl border border-white/10 p-8 rounded-[2.5rem] w-full max-w-md relative shadow-2xl"
+                    className="bg-white/5 backdrop-blur-3xl border border-white/10 p-6 sm:p-8 rounded-[2.5rem] w-full max-w-md relative shadow-2xl"
                   >
                     <button 
                       aria-label="Fermer le suivi de commande"
@@ -609,13 +609,13 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
             </div>
 
             {!isHeroLoading && currentHeroSlide && (
-              <div className="flex flex-wrap gap-6 pt-4">
+              <div className="flex flex-wrap gap-4 pt-2">
                 <button 
                   onClick={() => onNavigate(currentHeroSlide.link || 'shop')}
-                  className="bg-white text-slate-900 px-12 py-5 rounded-full font-bold hover:bg-accent hover:text-white transition-all duration-300 flex items-center group shadow-xl animate-shine"
+                  className="bg-white text-slate-900 px-8 sm:px-12 py-3.5 sm:py-5 rounded-full font-bold hover:bg-accent hover:text-white transition-all duration-300 flex items-center group shadow-xl animate-shine text-sm sm:text-base"
                 >
                   {currentHeroSlide.ctaText || 'Découvrir la boutique'}
-                  <ArrowRight className="ml-3 group-hover:translate-x-1 transition-transform" size={24} />
+                  <ArrowRight className="ml-3 group-hover:translate-x-1 transition-transform" size={20} />
                 </button>
               </div>
             )}
@@ -655,7 +655,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
           <motion.div
             animate={{ y: [0, 6, 0] }}
             transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
-            className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1 text-white/70 hover:text-white cursor-pointer"
+            className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 hidden sm:flex flex-col items-center gap-1 text-white/70 hover:text-white cursor-pointer"
             onClick={() => window.scrollTo({ top: window.innerHeight * 0.7, behavior: 'smooth' })}
             title="Découvrir la suite de la boutique"
           >
@@ -846,45 +846,51 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
       </section>
 
       {/* Featured Slider */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-slate-50 rounded-[3rem] p-12 md:p-20 overflow-hidden relative">
-          <div className="flex flex-col md:flex-row items-center gap-12">
-            <div className="w-full md:w-1/2 space-y-6">
-              <span className="text-xs font-bold uppercase tracking-widest text-accent">Produit Vedette</span>
-              <h2 className="text-4xl md:text-5xl font-serif text-primary leading-tight">Laine Mérinos <br/> Extra Fine</h2>
-              <p className="text-primary/70 text-lg">Une douceur incomparable pour vos créations les plus précieuses. Disponible en 12 coloris naturels.</p>
-            </div>
-            <div className="w-full md:w-1/2 relative">
-              <motion.div 
-                animate={{ y: [0, -20, 0] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                className="relative z-10"
-              >
-                <img 
-                  src="https://picsum.photos/seed/merino-slider/800/800" 
-                  alt="Featured" 
-                  className="w-full aspect-square object-cover rounded-[3rem] shadow-2xl"
-                  referrerPolicy="no-referrer"
-                  loading="lazy"
-                  width="800"
-                  height="800"
-                />
-                <div className="absolute bottom-6 left-6 right-6 sm:bottom-8 sm:left-8 sm:right-8 bg-white/90 backdrop-blur-md p-4 sm:p-6 rounded-3xl flex flex-col sm:flex-row items-center justify-between shadow-xl gap-4">
-                  <span className="text-2xl font-bold text-primary">82 000 FCFA</span>
-                  <Button 
-                    onClick={() => onNavigate('shop')}
-                    className="w-full sm:w-auto px-6 py-3 text-sm"
-                  >
-                    Acheter maintenant
-                  </Button>
+      {(() => {
+        const featuredProduct = PRODUCTS.find(p => siteConfig.homeFeaturedProducts?.includes(p.id)) || PRODUCTS[0];
+        if (!featuredProduct) return null;
+        return (
+          <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-slate-50 rounded-[3rem] p-12 md:p-20 overflow-hidden relative">
+              <div className="flex flex-col md:flex-row items-center gap-12">
+                <div className="w-full md:w-1/2 space-y-6">
+                  <span className="text-xs font-bold uppercase tracking-widest text-accent">Produit Vedette</span>
+                  <h2 className="text-4xl md:text-5xl font-serif text-primary leading-tight">{featuredProduct.name}</h2>
+                  <p className="text-primary/70 text-lg line-clamp-3">{featuredProduct.description || "Une création d'exception pour vos projets les plus précieux."}</p>
                 </div>
-              </motion.div>
-              <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
-              <div className="absolute -top-10 -left-10 w-48 h-48 bg-primary/5 rounded-full blur-2xl" />
+                <div className="w-full md:w-1/2 relative">
+                  <motion.div 
+                    animate={{ y: [0, -20, 0] }}
+                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                    className="relative z-10"
+                  >
+                    <ImageWithFallback 
+                      src={optimizeImageUrl(featuredProduct.image, 800)} 
+                      alt={featuredProduct.name} 
+                      className="w-full aspect-square object-cover rounded-[3rem] shadow-2xl"
+                      referrerPolicy="no-referrer"
+                      loading="lazy"
+                      width={800}
+                      height={800}
+                    />
+                    <div className="absolute bottom-6 left-6 right-6 sm:bottom-8 sm:left-8 sm:right-8 bg-white/90 backdrop-blur-md p-4 sm:p-6 rounded-3xl flex flex-col sm:flex-row items-center justify-between shadow-xl gap-4">
+                      <span className="text-2xl font-bold text-primary">{featuredProduct.price.toLocaleString()} FCFA</span>
+                      <Button 
+                        onClick={() => onProductClick(featuredProduct)}
+                        className="w-full sm:w-auto px-6 py-3 text-sm"
+                      >
+                        Voir le produit
+                      </Button>
+                    </div>
+                  </motion.div>
+                  <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
+                  <div className="absolute -top-10 -left-10 w-48 h-48 bg-primary/5 rounded-full blur-2xl" />
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      </section>
+          </section>
+        );
+      })()}
 
       {/* Features */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

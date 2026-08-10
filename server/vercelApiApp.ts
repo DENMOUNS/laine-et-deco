@@ -76,6 +76,18 @@ const attachAuthRole = async (req: any, _res: any, next: any) => {
 
 app.use(express.json({ limit: '10mb' }));
 app.use(logWriteRequests);
+
+// Middleware de garantie d'initialisation Firebase pour Vercel Serverless
+app.use(async (_req: any, _res: any, next: any) => {
+  if (db && auth) return next();
+  try {
+    await ensureFirestoreConnection(2, 200);
+  } catch (e) {
+    console.error('[vercelApiApp] Firebase auto-connect attempt failed:', e);
+  }
+  next();
+});
+
 app.use('/api/', attachAuthRole);
 
 const apiLimiter = rateLimit({
@@ -97,6 +109,7 @@ app.use('/api/checkout', checkoutRoutes);
 app.use('/entity', entityRoutes);
 app.use('/dashboard', dashboardRoutes);
 app.use('/storage', storageRoutes);
+app.use('/checkout', checkoutRoutes);
 
 const gemini = process.env.GEMINI_API_KEY ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }) : null;
 const geminiModels = (process.env.GEMINI_MODELS || 'gemini-3.6-flash,gemini-3.5-flash,gemini-3.1-flash,gemini-3.0-flash')
@@ -176,10 +189,13 @@ app.get('/api/debug/routes', (_req, res) => {
 
 // Endpoint to check Firebase status without guessing
 app.get('/api/debug/firebase-status', async (_req, res) => {
-  const ok = await ensureFirestoreConnection(1, 200).catch(() => false);
+  const ok = await ensureFirestoreConnection(2, 200).catch(() => false);
+  const rawKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.trim() || '';
   res.json({
     ok,
     env: process.env.VERCEL_ENV || process.env.NODE_ENV || 'unknown',
+    serviceAccountPresent: Boolean(rawKey),
+    serviceAccountLength: rawKey.length,
     projectId: process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || null,
     dbReady: Boolean(db),
     authReady: Boolean(auth),
