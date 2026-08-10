@@ -1,4 +1,4 @@
-import { collection, getDocs, writeBatch, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, getDocs, writeBatch, doc, serverTimestamp, query, limit } from 'firebase/firestore';
 import { db } from '../../backend/firebase';
 
 export async function ensureClientCollections() {
@@ -13,7 +13,8 @@ export async function ensureClientCollections() {
 
   for (const col of collections) {
     try {
-      const snap = await getDocs(collection(db, col.name));
+      // Only probe a single document to check emptiness — avoids scanning full collection
+      const snap = await getDocs(query(collection(db, col.name), limit(1)));
       if (snap.empty) {
         const batch = writeBatch(db);
         for (const item of col.sample) {

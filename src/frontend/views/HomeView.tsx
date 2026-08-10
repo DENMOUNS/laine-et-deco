@@ -17,7 +17,9 @@ import { optimizeImageUrl } from '../utils/imageUtils';
 import { ImageWithFallback } from '../components/ui/ImageWithFallback';
 import { YarnLoadingBanner } from '../components/ui/YarnLoadingBanner';
 import { HeroTrustWidget } from '../components/ui/HeroTrustWidget';
+import { CategorySkeleton, ContentCardSkeleton, ProductSkeleton, Skeleton } from '../components/ui/Skeleton';
 import { toast } from 'sonner';
+import { isFeatureEnabled } from '../utils/featureFlags';
 
 const CountdownTimer: React.FC<{ endDate: string }> = ({ endDate }) => {
   const [timeLeft, setTimeLeft] = useState({
@@ -77,6 +79,8 @@ interface HomeViewProps {
 
 export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onAddToWishlist, onQuickView, onAddToComparison, onProductClick, siteConfig, events = [] }) => {
   const { isMarqueeReady, isAllReady } = useLoadingSequence();
+  const isLookbookEnabled = isFeatureEnabled({ featureFlags: siteConfig.featureFlags }, 'lookbook');
+  const isBlogEnabled = isFeatureEnabled({ featureFlags: siteConfig.featureFlags }, 'blog');
 
   // Étape 2 : Chargement du Hero Banner via le Repository & Use-case dédié
   const { data: rawHeroBanners, isLoading: isHeroLoading } = useHeroBannersService({
@@ -90,16 +94,16 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
   }, [isHeroLoading, isMarqueeReady]);
 
   // Étape 3 : Chargement de toutes les autres entités une fois Marquee ET Hero Banner chargés
-  const { products: fetchedProducts, isLoading: isProductsLoading } = useProducts({
+  const { products: fetchedProducts, isLoading: isProductsLoading, error: productsError } = useProducts({
     enabled: isAllReady,
   });
   const PRODUCTS = fetchedProducts;
   const secondaryOpts = { enabled: isAllReady };
-  const { data: CATEGORIES } = useStaticEntity<any>('category', [], secondaryOpts);
-  const { data: BLOG_POSTS } = useStaticEntity<any>('blog_post', [], secondaryOpts);
-  const { data: PACKS } = useStaticEntity<any>('pack', [], secondaryOpts);
-  const { data: RECENT_FLASH_SALES } = useStaticEntity<FlashSale>('flash_sale', [], secondaryOpts);
-  const { data: LOOKBOOKS } = useStaticEntity<Lookbook>('lookbook', [], secondaryOpts);
+  const { data: CATEGORIES, isLoading: isCategoriesLoading, error: categoriesError } = useStaticEntity<any>('category', [], secondaryOpts);
+  const { data: BLOG_POSTS, isLoading: isBlogLoading, error: blogError } = useStaticEntity<any>('blog_post', [], secondaryOpts);
+  const { data: PACKS, isLoading: isPacksLoading, error: packsError } = useStaticEntity<any>('pack', [], secondaryOpts);
+  const { data: RECENT_FLASH_SALES, isLoading: isFlashSalesLoading, error: flashSalesError } = useStaticEntity<FlashSale>('flash_sale', [], secondaryOpts);
+  const { data: LOOKBOOKS, isLoading: isLookbooksLoading, error: lookbooksError } = useStaticEntity<Lookbook>('lookbook', [], secondaryOpts);
 
   const HERO_BANNERS = React.useMemo(() => {
     return (rawHeroBanners || [])
@@ -107,8 +111,15 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
       .sort((a, b) => (a.order ?? 999) - (b.order ?? 999))
       .slice(0, 15);
   }, [rawHeroBanners]);
-  const activeFlashSales = RECENT_FLASH_SALES.filter(fs => fs.status === 'active' && new Date(fs.endDate) > new Date());
+  const activeFlashSales = RECENT_FLASH_SALES.filter(fs =>
+    fs.status === 'active' &&
+    new Date(fs.endDate) > new Date() &&
+    Array.isArray(fs.items) &&
+    fs.items.length > 0 &&
+    fs.items.some((item) => PRODUCTS.some((product) => product.id === item.productId))
+  );
   const activeLookbooks = LOOKBOOKS.filter(lb => lb.status === 'active');
+  const visiblePacks = PACKS.filter((pack) => Array.isArray(pack.products) && pack.products.length > 0);
 
   const [showOnlyPromos, setShowOnlyPromos] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
@@ -177,8 +188,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
 
   const activeFlashSale = activeFlashSales[0];
   const flashSaleEndDate = activeFlashSale ? activeFlashSale.endDate : new Date(Date.now() + 1000 * 60 * 60 * 5).toISOString();
-  const flashSaleProduct = PRODUCTS.find(p => activeFlashSale?.items?.some(i => i.productId === p.id)) || PRODUCTS.find(p => p.isSale) || PRODUCTS[0] || null;
-  const flashSalePrice = flashSaleProduct ? (activeFlashSale?.items?.find(i => i.productId === flashSaleProduct.id)?.flashPrice || (flashSaleProduct.price * 0.8)) : 0;
+  const flashSaleProduct = PRODUCTS.find(p => activeFlashSale?.items?.some(i => i.productId === p.id)) || null;
+  const flashSalePrice = flashSaleProduct
+    ? (activeFlashSale?.items?.find(i => i.productId === flashSaleProduct.id)?.flashPrice ?? flashSaleProduct.salePrice ?? flashSaleProduct.price)
+    : 0;
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -653,7 +666,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
       </section>
 
       {/* Flash Sale Section */}
-      {flashSaleProduct && (
+      {activeFlashSale && flashSaleProduct && (
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-primary rounded-[3rem] overflow-hidden relative">
           <div className="absolute top-0 right-0 w-1/2 h-full bg-primary/10 skew-x-12 translate-x-1/4" />
@@ -711,6 +724,61 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
           </div>
         </div>
       </section>
+      )}
+
+      {isLookbookEnabled && (
+        isLookbooksLoading || lookbooksError ? (
+          <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="space-y-3 mb-10"><Skeleton className="h-3 w-1/4" /><Skeleton className="h-10 w-1/2" /><Skeleton className="h-4 w-2/3" /></div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6"><ContentCardSkeleton /><ContentCardSkeleton /><ContentCardSkeleton /></div>
+          </section>
+        ) : activeLookbooks.length > 0 ? (
+          <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-10">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-widest text-accent mb-2 block">Inspiration</span>
+                <h2 className="text-4xl font-serif">Notre Lookbook</h2>
+                <p className="text-primary/70 mt-2 max-w-xl">Explorez des idées de décoration, des ambiances laine et des looks créatifs pour vos projets déco.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => onNavigate('lookbook')}
+                className="text-primary font-bold border-b-2 border-primary/20 hover:border-accent hover:text-accent transition-all pb-1"
+              >
+                Voir tout
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {activeLookbooks.slice(0, 3).map((lookbook) => (
+                <button
+                  key={lookbook.id}
+                  type="button"
+                  onClick={() => onNavigate('lookbook')}
+                  className="group overflow-hidden rounded-[2rem] bg-white border border-primary/10 shadow-sm hover:shadow-lg transition-shadow text-left"
+                >
+                  <div className="relative h-64 overflow-hidden">
+                    <ImageWithFallback
+                      src={optimizeImageUrl(lookbook.image, 800)}
+                      alt={lookbook.title || 'Lookbook'}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                      referrerPolicy="no-referrer"
+                      loading="lazy"
+                      width={800}
+                      height={640}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                  </div>
+                  <div className="p-6">
+                    <p className="text-xs uppercase tracking-[0.3em] text-accent font-bold mb-2">Lookbook</p>
+                    <h3 className="text-xl font-serif text-primary mb-2">{lookbook.title}</h3>
+                    {lookbook.description && <p className="text-sm text-primary/70 line-clamp-3">{lookbook.description}</p>}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+        ) : null
       )}
 
       {/* Wool Calculator Teaser */}
@@ -848,7 +916,15 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
       </section>
 
       {/* Flash Sales Section */}
-      {activeFlashSales.length > 0 && activeFlashSales.map((fs) => (
+      {isFlashSalesLoading || flashSalesError ? (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 bg-red-50/50 py-12 rounded-[3rem] my-12 border border-red-100">
+          <div className="flex justify-between items-end mb-12 gap-8">
+            <div className="space-y-3 w-full max-w-md"><Skeleton className="h-3 w-1/3" /><Skeleton className="h-10 w-2/3" /><Skeleton className="h-4 w-full" /></div>
+            <div className="hidden sm:flex gap-4"><Skeleton className="h-14 w-14 rounded-2xl" /><Skeleton className="h-14 w-14 rounded-2xl" /><Skeleton className="h-14 w-14 rounded-2xl" /></div>
+          </div>
+          <div className="flex gap-6 overflow-hidden"><ProductSkeleton /><ProductSkeleton /><ProductSkeleton /></div>
+        </section>
+      ) : activeFlashSales.length > 0 && activeFlashSales.map((fs) => (
         <section key={fs.id} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 bg-red-50/50 py-12 rounded-[3rem] my-12 border border-red-100">
           <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-8">
             <div>
@@ -923,6 +999,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
       ))}
 
       {/* Categories Bento Grid */}
+      {(isCategoriesLoading || categoriesError || CATEGORIES.length > 0) && (
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-end mb-12">
           <div>
@@ -935,7 +1012,9 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 auto-rows-[250px] md:auto-rows-[300px]">
-          {(featuredCategories.length > 0 ? featuredCategories : CATEGORIES.slice(0, 4)).map((cat, i) => {
+          {isCategoriesLoading || categoriesError ? [0, 1, 2, 3].map((i) => (
+            <CategorySkeleton key={i} className={i === 0 ? 'md:col-span-2 md:row-span-2' : i === 3 ? 'md:row-span-2' : ''} />
+          )) : (featuredCategories.length > 0 ? featuredCategories : CATEGORIES.slice(0, 4)).map((cat, i) => {
             const isLarge = i === 0;
             const isTall = i === 3;
             return (
@@ -970,9 +1049,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
           })}
         </div>
       </section>
+      )}
 
       {/* Laines Section */}
-      {PRODUCTS.filter(p => p.category === 'Laine').length > 0 && (
+      {(isProductsLoading || productsError || PRODUCTS.filter(p => p.category === 'Laine').length > 0) && (
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex justify-between items-end mb-12">
           <div>
@@ -984,7 +1064,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
           </button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {PRODUCTS.filter(p => p.category === 'Laine').slice(0, 4).map((product) => (
+          {isProductsLoading || productsError ? [0, 1, 2, 3].map((i) => <ProductSkeleton key={i} />) : PRODUCTS.filter(p => p.category === 'Laine').slice(0, 4).map((product) => (
             <ProductCard 
               key={product.id}
               product={product} 
@@ -999,112 +1079,11 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
         </div>
       </section>
       )}
-
-      {/* Artisanat & Décoration (Gypsum / Moules) */}
-      {PRODUCTS.filter(p => p.category === 'Artisanat').length > 0 && (
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="flex justify-between items-end mb-12">
-          <div>
-            <span className="text-xs font-bold uppercase tracking-widest text-accent mb-2 block">Matériel & Outils</span>
-            <h2 className="text-4xl font-serif">Artisanat & Décoration</h2>
-          </div>
-          <button onClick={() => onNavigate('shop', undefined, 'Artisanat')} className="text-primary font-bold border-b-2 border-primary/20 hover:border-accent hover:text-accent transition-all pb-1">
-            Voir le matériel
-          </button>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {PRODUCTS.filter(p => p.category === 'Artisanat').slice(0, 3).map((product) => (
-            <ProductCard 
-              key={product.id}
-              product={product} 
-              onAddToCart={onAddToCart}
-              onAddToWishlist={onAddToWishlist}
-              onQuickView={onQuickView}
-              onClick={onProductClick}
-              onAddToComparison={onAddToComparison}
-              events={events}
-            />
-          ))}
-        </div>
-      </section>
-      )}
-
-      {/* High-Tech Section */}
-      {PRODUCTS.filter(p => p.category === 'Électronique' || p.isElectronic).length > 0 && (
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="flex justify-between items-end mb-12">
-          <div>
-            <span className="text-xs font-bold uppercase tracking-widest text-accent mb-2 block">Nouveauté</span>
-            <h2 className="text-4xl font-serif">High-Tech & Design</h2>
-          </div>
-          <button onClick={() => onNavigate('shop')} className="text-primary font-bold border-b-2 border-primary/20 hover:border-accent hover:text-accent transition-all pb-1">
-            Voir tout
-          </button>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {PRODUCTS.filter(p => p.category === 'Électronique' || p.isElectronic).slice(0, 3).map((product) => (
-            <ProductCard 
-              key={product.id}
-              product={product} 
-              onAddToCart={onAddToCart}
-              onAddToWishlist={onAddToWishlist}
-              onQuickView={onQuickView}
-              onClick={onProductClick}
-              onAddToComparison={onAddToComparison}
-              events={events}
-            />
-          ))}
-        </div>
-      </section>
-      )}
-
-      {/* Featured Products */}
-      <section className="bg-primary/5 py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
-            <div className="text-left">
-              <span className="text-xs font-bold uppercase tracking-widest text-accent mb-2 block">Sélection</span>
-              <h2 className="text-4xl font-serif mb-4">Les Incontournables</h2>
-              <p className="text-primary/70 max-w-xl">Nos meilleures ventes et coups de cœur du moment, choisis avec soin pour vous.</p>
-            </div>
-            <div className="flex items-center gap-4 bg-white p-2 rounded-2xl shadow-sm border border-primary/5">
-              <span className="text-xs font-bold uppercase tracking-widest text-primary/70 ml-4">Filtre:</span>
-              <button 
-                onClick={() => setShowOnlyPromos(!showOnlyPromos)}
-                className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${showOnlyPromos ? 'bg-accent text-white shadow-md' : 'bg-slate-50 text-primary/70 hover:bg-slate-100'}`}
-              >
-                {showOnlyPromos ? 'Toutes les promos' : 'En promotion'}
-              </button>
-            </div>
-          </div>
-          
-          <div 
-            className="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-8 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 no-scrollbar"
-            style={{ WebkitOverflowScrolling: 'touch' }}
-          >
-            {(showOnlyPromos 
-              ? PRODUCTS.filter(p => p.oldPrice || p.promoPrice)
-              : (featuredProducts.length > 0 ? featuredProducts : PRODUCTS.slice(0, 4))
-            ).map((product) => (
-              <div key={product.id} className="min-w-[70vw] sm:min-w-0 snap-center">
-                <ProductCard 
-                  product={product} 
-                  onAddToCart={onAddToCart}
-                  onAddToWishlist={onAddToWishlist}
-                  onQuickView={onQuickView}
-                  onClick={onProductClick}
-                  events={events}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
 
 
       {/* Promotions Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {(isProductsLoading || productsError || PRODUCTS.some(p => p.oldPrice || p.promoPrice)) && <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-primary/5 rounded-[3rem] p-12 md:p-20 border border-primary/10">
           <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-8">
             <div className="text-left">
@@ -1125,7 +1104,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
             className="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-8 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 no-scrollbar"
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
-            {PRODUCTS.filter(p => p.oldPrice || p.promoPrice).slice(0, 4).map((product) => (
+            {isProductsLoading || productsError ? [0, 1, 2, 3].map((i) => <ProductSkeleton key={i} />) : PRODUCTS.filter(p => p.oldPrice || p.promoPrice).slice(0, 4).map((product) => (
               <div key={product.id} className="min-w-[70vw] sm:min-w-0 snap-center">
                 <ProductCard 
                   product={product} 
@@ -1139,10 +1118,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
             ))}
           </div>
         </div>
-      </section>
+      </section>}
 
       {/* Packs & Bundles Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {(isPacksLoading || packsError || visiblePacks.length > 0) && <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-slate-50 rounded-[3rem] p-12 md:p-20 border border-primary/5">
           <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-8">
             <div className="text-left">
@@ -1159,7 +1138,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {PACKS.map((pack) => {
+            {isPacksLoading || packsError ? [0, 1, 2].map((i) => <ContentCardSkeleton key={i} />) : visiblePacks.map((pack) => {
               const packProducts = pack.products.map(item => {
                 const product = PRODUCTS.find(p => p.id === item.productId);
                 return product ? { ...product, quantity: item.quantity } : null;
@@ -1207,10 +1186,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
             })}
           </div>
         </div>
-      </section>
+      </section>}
 
       {/* Blog Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {isBlogEnabled && (isBlogLoading || blogError || BLOG_POSTS.length > 0) && <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-end mb-12">
           <div>
             <span className="text-xs font-bold uppercase tracking-widest text-accent mb-2 block">Inspirations</span>
@@ -1225,7 +1204,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
           className="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-8 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 no-scrollbar"
           style={{ WebkitOverflowScrolling: 'touch' }}
         >
-          {BLOG_POSTS.slice(0, 2).map((post, i) => (
+          {isBlogLoading || blogError ? [0, 1].map((i) => <ContentCardSkeleton key={i} />) : BLOG_POSTS.slice(0, 2).map((post, i) => (
             <motion.article
               key={post.id}
               initial={{ opacity: 0, y: 20 }}
@@ -1258,7 +1237,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
             </motion.article>
           ))}
         </div>
-      </section>
+      </section>}
 
       {/* Custom Sections */}
       {siteConfig.customSections.map((section) => (

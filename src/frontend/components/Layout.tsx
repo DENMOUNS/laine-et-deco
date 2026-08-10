@@ -8,6 +8,8 @@ import { useStaticEntity } from '../hooks/useStaticEntity';
 import { useLoadingSequence } from '../hooks/useLoadingSequence';
 import { Product, NavItem } from '../../types';
 import { DEFAULT_NAV_ITEMS } from '../../siteDefaults';
+import { useConfigStore } from '../../stores/configStore';
+import { isFeatureEnabled } from '../utils/featureFlags';
 import type { User as FirebaseUser } from 'firebase/auth';
 
 const LogoDisplay = () => {
@@ -30,7 +32,7 @@ const LogoDisplay = () => {
     return (
       <img 
         src={logoSrc} 
-        alt="Laine & Déco" 
+        alt="LAINE ET DECO" 
         onError={() => setImgError(true)}
         className="h-10 md:h-12 w-auto object-contain transition-transform group-hover:scale-105" 
       />
@@ -70,7 +72,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const { isMarqueeReady } = useLoadingSequence();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { data: CATEGORIES } = useStaticEntity<any>('category', [], { enabled: isMenuOpen });
+  const [isInfoMenuOpen, setIsInfoMenuOpen] = useState(false);
+  const siteConfig = useConfigStore((state) => state.siteConfig);
+  const { data: CATEGORIES } = useStaticEntity<any>('category', [], { enabled: isMenuOpen, cacheOnly: true });
 
   // Lecture directe Firestore — chargé après le marquee
   const { data: firestoreNavItems, isLoading: navLoading } = useStaticEntity<NavItem>('nav_item', [], {
@@ -83,27 +87,56 @@ export const Navbar: React.FC<NavbarProps> = ({
     : DEFAULT_NAV_ITEMS;
 
   // order === 1 → top navbar  |  order > 1 → sidebar
-  const mainNavLinks = resolvedNavItems
+  const featureAwareNavItems = resolvedNavItems.filter((item) => {
+    const disabledViews = ['lookbook', 'blog', 'team', 'about', 'contact', 'faq', 'calculator', 'volume-calculator', 'knitting-companion', 'pattern-generator', 'custom-order', 'comparison', 'wishlist', 'community'];
+    const featureKeyMap: Record<string, string> = {
+      lookbook: 'lookbook',
+      blog: 'blog',
+      team: 'team',
+      about: 'about',
+      contact: 'contact',
+      faq: 'faq',
+      calculator: 'calculator',
+      'volume-calculator': 'volumeCalculator',
+      'knitting-companion': 'knittingCompanion',
+      'pattern-generator': 'patternGenerator',
+      'custom-order': 'customOrder',
+      comparison: 'comparison',
+      wishlist: 'wishlist',
+      community: 'community',
+    };
+
+    if (!disabledViews.includes(item.view)) {
+      return true;
+    }
+
+    const featureKey = featureKeyMap[item.view];
+    return featureKey ? isFeatureEnabled(siteConfig, featureKey) : true;
+  });
+
+  const mainNavLinks = featureAwareNavItems
     .filter(item => item.status === 'active' && item.order === 1)
     .sort((a, b) => a.order - b.order);
 
-  const dynamicSidebarLinks = resolvedNavItems
+  const dynamicSidebarLinks = featureAwareNavItems
     .filter(item => item.status === 'active' && item.order > 1 && item.view !== 'loyalty' && item.name !== 'Points VIP')
     .sort((a, b) => a.order - b.order)
     .map(item => ({ name: item.name, view: item.view, icon: <ChevronRight size={18} /> }));
 
+  const aboutSectionViews = ['about', 'team', 'contact', 'faq', 'legal', 'privacy', 'terms'];
+  const isAboutSectionActive = aboutSectionViews.includes(currentView);
 
   const sidebarLinks = dynamicSidebarLinks.length > 0 ? dynamicSidebarLinks : [
-    { name: 'Compagnon Tricot', view: 'knitting-companion', icon: <ChevronRight size={18} /> },
-    { name: 'Générateur IA', view: 'pattern-generator', icon: <ChevronRight size={18} /> },
-    { name: 'Configurateur', view: 'configurator', icon: <ChevronRight size={18} /> },
-    { name: 'Sur Mesure', view: 'custom-order', icon: <ChevronRight size={18} /> },
-    { name: 'Lookbook', view: 'lookbook', icon: <ChevronRight size={18} /> },
-    { name: 'Blog Inspirations', view: 'blog', icon: <ChevronRight size={18} /> },
-    { name: 'Contactez-nous', view: 'contact', icon: <ChevronRight size={18} /> },
-    { name: 'Calculateur de Laine', view: 'calculator', icon: <ChevronRight size={18} /> },
-    { name: 'Calculateur de Volume', view: 'volume-calculator', icon: <ChevronRight size={18} /> },
-  ];
+    { name: 'Compagnon Tricot', view: 'knitting-companion', feature: 'knittingCompanion', icon: <ChevronRight size={18} /> },
+    { name: 'Générateur IA', view: 'pattern-generator', feature: 'patternGenerator', icon: <ChevronRight size={18} /> },
+    { name: 'Configurateur', view: 'configurator', feature: 'configurator', icon: <ChevronRight size={18} /> },
+    { name: 'Sur Mesure', view: 'custom-order', feature: 'customOrder', icon: <ChevronRight size={18} /> },
+    { name: 'Lookbook', view: 'lookbook', feature: 'lookbook', icon: <ChevronRight size={18} /> },
+    { name: 'Blog Inspirations', view: 'blog', feature: 'blog', icon: <ChevronRight size={18} /> },
+    { name: 'Contactez-nous', view: 'contact', feature: 'contact', icon: <ChevronRight size={18} /> },
+    { name: 'Calculateur de Laine', view: 'calculator', feature: 'calculator', icon: <ChevronRight size={18} /> },
+    { name: 'Calculateur de Volume', view: 'volume-calculator', feature: 'volumeCalculator', icon: <ChevronRight size={18} /> },
+  ].filter(link => link.feature ? isFeatureEnabled(siteConfig, link.feature) : true);
 
   const navLinks = [
     ...mainNavLinks,
@@ -122,7 +155,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex space-x-4 lg:space-x-8">
+          <div className="hidden md:flex items-center gap-4 lg:gap-8">
             {mainNavLinks.map((link) => (
               <button
                 key={link.name}
@@ -389,6 +422,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                   ))}
                 </div>
 
+                <hr className="border-white/10 my-6" />
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white mb-2 px-2">Informations publiques</p>
+                <div className="grid grid-cols-1 gap-2">
+                  {isFeatureEnabled(siteConfig, 'about') && <button onClick={() => { onNavigate('about'); setIsMenuOpen(false); }} className="text-sm font-medium text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 text-white">À propos</button>}
+                  {isFeatureEnabled(siteConfig, 'team') && <button onClick={() => { onNavigate('team'); setIsMenuOpen(false); }} className="text-sm font-medium text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 text-white">Notre équipe</button>}
+                  {isFeatureEnabled(siteConfig, 'contact') && <button onClick={() => { onNavigate('contact'); setIsMenuOpen(false); }} className="text-sm font-medium text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 text-white">Nous contacter</button>}
+                  {isFeatureEnabled(siteConfig, 'faq') && <button onClick={() => { onNavigate('faq'); setIsMenuOpen(false); }} className="text-sm font-medium text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 text-white">FAQ</button>}
+                  <button onClick={() => { onNavigate('legal'); setIsMenuOpen(false); }} className="text-sm font-medium text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 text-white">Mentions légales</button>
+                  <button onClick={() => { onNavigate('terms'); setIsMenuOpen(false); }} className="text-sm font-medium text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 text-white">CGV</button>
+                </div>
+
                 <div className="mt-4">
                     <button
                       onClick={() => {
@@ -455,10 +499,12 @@ interface FooterProps {
 }
 
 export const Footer: React.FC<FooterProps> = ({ onNavigate, user }) => {
+  const siteConfig = useConfigStore((state) => state.siteConfig);
+
   return (
     <footer className="bg-primary text-white pt-16 pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 md:gap-12 mb-12">
           <div className="space-y-4">
             <div className="bg-white/10 p-4 rounded-2xl inline-block group cursor-pointer" onClick={() => onNavigate('home')}>
               <div className="flex items-center gap-3">
@@ -481,28 +527,35 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, user }) => {
               <li><button onClick={() => onNavigate('shop')} className="hover:text-white transition-colors">Décoration</button></li>
               <li><button onClick={() => onNavigate('shop')} className="hover:text-white transition-colors">Nouveautés</button></li>
               <li><button onClick={() => onNavigate('shop')} className="hover:text-white transition-colors">Promotions</button></li>
+              <li><button onClick={() => onNavigate('packs')} className="hover:text-white transition-colors">Packs & Bundles</button></li>
             </ul>
           </div>
-            <div>
-              <h3 className="font-bold mb-6 uppercase tracking-widest text-xs">Aide & Outils</h3>
-              <ul className="space-y-3 text-sm text-white/70">
-                <li><button onClick={() => onNavigate('calculator')} className="hover:text-white transition-colors">Calculateur de Laine</button></li>
-                <li><button onClick={() => onNavigate('care-guide')} className="hover:text-white transition-colors">Guide d'Entretien</button></li>
-                <li><button onClick={() => onNavigate('faq')} className="hover:text-white transition-colors">FAQ</button></li>
-                <li><button onClick={() => onNavigate('contact')} className="hover:text-white transition-colors">Contact</button></li>
-              </ul>
-            </div>
           <div>
-            <h3 className="font-bold mb-6 uppercase tracking-widest text-xs">Outils & Services</h3>
+            <h3 className="font-bold mb-6 uppercase tracking-widest text-xs">Applications</h3>
             <ul className="space-y-3 text-sm text-white/70">
-              <li><button onClick={() => onNavigate('wishlist')} className="hover:text-white transition-colors">Favoris</button></li>
-              <li><button onClick={() => onNavigate('comparison')} className="hover:text-white transition-colors">Comparateur</button></li>
-              <li><button onClick={() => onNavigate('knitting-companion')} className="hover:text-white transition-colors">Compagnon Tricot</button></li>
-              <li><button onClick={() => onNavigate('pattern-generator')} className="hover:text-white transition-colors">Générateur IA</button></li>
+              {isFeatureEnabled(siteConfig, 'comparison') && <li><button onClick={() => onNavigate('comparison')} className="hover:text-white transition-colors">Comparateur</button></li>}
+              {isFeatureEnabled(siteConfig, 'knittingCompanion') && <li><button onClick={() => onNavigate('knitting-companion')} className="hover:text-white transition-colors">Compagnon Tricot</button></li>}
+              {isFeatureEnabled(siteConfig, 'lookbook') && <li><button onClick={() => onNavigate('lookbook')} className="hover:text-white transition-colors">Lookbook</button></li>}
+              {isFeatureEnabled(siteConfig, 'customOrder') && <li><button onClick={() => onNavigate('custom-order')} className="hover:text-white transition-colors">Sur Mesure</button></li>}
+              {isFeatureEnabled(siteConfig, 'patternGenerator') && <li><button onClick={() => onNavigate('pattern-generator')} className="hover:text-white transition-colors">Générateur IA</button></li>}
               <li><button onClick={() => onNavigate('configurator')} className="hover:text-white transition-colors">Configurateur</button></li>
-              <li><button onClick={() => onNavigate('custom-order')} className="hover:text-white transition-colors">Sur Mesure</button></li>
-              <li><button onClick={() => onNavigate('lookbook')} className="hover:text-white transition-colors">Lookbook</button></li>
-              <li><button onClick={() => onNavigate('packs')} className="hover:text-white transition-colors">Packs & Bundles</button></li>
+            </ul>
+          </div>
+          <div>
+            <h3 className="font-bold mb-6 uppercase tracking-widest text-xs">À propos</h3>
+            <ul className="space-y-3 text-sm text-white/70">
+              {isFeatureEnabled(siteConfig, 'about') && <li><button onClick={() => onNavigate('about')} className="hover:text-white transition-colors">À propos</button></li>}
+              {isFeatureEnabled(siteConfig, 'team') && <li><button onClick={() => onNavigate('team')} className="hover:text-white transition-colors">Notre équipe</button></li>}
+              {isFeatureEnabled(siteConfig, 'faq') && <li><button onClick={() => onNavigate('faq')} className="hover:text-white transition-colors">FAQ</button></li>}
+              {isFeatureEnabled(siteConfig, 'contact') && <li><button onClick={() => onNavigate('contact')} className="hover:text-white transition-colors">Nous contacter</button></li>}
+            </ul>
+          </div>
+          <div>
+            <h3 className="font-bold mb-6 uppercase tracking-widest text-xs">Aide & Outils</h3>
+            <ul className="space-y-3 text-sm text-white/70">
+              {isFeatureEnabled(siteConfig, 'calculator') && <li><button onClick={() => onNavigate('calculator')} className="hover:text-white transition-colors">Calculateur de Laine</button></li>}
+              {isFeatureEnabled(siteConfig, 'volumeCalculator') && <li><button onClick={() => onNavigate('volume-calculator')} className="hover:text-white transition-colors">Calculateur de Volume</button></li>}
+              <li><button onClick={() => onNavigate('care-guide')} className="hover:text-white transition-colors">Guide d'Entretien</button></li>
               <li><button onClick={() => user ? onNavigate('customer-dashboard') : onNavigate('auth')} className="hover:text-white transition-colors">Mon Compte</button></li>
             </ul>
           </div>

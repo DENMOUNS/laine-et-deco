@@ -31,6 +31,7 @@
     "firebase": "^12.10.0",
     "firebase-admin": "^13.7.0",
     "flexsearch": "^0.8.212",
+    "helmet": "^8.3.0",
     "highcharts": "^12.6.0",
     "highcharts-react-official": "^3.2.3",
     "idb-keyval": "^6.2.4",
@@ -59,6 +60,7 @@
   "devDependencies": {
     "@types/dompurify": "^3.0.5",
     "@types/express": "^5.0.6",
+    "@types/helmet": "^0.0.48",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^22.14.0",
     "autoprefixer": "^10.4.21",

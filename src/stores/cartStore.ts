@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { toast as sonnerToast } from 'sonner';
-import { Product, CartItem, Pack } from '../types';
+import { Product, CartItem, Pack, ConfiguratorSelection } from '../types';
 import { readCache, writeCache, removeCache } from '../frontend/utils/cacheStorage';
+import { getFulfillment, getProductAvailability } from '../frontend/utils/stockAvailability';
 
 const CART_CACHE_KEY = 'cart:v1';
 
@@ -10,6 +11,7 @@ interface CartState {
 
   // Actions
   addToCart: (product: Product, quantity?: number) => void;
+  addConfiguredToCart: (product: Product, configuration: ConfiguratorSelection, quantity?: number) => void;
   updateCartQuantity: (id: string, delta: number) => void;
   removeFromCart: (id: string) => void;
   addPackToCart: (pack: Pack, products: Product[], quantity?: number) => void;
@@ -35,10 +37,11 @@ export const useCartStore = create<CartState>((set, get) => ({
       );
       
       const currentQty = existingIndex >= 0 ? state.cart[existingIndex].quantity : 0;
-      const spaceLeft = Math.max(0, product.stock - currentQty);
+      const availability = getProductAvailability(product);
+      const spaceLeft = Math.max(0, availability.total - currentQty);
       
       if (spaceLeft <= 0) {
-        sonnerToast.error(`Désolé, la limite de stock (${product.stock}) est atteinte pour ${product.name}.`);
+        sonnerToast.error(`Désolé, la limite disponible (${availability.total}) est atteinte pour ${product.name}.`);
         return state;
       }
 
@@ -51,6 +54,7 @@ export const useCartStore = create<CartState>((set, get) => ({
         newCart[existingIndex] = {
           ...currentItem,
           quantity: currentItem.quantity + qtyToAdd,
+          ...getFulfillment(product, currentItem.quantity + qtyToAdd),
         };
       } else {
         newCart = [
@@ -61,6 +65,7 @@ export const useCartStore = create<CartState>((set, get) => ({
             product,
             quantity: qtyToAdd,
             price: product.price,
+            ...getFulfillment(product, qtyToAdd),
           },
         ];
       }
@@ -74,16 +79,42 @@ export const useCartStore = create<CartState>((set, get) => ({
     });
   },
 
+  addConfiguredToCart: (product, configuration, quantity = 1) => {
+    const configuredId = `configurator:${configuration.modelId}:${product.id}:${configuration.color}`;
+    set((state) => {
+      const existingIndex = state.cart.findIndex((item) => item.id === configuredId);
+      const currentQty = existingIndex >= 0 ? state.cart[existingIndex].quantity : 0;
+      const availability = getProductAvailability(product, configuration.color);
+      const qtyToAdd = Math.min(quantity, Math.max(0, availability.total - currentQty));
+      if (qtyToAdd <= 0) {
+        sonnerToast.error(`La laine ${product.name} n'est pas disponible dans cette couleur.`);
+        return state;
+      }
+      const item: CartItem = {
+        id: configuredId, type: 'product', product, quantity: currentQty + qtyToAdd,
+        price: product.price, configuration,
+        ...getFulfillment(product, currentQty + qtyToAdd, configuration.color),
+      };
+      const newCart = existingIndex >= 0 ? state.cart.map((entry, index) => index === existingIndex ? item : entry) : [...state.cart, item];
+      persistCart(newCart);
+      sonnerToast.success(`${configuration.modelName} ajouté au panier.`);
+      return { cart: newCart };
+    });
+  },
+
   updateCartQuantity: (id, delta) => {
     set((state) => {
       const newCart = state.cart.map((item) => {
         if (item.id === id) {
           let newQty = Math.max(1, item.quantity + delta);
           if (item.type === 'product' && item.product) {
-            newQty = Math.min(newQty, item.product.stock);
+            const availability = getProductAvailability(item.product);
+            newQty = Math.min(newQty, availability.total);
+            const fulfillment = getFulfillment(item.product, newQty);
             if (newQty < item.quantity + delta) {
                sonnerToast.error(`Limite de stock atteinte pour ${item.product.name}.`);
             }
+            return { ...item, quantity: newQty, ...fulfillment };
           }
           return { ...item, quantity: newQty };
         }

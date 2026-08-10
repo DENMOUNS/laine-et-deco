@@ -9,7 +9,7 @@ interface CategoriesViewProps {
 }
 
 export const CategoriesView: React.FC<CategoriesViewProps> = ({ onNavigate }) => {
-  const { data: CATEGORIES } = useStaticEntity<any>('category');
+  const { data: CATEGORIES } = useStaticEntity<any>('category', [], { cacheOnly: true });
 
   return (
     <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">

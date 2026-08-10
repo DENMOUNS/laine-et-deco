@@ -1,4 +1,4 @@
-import { collection, getDocs, writeBatch, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, getDocs, writeBatch, doc, serverTimestamp, query, limit } from 'firebase/firestore';
 import { db } from '../../backend/firebase';
 
 let hasSeeded = false;
@@ -51,7 +51,8 @@ export const seedFirebase = async () => {
     try {
       if (!col.data || col.data.length === 0) continue;
 
-      const snapshot = await getDocs(collection(db, col.name));
+      // Probe only one document to check emptiness to avoid scanning full collections
+      const snapshot = await getDocs(query(collection(db, col.name), limit(1)));
       if (!snapshot.empty) continue;
 
       // Firestore batch limit is 500 operations

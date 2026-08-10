@@ -1,21 +1,17 @@
 import React from 'react';
-import { CheckCircle2, RefreshCcw, Save } from 'lucide-react';
-import { toast } from 'sonner';
+import { CheckCircle2, Save } from 'lucide-react';
 import { Loader } from '../../../components/Loader';
 import { AdminSiteBrandingSection } from './AdminSiteBrandingSection';
-import { AdminSiteHeroSection } from './AdminSiteHeroSection';
 import { AdminSiteFeaturesSection } from './AdminSiteFeaturesSection';
 import { AdminSiteAdBannerSection } from './AdminSiteAdBannerSection';
-import { AdminSiteMarqueeSection } from './AdminSiteMarqueeSection';
 import { AdminSiteHomeSection } from './AdminSiteHomeSection';
 import { AdminSiteCustomSectionsSection } from './AdminSiteCustomSectionsSection';
-import { AdminSiteSeoSection } from './AdminSiteSeoSection';
 import { AdminSiteLoyaltySection } from './AdminSiteLoyaltySection';
 import { AdminSiteMaintenanceSection } from './AdminSiteMaintenanceSection';
 import { AdminSiteNewsletterSection } from './AdminSiteNewsletterSection';
 
 export function AdminSite({ ctx }: { ctx: any }) {
-  const { activeTab, siteConfig, isSaving, setIsSaving, saveAllSiteConfig } = ctx;
+  const { activeTab, isSaving, saveAllSiteConfig } = ctx;
 
   if (activeTab !== 'site') return null;
 
@@ -28,6 +24,7 @@ export function AdminSite({ ctx }: { ctx: any }) {
         </div>
         <div className="flex flex-wrap gap-4">
           <button
+            type="button"
             onClick={saveAllSiteConfig}
             disabled={isSaving}
             className="flex items-center gap-2 bg-primary text-white px-8 py-4 rounded-2xl font-bold hover:bg-accent transition-all shadow-lg disabled:opacity-60"
@@ -38,19 +35,17 @@ export function AdminSite({ ctx }: { ctx: any }) {
       </div>
 
       <AdminSiteBrandingSection ctx={ctx} />
-      <AdminSiteHeroSection ctx={ctx} />
       <AdminSiteFeaturesSection ctx={ctx} />
       <AdminSiteAdBannerSection ctx={ctx} />
-      <AdminSiteMarqueeSection />
       <AdminSiteHomeSection ctx={ctx} />
       <AdminSiteCustomSectionsSection ctx={ctx} />
-      <AdminSiteSeoSection ctx={ctx} />
       <AdminSiteLoyaltySection ctx={ctx} />
       <AdminSiteMaintenanceSection ctx={ctx} />
       <AdminSiteNewsletterSection ctx={ctx} />
 
       <div className="flex justify-end pt-6">
         <button
+          type="button"
           onClick={saveAllSiteConfig}
           disabled={isSaving}
           className="bg-primary text-white px-12 py-4 rounded-2xl font-bold hover:bg-accent transition-all shadow-xl flex items-center gap-3 disabled:opacity-60"

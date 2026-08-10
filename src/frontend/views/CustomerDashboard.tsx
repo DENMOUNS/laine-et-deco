@@ -60,7 +60,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, onNa
   const userLogs: LoginLog[] = [];
   const isLogsLoading = false;
 
-  const { data: allProducts } = useEntity<Product>('product', []);
+  const { data: allProducts } = useEntity<Product>('product', [], { cacheOnly: true });
 
   const { data: users, isLoading: isProfileLoading, updateEntity: updateProfile, setEntity: setProfile } = useEntity<User>('user', [], {
     constraints: [where('uid', '==', user?.uid || 'guest')],
@@ -195,7 +195,19 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, onNa
           />
         );
       case 'profile':
-        return <DashboardProfile user={dashboardUser} onUpdateUser={() => {}} />;
+        return (
+          <DashboardProfile
+            user={userProfile}
+            onUpdateUser={async (data) => {
+              try {
+                await updateProfile(userProfile.id, data);
+                toast.success('Profil mis à jour');
+              } catch {
+                toast.error('Impossible de mettre à jour le profil');
+              }
+            }}
+          />
+        );
       case 'payments':
         return (
           <DashboardPayments

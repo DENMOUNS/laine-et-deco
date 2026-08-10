@@ -103,19 +103,12 @@ import {
   ORDERS as INITIAL_ORDERS, 
   USERS as INITIAL_USERS, 
   CATEGORIES as INITIAL_CATEGORIES, 
-  LOGIN_LOGS as INITIAL_LOGIN_LOGS, 
   NOTIFICATIONS as INITIAL_NOTIFICATIONS, 
-  SALES_DATA as INITIAL_SALES_DATA, 
   CHAT_MESSAGES as INITIAL_CHAT_MESSAGES, 
   CONVERSATIONS as INITIAL_CONVERSATIONS, 
   COUPONS as INITIAL_COUPONS, 
   ADMIN_ROLES as INITIAL_ADMIN_ROLES, 
   PROMO_EVENTS as INITIAL_PROMO_EVENTS,
-  CATEGORY_DISTRIBUTION as INITIAL_CATEGORY_DISTRIBUTION,
-  DEVICE_DATA as INITIAL_DEVICE_DATA,
-  TRAFFIC_SOURCES as INITIAL_TRAFFIC_SOURCES,
-  RETENTION_DATA as INITIAL_RETENTION_DATA,
-  REVENUE_BY_PAYMENT as INITIAL_REVENUE_BY_PAYMENT,
   PACKS as INITIAL_PACKS,
   PUSH_NOTIFICATIONS as INITIAL_PUSH_NOTIFICATIONS,
   EMAILS as INITIAL_EMAILS,
@@ -253,7 +246,9 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
   } = useEntity<UserType>('user', [], {
     enabled: isActiveTab(['customers', 'customer-detail', 'customer-groups', 'customer-group-detail', 'overview', 'search-results', 'notifications', 'messages', 'stats'])
   });
-  const localUsers = Array.isArray(USERS) ? USERS : (USERS && typeof USERS === 'object' ? Object.values(USERS) : []);
+  const localUsers: UserType[] = Array.isArray(USERS)
+    ? USERS as UserType[]
+    : (USERS && typeof USERS === 'object' ? Object.values(USERS) as UserType[] : []);
 
   // Profil de l'utilisateur CONNECTÉ : listener dédié, TOUJOURS actif (indépendant de
   // l'onglet admin affiché). Le fetch `USERS` ci-dessus n'est activé que sur certains
@@ -838,7 +833,7 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
         }
     } else if (notification.type === 'customer' || notification.type === 'user') {
         if (notification.relatedId) {
-            const customer = localUsers.find(u => u.id === notification.relatedId);
+            const customer = localUsers.find((u: UserType) => u.id === notification.relatedId);
             if (customer) {
                 setSelectedCustomer(customer);
                 setActiveTab('customer-detail');
@@ -855,7 +850,7 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
     const handleClientMessage = (event: CustomEvent) => {
       const msg = event.detail;
       if (selectedConversation && selectedConversation.userId === msg.senderId) {
-        setSelectedConversation(prev => {
+        setSelectedConversation((prev: any) => {
           if (!prev) return null;
           return {
             ...prev,
@@ -882,7 +877,7 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
       isAdmin: true
     };
 
-    setSelectedConversation(prev => {
+    setSelectedConversation((prev: any) => {
       if (!prev) return null;
       return {
         ...prev,
@@ -920,7 +915,7 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
   // Priorité au listener dédié (toujours actif) ; repli sur la liste `localUsers`
   // (tab-gated) si celle-ci est déjà chargée et que le listener dédié n'a pas encore
   // répondu, pour éviter un flash "customer" pendant le tout premier rendu.
-  const currentUserDoc = ownUserDoc ?? localUsers.find(u => u.id === user?.uid);
+  const currentUserDoc = ownUserDoc ?? localUsers.find((u: UserType) => u.id === user?.uid);
   const userRoleSlug = currentUserDoc?.role || 'customer';
   
   const roleData = localRoles.find((r: any) => 
@@ -1197,7 +1192,6 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
     localShippingRules,
     localSystemNotifications,
     localTaxRules,
-    localUsers,
     logFilter,
     menuItems,
     messageInput,

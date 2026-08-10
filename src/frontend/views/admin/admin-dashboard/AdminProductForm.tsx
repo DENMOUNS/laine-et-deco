@@ -77,6 +77,24 @@ export function AdminProductForm({ ctx }: { ctx: any }) {
                 const nameValue = formData.get('name') as string;
                 const slugValue = (formData.get('slug') as string || '').trim();
                 const finalSlug = slugValue || (nameValue ? nameValue.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') : '');
+                const arrivalQuantity = Math.max(0, Number(formData.get('arrivalQuantity')) || 0);
+                const arrivalDate = String(formData.get('arrivalDate') || '');
+                const arrivalId = String(formData.get('arrivalId') || '');
+                const previousArrivals = Array.isArray(editingItem?.incomingStock) ? editingItem.incomingStock : [];
+                const incomingStock = arrivalQuantity > 0 && arrivalDate
+                  ? [
+                      ...previousArrivals.filter((arrival: any) => arrival.id !== arrivalId),
+                      {
+                        id: arrivalId || `arrival-${Date.now()}`,
+                        quantity: arrivalQuantity,
+                        color: String(formData.get('arrivalColor') || '').trim() || undefined,
+                        availableAt: new Date(`${arrivalDate}T00:00:00`).toISOString(),
+                        reservedQuantity: previousArrivals.find((arrival: any) => arrival.id === arrivalId)?.reservedQuantity || 0,
+                        status: 'planned',
+                        updatedAt: new Date().toISOString(),
+                      },
+                    ]
+                  : previousArrivals;
 
                 // Vérification d'unicité du slug dans la table produit
                 const slugConflict = localProducts.find(
@@ -105,6 +123,8 @@ export function AdminProductForm({ ctx }: { ctx: any }) {
                   imagesByColor: editingItem?.imagesByColor || {},
                   // Quantités par couleur
                   stockByColor: editingItem?.stockByColor || {},
+                  allowPreorder: formData.get('allowPreorder') === 'on',
+                  incomingStock,
                   description: formData.get('description') as string,
                   colors: editingItem?.colors || ['#FFFFFF'],
                   seo: {

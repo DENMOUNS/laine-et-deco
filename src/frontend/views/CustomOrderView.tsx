@@ -3,22 +3,33 @@ import { motion } from 'motion/react';
 import { CheckCircle2, Scissors, PenTool, Sparkles } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { toast } from 'sonner';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, where } from 'firebase/firestore';
 import { db, auth } from '../../backend/firebase';
+import { useEntity } from '../hooks/useEntity';
+import { User } from '../../types';
 
 export const CustomOrderView: React.FC = () => {
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userId, setUserId] = useState('');
   
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
+  const [phone, setPhone] = useState('');
   const [idea, setIdea] = useState('');
   const [materials, setMaterials] = useState('');
   const [dimensions, setDimensions] = useState('');
 
+  const { data: profiles } = useEntity<User>('user', [], {
+    constraints: [where('uid', '==', userId || 'guest')],
+    deps: [userId]
+  });
+
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
+        setUserId(user.uid);
         if (user.displayName) setName(user.displayName);
         if (user.email) setEmail(user.email);
       }
@@ -26,17 +37,27 @@ export const CustomOrderView: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    const profile = profiles[0];
+    if (!profile) return;
+
+    if (profile.name) setName(profile.name);
+    if (profile.email) setEmail(profile.email);
+    if (profile.phone) setPhone(profile.phone);
+    if (profile.whatsapp) setWhatsapp(profile.whatsapp);
+  }, [profiles]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!idea.trim()) {
-      toast.error('Veuillez décrire votre projet.');
+    if (!idea.trim() || !whatsapp.trim() || !phone.trim()) {
+      toast.error('Veuillez renseigner votre projet, votre numéro WhatsApp et votre numéro de téléphone.');
       return;
     }
 
     setIsSubmitting(true);
     try {
       const user = auth.currentUser;
-      const fullDescription = `Idée / Projet:\n${idea}\n\nMatériaux:\n${materials}\n\nDimensions:\n${dimensions || 'Non précisées'}`;
+      const fullDescription = `Idée / Projet:\n${idea}\n\nMatériaux:\n${materials}\n\nDimensions:\n${dimensions || 'Non précisées'}\n\nWhatsApp :\n${whatsapp}\n\nTéléphone :\n${phone}`;
       
       if (db && user) {
         await addDoc(collection(db, 'order'), {
@@ -46,6 +67,8 @@ export const CustomOrderView: React.FC = () => {
           uuid: crypto.randomUUID(),
           userName: name.trim() || (user.displayName || 'Anonyme'),
           email: email.trim() || (user.email || ''),
+          whatsapp: whatsapp.trim(),
+          phone: phone.trim(),
           description: fullDescription,
           status: 'pending',
           type: 'custom',
@@ -184,6 +207,37 @@ export const CustomOrderView: React.FC = () => {
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="space-y-1">
+                  <label htmlFor="custom-whatsapp" className="text-xs font-bold uppercase tracking-wider text-primary/70 ml-2">Numéro WhatsApp</label>
+                  <input
+                    id="custom-whatsapp"
+                    type="tel"
+                    required
+                    inputMode="tel"
+                    pattern="[+0-9 ()-]{8,}"
+                    className="w-full px-5 py-4 bg-[#F9F7F2] border border-transparent rounded-2xl focus:border-accent/30 focus:bg-white focus:ring-4 focus:ring-accent/10 transition-all text-primary placeholder:text-primary/70"
+                    placeholder="+225 07 00 00 00 00"
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label htmlFor="custom-phone" className="text-xs font-bold uppercase tracking-wider text-primary/70 ml-2">Numéro de téléphone</label>
+                  <input
+                    id="custom-phone"
+                    type="tel"
+                    required
+                    inputMode="tel"
+                    pattern="[+0-9 ()-]{8,}"
+                    className="w-full px-5 py-4 bg-[#F9F7F2] border border-transparent rounded-2xl focus:border-accent/30 focus:bg-white focus:ring-4 focus:ring-accent/10 transition-all text-primary placeholder:text-primary/70"
+                    placeholder="+225 05 00 00 00 00"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                  />
+                </div>
+              </div>
+
               <div className="space-y-4">
                 <div className="space-y-1">
                   <label className="text-xs font-bold uppercase tracking-wider text-primary/70 ml-2">Votre Idée / Projet</label>
@@ -224,7 +278,7 @@ export const CustomOrderView: React.FC = () => {
               <div className="pt-2">
                 <Button 
                   type="submit" 
-                  disabled={isSubmitting || !idea.trim() || !name.trim() || !email.trim()}
+                  disabled={isSubmitting || !idea.trim() || !name.trim() || !email.trim() || !whatsapp.trim() || !phone.trim()}
                   className="w-full py-5 rounded-2xl text-lg font-bold bg-[#5c5e46] hover:bg-primary text-white transition-all shadow-xl shadow-primary/10 hover:shadow-primary/20 animate-shine flex justify-center items-center gap-2"
                 >
                   {isSubmitting ? 'Envoi en cours...' : 'Envoyer ma demande'}

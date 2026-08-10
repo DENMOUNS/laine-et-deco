@@ -19,7 +19,7 @@ export const SecondHandView: React.FC<SecondHandViewProps> = ({
   onAddToWishlist, 
   onQuickView 
 }) => {
-  const { products: fetchedProducts } = useProducts();
+  const { products: fetchedProducts } = useProducts({ cacheOnly: true });
   const PRODUCTS = fetchedProducts;
   
   const secondHandProducts = PRODUCTS.filter(p => p.condition === 'second-hand');

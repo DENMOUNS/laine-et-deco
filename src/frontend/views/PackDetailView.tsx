@@ -16,8 +16,8 @@ interface PackDetailViewProps {
 
 export const PackDetailView: React.FC<PackDetailViewProps> = ({ packId, onNavigate, onAddToCart, onAddPackToCart }) => {
   const [packQuantity, setPackQuantity] = React.useState(1);
-  const { data: PACKS } = useStaticEntity<Pack>('pack');
-  const { products: PRODUCTS } = useProducts();
+  const { data: PACKS } = useStaticEntity<Pack>('pack', [], { cacheOnly: true });
+  const { products: PRODUCTS } = useProducts({ cacheOnly: true });
   const pack = PACKS.find(p => p.id === packId);
   
   if (!pack) {

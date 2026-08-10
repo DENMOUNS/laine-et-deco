@@ -32,6 +32,8 @@ export { AdminPortfoliosTab } from './AdminPortfoliosTab';
 export { AdminCustomers } from './AdminCustomers';
 export { AdminPacks } from './AdminPacks';
 export { AdminLookbook } from './AdminLookbook';
+export { AdminPatternModels } from './AdminPatternModels';
+export { AdminConfiguratorModels } from './AdminConfiguratorModels';
 export { AdminBlog } from './AdminBlog';
 export { AdminNotifications } from './AdminNotifications';
 export { AdminNewsletter } from './AdminNewsletter';

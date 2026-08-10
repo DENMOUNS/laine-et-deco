@@ -21,6 +21,7 @@ import { StaticPageView } from './StaticPageView';
 
 import { toast } from 'sonner';
 import { Product } from '../../types';
+import { isFeatureEnabled } from '../utils/featureFlags';
 
 // ── Lazy loaded views ──
 const HomeView = lazy(() => import('../views/HomeView').then(m => ({ default: m.HomeView })));
@@ -57,9 +58,16 @@ const FAQView = lazy(() => import('../views/FAQView').then(m => ({ default: m.FA
 const QRLandingView = lazy(() => import('../views/QRLandingView').then(m => ({ default: m.QRLandingView })));
 const Error404View = lazy(() => import('../views/Error404View').then(m => ({ default: m.Error404View })));
 const AboutView = lazy(() => import('../views/AboutView').then(m => ({ default: m.AboutView })));
+const UserManualView = lazy(() => import('../views/UserManualView').then(m => ({ default: m.UserManualView })));
+const TechnicalSupportView = lazy(() => import('../views/TechnicalSupportView').then(m => ({ default: m.TechnicalSupportView })));
 
 // ── Route wrapper components ──
 // Each wrapper reads ONLY what it needs from stores — no monolithic useSharedData
+
+function FeatureRoute({ feature, element }: { feature: string; element: React.ReactElement }) {
+  const siteConfig = useConfigStore((s) => s.siteConfig);
+  return isFeatureEnabled(siteConfig, feature) ? element : <Navigate to="/" replace />;
+}
 
 function HomePage() {
   const onNavigate = useNavigateAdapter();
@@ -99,6 +107,16 @@ function ShopPage() {
       onProductClick={(p: Product) => navigate(`/product/${p.id}`)}
       events={events}
       initialSearchQuery={searchParams.get('q') || ''}
+      initialAllowedCategories={searchParams.get('knittingMaterials') === 'true' ? [
+        'laine',
+        'accessoires tricot',
+        'kit tricot',
+        'crochets',
+        'tricot',
+        'pack',
+        'packs tricot',
+        'pack tricot',
+      ] : undefined}
     />
   );
 }
@@ -128,7 +146,7 @@ function FlashSalesPage() {
 function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const onNavigate = useNavigateAdapter();
-  const { products: fetchedProducts } = useProducts();
+  const { products: fetchedProducts } = useProducts({ cacheOnly: true });
   const PRODUCTS = fetchedProducts;
   const addToCart = useCartStore((s) => s.addToCart);
   const addToWishlist = useWishlistStore((s) => s.addToWishlist);
@@ -140,7 +158,7 @@ function ProductDetailPage() {
 
 function CartPage() {
   const onNavigate = useNavigateAdapter();
-  const { products: fetchedProducts } = useProducts();
+  const { products: fetchedProducts } = useProducts({ cacheOnly: true });
   const PRODUCTS = fetchedProducts;
   const cart = useCartStore((s) => s.cart);
   const addToCart = useCartStore((s) => s.addToCart);
@@ -152,7 +170,7 @@ function CartPage() {
 
 function CheckoutPage() {
   const onNavigate = useNavigateAdapter();
-  const { products: fetchedProducts } = useProducts();
+  const { products: fetchedProducts } = useProducts({ cacheOnly: true });
   const PRODUCTS = fetchedProducts;
   const cart = useCartStore((s) => s.cart);
   const setCart = useCartStore((s) => s.setCart);
@@ -171,7 +189,7 @@ function ComparisonPage() {
 
 function PacksPage() {
   const onNavigate = useNavigateAdapter();
-  const { products: fetchedProducts } = useProducts();
+  const { products: fetchedProducts } = useProducts({ cacheOnly: true });
   const PRODUCTS = fetchedProducts;
   const addToCart = useCartStore((s) => s.addToCart);
   const addPackToCart = useCartStore((s) => s.addPackToCart);
@@ -181,7 +199,7 @@ function PacksPage() {
 function PackDetailPage() {
   const { id } = useParams<{ id: string }>();
   const onNavigate = useNavigateAdapter();
-  const { products: fetchedProducts } = useProducts();
+  const { products: fetchedProducts } = useProducts({ cacheOnly: true });
   const PRODUCTS = fetchedProducts;
   const addToCart = useCartStore((s) => s.addToCart);
   const addPackToCart = useCartStore((s) => s.addPackToCart);
@@ -208,7 +226,7 @@ function VolumeCalculatorPage() {
 
 function LookbookPage() {
   const onNavigate = useNavigateAdapter();
-  const { products: fetchedProducts } = useProducts();
+  const { products: fetchedProducts } = useProducts({ cacheOnly: true });
   const PRODUCTS = fetchedProducts;
   return <LookbookView onNavigate={onNavigate} products={PRODUCTS} />;
 }
@@ -220,12 +238,12 @@ function PatternGeneratorPage() {
 }
 
 function ConfiguratorPage() {
-  const addToCart = useCartStore((s) => s.addToCart);
+  const addToCart = useCartStore((s) => s.addConfiguredToCart);
   return <KnittingConfiguratorView onAddToCart={addToCart} />;
 }
 
 function CustomPackBuilderPage() {
-  const { products: fetchedProducts } = useProducts();
+  const { products: fetchedProducts } = useProducts({ cacheOnly: true });
   const PRODUCTS = fetchedProducts;
   const addToCart = useCartStore((s) => s.addToCart);
   return <CustomPackBuilderView onAddToCart={addToCart} allProducts={PRODUCTS} />;
@@ -390,27 +408,27 @@ export const AppRoutes: React.FC = () => {
           <Route path="/product/:id" element={<ProductDetailPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
-          <Route path="/comparison" element={<ComparisonPage />} />
-          <Route path="/wishlist" element={<WishlistPage />} />
+          <Route path="/comparison" element={<FeatureRoute feature="comparison" element={<ComparisonPage />} />} />
+          <Route path="/wishlist" element={<FeatureRoute feature="wishlist" element={<WishlistPage />} />} />
           
           {/* Content */}
-          <Route path="/blog" element={<BlogIndexView />} />
-          <Route path="/blog/:id" element={<BlogPostPage />} />
-          <Route path="/team" element={<TeamView onNavigate={onNavigate} />} />
-          <Route path="/about" element={<AboutView onNavigate={onNavigate} />} />
-          <Route path="/contact" element={<ContactView onNavigate={onNavigate} />} />
-          <Route path="/faq" element={<FAQView onNavigate={onNavigate} />} />
+          <Route path="/blog" element={<FeatureRoute feature="blog" element={<BlogIndexView />} />} />
+          <Route path="/blog/:id" element={<FeatureRoute feature="blog" element={<BlogPostPage />} />} />
+          <Route path="/team" element={<FeatureRoute feature="team" element={<TeamView onNavigate={onNavigate} />} />} />
+          <Route path="/about" element={<FeatureRoute feature="about" element={<AboutView onNavigate={onNavigate} />} />} />
+          <Route path="/contact" element={<FeatureRoute feature="contact" element={<ContactView onNavigate={onNavigate} />} />} />
+          <Route path="/faq" element={<FeatureRoute feature="faq" element={<FAQView onNavigate={onNavigate} />} />} />
           
           {/* Tools */}
-          <Route path="/calculator" element={<CalculatorPage />} />
-          <Route path="/volume-calculator" element={<VolumeCalculatorPage />} />
+          <Route path="/calculator" element={<FeatureRoute feature="calculator" element={<CalculatorPage />} />} />
+          <Route path="/volume-calculator" element={<FeatureRoute feature="volumeCalculator" element={<VolumeCalculatorPage />} />} />
           <Route path="/care-guide" element={<CareGuideView />} />
-          <Route path="/lookbook" element={<LookbookPage />} />
-          <Route path="/community" element={<CommunityGalleryView onNavigate={onNavigate} />} />
-          <Route path="/knitting-companion" element={<KnittingCompanionView />} />
-          <Route path="/pattern-generator" element={<PatternGeneratorPage />} />
+          <Route path="/lookbook" element={<FeatureRoute feature="lookbook" element={<LookbookPage />} />} />
+          <Route path="/community" element={<FeatureRoute feature="community" element={<CommunityGalleryView onNavigate={onNavigate} />} />} />
+          <Route path="/knitting-companion" element={<FeatureRoute feature="knittingCompanion" element={<KnittingCompanionView />} />} />
+          <Route path="/pattern-generator" element={<FeatureRoute feature="patternGenerator" element={<PatternGeneratorPage />} />} />
           <Route path="/configurator" element={<ConfiguratorPage />} />
-          <Route path="/custom-order" element={<CustomOrderView />} />
+          <Route path="/custom-order" element={<FeatureRoute feature="customOrder" element={<CustomOrderView />} />} />
           
           {/* Packs */}
           <Route path="/packs" element={<PacksPage />} />
@@ -428,10 +446,16 @@ export const AppRoutes: React.FC = () => {
           <Route path="/order-tracking" element={<OrderTrackingPage />} />
           <Route path="/order-tracking/:id" element={<OrderTrackingPage />} />
           
+          {/* Support & Help */}
+          <Route path="/user-manual" element={<UserManualView />} />
+          <Route path="/support" element={<TechnicalSupportView />} />
+          
           {/* Legal */}
           <Route path="/privacy" element={<PrivacyPolicyView onNavigate={onNavigate} />} />
-          <Route path="/legal" element={<StaticPageView title="Mentions Légales" onBack={() => {}} content={<div className="space-y-6"><p><strong>Éditeur du site :</strong> Laine et Déco SARL</p><p><strong>Siège social :</strong> Douala, Cameroun</p></div>} />} />
-          <Route path="/terms" element={<StaticPageView title="Conditions Générales de Vente" onBack={() => {}} content={<div className="space-y-6"><p>Les présentes CGV régissent les ventes sur le site.</p></div>} />} />
+          <Route path="/legal" element={<StaticPageView title="Mentions Légales" onBack={() => {}} content={<div className="space-y-6"><p><strong>Éditeur du site :</strong> Laine et Déco</p><p><strong>Siège social :</strong> Douala, Cameroun</p><p><strong>Responsable de publication :</strong> L’équipe Laine et Déco.</p><p>Le site est édité dans le respect des lois applicables en matière de publication, de confidentialité et de commerce électronique.</p><p>Pour toute demande relative aux informations publiées sur le site, vous pouvez nous contacter via la page contact.</p></div>} />} />
+          <Route path="/terms" element={<StaticPageView title="CGV & CGU" onBack={() => {}} content={<div className="space-y-6"><p>Les présentes conditions générales de vente et d’utilisation régissent les achats et l’utilisation du site Laine et Déco.</p><p><strong>1. Utilisation du site</strong> : le visiteur s’engage à utiliser le site de manière responsable et conforme à la loi.</p><p><strong>2. Commandes</strong> : les produits sont proposés sous réserve de disponibilité. La validation de la commande implique acceptation du prix et des informations fournies.</p><p><strong>3. Paiement</strong> : les paiements sont traités de manière sécurisée conformément aux moyens mis à disposition sur le site.</p><p><strong>4. Livraison</strong> : les délais sont communiqués au moment de la commande et peuvent varier selon la destination.</p><p><strong>5. Droit de rétractation</strong> : les conditions de retour sont précisées dans la commande et selon la réglementation applicable.</p></div>} />} />
+          <Route path="/cgu" element={<StaticPageView title="CGU & CGV" onBack={() => {}} content={<div className="space-y-6"><p>Les présentes conditions générales d’utilisation et de vente définissent les règles d’usage du site et les obligations liées aux commandes.</p><p>Le visiteur s’engage à ne pas utiliser le site à des fins frauduleuses ou non conformes à l’objet du service.</p></div>} />} />
+          <Route path="/cgu-cgv" element={<StaticPageView title="CGU & CGV" onBack={() => {}} content={<div className="space-y-6"><p>Les présentes conditions générales d’utilisation et de vente définissent les règles d’usage du site et les obligations liées aux commandes.</p><p>Le visiteur s’engage à ne pas utiliser le site à des fins frauduleuses ou non conformes à l’objet du service.</p></div>} />} />
           <Route path="/shipping" element={<StaticPageView title="Livraison" onBack={() => {}} content={<div className="space-y-6"><p>Nous livrons dans tout le Cameroun.</p></div>} />} />
           <Route path="/returns" element={<StaticPageView title="Retours et Remboursements" onBack={() => {}} content={<div className="space-y-6"><p>Votre satisfaction est notre priorité.</p></div>} />} />
           

@@ -53,7 +53,7 @@ export function AdminStats({ ctx }: { ctx: any }) {
                     <option>12 derniers mois</option>
                   </select>
                 </div>
-                <div className="h-80 w-full">
+                <div className="relative h-[320px] min-h-[320px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={SALES_DATA}>
                       <defs>
@@ -85,7 +85,7 @@ export function AdminStats({ ctx }: { ctx: any }) {
                     </div>
                   </div>
                 </div>
-                <div className="h-80 w-full">
+                <div className="relative h-[320px] min-h-[320px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={SALES_DATA}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />

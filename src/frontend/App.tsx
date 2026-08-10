@@ -1,11 +1,12 @@
-import React, { Suspense, lazy, useEffect, useState } from 'react';
-import { Toaster } from 'sonner';
+import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
+import { toast, Toaster } from 'sonner';
 import { RouteFallback } from './components/RouteFallback';
 import { useAuthStore } from '../stores/authStore';
 import { useConfigStore } from '../stores/configStore';
 import { SiteConfig, PromoEvent, NavItem } from '../types';
 import { DEFAULT_NAV_ITEMS } from '../siteDefaults';
 import { getStaticEntityCacheKey, readCache, writeCache, getTTLForEntity } from './utils/cacheStorage';
+import { dispatchNetworkIssue, getNetworkWarningMessage } from './utils/networkStatus';
 
 const AppRoutes = lazy(() =>
   import('./components/AppRoutes').then((m) => ({ default: m.AppRoutes }))
@@ -90,6 +91,25 @@ function useDeferredConfigSync() {
 
       const fetchCollection = async <T,>(name: string, max?: number): Promise<T[]> => {
         try {
+          const controller = new AbortController();
+          const timeoutId = window.setTimeout(() => controller.abort(), 1_200);
+          const response = await fetch(`/api/entity/${encodeURIComponent(name)}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            signal: controller.signal,
+          });
+          window.clearTimeout(timeoutId);
+
+          const body = await response.json().catch(() => null);
+          if (response.ok && Array.isArray(body)) {
+            return (max ? body.slice(0, max) : body) as T[];
+          }
+        } catch (error) {
+          dispatchNetworkIssue(typeof navigator !== 'undefined' ? !navigator.onLine : false);
+        }
+
+        try {
           const ref = collection(firestore, name);
           const snap = await getDocs(max ? query(ref, limit(max)) : ref);
           return snap.docs.map((d) => ({ id: d.id, ...d.data() })) as T[];
@@ -117,11 +137,17 @@ function useDeferredConfigSync() {
 
       void Promise.all(
         HOME_CACHE_COLLECTIONS.map(async ({ name, max }) => {
-          const cacheKey = getStaticEntityCacheKey(name, max ? [limit(max)] : []);
-          const cached = await readCache<unknown[]>(cacheKey);
+          const sharedCacheKey = `entityCache:${name}`;
+          const constraintCacheKey = getStaticEntityCacheKey(name, max ? [limit(max)] : []);
+          const cached = await readCache<unknown[]>(sharedCacheKey);
           if (cached) return;
           const items = await fetchCollection(name, max);
-          if (!cancelled) await writeCache(cacheKey, items, getTTLForEntity(name));
+          if (!cancelled) {
+            await Promise.all([
+              writeCache(sharedCacheKey, items, getTTLForEntity(name)),
+              writeCache(constraintCacheKey, items, getTTLForEntity(name)),
+            ]);
+          }
         })
       );
     })();
@@ -136,6 +162,50 @@ export function App() {
   useDeferredConfigSync();
 
   const initAuthListener = useAuthStore((s) => s.initAuthListener);
+  const networkWarningShownRef = useRef(false);
+
+  useEffect(() => {
+    const handleNetworkIssue = (event: Event) => {
+      const detail = (event as CustomEvent<{ isOffline?: boolean }>).detail;
+      const isOffline = detail?.isOffline ?? false;
+
+      if (networkWarningShownRef.current) {
+        return;
+      }
+
+      networkWarningShownRef.current = true;
+      toast.warning(getNetworkWarningMessage(isOffline), {
+        duration: 6000,
+      });
+    };
+
+    const handleOnline = () => {
+      if (!networkWarningShownRef.current) {
+        return;
+      }
+
+      networkWarningShownRef.current = false;
+      toast.success('Connexion rétablie. Le site peut reprendre son fonctionnement normal.');
+    };
+
+    const handleOffline = () => {
+      dispatchNetworkIssue(true);
+    };
+
+    window.addEventListener('app:network-issue', handleNetworkIssue as EventListener);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      handleOffline();
+    }
+
+    return () => {
+      window.removeEventListener('app:network-issue', handleNetworkIssue as EventListener);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     const startAuth = () => initAuthListener();
@@ -155,7 +225,8 @@ export function App() {
   // autoSeedIfEmpty), qui ne vérifie que 2 collections et seulement pour un admin connecté.
 
   useEffect(() => {
-    useConfigStore.getState().resolveNavItems(DEFAULT_NAV_ITEMS);
+    // Do not inject hard-coded nav items — resolve from cache/DB only.
+    useConfigStore.getState().resolveNavItems([]);
   }, []);
 
   return (

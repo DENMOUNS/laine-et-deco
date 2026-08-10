@@ -6,14 +6,16 @@ interface UseProductsOptions {
   enabled?: boolean;
   constraints?: QueryConstraint[];
   isAdmin?: boolean;
+  cacheOnly?: boolean;
 }
 
 /** Produits en lecture unique (getDocs) — pas de listener temps réel sur la home. */
 export const useProducts = (options: UseProductsOptions = {}) => {
-  const { enabled = true, constraints = [], isAdmin = false } = options;
+  const { enabled = true, constraints = [], isAdmin = false, cacheOnly = false } = options;
   const { data: allProducts, isLoading, error } = useStaticEntity<Product>('product', [], {
     enabled,
     constraints,
+    cacheOnly,
   });
 
   // Normalisation du stock entre stock / quantity pour garder le front cohérent

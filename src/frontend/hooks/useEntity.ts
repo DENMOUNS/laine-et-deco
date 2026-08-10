@@ -1,12 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
 import type { QueryConstraint } from 'firebase/firestore';
-import type { EntityPayload } from '../services/firestoreEntityService';
+import {
+  createFirestoreEntity,
+  deleteFirestoreEntity,
+  setFirestoreEntity,
+  subscribeToEntityCollection,
+  updateFirestoreEntity,
+  type EntityPayload,
+} from '../services/firestoreEntityService';
 import type { BaseEntity } from '../../domain/entities/BaseEntity';
 
 interface UseEntityOptions {
   enabled?: boolean;
   constraints?: QueryConstraint[];
   deps?: unknown[];
+  cacheOnly?: boolean;
 }
 
 import { readCache, writeCache, getTTLForEntity, readEntityCache, writeEntityCache } from '../utils/cacheStorage';
@@ -73,7 +81,7 @@ export function useEntity<T extends BaseEntity = BaseEntity>(
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const isMounted = useRef(true);
-  const { enabled = true, constraints = [], deps = [] } = options;
+  const { enabled = true, constraints = [], deps = [], cacheOnly = false } = options;
 
   useEffect(() => {
     isMounted.current = true;
@@ -105,6 +113,11 @@ export function useEntity<T extends BaseEntity = BaseEntity>(
       }
 
       if (cancelled) return;
+
+      if (cacheOnly) {
+        setIsLoading(false);
+        return;
+      }
 
       const dynamicEntities = ['order', 'user', 'notification', 'chat_message', 'conversation', 'abandoned_cart'];
       const isDynamic = dynamicEntities.includes(entityType);
@@ -145,7 +158,6 @@ export function useEntity<T extends BaseEntity = BaseEntity>(
       }
 
       // Fetch from Firebase if no cache or if it's admin/dynamic
-      const { subscribeToEntityCollection } = await import('../services/firestoreEntityService');
       if (cancelled) return;
 
       unsubscribe = subscribeToEntityCollection<T>(
@@ -174,26 +186,19 @@ export function useEntity<T extends BaseEntity = BaseEntity>(
       cancelled = true;
       unsubscribe();
     };
-  }, [entityType, enabled, isAdmin, ...deps]);
-
-  const withService = async <R>(
-    fn: (svc: typeof import('../services/firestoreEntityService')) => Promise<R>
-  ): Promise<R> => {
-    const svc = await import('../services/firestoreEntityService');
-    return fn(svc);
-  };
+  }, [entityType, enabled, isAdmin, cacheOnly, ...deps]);
 
   const addEntity = async (newItem: EntityPayload<T>) =>
-    withService((svc) => svc.createFirestoreEntity<T>(resolvedEntityType, newItem));
+    createFirestoreEntity<T>(resolvedEntityType, newItem);
 
   const updateEntity = async (id: string, updates: Partial<T>) =>
-    withService((svc) => svc.updateFirestoreEntity<T>(resolvedEntityType, id, updates));
+    updateFirestoreEntity<T>(resolvedEntityType, id, updates);
 
   const setEntity = async (id: string, entityData: Partial<T>) =>
-    withService((svc) => svc.setFirestoreEntity(resolvedEntityType, id, entityData));
+    setFirestoreEntity(resolvedEntityType, id, entityData);
 
   const deleteEntity = async (id: string) =>
-    withService((svc) => svc.deleteFirestoreEntity(resolvedEntityType, id));
+    deleteFirestoreEntity(resolvedEntityType, id);
 
   return {
     data,

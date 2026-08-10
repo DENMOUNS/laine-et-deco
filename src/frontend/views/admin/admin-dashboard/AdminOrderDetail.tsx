@@ -1,9 +1,10 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, Legend } from 'recharts';
-import { LayoutDashboard, Package, ShoppingBag, Users, BarChart3, Settings, LogOut, TrendingUp, ArrowUpRight, ArrowDownRight, Search, Bell, Plus, Menu, X, History, Coins, Globe, Shield, Activity, Smartphone, Monitor, Star, CheckCircle2, AlertCircle, MessageSquare, Palette, Award, Download, FileText, Send, Table as TableIcon, Ticket, Lock, Eye, MousePointer2, Calendar as CalendarIcon, Image as ImageIcon, Type as TypeIcon, MonitorOff, Info, User, Edit, Trash2, ShoppingCart, RefreshCcw, Tag, Mail, Percent, Truck, ChevronLeft, MapPin, Route, QrCode, Save, HelpCircle, Phone } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, Users, BarChart3, Settings, LogOut, TrendingUp, ArrowUpRight, ArrowDownRight, Search, Bell, Plus, Menu, X, History, Coins, Globe, Shield, Activity, Smartphone, Monitor, Star, CheckCircle2, AlertCircle, MessageSquare, Palette, Award, Download, FileText, Send, Table as TableIcon, Ticket, Lock, Eye, MousePointer2, Calendar as CalendarIcon, Image as ImageIcon, Type as TypeIcon, MonitorOff, Info, User, Edit, Trash2, ShoppingCart, RefreshCcw, Tag, Mail, Percent, Truck, ChevronLeft, MapPin, Route, QrCode, Save, HelpCircle, Phone, Clock } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
+import { formatOrderNotification } from '../../../utils/notificationFormatter';
 import { doc, updateDoc, increment, query, where, getDoc, writeBatch, addDoc } from 'firebase/firestore';
 import { auth, db } from '../../../../backend/firebase';
 import { BADGES, ADMIN_ROLES as INITIAL_ADMIN_ROLES } from '../../../../constants';
@@ -22,6 +23,7 @@ import { cn } from '../../../utils/utils';
 import { AdminFlashSales } from '../AdminFlashSales';
 import { AdminLookbooks } from '../AdminLookbooks';
 import { AdminPortfolios } from '../AdminPortfolios';
+import { formatNotificationDate } from '../../../utils/notificationFormatter';
 
 
 export function AdminOrderDetail({ ctx }: { ctx: any }) {
@@ -35,6 +37,9 @@ export function AdminOrderDetail({ ctx }: { ctx: any }) {
     cancelled: 'Commande annulée',
     completed: 'Commande complétée',
   };
+
+  const productList = Array.isArray(PRODUCTS) ? PRODUCTS : [];
+  const userList = Array.isArray(USERS) ? USERS : [];
 
   const getOrderStatusNote = (status: string) => orderStatusNotes[status] || `Statut mis à jour : ${status}`;
   const getOrderNotificationTitle = (status: string) => {
@@ -116,11 +121,13 @@ export function AdminOrderDetail({ ctx }: { ctx: any }) {
       author: 'Système',
     };
 
+    // Utiliser le formatter pour créer une notification naturelle
+    const notificationData = formatOrderNotification(selectedOrder, newStatus);
     const notification = {
       id: `notif-${Date.now()}`,
       type: 'order',
-      title: getOrderNotificationTitle(newStatus),
-      message: getOrderNotificationMessage(selectedOrder.id, newStatus),
+      title: notificationData.title,
+      message: notificationData.message,
       timestamp: new Date().toISOString(),
       read: false,
       relatedId: selectedOrder.id,
@@ -215,6 +222,43 @@ export function AdminOrderDetail({ ctx }: { ctx: any }) {
               </div>
             </div>
 
+            {/* Order Info Timeline */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-card p-4 rounded-2xl shadow-sm border border-primary/10 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Clock size={20} className="text-primary" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-primary/60">Créée le</p>
+                  <p className="font-bold text-sm text-primary">{formatNotificationDate(selectedOrder.createdAt || selectedOrder.timestamp || new Date().toISOString())}</p>
+                </div>
+              </div>
+
+              {selectedOrder.readAt && (
+                <div className="bg-card p-4 rounded-2xl shadow-sm border border-primary/10 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0">
+                    <CheckCircle2 size={20} className="text-accent" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-primary/60">Lue le</p>
+                    <p className="font-bold text-sm text-primary">{formatNotificationDate(selectedOrder.readAt)}</p>
+                  </div>
+                </div>
+              )}
+
+              {selectedOrder.updatedAt && (
+                <div className="bg-card p-4 rounded-2xl shadow-sm border border-primary/10 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <RefreshCcw size={20} className="text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-primary/60">Modifiée le</p>
+                    <p className="font-bold text-sm text-primary">{formatNotificationDate(selectedOrder.updatedAt)}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 space-y-8">
                 {/* Main Order Content */}
@@ -242,7 +286,7 @@ export function AdminOrderDetail({ ctx }: { ctx: any }) {
                           }
 
                           return items.map((item: any, i: number) => {
-                            const product = PRODUCTS.find((p: any) => p.id === item.productId || p.id === item.id);
+                            const product = productList.find((p: any) => p.id === item.productId || p.id === item.id);
                             return (
                               <div key={i} className="group relative flex justify-between items-center p-4 bg-secondary/30 border border-primary/5 rounded-2xl hover:border-primary/20 transition-all">
                                 <div className="flex items-center gap-4 flex-grow">
@@ -372,7 +416,7 @@ export function AdminOrderDetail({ ctx }: { ctx: any }) {
                         <div className="bg-secondary/30 p-6 rounded-3xl border border-primary/5 relative">
                           <div className="flex items-center gap-4 mb-4">
                             {(() => {
-                              const customerUser = USERS.find((u: any) => u.id === selectedOrder.userId || (u as any).uid === selectedOrder.userId || u.name === selectedOrder.customer);
+                              const customerUser = userList.find((u: any) => u.id === selectedOrder.userId || (u as any).uid === selectedOrder.userId || u.name === selectedOrder.customer);
                               if (customerUser?.profileImage) {
                                 return <img src={customerUser.profileImage} className="w-14 h-14 rounded-2xl object-cover border-2 border-white shadow-sm" alt={selectedOrder.customer} />;
                               }
@@ -432,7 +476,7 @@ export function AdminOrderDetail({ ctx }: { ctx: any }) {
                           
                           <button 
                             onClick={() => {
-                              const user = USERS.find((u: any) => u.id === selectedOrder.userId || (u as any).uid === selectedOrder.userId || u.name === selectedOrder.customer);
+                              const user = userList.find((u: any) => u.id === selectedOrder.userId || (u as any).uid === selectedOrder.userId || u.name === selectedOrder.customer);
                               if (user) {
                                 setSelectedCustomer(user);
                                 setActiveTab('customer-detail');

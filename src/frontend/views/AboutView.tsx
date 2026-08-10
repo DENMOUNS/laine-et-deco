@@ -22,7 +22,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ onNavigate }) => {
             className="inline-flex items-center gap-2 px-4 py-2 bg-accent/20 text-accent-light rounded-full text-xs font-bold uppercase tracking-widest mb-6 border border-accent/20"
           >
             <Sparkles size={14} className="text-accent" />
-            <span className="text-white">Laine & Déco</span>
+            <span className="text-white">LAINE ET DECO</span>
           </motion.div>
           
           <motion.h1 

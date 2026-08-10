@@ -1,6 +1,5 @@
 import {
   collection,
-  doc,
   DocumentData,
   limit,
   onSnapshot,
@@ -17,7 +16,16 @@ import {
 } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { initFirebase, handleFirestoreError, OperationType } from '../../backend/firebase';
-import { readCache, writeCache, getEntityCacheKeys, removeCache } from '../utils/cacheStorage';
+import {
+  writeCache,
+  getEntityCacheKeys,
+  removeCache,
+  readEntityCache,
+  writeEntityCache,
+  getTTLForEntity,
+} from '../utils/cacheStorage';
+import { dispatchNetworkIssue } from '../utils/networkStatus';
+import { incrementFirestoreMetric } from '../utils/firestoreInstrumentation';
 import type { BaseEntity } from '../../domain/entities/BaseEntity';
 
 /** Invalide toutes les clés de cache IDB pour une entité et notifie les listeners React. */
@@ -28,7 +36,9 @@ async function invalidateEntityCache(entityType: string): Promise<void> {
   }
 }
 
-const PUBLIC_COLLECTIONS = [
+const PUBLIC_COLLECTIONS = new Set([
+  'pattern_model',
+  'configurator_model',
   'product',
   'category',
   'pack',
@@ -60,7 +70,7 @@ const PUBLIC_COLLECTIONS = [
   'maintenance_config_history',
   'newsletter_config_history',
   'custom_section_config'
-];
+]);
 
 const CACHEABLE_COLLECTIONS = new Set([
   'product',
@@ -97,6 +107,57 @@ export interface EntityServiceOptions {
 export type EntityPayload<T extends BaseEntity> = Omit<T, 'id' | 'createdAt' | 'updatedAt'>;
 
 const getEntityCacheKey = (entityType: string) => `entity:${entityType}:v1`;
+
+const isAbortError = (error: unknown): boolean => {
+  return error instanceof DOMException
+    ? error.name === 'AbortError'
+    : error instanceof Error && error.name === 'AbortError';
+};
+
+export const fetchEntityDataFromApi = async <T extends BaseEntity>(entityType: string): Promise<T[] | null> => {
+  let timeoutId: number | undefined;
+  try {
+    const controller = new AbortController();
+    timeoutId = window.setTimeout(() => controller.abort(), 5_000);
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    const token = PUBLIC_COLLECTIONS.has(entityType) ? null : await getAuthToken();
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`/api/entity/${encodeURIComponent(entityType)}`, {
+      method: 'GET',
+      headers,
+      credentials: 'same-origin',
+      signal: controller.signal,
+    });
+
+    const body = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(`Entity API ${entityType} responded with HTTP ${response.status}`);
+    }
+    if (!Array.isArray(body)) {
+      throw new Error(`Entity API ${entityType} returned an invalid payload`);
+    }
+
+    return body as T[];
+  } catch (error) {
+    if (isAbortError(error)) {
+      return null;
+    }
+
+    dispatchNetworkIssue(typeof navigator !== 'undefined' ? !navigator.onLine : false);
+    throw error instanceof Error ? error : new Error(`Unable to load entity ${entityType}`);
+  } finally {
+    if (timeoutId !== undefined) {
+      window.clearTimeout(timeoutId);
+    }
+  }
+};
 
 const hasLimitConstraint = (constraints: QueryConstraint[]) => {
   return constraints.some((constraint) => (constraint as { type?: string }).type === 'limit');
@@ -145,7 +206,25 @@ const parseValueForSorting = (val: any): any => {
   return val;
 };
 
-const filterInMemory = <T extends any>(
+const operators: Record<string, (a: any, b: any) => boolean> = {
+  '==': (a, b) => a === b,
+  '!=': (a, b) => a !== b,
+  '<': (a, b) => a < b,
+  '<=': (a, b) => a <= b,
+  '>': (a, b) => a > b,
+  '>=': (a, b) => a >= b,
+  'array-contains': (a, b) => Array.isArray(a) && a.includes(b),
+  'in': (a, b) => Array.isArray(b) && b.includes(a),
+  'not-in': (a, b) => Array.isArray(b) && !b.includes(a),
+  'array-contains-any': (a, b) =>
+    Array.isArray(a) &&
+    Array.isArray(b) &&
+    b.some(v => a.includes(v)),
+};
+
+
+
+const filterInMemory = <T>(
   items: T[],
   constraints: QueryConstraint[]
 ): T[] => {
@@ -153,94 +232,26 @@ const filterInMemory = <T extends any>(
 
   for (const c of constraints) {
     const raw = c as any;
-    if (raw.type === 'where') {
-      const fieldPath = raw._field?.segments?.join('.') || raw._field?._path?.segments?.join('.');
-      const op = raw._op;
-      const val = raw._value;
 
-      if (fieldPath) {
-        filtered = filtered.filter(item => {
-          const itemVal = getNestedValue(item, fieldPath);
-          switch (op) {
-            case '==':
-              return itemVal === val;
-            case '!=':
-              return itemVal !== val;
-            case '<':
-              return itemVal < val;
-            case '<=':
-              return itemVal <= val;
-            case '>':
-              return itemVal > val;
-            case '>=':
-              return itemVal >= val;
-            case 'array-contains':
-              return Array.isArray(itemVal) && itemVal.includes(val);
-            case 'in':
-              return Array.isArray(val) && val.includes(itemVal);
-            case 'not-in':
-              return Array.isArray(val) && !val.includes(itemVal);
-            case 'array-contains-any':
-              return Array.isArray(itemVal) && Array.isArray(val) && val.some(v => itemVal.includes(v));
-            default:
-              return true;
-          }
-        });
-      }
-    }
+    if (raw.type !== 'where') continue;
+
+    const fieldPath =
+      raw._field?.segments?.join('.') ||
+      raw._field?._path?.segments?.join('.');
+
+    if (!fieldPath) continue;
+
+    const compare =
+      operators[raw._op] || (() => true);
+
+    filtered = filtered.filter(item =>
+      compare(getNestedValue(item, fieldPath), raw._value)
+    );
   }
 
   return filtered;
 };
 
-const filterAndSortInMemory = <T extends any>(
-  items: T[],
-  constraints: QueryConstraint[],
-  pageSize: number,
-  lastDocumentId: string | null
-) => {
-  let filtered = filterInMemory(items, constraints);
-
-  const orderBys = constraints.filter((c: any) => c.type === 'orderBy');
-  if (orderBys.length > 0) {
-    filtered.sort((a, b) => {
-      for (const c of orderBys) {
-        const raw = c as any;
-        const fieldPath = raw._field?.segments?.join('.') || raw._field?._path?.segments?.join('.');
-        const direction = raw._direction || 'asc';
-        if (!fieldPath) continue;
-
-        let valA = parseValueForSorting(getNestedValue(a, fieldPath));
-        let valB = parseValueForSorting(getNestedValue(b, fieldPath));
-
-        if (valA === valB) continue;
-        if (valA === undefined || valA === null) return direction === 'asc' ? -1 : 1;
-        if (valB === undefined || valB === null) return direction === 'asc' ? 1 : -1;
-
-        if (valA < valB) return direction === 'asc' ? -1 : 1;
-        if (valA > valB) return direction === 'asc' ? 1 : -1;
-      }
-      return 0;
-    });
-  }
-
-  if (lastDocumentId) {
-    const lastDocIndex = filtered.findIndex((item: any) => item.id === lastDocumentId);
-    if (lastDocIndex !== -1) {
-      filtered = filtered.slice(lastDocIndex + 1);
-    }
-  }
-
-  const paginatedItems = filtered.slice(0, pageSize);
-  const lastItem = paginatedItems[paginatedItems.length - 1];
-  const lastDocMock = lastItem ? { id: (lastItem as any).id, data: () => lastItem, exists: () => true } : null;
-
-  return {
-    items: paginatedItems,
-    lastDoc: lastDocMock as any,
-    hasMore: filtered.length > pageSize
-  };
-};
 
 export const getPaginatedEntities = async <T extends BaseEntity>(
   entityType: string,
@@ -259,10 +270,11 @@ export const getPaginatedEntities = async <T extends BaseEntity>(
 
     const q = query(collection(db, entityType), ...finalConstraints);
     const snapshot = await getDocs(q);
-    
+    incrementFirestoreMetric('getDocs', entityType);
+
     const items = parseSnapshot<T>(snapshot);
     const lastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null;
-    
+
     return { items, lastDoc, hasMore: snapshot.docs.length === pageSize };
   } catch (err) {
     console.warn(`Direct query for ${entityType} failed. Trying fallback via API.`, err);
@@ -274,6 +286,24 @@ export const getPaginatedEntities = async <T extends BaseEntity>(
       throw err;
     }
   }
+};
+
+const filterAndSortInMemory = <T extends BaseEntity>(
+  items: T[],
+  constraints: QueryConstraint[],
+  pageSize: number,
+  lastDocumentId: string | null
+) => {
+  const filtered = filterInMemory(items, constraints);
+  const startIndex = lastDocumentId
+    ? Math.max(filtered.findIndex((item) => item.id === lastDocumentId) + 1, 0)
+    : 0;
+  const pageItems = filtered.slice(startIndex, startIndex + pageSize);
+  return {
+    items: pageItems,
+    lastDoc: pageItems.length > 0 ? (pageItems[pageItems.length - 1] as unknown as DocumentData) : null,
+    hasMore: filtered.length > startIndex + pageItems.length,
+  };
 };
 
 export const getEntityAggregate = async (
@@ -335,42 +365,124 @@ export const subscribeToEntityCollection = <T extends BaseEntity>(
 ) => {
   const { db, auth } = initFirebase();
   if (!db) {
-    onError(new Error('Firestore is not initialized')); 
+    onError(new Error('Firestore is not initialized'));
     return () => {};
   }
 
-  let unsubscribe: (() => void) | null = null;
-  let authUnsubscribe: (() => void) | null = null;
+  type SubEntry = {
+    callbacks: Set<{ onData: (items: T[]) => void; onError: (error: Error) => void }>;
+    unsubscribe?: () => void;
+    lastData?: T[] | null;
+  };
 
-  const startSnapshotListener = () => {
+  const makeSubKey = () => {
+    const constraints = options.constraints ?? [];
+    const constraintKey = constraints
+      .map((c: any) => {
+        try {
+          return String(c.type || c._op || JSON.stringify(c));
+        } catch {
+          return String(Object.keys(c || {}).join(','));
+        }
+      })
+      .join('|');
+    return `${entityType}::${constraintKey}::${options.defaultLimit ?? 0}`;
+  };
+
+  if (!(window as any).__entitySubscriptions) {
+    (window as any).__entitySubscriptions = new Map<string, SubEntry>();
+  }
+
+  const subsMap: Map<string, SubEntry> = (window as any).__entitySubscriptions;
+  const key = makeSubKey();
+  const listener = { onData, onError };
+
+  const existing = subsMap.get(key);
+  if (existing) {
+    existing.callbacks.add(listener);
+    if (existing.lastData) {
+      try {
+        listener.onData(existing.lastData);
+      } catch {
+        // ignore
+      }
+    }
+    return () => {
+      const entry = subsMap.get(key);
+      if (!entry) return;
+      entry.callbacks.delete(listener);
+      if (entry.callbacks.size === 0) {
+        entry.unsubscribe?.();
+        subsMap.delete(key);
+      }
+    };
+  }
+
+  const entry: SubEntry = {
+    callbacks: new Set([{ onData, onError }]),
+    lastData: null,
+  };
+  subsMap.set(key, entry);
+
+  const emitData = (items: T[]) => {
+    entry.lastData = items;
+    entry.callbacks.forEach((cb) => {
+      try {
+        cb.onData(items);
+      } catch {
+        // ignore individual listener errors
+      }
+    });
+  };
+
+  const emitError = (err: Error) => {
+    entry.callbacks.forEach((cb) => {
+      try {
+        cb.onError(err);
+      } catch {
+        // ignore
+      }
+    });
+  };
+
+  const startSnapshotListener = async () => {
+    const cachedData = await readEntityCache<T[]>(entityType);
+    if (cachedData && Array.isArray(cachedData)) {
+      emitData(cachedData);
+    }
+
+    const apiData = await fetchEntityDataFromApi<T>(entityType);
+    if (apiData) {
+      incrementFirestoreMetric('apiFetch', entityType);
+      if (CACHEABLE_COLLECTIONS.has(entityType)) {
+        await writeEntityCache(entityType, apiData, getTTLForEntity(entityType));
+        await writeCache(getEntityCacheKey(entityType), apiData, getTTLForEntity(entityType));
+      }
+      emitData(apiData);
+    }
+
     const snapshotQuery = buildEntityQuery(db, entityType, options.constraints ?? [], options.defaultLimit);
-
-    unsubscribe = onSnapshot(
+    const unsub = onSnapshot(
       snapshotQuery,
       (snapshot) => {
+        incrementFirestoreMetric('onSnapshot', entityType);
         const items = parseSnapshot<T>(snapshot);
         if (CACHEABLE_COLLECTIONS.has(entityType)) {
-          writeCache(getEntityCacheKey(entityType), items);
+          void writeEntityCache(entityType, items, getTTLForEntity(entityType));
+          void writeCache(getEntityCacheKey(entityType), items, getTTLForEntity(entityType));
         }
-        onData(items);
+        emitData(items);
       },
       (err) => {
-        // All readCache calls are async — wrap everything in an async IIFE
-        // to properly await them. Calling readCache without await returns a
-        // Promise (always truthy), which would cause onData(Promise) and
-        // downstream errors like "ORDERS.reduce is not a function".
         (async () => {
-          // 1. Try the in-memory/IDB cache first
           const cachedData = CACHEABLE_COLLECTIONS.has(entityType)
-            ? await readCache<T[]>(getEntityCacheKey(entityType))
+            ? await readEntityCache<T[]>(entityType)
             : null;
-
           if (cachedData) {
-            onData(cachedData);
+            emitData(cachedData);
             return;
           }
 
-          // 2. Try fallback: request via server API using idToken (server uses admin SDK)
           try {
             const token = await getAuthToken();
             const resp = await fetch(`/api/entity/${encodeURIComponent(entityType)}`, {
@@ -381,53 +493,74 @@ export const subscribeToEntityCollection = <T extends BaseEntity>(
             const body = await resp.json().catch(() => null);
             if (resp.ok && Array.isArray(body)) {
               if (CACHEABLE_COLLECTIONS.has(entityType)) {
-                writeCache(getEntityCacheKey(entityType), body as T[]);
+                await writeEntityCache(entityType, body as T[], getTTLForEntity(entityType));
+                await writeCache(getEntityCacheKey(entityType), body as T[], getTTLForEntity(entityType));
               }
-              onData(body as T[]);
+              emitData(body as T[]);
               return;
             }
 
-            // 3. Try cache one more time after API failure
-            const fallbackCache = await readCache<T[]>(getEntityCacheKey(entityType));
+            const fallbackCache = await readEntityCache<T[]>(entityType);
             if (fallbackCache) {
-              onData(fallbackCache);
+              emitData(fallbackCache);
               return;
             }
-          } catch (e) {
-            const fallbackCache = await readCache<T[]>(getEntityCacheKey(entityType));
+          } catch (error) {
+            dispatchNetworkIssue(typeof navigator !== 'undefined' ? !navigator.onLine : false);
+            const fallbackCache = await readEntityCache<T[]>(entityType);
             if (fallbackCache) {
-              onData(fallbackCache);
+              emitData(fallbackCache);
               return;
             }
           }
 
-          onError(err instanceof Error ? err : new Error(String(err)));
+          emitError(err instanceof Error ? err : new Error(String(err)));
           handleFirestoreError(err, OperationType.LIST, entityType);
         })();
       }
     );
+
+    entry.unsubscribe = () => {
+      try {
+        unsub();
+      } catch {
+        // ignore
+      }
+    };
   };
 
-  if (!PUBLIC_COLLECTIONS.includes(entityType) && !auth?.currentUser) {
+  let authUnsubscribe: (() => void) | null = null;
+
+  const start = () => {
+    void startSnapshotListener();
+  };
+
+  if (!PUBLIC_COLLECTIONS.has(entityType) && !auth?.currentUser) {
     if (!auth) {
-      onError(new Error('Firebase Auth is not initialized'));
+      emitError(new Error('Firebase Auth is not initialized'));
       return () => {};
     }
     authUnsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         authUnsubscribe?.();
-        startSnapshotListener();
+        start();
       } else {
-        onError(new Error('Authentication is required to access protected data.'));
+        emitError(new Error('Authentication is required to access protected data.'));
       }
     });
   } else {
-    startSnapshotListener();
+    start();
   }
 
   return () => {
     authUnsubscribe?.();
-    unsubscribe?.();
+    const stored = subsMap.get(key);
+    if (!stored) return;
+    stored.callbacks.delete(listener);
+    if (stored.callbacks.size === 0) {
+      stored.unsubscribe?.();
+      subsMap.delete(key);
+    }
   };
 };
 

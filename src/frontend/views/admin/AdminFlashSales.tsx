@@ -42,14 +42,18 @@ export const AdminFlashSales: React.FC<AdminFlashSalesProps> = ({ products }) =>
       const items = prev?.items || [];
       if (items.find(i => i.productId === productId)) return prev;
       
+      const discountPercentage = 20; // Default 20% discount
+      const flashPrice = Math.round(product.price * (1 - discountPercentage / 100));
+      
       return {
         ...prev,
         items: [
           ...items,
           {
             productId,
-            flashPrice: product.price * 0.8,
-            totalQuantity: 1,
+            flashPrice,
+            discountPercentage,
+            totalQuantity: Math.min(5, product.stock),
             soldQuantity: 0
           }
         ]
@@ -157,12 +161,33 @@ export const AdminFlashSales: React.FC<AdminFlashSalesProps> = ({ products }) =>
                       </div>
                       <div className="flex flex-wrap items-center gap-4">
                         <div>
+                          <label className="text-[10px] uppercase text-primary/70 block">Réduction (%)</label>
+                          <input 
+                            type="number" 
+                            className="input-field py-2 w-24" 
+                            min={1}
+                            max={99}
+                            value={item.discountPercentage || Math.round((1 - item.flashPrice / product.price) * 100)}
+                            onChange={(e) => {
+                              const discount = Number(e.target.value);
+                              const newFlashPrice = Math.round(product.price * (1 - discount / 100));
+                              handleUpdateItem(item.productId, 'discountPercentage', discount);
+                              handleUpdateItem(item.productId, 'flashPrice', newFlashPrice);
+                            }}
+                          />
+                        </div>
+                        <div>
                           <label className="text-[10px] uppercase text-primary/70 block">Prix Flash (FCFA)</label>
                           <input 
                             type="number" 
                             className="input-field py-2 w-32" 
                             value={item.flashPrice}
-                            onChange={e => handleUpdateItem(item.productId, 'flashPrice', Number(e.target.value))}
+                            onChange={e => {
+                              const newFlashPrice = Number(e.target.value);
+                              const discount = Math.round((1 - newFlashPrice / product.price) * 100);
+                              handleUpdateItem(item.productId, 'flashPrice', newFlashPrice);
+                              handleUpdateItem(item.productId, 'discountPercentage', discount);
+                            }}
                           />
                         </div>
                         <div>

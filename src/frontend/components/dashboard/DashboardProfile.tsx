@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User as UserIcon, Mail, Phone, MapPin, Loader2, FileText, Download } from 'lucide-react';
+import { User as UserIcon, Mail, Phone, MapPin, MessageCircle, FileText, Download } from 'lucide-react';
 import { User, Pattern } from '../../../types';
 import { Button } from '../ui/Button';
 
@@ -13,7 +13,8 @@ export const DashboardProfile: React.FC<DashboardProfileProps> = ({ user, onUpda
   const [formData, setFormData] = useState({
       name: user.name,
       email: user.email,
-      phone: '+237 600 000 000', // Mock phone as it's not in User type
+      phone: user.phone || '',
+      whatsapp: user.whatsapp || '',
       address: 'Douala, Cameroun' // Mock address
   });
   const [isSaving, setIsSaving] = useState(false);
@@ -23,7 +24,9 @@ export const DashboardProfile: React.FC<DashboardProfileProps> = ({ user, onUpda
       setFormData(prev => ({
           ...prev,
           name: user.name,
-          email: user.email
+          email: user.email,
+          phone: user.phone || '',
+          whatsapp: user.whatsapp || '',
       }));
   }, [user]);
 
@@ -38,7 +41,9 @@ export const DashboardProfile: React.FC<DashboardProfileProps> = ({ user, onUpda
       setTimeout(() => {
           onUpdateUser({
               name: formData.name,
-              email: formData.email
+                email: formData.email,
+                phone: formData.phone,
+                whatsapp: formData.whatsapp,
           });
           setIsSaving(false);
       }, 1000);
@@ -63,6 +68,13 @@ export const DashboardProfile: React.FC<DashboardProfileProps> = ({ user, onUpda
                 onChange={handleChange}
                 className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-primary/5 rounded-2xl focus:outline-none focus:border-accent transition-all" 
             />
+          </div>
+        </div>
+        <div className="space-y-4">
+          <label className="text-xs font-bold uppercase tracking-widest text-primary/70 block">WhatsApp</label>
+          <div className="relative">
+            <MessageCircle className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/70" size={18} />
+            <input type="tel" name="whatsapp" value={formData.whatsapp} onChange={handleChange} placeholder="+225 07 00 00 00 00" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-primary/5 rounded-2xl focus:outline-none focus:border-accent transition-all" />
           </div>
         </div>
         <div className="space-y-4">
@@ -112,7 +124,8 @@ export const DashboardProfile: React.FC<DashboardProfileProps> = ({ user, onUpda
             onClick={() => setFormData({
                 name: user.name,
                 email: user.email,
-                phone: '+237 600 000 000',
+                phone: user.phone || '',
+                whatsapp: user.whatsapp || '',
                 address: 'Douala, Cameroun'
             })}
             className="px-10 py-4 rounded-full font-bold text-primary hover:bg-secondary transition-all h-auto"

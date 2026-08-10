@@ -4,6 +4,8 @@ import { Product, PromoEvent } from '../../types';
 import { Button } from '../components/ui/Button';
 import { Minus, Plus, ShoppingBag } from 'lucide-react';
 import { ImageWithFallback } from '../components/ui/ImageWithFallback';
+import { formatAvailabilityDate, getProductAvailability } from '../utils/stockAvailability';
+import { getEffectivePrice } from '../utils/siteUtils';
 
 interface FlyingDot {
   id: number;
@@ -33,6 +35,9 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
   const [quantity, setQuantity] = useState(1);
   const [flyingDots, setFlyingDots] = useState<FlyingDot[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedColor, setSelectedColor] = useState<string | undefined>();
+  const availability = getProductAvailability(product, selectedColor);
+  const maxQuantity = availability.total;
 
   // Filter for similar products: same category, not the current product
   const recommendedProducts = allProducts
@@ -75,16 +80,33 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
           <div className="space-y-6">
             <h1 className="text-4xl font-serif text-primary">{product.name}</h1>
             <div className="flex items-center gap-4">
-              <p className="text-3xl font-bold text-accent">{product.price.toLocaleString()} FCFA</p>
-              {product.oldPrice && (
-                <p className="text-xl text-primary/70 line-through">{product.oldPrice.toLocaleString()} FCFA</p>
+              {product.promoPrice && product.promoPrice > 0 && product.promoPrice < (product.price || 0) ? (
+                <>
+                  <p className="text-3xl font-bold text-accent">{product.promoPrice.toLocaleString()} FCFA</p>
+                  <p className="text-xl text-primary/70 line-through">{product.price.toLocaleString()} FCFA</p>
+                  <span className="px-3 py-1 bg-accent/20 text-accent font-bold text-sm rounded-full">
+                    -{Math.round((1 - product.promoPrice / (product.price || 1)) * 100)}%
+                  </span>
+                </>
+              ) : (
+                <>
+                  <p className="text-3xl font-bold text-accent">{product.price.toLocaleString()} FCFA</p>
+                  {product.oldPrice && (
+                    <p className="text-xl text-primary/70 line-through">{product.oldPrice.toLocaleString()} FCFA</p>
+                  )}
+                </>
               )}
             </div>
             
             <div className="inline-block px-3 py-1 bg-secondary/30 rounded-full">
-              <p className={`text-sm font-bold ${product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {product.stock > 0 ? `${product.stock} disponible(s) en stock` : 'Rupture de stock'}
+              <p className={`text-sm font-bold ${availability.immediate > 0 ? 'text-green-600' : availability.preorder > 0 ? 'text-amber-600' : 'text-red-600'}`}>
+                {availability.immediate > 0 ? `${availability.immediate} disponible(s) immédiatement` : 'Aucun stock immédiat'}
               </p>
+              {availability.preorder > 0 && (
+                <p className="text-xs font-semibold text-amber-700 mt-1">
+                  + {availability.preorder} en précommande{availability.nextArrivalDate ? ` dès le ${formatAvailabilityDate(availability.nextArrivalDate)}` : ''}
+                </p>
+              )}
             </div>
             
             {product.colors && product.colors.length > 0 && (
@@ -92,9 +114,12 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                 <h4 className="font-bold text-primary uppercase text-xs tracking-widest">Couleurs disponibles</h4>
                 <div className="flex flex-wrap gap-2">
                   {product.colors.map((color, idx) => (
-                    <div 
+                    <button 
                       key={idx} 
-                      className="w-8 h-8 rounded-full border border-primary/20 shadow-sm"
+                      type="button"
+                      onClick={() => setSelectedColor(color)}
+                      aria-pressed={selectedColor === color}
+                      className={`w-8 h-8 rounded-full border-2 ${selectedColor === color ? 'border-accent ring-2 ring-accent/30' : 'border-primary/20'} shadow-sm`}
                       style={{ backgroundColor: color }}
                       title={color}
                     />
@@ -131,46 +156,46 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                   size="icon"
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
                   className="w-10 h-10 flex items-center justify-center hover:text-accent"
-                  disabled={quantity <= 1 || product.stock <= 0}
+                  disabled={quantity <= 1 || maxQuantity <= 0}
                 >
                   <Minus size={18} />
                 </Button>
                 <input
                   type="number"
                   min="1"
-                  max={product.stock}
-                  value={product.stock <= 0 ? 0 : quantity}
+                  max={maxQuantity}
+                  value={maxQuantity <= 0 ? 0 : quantity}
                   onChange={(e) => {
                     const val = parseInt(e.target.value);
                     if (!isNaN(val)) {
-                      setQuantity(Math.min(product.stock, Math.max(1, val)));
+                      setQuantity(Math.min(maxQuantity, Math.max(1, val)));
                     } else {
                       setQuantity(1);
                     }
                   }}
                   className="flex-grow w-8 text-center font-bold bg-transparent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  disabled={product.stock <= 0}
+                  disabled={maxQuantity <= 0}
                 />
                 <Button 
                   variant="ghost"
                   size="icon"
-                  onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
+                  onClick={() => setQuantity(Math.min(maxQuantity, quantity + 1))}
                   className="w-10 h-10 flex items-center justify-center hover:text-accent"
-                  disabled={quantity >= product.stock || product.stock <= 0}
+                  disabled={quantity >= maxQuantity || maxQuantity <= 0}
                 >
                   <Plus size={18} />
                 </Button>
               </div>
               <div className="flex gap-4">
                 <Button variant="primary" className="flex-grow relative overflow-hidden" onClick={(e) => {
-                  if (product.stock <= 0) return;
+                  if (maxQuantity <= 0) return;
                   const rect = e.currentTarget.getBoundingClientRect();
                   const newDot = { id: Date.now(), x: e.clientX, y: e.clientY };
                   setFlyingDots(prev => [...prev, newDot]);
                   onAddToCart(product, quantity);
                   setTimeout(() => setFlyingDots(prev => prev.filter(d => d.id !== newDot.id)), 1000);
-                }} disabled={product.stock <= 0}>
-                  <ShoppingBag size={20} className="mr-2" /> Ajouter au panier
+                }} disabled={maxQuantity <= 0}>
+                  <ShoppingBag size={20} className="mr-2" /> {availability.immediate >= quantity ? 'Ajouter au panier' : 'Précommander'}
                 </Button>
                 <Button variant="outline" onClick={() => onAddToWishlist(product)}>
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>

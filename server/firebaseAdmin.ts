@@ -44,6 +44,7 @@ const databaseId =
   normalizeDatabaseId(process.env.VITE_FIRESTORE_DATABASE_ID) ||
   normalizeDatabaseId(firebaseConfig.firestoreDatabaseId) ||
   '(default)';
+const emulatorHost = process.env.FIRESTORE_EMULATOR_HOST?.trim() || '';
 
 let initializationError: Error | null = null;
 export let db: Firestore | null = null;
@@ -72,7 +73,14 @@ const initializeFirebase = async () => {
       }
     }
 
+    if (emulatorHost) {
+      process.env.FIRESTORE_EMULATOR_HOST = emulatorHost;
+    }
+
     db = getFirestore(firebaseAdmin.app(), databaseId);
+    if (emulatorHost) {
+      db.settings({ host: emulatorHost, ssl: false });
+    }
     auth = firebaseAdmin.auth();
   } catch (error: any) {
     initializationError = new Error('Firebase Admin initialization failed: ' + error?.message);

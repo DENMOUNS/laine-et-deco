@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Trash2, Plus, Minus, ArrowRight, ShoppingBag, ArrowLeft, Truck, Package } from 'lucide-react';
 import { CartItem, Product, Pack } from '../../types';
+import { formatAvailabilityDate, getProductAvailability } from '../utils/stockAvailability';
 
 interface CartViewProps {
   cart: CartItem[];
@@ -88,10 +89,23 @@ export const CartView: React.FC<CartViewProps> = ({
                       <div className="flex-grow">
                         <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] text-primary/70 mb-1">{category}</p>
                         <h3 className="text-base sm:text-lg font-serif font-bold text-primary mb-1">{name}</h3>
+                        {item.configuration && (
+                          <div className="mb-2 text-xs leading-relaxed text-primary/65">
+                            <p><strong>Ouvrage :</strong> {item.configuration.modelName}</p>
+                            <p><strong>Laine :</strong> {item.configuration.yarnName} · <strong>Couleur :</strong> {item.configuration.color}</p>
+                          </div>
+                        )}
                         <p className="text-accent font-bold text-sm sm:text-base">{item.price.toLocaleString()} FCFA</p>
                         {item.type === 'pack' && (
                           <p className="text-[10px] text-primary/70 font-bold mt-2 uppercase tracking-widest leading-none flex items-center gap-2">
                              <Package size={10} /> Contenu groupé (carton)
+                          </p>
+                        )}
+                        {item.type === 'product' && (item.preorderQuantity || 0) > 0 && (
+                          <p className="text-[10px] text-amber-700 font-bold mt-2">
+                            {item.fulfillmentMode === 'mixed' ? 'Commande mixte : ' : ''}
+                            {item.preorderQuantity} en précommande
+                            {item.expectedAvailabilityDate ? ` dès le ${formatAvailabilityDate(item.expectedAvailabilityDate)}` : ''}
                           </p>
                         )}
                       </div>
@@ -109,7 +123,7 @@ export const CartView: React.FC<CartViewProps> = ({
                         <input 
                           type="number"
                           min="1"
-                          max={item.type === 'product' ? item.product?.stock : undefined}
+                          max={item.type === 'product' && item.product ? getProductAvailability(item.product).total : undefined}
                           value={item.quantity}
                           onChange={(e) => {
                             const val = parseInt(e.target.value);
@@ -125,8 +139,8 @@ export const CartView: React.FC<CartViewProps> = ({
                         <button 
                           onClick={() => onUpdateQuantity(item.id, 1)}
                           className="text-primary hover:text-accent transition-colors disabled:opacity-20"
-                          disabled={item.type === 'product' && item.quantity >= (item.product?.stock || 0)}
-                          title={item.type === 'product' && item.quantity >= (item.product?.stock || 0) ? 'Limite de stock atteinte' : undefined}
+                          disabled={item.type === 'product' && item.product ? item.quantity >= getProductAvailability(item.product).total : false}
+                          title={item.type === 'product' && item.product && item.quantity >= getProductAvailability(item.product).total ? 'Limite de stock et de précommande atteinte' : undefined}
                         >
                           <Plus size={14} className="sm:size-4" />
                         </button>

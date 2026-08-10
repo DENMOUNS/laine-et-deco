@@ -36,3 +36,23 @@ export const ProductSkeleton: React.FC = () => {
     </div>
   );
 };
+
+export const CategorySkeleton: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <div className={`relative overflow-hidden rounded-[2.5rem] ${className}`}>
+    <Skeleton className="h-full min-h-[250px] w-full rounded-[2.5rem]" />
+    <div className="absolute inset-x-8 bottom-8 space-y-3">
+      <Skeleton className="h-3 w-1/3 bg-white/30" />
+      <Skeleton className="h-8 w-2/3 bg-white/30" />
+      <Skeleton className="h-3 w-1/2 bg-white/30" />
+    </div>
+  </div>
+);
+
+export const ContentCardSkeleton: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <div className={`rounded-[2rem] border border-primary/5 bg-white p-4 space-y-4 ${className}`}>
+    <Skeleton className="aspect-[4/3] w-full rounded-2xl" />
+    <Skeleton className="h-5 w-2/3" />
+    <Skeleton className="h-4 w-full" />
+    <Skeleton className="h-4 w-1/2" />
+  </div>
+);

@@ -1,21 +1,10 @@
 import type { NavItem, SiteConfig } from './types';
+import { DEFAULT_FEATURE_FLAGS } from './frontend/utils/featureFlags';
 
 /** Defaults légers pour le boot — évite d'importer tout constants.ts au chargement initial. */
-export const DEFAULT_NAV_ITEMS: NavItem[] = [
-  { id: 'nav-2', name: 'Boutique', view: 'shop', order: 1, status: 'active', position: 'top', createdAt: '2024-01-01T00:00:00Z' },
-  { id: 'nav-1', name: 'Accueil', view: 'home', order: 2, status: 'active', position: 'side', createdAt: '2024-01-01T00:00:00Z' },
-  { id: 'nav-3', name: 'Lookbook', view: 'lookbook', order: 3, status: 'active', position: 'side', createdAt: '2024-01-01T00:00:00Z' },
-  { id: 'nav-7', name: 'Blog Inspirations', view: 'blog', order: 4, status: 'active', position: 'side', createdAt: '2024-01-01T00:00:00Z' },
-  { id: 'nav-10', name: 'FAQ', view: 'faq', order: 5, status: 'active', position: 'side', createdAt: '2024-01-01T00:00:00Z' },
-  { id: 'nav-13', name: 'Contactez-nous', view: 'contact', order: 6, status: 'active', position: 'side', createdAt: '2024-01-01T00:00:00Z' },
-  { id: 'nav-4', name: 'Sur Mesure', view: 'custom-order', order: 7, status: 'active', position: 'side', createdAt: '2024-01-01T00:00:00Z' },
-  { id: 'nav-5', name: 'Compagnon Tricot', view: 'knitting-companion', order: 8, status: 'active', position: 'side', createdAt: '2024-01-01T00:00:00Z' },
-  { id: 'nav-6', name: 'Générateur IA', view: 'pattern-generator', order: 9, status: 'active', position: 'side', createdAt: '2024-01-01T00:00:00Z' },
-  { id: 'nav-8', name: 'Calculateur de Laine', view: 'calculator', order: 10, status: 'active', position: 'side', createdAt: '2024-01-01T00:00:00Z' },
-  { id: 'nav-9', name: 'Calculateur de Volume', view: 'volume-calculator', order: 11, status: 'active', position: 'side', createdAt: '2024-01-01T00:00:00Z' },
-  { id: 'nav-11', name: 'À propos', view: 'about', order: 12, status: 'active', position: 'side', createdAt: '2024-01-01T00:00:00Z' },
-  { id: 'nav-11-5', name: 'Équipe', view: 'team', order: 13, status: 'active', position: 'side', createdAt: '2024-01-01T00:00:00Z' },
-];
+// No hard-coded navigation items — frontend must read nav items from Firestore.
+// If no items exist in cache or DB the UI should render an empty nav until data arrives.
+export const DEFAULT_NAV_ITEMS: NavItem[] = [];
 
 export const DEFAULT_SITE_CONFIG: SiteConfig = {
   id: 'global',
@@ -37,6 +26,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   maintenance: { isActive: false, message: '' },
   branding: { primaryColor: '', secondaryColor: '' },
   features: [],
+  featureFlags: { ...DEFAULT_FEATURE_FLAGS },
   seo: {
     home: { title: '', description: '' },
     shop: { title: '', description: '' },

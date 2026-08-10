@@ -19,7 +19,7 @@ export const PromotionsView: React.FC<PromotionsViewProps> = ({
   onAddToWishlist, 
   onQuickView 
 }) => {
-  const { products: fetchedProducts } = useProducts();
+  const { products: fetchedProducts } = useProducts({ cacheOnly: true });
   const PRODUCTS = fetchedProducts;
   
   const promoProducts = PRODUCTS.filter(p => p.isSale || (p.promoPrice && p.promoPrice < p.price));

@@ -38,6 +38,8 @@ import {
   AdminCustomers,
   AdminPacks,
   AdminLookbook,
+  AdminPatternModels,
+  AdminConfiguratorModels,
   AdminBlog,
   AdminNotifications,
   AdminNewsletter,
@@ -166,6 +168,10 @@ export const AdminDashboardShell: React.FC<Props> = ({ ctx }) => {
         return <AdminPacks ctx={ctx} />;
       case 'lookbook':
         return <AdminLookbook ctx={ctx} />;
+      case 'pattern-models':
+        return <AdminPatternModels />;
+      case 'configurator-models':
+        return <AdminConfiguratorModels />;
       case 'blog':
         return <AdminBlog ctx={ctx} />;
       case 'notifications':

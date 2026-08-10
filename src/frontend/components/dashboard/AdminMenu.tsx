@@ -3,7 +3,7 @@ import React from 'react';
 import { 
   LayoutDashboard, Package, ShoppingBag, Users, BarChart3, Settings, 
   TrendingUp, Bell, Plus, Coins, Globe, Shield, History, Percent, 
-  Truck, MapPin, Download, Lock, BoxesIcon, Image as ImageIcon, Palette, Monitor, Megaphone, Type as TypeIcon, Search, Award, Wrench, Mail, FileText, QrCode
+  Truck, MapPin, Download, Lock, BoxesIcon, Image as ImageIcon, Palette, Monitor, Megaphone, Type as TypeIcon, Search, Award, Wrench, Mail, FileText, QrCode, Wand2
 } from 'lucide-react';
 
 export const getAdminMenuItems = () => [
@@ -23,6 +23,8 @@ export const getAdminMenuItems = () => [
   { id: 'flash-sales', label: 'Ventes Flash', icon: <TrendingUp size={20} />, permission: 'marketing.view' },
   { id: 'packs', label: 'Gestion des Packs', icon: <Plus size={20} />, permission: 'marketing.view' },
   { id: 'lookbook', label: 'Lookbook Automne', icon: <Plus size={20} />, permission: 'lookbook.view' },
+  { id: 'pattern-models', label: 'Modèles de Patrons IA', icon: <Wand2 size={20} />, permission: 'content.view' },
+  { id: 'configurator-models', label: 'Modèles du Configurateur', icon: <Wand2 size={20} />, permission: 'content.view' },
   
   // Finance
   { id: 'finance_header', label: 'FINANCE', isHeader: true },

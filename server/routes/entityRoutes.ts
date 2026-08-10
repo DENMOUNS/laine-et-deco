@@ -2,11 +2,6 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { db, auth, ensureFirestoreConnection } from '../firebaseAdmin';
 import retryFirestoreOperation from '../utils/firestoreRetry';
 import {
-  firestoreRestGetCollection,
-  firestoreRestGetDocument,
-  firestoreRestQueryByField,
-} from '../utils/firestoreRest.js';
-import {
   getFreshCachedResponse,
   getFallbackCachedResponse,
   setCachedResponse,
@@ -85,9 +80,14 @@ const PUBLIC_FIRESTORE_CACHE_TTL_MS = Number(process.env.FIRESTORE_CACHE_TTL_MS 
 const getPublicCacheKey = (entity: string, id?: string) => `public-firestore:${entity}:${id ?? 'list'}`;
 
 const setPublicCache = async (entity: string, id: string | undefined, value: unknown) => {
+  // Une liste vide ne doit jamais empoisonner le cache : elle peut provenir
+  // d'un mauvais alias ou d'une lecture Admin temporairement indisponible.
+  if (!id && Array.isArray(value) && value.length === 0) return;
   const key = getPublicCacheKey(entity, id);
   await setCachedResponse(key, value);
 };
+
+const isEmptyPublicList = (value: unknown) => Array.isArray(value) && value.length === 0;
 
 const getPublicFreshCache = async (entity: string, id: string | undefined) => {
   const key = getPublicCacheKey(entity, id);
@@ -105,55 +105,82 @@ const sendPublicReadResponse = (res: Response, data: unknown) => {
 };
 
 const readPublicEntity = async (req: AuthenticatedRequest, res: Response, entity: string, id?: string) => {
-    const collectionName = resolvePublicCollectionName(entity);
+  const collectionName = resolvePublicCollectionName(entity);
   const staleCache = await getPublicFallbackCache(collectionName, id);
+  const freshCache = await getPublicFreshCache(collectionName, id);
 
-  try {
+  if (freshCache !== null && !isEmptyPublicList(freshCache)) {
+    logEntity(req.requestId, 'public:read:cache-hit', { entity, collectionName, id, source: 'fresh-cache' });
+    return sendPublicReadResponse(res, freshCache);
+  }
+
+  let firestoreDb = db;
+  if (!firestoreDb) {
+    await ensureFirestoreConnection(3, 500);
+    firestoreDb = db;
+  }
+
+  const fetchAdminData = async () => {
+    if (!firestoreDb) {
+      throw new Error('Firestore backend unavailable');
+    }
+
+    const collectionCandidates =
+      !id && entity === 'lookbook'
+        ? [collectionName, 'lookbook_post']
+        : id && entity === 'lookbook'
+          ? [collectionName, 'lookbook_post']
+          : [collectionName];
+    let snap: any = null;
+    let resolvedCollectionName = collectionName;
+    for (const candidate of collectionCandidates) {
+      const candidateSnap = id
+        ? await retryFirestoreOperation<any>(() => (firestoreDb as any).collection(candidate).doc(id).get())
+        : await retryFirestoreOperation<any>(() => (firestoreDb as any).collection(candidate).get());
+      snap = candidateSnap;
+      resolvedCollectionName = candidate;
+      if (id ? candidateSnap.exists : candidateSnap.docs.length > 0) break;
+    }
+
     const result = id
-      ? await firestoreRestGetDocument(collectionName, id)
-      : await firestoreRestGetCollection(collectionName);
+      ? snap.exists
+        ? { id: snap.id, ...snap.data() }
+        : null
+      : snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
 
     await setPublicCache(collectionName, id, result);
-    logEntity(req.requestId, 'public:read:rest', { entity, collectionName, id, source: 'rest' });
-    return sendPublicReadResponse(res, result);
-  } catch (restError: any) {
-    logEntityError(req.requestId, 'public:read:rest-failed', restError, { entity, id });
+    logEntity(req.requestId, 'public:read:admin', { entity, collectionName: resolvedCollectionName, id, source: 'admin' });
+    return result;
+  };
 
-    if (staleCache !== null) {
-      logEntity(req.requestId, 'public:read:cache-fallback', {
-        entity,
-        id,
+  if (staleCache !== null && !isEmptyPublicList(staleCache)) {
+    if (firestoreDb) {
+      void fetchAdminData().catch((adminError: any) => {
+        logEntityError(req.requestId, 'public:read:admin-failed', adminError, { entity, collectionName, id, reason: 'background-refresh' });
       });
-      return sendPublicReadResponse(res, staleCache);
     }
-
-    if (db) {
-      try {
-        const fallbackResult = id
-          ? await retryFirestoreOperation<any>(() => (db as any).collection(entity).doc(id).get())
-          : await retryFirestoreOperation<any>(() => (db as any).collection(entity).get());
-
-        const response = id
-          ? fallbackResult.exists
-            ? { id: fallbackResult.id, ...fallbackResult.data() }
-            : null
-          : fallbackResult.docs.map((d: any) => ({ id: d.id, ...d.data() }));
-
-        await setPublicCache(entity, id, response);
-        logEntity(req.requestId, 'public:read:admin-fallback', { entity, id });
-        return sendPublicReadResponse(res, response);
-      } catch (adminError: any) {
-        logEntityError(req.requestId, 'public:read:admin-fallback-failed', adminError, {
-          entity,
-          id,
-        });
-      }
-    }
-
-    const defaultResult = id ? null : [];
-    logEntity(req.requestId, 'public:read:empty-fallback', { entity, id, defaultResultType: id ? 'null' : 'array' });
-    return sendPublicReadResponse(res, defaultResult);
+    logEntity(req.requestId, 'public:read:cache-fallback', {
+      entity,
+      collectionName,
+      id,
+      source: 'stale-cache',
+    });
+    return sendPublicReadResponse(res, staleCache);
   }
+
+  if (firestoreDb) {
+    try {
+      const adminResult = await fetchAdminData();
+      return sendPublicReadResponse(res, adminResult);
+    } catch (adminError: any) {
+      logEntityError(req.requestId, 'public:read:admin-failed', adminError, { entity, collectionName, id });
+      // Continue au fallback cache
+    }
+  }
+
+  const defaultResult = id ? null : [];
+  logEntity(req.requestId, 'public:read:empty-fallback', { entity, id, defaultResultType: id ? 'null' : 'array' });
+  return sendPublicReadResponse(res, defaultResult);
 };
 
 router.use((req: AuthenticatedRequest, res, next) => {
@@ -191,6 +218,10 @@ router.use((req: AuthenticatedRequest, res, next) => {
 const PUBLIC_READ_COLLECTIONS = new Set([
   'hero_banner',
   'hero_banners',
+  'announcement_banner',
+  'announcement_banners',
+  'scrolling_banner',
+  'scrolling_banners',
   'site_logo',
   'nav_item',
   'nav_items',
@@ -218,11 +249,36 @@ const PUBLIC_READ_COLLECTIONS = new Set([
   'currency',
   'badge',
   'city',
+  'coupon',
   'faq',
+  'pattern_model',
+  'pattern_models',
+  'configurator_model',
+  'configurator_models',
+  'member_portfolio',
+  'member_portfolios',
+  'seo_page',
+  'seo_pages',
+  'loyalty_config_history',
+  'loyalty_config_histories',
+  'maintenance_config_history',
+  'maintenance_config_histories',
+  'newsletter_config_history',
+  'newsletter_config_histories',
+  'custom_section_config',
+  'custom_section_configs',
+  'qr_config',
+  'qr_configs',
+  'invoice_config',
+  'invoice_configs',
+  'community_post',
+  'community_posts',
 ]);
 
 const PUBLIC_ENTITY_COLLECTION_ALIASES: Record<string, string> = {
   hero_banners: 'hero_banner',
+  announcement_banners: 'announcement_banner',
+  scrolling_banners: 'scrolling_banner',
   nav_items: 'nav_item',
   marquee_items: 'marquee_item',
   products: 'product',
@@ -231,9 +287,21 @@ const PUBLIC_ENTITY_COLLECTION_ALIASES: Record<string, string> = {
   blog_categories: 'blog_category',
   promo_events: 'promo_event',
   flash_sales: 'flash_sale',
-  lookbooks: 'lookbook_post',
-  lookbook: 'lookbook_post',
+  coupons: 'coupon',
+  lookbooks: 'lookbook',
+  lookbook: 'lookbook',
   lookbook_posts: 'lookbook_post',
+  pattern_models: 'pattern_model',
+  configurator_models: 'configurator_model',
+  member_portfolios: 'member_portfolio',
+  seo_pages: 'seo_page',
+  loyalty_config_histories: 'loyalty_config_history',
+  maintenance_config_histories: 'maintenance_config_history',
+  newsletter_config_histories: 'newsletter_config_history',
+  custom_section_configs: 'custom_section_config',
+  qr_configs: 'qr_config',
+  invoice_configs: 'invoice_config',
+  community_posts: 'community_post',
 };
 
 const resolvePublicCollectionName = (entity: string) => PUBLIC_ENTITY_COLLECTION_ALIASES[entity] ?? entity;
@@ -256,6 +324,7 @@ const OWNER_COLLECTIONS = new Set([
   'chat_message',
   'wishlist',
   'rma',
+  'knitting_project',
 ]);
 
 // ==========================
@@ -434,12 +503,12 @@ router.post('/:entity', verifyToken, resolveRole, async (req: any, res) => {
           updatedAt: new Date(),
         };
 
-        const ref = await db.collection(entity).add(userData);
+        const ref = await db!.collection(entity).add(userData);
         logEntity(req.requestId, 'create:success', { entity, docId: ref.id });
 
         // create system notification for user creation
         const notifId = `sys-user-${Date.now()}`;
-        await db.collection('notification').doc(notifId).set({
+        await db!.collection('notification').doc(notifId).set({
           id: notifId,
           type: 'user',
           title: 'Utilisateur créé',
@@ -462,12 +531,12 @@ router.post('/:entity', verifyToken, resolveRole, async (req: any, res) => {
           updatedAt: new Date(),
         };
 
-        const ref = await db.collection(entity).add(productData);
+        const ref = await db!.collection(entity).add(productData);
         logEntity(req.requestId, 'create:success', { entity, docId: ref.id });
 
         // create system notification for product creation
         const notifId = `sys-prod-${Date.now()}`;
-        await db.collection('notification').doc(notifId).set({
+        await db!.collection('notification').doc(notifId).set({
           id: notifId,
           type: 'product',
           title: 'Produit créé',
@@ -483,7 +552,7 @@ router.post('/:entity', verifyToken, resolveRole, async (req: any, res) => {
       // Allow creating with a provided `id` (useful for system configs like 'global')
       if (req.body && req.body.id) {
         const docId = String(req.body.id);
-        const docRef = db.collection(entity).doc(docId);
+        const docRef = db!.collection(entity).doc(docId);
         await docRef.set({
           ...req.body,
           createdAt: new Date(),
@@ -501,24 +570,24 @@ router.post('/:entity', verifyToken, resolveRole, async (req: any, res) => {
         };
 
         if (newLogoData.status === 'active') {
-          const activeLogos = await db.collection(entity).where('status', '==', 'active').get();
-          const batch = db.batch();
+          const activeLogos = await db!.collection(entity).where('status', '==', 'active').get();
+          const batch = db!.batch();
           activeLogos.forEach((logo) => {
             batch.update(logo.ref, { status: 'inactive', updatedAt: new Date() });
           });
-          const docRef = db.collection(entity).doc();
+          const docRef = db!.collection(entity).doc();
           batch.set(docRef, newLogoData);
           await batch.commit();
           logEntity(req.requestId, 'create:success', { entity, docId: docRef.id, activeLogo: true });
           return res.status(201).json({ id: docRef.id });
         }
 
-        const ref = await db.collection(entity).add(newLogoData);
+        const ref = await db!.collection(entity).add(newLogoData);
         logEntity(req.requestId, 'create:success', { entity, docId: ref.id });
         return res.status(201).json({ id: ref.id });
       }
 
-      const ref = await db.collection(entity).add({
+      const ref = await db!.collection(entity).add({
         ...req.body,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -530,7 +599,7 @@ router.post('/:entity', verifyToken, resolveRole, async (req: any, res) => {
 
     // owner
     if (OWNER_COLLECTIONS.has(entity)) {
-      const ref = await db.collection(entity).add({
+      const ref = await db!.collection(entity).add({
         ...req.body,
         userId: uid,
         createdAt: new Date(),
@@ -573,7 +642,7 @@ const updateEntityHandler = async (req: any, res: Response) => {
   }
 
   try {
-    const ref = db.collection(entity).doc(id);
+    const ref = db!.collection(entity).doc(id);
     const snap = await ref.get();
 
     if (!snap.exists) {
@@ -610,7 +679,7 @@ const updateEntityHandler = async (req: any, res: Response) => {
             action = `statut changé: ${oldStatus} → ${newStatus}`;
           }
 
-          await db.collection('notification').doc(notifId).set({
+          await db!.collection('notification').doc(notifId).set({
             id: notifId,
             type: 'user',
             title: 'Utilisateur modifié',
@@ -630,8 +699,8 @@ const updateEntityHandler = async (req: any, res: Response) => {
       }
 
       if (entity === 'site_logo' && req.body.status === 'active') {
-        const activeLogos = await db.collection(entity).where('status', '==', 'active').get();
-        const batch = db.batch();
+        const activeLogos = await db!.collection(entity).where('status', '==', 'active').get();
+        const batch = db!.batch();
         activeLogos.forEach((logo) => {
           if (logo.id !== id) {
             batch.update(logo.ref, { status: 'inactive', updatedAt: new Date() });
@@ -655,7 +724,7 @@ const updateEntityHandler = async (req: any, res: Response) => {
         if ('price' in req.body && req.body.price !== oldPrice) changedFields.push(`prix: ${oldPrice} → ${req.body.price}`);
         if ('salePrice' in req.body && req.body.salePrice !== oldSale) changedFields.push(`prix promo: ${oldSale} → ${req.body.salePrice}`);
 
-        await db.collection('notification').doc(notifId).set({
+        await db!.collection('notification').doc(notifId).set({
           id: notifId,
           type: 'product',
           title: 'Produit modifié',
@@ -760,7 +829,7 @@ router.delete('/:entity/:id', verifyToken, resolveRole, async (req: any, res) =>
   }
 
   try {
-    const ref = db.collection(entity).doc(id);
+    const ref = db!.collection(entity).doc(id);
 
     if (isAdminLevel(role)) {
       await ref.delete();
@@ -806,12 +875,12 @@ const optionalAuth = async (
       }
     }
     next();
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('[entityRoutes] optionalAuth catch', {
       authorizationHeader: req.headers.authorization?.slice(0, 60) || null,
-      errorName: error?.name,
-      errorMessage: error?.message,
-      errorStack: error?.stack,
+      errorName: error instanceof Error ? error.name : undefined,
+      errorMessage: error instanceof Error ? error.message : undefined,
+      errorStack: error instanceof Error ? error.stack : undefined,
     });
     next();
   }

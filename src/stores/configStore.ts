@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { SiteConfig, PromoEvent, NavItem } from '../types';
 import { DEFAULT_NAV_ITEMS, DEFAULT_SITE_CONFIG } from '../siteDefaults';
+import { normalizeFeatureFlags } from '../frontend/utils/featureFlags';
 
 interface ConfigState {
   siteConfig: SiteConfig;
@@ -49,6 +50,7 @@ const normalizeSiteConfig = (config: Partial<SiteConfig> = {}): SiteConfig => ({
   sliderItems: config.sliderItems ?? DEFAULT_SITE_CONFIG.sliderItems,
   customSections: config.customSections ?? DEFAULT_SITE_CONFIG.customSections,
   features: config.features ?? DEFAULT_SITE_CONFIG.features,
+  featureFlags: normalizeFeatureFlags(config.featureFlags),
   marqueeItems: config.marqueeItems ?? DEFAULT_SITE_CONFIG.marqueeItems,
 });
 

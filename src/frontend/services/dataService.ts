@@ -1,10 +1,11 @@
-import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 import { db } from '../../backend/firebase';
 
-export async function fetchCollection(name: string) {
+export async function fetchCollection(name: string, max?: number) {
   if (!db) return [];
   try {
-    const q = query(collection(db, name));
+    const ref = collection(db, name);
+    const q = max ? query(ref, limit(max)) : query(ref);
     const snap = await getDocs(q);
     return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   } catch (err) {

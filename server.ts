@@ -27,21 +27,25 @@ async function startServer() {
       const uid = decoded.uid;
       const email = decoded.email;
       let role: string | null = null;
+      const firestoreDb = db;
+      if (!firestoreDb) {
+        return null;
+      }
 
-      const userSnap = await db.collection('user').doc(uid).get();
+      const userSnap = await firestoreDb.collection('user').doc(uid).get();
       if (userSnap.exists) {
         role = userSnap.data()?.role;
       }
 
       if (!role && email) {
-        const emailQuery = await db.collection('user').where('email', '==', email).limit(1).get();
+        const emailQuery = await firestoreDb.collection('user').where('email', '==', email).limit(1).get();
         if (!emailQuery.empty) {
           role = emailQuery.docs[0].data()?.role;
         }
       }
 
       if (!role) {
-        const uidQuery = await db.collection('user').where('uid', '==', uid).limit(1).get();
+        const uidQuery = await firestoreDb.collection('user').where('uid', '==', uid).limit(1).get();
         if (!uidQuery.empty) {
           role = uidQuery.docs[0].data()?.role;
         }
@@ -115,11 +119,40 @@ async function startServer() {
     ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   }
 
+  const geminiModels = (process.env.GEMINI_MODELS || [
+    'gemini-3.6-flash',
+    'gemini-3.5-flash',
+    'gemini-3.1-flash',
+    'gemini-3.0-flash',
+  ].join(',')).split(',').map((model) => model.trim()).filter(Boolean);
+
+  const isQuotaError = (error: any) => {
+    const message = String(error?.message || error || '').toLowerCase();
+    return error?.status === 429 || error?.code === 429 || message.includes('resource_exhausted') || message.includes('quota') || message.includes('rate limit') || message.includes('too many requests') || message.includes('model not found') || message.includes('not_found') || message.includes('unsupported model');
+  };
+
+  const generateWithModelFallback = async (contents: any, config: any) => {
+    if (!ai) throw new Error('Gemini API key is missing on the server.');
+    let lastError: any;
+    for (const model of geminiModels) {
+      try {
+        const response = await ai.models.generateContent({ model, contents, config });
+        return { response, model };
+      } catch (error) {
+        lastError = error;
+        if (!isQuotaError(error)) throw error;
+        console.warn(`[gemini] quota épuisé pour ${model}, passage au modèle suivant`);
+      }
+    }
+    throw lastError || new Error('Tous les modèles Gemini configurés ont atteint leur quota.');
+  };
+
   // Input Validation Schemas
   const chatSchema = z.object({
     message: z.string().min(1, "Message is required").max(5000, "Message is too long"),
     systemInstruction: z.string().max(15000, "Instruction is too long").optional(),
     responseSchema: z.any().optional(),
+    imagePart: z.object({ mimeType: z.string().max(100), data: z.string().max(12000000) }).optional(),
   });
 
   app.post("/api/chat", async (req, res) => {
@@ -137,16 +170,15 @@ async function startServer() {
         ? DOMPurify.sanitize(parsedData.systemInstruction) 
         : "Tu es un assistant IA.";
 
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: safeMessage,
-        config: {
-          systemInstruction: safeSystemInstruction,
-          responseMimeType: parsedData.responseSchema ? "application/json" : "text/plain",
-          responseSchema: parsedData.responseSchema || undefined,
-        }
+      const contents = parsedData.imagePart
+        ? [{ text: safeMessage }, { inlineData: { mimeType: parsedData.imagePart.mimeType, data: parsedData.imagePart.data } }]
+        : safeMessage;
+      const { response, model } = await generateWithModelFallback(contents, {
+        systemInstruction: safeSystemInstruction,
+        responseMimeType: parsedData.responseSchema ? "application/json" : "text/plain",
+        responseSchema: parsedData.responseSchema || undefined,
       });
-      res.json({ text: response.text });
+      res.json({ text: response.text, model });
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Invalid input data", details: error.issues });
@@ -157,7 +189,7 @@ async function startServer() {
 
   const analyzeImageSchema = z.object({
     prompt: z.string().max(1000),
-    imagePart: z.any(), // Keeping it flexible but validated for max payload length indirectly by express.json limit, could be stricter
+    imagePart: z.any(), 
   });
 
   app.post("/api/analyze-image", async (req, res) => {
@@ -168,7 +200,7 @@ async function startServer() {
       const safePrompt = DOMPurify.sanitize(parsedData.prompt);
 
       const response = await ai.models.generateContent({
-         model: 'gemini-2.5-flash',
+         model: process.env.GEMINI_MODEL || 'gemini-3-flash-preview',
          contents: [safePrompt, parsedData.imagePart]
       });
       res.json({ text: response.text });
@@ -214,11 +246,12 @@ async function startServer() {
     const mode = useViteDevServer ? "développement (Vite)" : "production (fichiers dist/)";
     try {
       const admin = (await import('./server/firebaseAdmin.js')).firebaseAdmin;
-      const db = (await import('./server/firebaseAdmin.js')).db;
-      const snap = await db.collection('qr_config').doc('global').get();
+      const firestoreDb = (await import('./server/firebaseAdmin.js')).db;
+      if (!firestoreDb) return;
+      const snap = await firestoreDb.collection('qr_config').doc('global').get();
       if (snap.exists) {
-        const docs = await db.collection('qr_config').limit(5).get();
-        const invDocs = await db.collection('invoice_config').limit(5).get();
+        await firestoreDb.collection('qr_config').limit(5).get();
+        await firestoreDb.collection('invoice_config').limit(5).get();
       }
     } catch (e) {
     }

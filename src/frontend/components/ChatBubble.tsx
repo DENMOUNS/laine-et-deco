@@ -13,7 +13,7 @@ interface ChatBubbleProps {
 
 export const ChatBubble: React.FC<ChatBubbleProps> = ({ startOpen = false }) => {
   const [isOpen, setIsOpen] = useState(startOpen);
-  const { data: productsData } = useEntity<Product>('product', [], { enabled: isOpen });
+  const { data: productsData } = useEntity<Product>('product', [], { enabled: isOpen, cacheOnly: true });
   const PRODUCTS = productsData ?? [];
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<any[]>([]);

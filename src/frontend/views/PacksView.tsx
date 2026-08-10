@@ -14,8 +14,8 @@ interface PacksViewProps {
 }
 
 export const PacksView: React.FC<PacksViewProps> = ({ onNavigate, onAddToCart, onAddPackToCart }) => {
-  const { data: PACKS } = useStaticEntity<Pack>('pack');
-  const { products: PRODUCTS } = useProducts();
+  const { data: PACKS } = useStaticEntity<Pack>('pack', [], { cacheOnly: true });
+  const { products: PRODUCTS } = useProducts({ cacheOnly: true });
 
   const getPackPrice = (pack: Pack) => {
     return pack.products.reduce((sum, item) => {

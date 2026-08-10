@@ -19,6 +19,7 @@ interface ShopViewProps {
   onProductClick: (p: Product) => void;
   events?: PromoEvent[];
   initialSearchQuery?: string;
+  initialAllowedCategories?: string[];
   flashSaleId?: string | null;
 }
 
@@ -26,15 +27,11 @@ interface FilterContentProps {
   selectedCategory: string;
   setSelectedCategory: (cat: string) => void;
   CATEGORIES: any[];
-  selectedMaterial: string;
-  setSelectedMaterial: (mat: string) => void;
-  materials: string[];
   PRODUCTS: Product[];
-  selectedBrand: string;
-  setSelectedBrand: (brand: string) => void;
-  brands: string[];
   priceRange: number;
   setPriceRange: (price: number) => void;
+  isPriceFilterActive: boolean;
+  setIsPriceFilterActive: (active: boolean) => void;
   selectedCondition: string;
   setSelectedCondition: (cond: string) => void;
   onlyNewArrivals: boolean;
@@ -46,15 +43,11 @@ const FilterContent: React.FC<FilterContentProps> = ({
   selectedCategory,
   setSelectedCategory,
   CATEGORIES,
-  selectedMaterial,
-  setSelectedMaterial,
-  materials,
   PRODUCTS,
-  selectedBrand,
-  setSelectedBrand,
-  brands,
   priceRange,
   setPriceRange,
+  isPriceFilterActive,
+  setIsPriceFilterActive,
   selectedCondition,
   setSelectedCondition,
   onlyNewArrivals,
@@ -123,76 +116,56 @@ const FilterContent: React.FC<FilterContentProps> = ({
     </div>
 
     <div>
-      <h3 className="font-bold uppercase tracking-widest text-xs mb-6">Matières</h3>
-      <div className="space-y-3">
-        <button
-          onClick={() => setSelectedMaterial('Tous')}
-          className={`block w-full text-left text-sm transition-colors ${selectedMaterial === 'Tous' ? 'text-accent font-bold' : 'text-primary/70 hover:text-primary'}`}
-        >
-          Toutes les matières
-        </button>
-        {materials.map(mat => (
-          <button
-            key={mat}
-            onClick={() => setSelectedMaterial(mat!)}
-            className={`flex justify-between items-center w-full text-sm transition-colors ${selectedMaterial === mat ? 'text-accent font-bold' : 'text-primary/70 hover:text-primary'}`}
-          >
-            <span>{mat}</span>
-            <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full text-primary/70">
-              {PRODUCTS.filter(p => p.material === mat).length}
-            </span>
-          </button>
-        ))}
-      </div>
-    </div>
-
-    <div>
-      <h3 className="font-bold uppercase tracking-widest text-xs mb-6">Marques</h3>
-      <div className="space-y-3">
-        <button
-          onClick={() => setSelectedBrand('Tous')}
-          className={`block w-full text-left text-sm transition-colors ${selectedBrand === 'Tous' ? 'text-accent font-bold' : 'text-primary/70 hover:text-primary'}`}
-        >
-          Toutes les marques
-        </button>
-        {brands.map(brand => (
-          <button
-            key={brand}
-            onClick={() => setSelectedBrand(brand!)}
-            className={`flex justify-between items-center w-full text-sm transition-colors ${selectedBrand === brand ? 'text-accent font-bold' : 'text-primary/70 hover:text-primary'}`}
-          >
-            <span>{brand}</span>
-            <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full text-primary/70">
-              {PRODUCTS.filter(p => p.brand === brand).length}
-            </span>
-          </button>
-        ))}
-      </div>
-    </div>
-
-    <div>
       <h3 className="font-bold uppercase tracking-widest text-xs mb-6">Budget</h3>
       <div className="space-y-6 bg-secondary p-6 rounded-2xl border border-primary/5">
-        <div className="flex justify-between items-end">
+        <div className="flex justify-between items-end gap-4">
           <div className="space-y-1">
             <p className="text-[10px] uppercase tracking-widest text-primary/70 font-bold">Max</p>
             <p className="text-lg font-serif font-bold text-primary">{priceRange.toLocaleString()} <span className="text-xs">FCFA</span></p>
           </div>
-          <button 
-            onClick={() => setPriceRange(300000)}
-            className="text-[10px] font-bold uppercase tracking-widest text-accent hover:underline"
-          >
-            Reset
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setPriceRange((prev) => Math.max(0, prev - 500));
+                setIsPriceFilterActive(true);
+              }}
+              className="h-9 w-9 rounded-full border border-primary/10 bg-white text-primary shadow-sm hover:bg-primary/5 transition"
+              aria-label="Réduire le budget"
+            >
+              −
+            </button>
+            <button
+              onClick={() => {
+                setPriceRange((prev) => Math.min(300000, prev + 500));
+                setIsPriceFilterActive(true);
+              }}
+              className="h-9 w-9 rounded-full border border-primary/10 bg-white text-primary shadow-sm hover:bg-primary/5 transition"
+              aria-label="Augmenter le budget"
+            >
+              +
+            </button>
+            <button 
+              onClick={() => {
+                setPriceRange(300000);
+                setIsPriceFilterActive(false);
+              }}
+              className="text-[10px] font-bold uppercase tracking-widest text-accent hover:underline"
+            >
+              Reset
+            </button>
+          </div>
         </div>
         <input 
           type="range" 
           className="w-full h-1.5 bg-primary/10 rounded-lg appearance-none cursor-pointer accent-accent" 
           min="0" 
           max="300000" 
-          step="5000"
+          step="500"
           value={priceRange}
-          onChange={(e) => setPriceRange(parseInt(e.target.value))}
+          onChange={(e) => {
+            setPriceRange(parseInt(e.target.value));
+            setIsPriceFilterActive(true);
+          }}
         />
         <div className="flex justify-between text-[10px] text-primary/70 font-bold uppercase tracking-widest">
           <span>0 FCFA</span>
@@ -200,16 +173,14 @@ const FilterContent: React.FC<FilterContentProps> = ({
         </div>
       </div>
     </div>
-
     <button 
       onClick={() => {
         setSelectedCategory('Tous');
-        setSelectedMaterial('Tous');
-        setSelectedBrand('Tous');
         setSelectedCondition('Tous');
         setOnlyNewArrivals(false);
         setSearchQuery('');
         setPriceRange(300000);
+        setIsPriceFilterActive(false);
       }}
       className="w-full py-3 border border-primary/10 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-primary hover:text-white transition-all"
     >
@@ -218,8 +189,8 @@ const FilterContent: React.FC<FilterContentProps> = ({
   </div>
 );
 
-export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist, onQuickView, onAddToComparison, onProductClick, events = [], initialSearchQuery = '', flashSaleId }) => {
-  const { products: fetchedProducts, isLoading: isInitialLoading } = useProducts();
+export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist, onQuickView, onAddToComparison, onProductClick, events = [], initialSearchQuery = '', initialAllowedCategories, flashSaleId }) => {
+  const { products: fetchedProducts, isLoading: isInitialLoading } = useProducts({ cacheOnly: true });
   let PRODUCTS = fetchedProducts;
   
   const { data: FLASH_SALES } = useEntity<FlashSale>('flash_sale');
@@ -234,18 +205,31 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
     });
   }
 
-  const { data: CATEGORIES } = useEntity<any>('category');
+  const [CATEGORIES, setCATEGORIES] = useState<any[]>([]);
+  
+  useEffect(() => {
+    let mounted = true;
+    void (async () => {
+      try {
+        const mod = await import('../utils/cacheStorage');
+        const cached = await mod.readEntityCache<any[]>('category');
+        if (mounted && cached) setCATEGORIES(cached);
+      } catch {
+        // ignore
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
   const [selectedCategory, setSelectedCategory] = useState('Tous');
-  const [selectedMaterial, setSelectedMaterial] = useState('Tous');
-  const [selectedBrand, setSelectedBrand] = useState('Tous');
   const [selectedCondition, setSelectedCondition] = useState('Tous');
   const [onlyNewArrivals, setOnlyNewArrivals] = useState(false);
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
   const [sortBy, setSortBy] = useState('Nouveautés');
   const [priceRange, setPriceRange] = useState(300000);
+  const [isPriceFilterActive, setIsPriceFilterActive] = useState(false);
   const [isFiltering, setIsFiltering] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 9;
   const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
@@ -272,13 +256,32 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
     setSearchQuery(initialSearchQuery || '');
   }, [initialSearchQuery]);
 
+  const normalizeString = (value: string) => value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+
+  useEffect(() => {
+    if (!initialSearchQuery || CATEGORIES.length === 0) return;
+    const normalizedQuery = normalizeString(initialSearchQuery);
+    const matchingCategory = CATEGORIES.find((cat) =>
+      normalizeString(cat.name || '') === normalizedQuery ||
+      normalizeString(cat.slug || '') === normalizedQuery
+    );
+    if (matchingCategory) {
+      setSelectedCategory(matchingCategory.name);
+      setSearchQuery('');
+    }
+  }, [initialSearchQuery, CATEGORIES]);
+
   // Simulate loading when filters change
   useEffect(() => {
     setIsFiltering(true);
     setCurrentPage(1);
     const timer = setTimeout(() => setIsFiltering(false), 400);
     return () => clearTimeout(timer);
-  }, [selectedCategory, selectedMaterial, selectedBrand, selectedCondition, onlyNewArrivals, searchQuery, sortBy, priceRange]);
+  }, [selectedCategory, selectedCondition, onlyNewArrivals, searchQuery, sortBy, priceRange, isPriceFilterActive]);
 
   const handleImageSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -304,9 +307,6 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
     setSearchQuery('');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
-
-  const materials = Array.from(new Set(PRODUCTS.map(p => p.material).filter((m): m is string => !!m)));
-  const brands = Array.from(new Set(PRODUCTS.map(p => p.brand).filter((m): m is string => !!m)));
 
   const [isVoiceSearching, setIsVoiceSearching] = useState(false);
 
@@ -357,18 +357,34 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
     ? productSearch.search(searchQuery)
     : PRODUCTS;
 
+  const filterProductPrice = (product: Product) => {
+    if (typeof product.promoPrice === 'number' && product.promoPrice < product.price) {
+      return product.promoPrice;
+    }
+    return product.price;
+  };
+
   // 2. Filter the searched products by other criteria
   const filteredProducts = searchedProducts.filter(p => {
+    const normalizeCategory = (value: string) => value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+    const allowedCategories = initialAllowedCategories?.map(normalizeCategory);
+    const productCategory = normalizeCategory(p.category);
+    const categoryFromCatalog = CATEGORIES.find(c => c.name === p.category)?.slug;
+    const matchesAllowedCategory = !allowedCategories || allowedCategories.includes(productCategory) ||
+      (categoryFromCatalog && allowedCategories.includes(normalizeCategory(categoryFromCatalog)));
     const matchesCategory = selectedCategory === 'Tous' || 
                            p.category === selectedCategory || 
                            CATEGORIES.find(c => c.name === p.category)?.slug === selectedCategory;
-    const matchesMaterial = selectedMaterial === 'Tous' || p.material === selectedMaterial;
-    const matchesBrand = selectedBrand === 'Tous' || p.brand === selectedBrand;
     const matchesCondition = selectedCondition === 'Tous' || (p.condition || 'new') === selectedCondition;
     const matchesNew = !onlyNewArrivals || p.isNew;
-    const matchesPrice = p.price <= priceRange;
+    const effectivePrice = filterProductPrice(p);
+    const matchesPrice = !isPriceFilterActive || effectivePrice <= priceRange;
     
-    return matchesCategory && matchesMaterial && matchesBrand && matchesCondition && matchesNew && matchesPrice;
+    return matchesAllowedCategory && matchesCategory && matchesCondition && matchesNew && matchesPrice;
   }).sort((a, b) => {
     if (sortBy === 'Prix croissant') return a.price - b.price;
     if (sortBy === 'Prix décroissant') return b.price - a.price;
@@ -540,15 +556,11 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
                   selectedCategory={selectedCategory}
                   setSelectedCategory={setSelectedCategory}
                   CATEGORIES={CATEGORIES}
-                  selectedMaterial={selectedMaterial}
-                  setSelectedMaterial={setSelectedMaterial}
-                  materials={materials}
                   PRODUCTS={PRODUCTS}
-                  selectedBrand={selectedBrand}
-                  setSelectedBrand={setSelectedBrand}
-                  brands={brands}
                   priceRange={priceRange}
                   setPriceRange={setPriceRange}
+                  isPriceFilterActive={isPriceFilterActive}
+                  setIsPriceFilterActive={setIsPriceFilterActive}
                   selectedCondition={selectedCondition}
                   setSelectedCondition={setSelectedCondition}
                   onlyNewArrivals={onlyNewArrivals}
@@ -566,15 +578,11 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
             selectedCategory={selectedCategory}
             setSelectedCategory={setSelectedCategory}
             CATEGORIES={CATEGORIES}
-            selectedMaterial={selectedMaterial}
-            setSelectedMaterial={setSelectedMaterial}
-            materials={materials}
             PRODUCTS={PRODUCTS}
-            selectedBrand={selectedBrand}
-            setSelectedBrand={setSelectedBrand}
-            brands={brands}
             priceRange={priceRange}
             setPriceRange={setPriceRange}
+            isPriceFilterActive={isPriceFilterActive}
+            setIsPriceFilterActive={setIsPriceFilterActive}
             selectedCondition={selectedCondition}
             setSelectedCondition={setSelectedCondition}
             onlyNewArrivals={onlyNewArrivals}

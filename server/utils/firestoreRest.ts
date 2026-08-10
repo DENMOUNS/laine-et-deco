@@ -60,6 +60,7 @@ const getProjectId = (): string => {
   return (
     process.env.FIREBASE_PROJECT_ID ||
     process.env.VITE_FIREBASE_PROJECT_ID ||
+    firebaseConfig?.projectId ||
     getServiceAccount().project_id ||
     ''
   );
@@ -209,7 +210,7 @@ const buildRunQueryUrl = () => {
   return `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/${encodeURIComponent(databaseId)}/documents:runQuery`;
 };
 
-const toFirestoreValue = (value: unknown) => {
+const toFirestoreValue = (value: unknown): Record<string, unknown> => {
   if (value === null || value === undefined) {
     return { nullValue: null };
   }
@@ -234,13 +235,16 @@ const toFirestoreValue = (value: unknown) => {
 };
 
 const fetchJson = async (url: string, opts: RequestInit) => {
+  const headers: Record<string, string> = {
+    ...(opts.headers || {}),
+  } as Record<string, string>;
+
   const token = await getAccessToken();
+  headers.Authorization = `Bearer ${token}`;
+
   const response = await fetch(url, {
     ...opts,
-    headers: {
-      ...(opts.headers || {}),
-      Authorization: `Bearer ${token}`,
-    },
+    headers,
   });
 
   if (!response.ok) {

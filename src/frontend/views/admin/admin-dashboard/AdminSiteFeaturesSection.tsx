@@ -27,10 +27,72 @@ import { AdminPortfolios } from '../AdminPortfolios';
 
 export function AdminSiteFeaturesSection({ ctx }: { ctx: any }) {
   const { ABANDONED_CARTS, ANALYTICS, BLOG_POSTS, CATEGORIES, CATEGORY_DISTRIBUTION, CHAT_MESSAGES, CITIES, CONVERSATIONS, COUPONS, CUSTOMER_GROUPS, DEVICE_DATA, EMAILS, EXPENSES, FAQS, LOGIN_LOGS, LOOKBOOK_POSTS, NAV_ITEMS, NOTIFICATIONS, ORDERS, PACKS, PRODUCTS, PROMO_EVENTS, PUSH_NOTIFICATIONS, REQUEST_LOGS, RETENTION_DATA, REVENUE_BY_PAYMENT, REVIEWS, SALES_DATA, SHIPPING_RULES, SUBSCRIBERS, TAX_RULES, TRAFFIC_SOURCES, USERS, activeMenuItem, activeTab, addBlogPost, addCatalogRule, addCategory, addCity, addCoupon, addCurrency, addCustomerGroup, addEvent, addExpense, addFAQ, addLocalRole, addLookbook, addNavItem, addPack, addProduct, addRMA, addReview, addShippingRule, addTaxRule, allOrders, averageOrderValue, catalogRulesWithDefaults, categoryPage, currentImage, currentSlug, currentUserDoc, customerDetailTab, customerFilter, deleteAbandonedCart, deleteCatalogRule, deleteCategory, deleteChatMessage, deleteCity, deleteConversation, deleteCoupon, deleteCurrency, deleteCustomerGroup, deleteEvent, deleteFAQ, deleteLocalRole, deleteLoginLog, deleteNavItem, deleteNotification, deleteOrder, deletePack, deleteProduct, deleteRequestLog, deleteReview, deleteShippingRule, deleteSiteConfig, deleteSubscriber, deleteTaxRule, deleteUser, editedOrder, editingItem, events, fetchedProducts, filteredMenuItems, formatDate, handleDeleteCatalogRule, handleDeleteCity, handleDeleteEvent, handleDeleteFAQ, handleEditCatalogRule, handleEditCity, handleEditCoupon, handleEditEvent, handleEditFAQ, handleFormSubmit, handleNotificationClick, handleSaveCatalogRule, handleSaveCity, handleSaveCoupon, handleSaveEvent, handleSaveFAQ, handleSearch, handleSeed, handleSendMessage, hasPermission, isAddModalOpen, isAuthLoading, isCatalogRuleEditorOpen, isCityEditorOpen, isCouponEditorOpen, isDataLoading, isEditingOrder, isEventEditorOpen, isFAQEditorOpen, isLoadingAbandoned, isLoadingBlog, isLoadingCatalog, isLoadingCategories, isLoadingCategoryDist, isLoadingDevice, isLoadingEmails, isLoadingExpenses, isLoadingGroups, isLoadingLookbook, isLoadingOrders, isLoadingPacks, isLoadingProducts, isLoadingPush, isLoadingRetention, isLoadingRevenue, isLoadingReviews, isLoadingRoles, isLoadingShipping, isLoadingSubscribers, isLoadingTax, isLoadingTraffic, isLogsLoading, isSaving, isSidebarOpen, isSuperAdmin, isTabAllowed, isUserCustomer, itemsPerPage, localAbandonedCarts, localBlogPosts, localCatalogPriceRules, localCategories, localCurrencies, localCustomerGroups, localExpenses, localLookbook, localNavItems, localOrders, localPacks, localProducts, localRMAs, localReviews, localRoles, localShippingRules, localSystemNotifications, localTaxRules, localUsers, logFilter, menuItems, messageInput, modalType, navItemsWithDefaults, newNote, newRMANote, notificationFilter, notificationPage, onNavigate, orderFilter, overviewOrderFilter, permissions, productFilter, propSetSiteConfig, propSiteConfig, rawSiteConfig, realLogs, requestLogFilter, reviewFilter, roleData, saveAllSiteConfig, saveSiteSection, searchResults, selectedCatalogRule, selectedCity, selectedConversation, selectedCoupon, selectedCustomer, selectedCustomerGroup, selectedEvent, selectedFAQ, selectedOrder, selectedPackProducts, setActiveTab, setCategoryPage, setCurrentImage, setCurrentSlug, setCustomerDetailTab, setCustomerFilter, setEditedOrder, setEditingItem, setEvents, setIsAddModalOpen, setIsCatalogRuleEditorOpen, setIsCityEditorOpen, setIsCouponEditorOpen, setIsEditingOrder, setIsEventEditorOpen, setIsFAQEditorOpen, setIsSaving, setIsSidebarOpen, setLocalAbandonedCarts, setLocalAbandonedCarts2, setLocalBlogPosts, setLocalBlogPosts2, setLocalCategories, setLocalCurrencies, setLocalCustomerGroups, setLocalCustomerGroups2, setLocalEmails, setLocalExpenses, setLocalLookbook, setLocalLookbook2, setLocalOrders, setLocalPacks, setLocalProducts, setLocalPushNotifications, setLocalReviews, setLocalReviews2, setLocalRole, setLocalRoles, setLocalShippingRules, setLocalShippingRules2, setLocalSubscribers, setLocalSystemNotifications, setLocalTaxRules, setLocalTaxRules2, setLocalUser, setLocalUsers, setLogFilter, setMessageInput, setModalType, setNewNote, setNewRMANote, setNotificationFilter, setNotificationPage, setOrderFilter, setOverviewOrderFilter, setProductFilter, setRequestLogFilter, setReviewFilter, setSearchResults, setSelectedCatalogRule, setSelectedCity, setSelectedConversation, setSelectedCoupon, setSelectedCustomer, setSelectedCustomerGroup, setSelectedEvent, setSelectedFAQ, setSelectedOrder, setSelectedPackProducts, setShowNotifications, setSiteConfig, setViewingCustomer, showNotifications, siteConfig, siteConfigs, sortByDate, stats, totalCustomers, totalOrdersCount, totalSales, totalVisitors, updateBlogPost, updateCatalogRule, updateCategory, updateCity, updateCoupon, updateCurrency, updateCustomerGroup, updateEvent, updateExpense, updateFAQ, updateLocalRole, updateLocalUser, updateLookbook, updateNavItem, updatePack, updateProduct, updateRMA, updateReview, updateShippingRule, updateSiteConfig, updateTaxRule, user, userRoleSlug, viewingCustomer } = ctx;
+
+  const featureToggles = [
+    { key: 'lookbook', title: 'Lookbook', description: 'Masque la page Lookbook et la section d’inspiration sur l’accueil.' },
+    { key: 'blog', title: 'Blog', description: 'Masque le blog et ses articles publics.' },
+    { key: 'about', title: 'À propos', description: 'Masque la page À propos et ses liens publics.' },
+    { key: 'team', title: 'Équipe', description: 'Masque la page Équipe.' },
+    { key: 'contact', title: 'Contact', description: 'Masque la page de contact.' },
+    { key: 'faq', title: 'FAQ', description: 'Masque la page FAQ.' },
+    { key: 'calculator', title: 'Calculateur de laine', description: 'Masque la page du calculateur.' },
+    { key: 'volumeCalculator', title: 'Calculateur de volume', description: 'Masque la page du calculateur de volume.' },
+    { key: 'knittingCompanion', title: 'Compagnon tricot', description: 'Masque la page Compagnon tricot.' },
+    { key: 'patternGenerator', title: 'Générateur IA', description: 'Masque la page Générateur IA.' },
+    { key: 'customOrder', title: 'Sur mesure', description: 'Masque la page Sur mesure.' },
+    { key: 'comparison', title: 'Comparateur', description: 'Masque le comparateur et ses liens publics.' },
+    { key: 'wishlist', title: 'Liste de souhaits', description: 'Masque la wishlist et ses liens publics.' },
+    { key: 'community', title: 'Communauté', description: 'Masque la page communauté.' },
+  ];
+
   return (
     <>
 <section className="bg-card p-8 rounded-[2.5rem] shadow-sm border border-primary/10">
                <div className="flex justify-between items-center mb-8">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-primary/5 text-primary rounded-2xl"><Award size={24} /></div>
+                  <div>
+                    <h3 className="text-xl font-serif text-primary">Fonctionnalités publiques</h3>
+                    <p className="text-xs text-primary/60">Activez ou désactivez les pages et modules visibles côté client</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => saveSiteSection(['featureFlags'], 'Fonctionnalités publiques')}
+                  className="px-4 py-2 bg-secondary text-primary rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-primary/5 transition-colors"
+                >
+                  Enregistrer Section
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+                {featureToggles.map((feature) => {
+                  const isEnabled = siteConfig.featureFlags?.[feature.key] ?? true;
+                  return (
+                    <label key={feature.key} className="flex items-start justify-between gap-4 rounded-3xl border border-primary/10 bg-secondary/20 p-4">
+                      <div>
+                        <p className="font-semibold text-primary">{feature.title}</p>
+                        <p className="text-sm text-primary/60 mt-1">{feature.description}</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={isEnabled}
+                        onChange={(e) => {
+                          setSiteConfig((prev: any) => ({
+                            ...prev,
+                            featureFlags: {
+                              ...(prev.featureFlags || {}),
+                              [feature.key]: e.target.checked,
+                            },
+                          }));
+                        }}
+                        className="mt-1 h-5 w-5 rounded border-primary/30 text-accent focus:ring-accent"
+                      />
+                    </label>
+                  );
+                })}
+              </div>
+
+              <div className="flex justify-between items-center mb-8">
                 <div className="flex items-center gap-4">
                   <div className="p-3 bg-primary/5 text-primary rounded-2xl"><Award size={24} /></div>
                   <div>

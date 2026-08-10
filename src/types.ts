@@ -169,8 +169,10 @@ export interface Product {
   name: string;
   slug?: string;
   price: number;
+  salePrice?: number; // Prix de vente (peut être différent du prix unitaire)
   oldPrice?: number;
-  promoPrice?: number; // Added for strikethrough pricing
+  promoPrice?: number; // Prix promotionnel (affichage avec strikethrough)
+  isInPromotion?: boolean; // Flag pour indiquer si le produit est en promotion
   category: string;
   image: string;
   /** Galerie de sous-images optionnelles (vues supplémentaires du produit) */
@@ -179,6 +181,10 @@ export interface Product {
   imagesByColor?: Record<string, string[]>;
   /** Quantités par couleur (variant stock) */
   stockByColor?: Record<string, number>;
+  /** Arrivages futurs réservables en précommande, éventuellement par couleur. */
+  incomingStock?: StockArrival[];
+  /** Autorise la précommande des quantités des arrivages futurs. */
+  allowPreorder?: boolean;
   description: string;
   stock: number;
   /** Alias of stock — kept for backward-compat with legacy data */
@@ -201,6 +207,19 @@ export interface Product {
   warranty?: string; // Warranty information
   isElectronic?: boolean; // Flag for electronic products
   condition?: 'new' | 'second-hand'; // Added for condition distinction
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface StockArrival {
+  id: string;
+  quantity: number;
+  /** Couleur concernée ; absent = arrivage commun au produit. */
+  color?: string;
+  availableAt: string;
+  reservedQuantity?: number;
+  status?: 'planned' | 'partial' | 'received' | 'cancelled';
+  note?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -300,6 +319,22 @@ export interface CartItem {
   pack?: Pack;
   quantity: number;
   price: number; // Unit price at the time of adding
+  preorderQuantity?: number;
+  expectedAvailabilityDate?: string;
+  fulfillmentMode?: 'immediate' | 'preorder' | 'mixed';
+  configuration?: ConfiguratorSelection;
+}
+
+export interface ConfiguratorSelection {
+  modelId: string;
+  modelName: string;
+  modelImage: string;
+  modelSvg?: string;
+  characteristics?: string[];
+  yarnProductId: string;
+  yarnName: string;
+  color: string;
+  colorHex?: string;
 }
 
 export interface OrderItem {
@@ -331,6 +366,7 @@ export interface Order {
   customer: string;
   customerName?: string;
   phone?: string;
+  whatsapp?: string;
   email?: string;
   userId: string;
   date: string;
@@ -415,7 +451,7 @@ export interface User {
 
 export interface Notification {
   id: string;
-  type: 'order' | 'stock' | 'inquiry' | 'customer';
+  type: 'order' | 'stock' | 'product' | 'inquiry' | 'customer';
   title: string;
   message: string;
   timestamp: string;
@@ -534,6 +570,7 @@ export interface SiteConfig extends BaseEntity {
     title: string;
     description: string;
   }[];
+  featureFlags?: Record<string, boolean>;
   seo: {
     home: SEOMeta;
     shop: SEOMeta;
@@ -673,6 +710,7 @@ export interface NewsletterSubscriber {
 export interface FlashSaleItem {
   productId: string;
   flashPrice: number;
+  discountPercentage?: number; // Optional percentage for automatic price calculation
   totalQuantity: number;
   soldQuantity: number;
 }

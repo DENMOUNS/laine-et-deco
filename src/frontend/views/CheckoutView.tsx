@@ -4,8 +4,8 @@ import { Button } from '../components/ui/Button';
 import { toast } from 'sonner';
 import { MapPin, CreditCard, ShoppingBag, Truck, Package, Lock, Phone, CheckCircle } from 'lucide-react';
 import { User as FirebaseUser } from 'firebase/auth';
-import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc, increment, setDoc, getDoc, limit } from 'firebase/firestore';
-import { db } from '../../backend/firebase';
+import { collection, serverTimestamp, query, where, getDocs, updateDoc, doc, increment, setDoc, getDoc, limit } from 'firebase/firestore';
+import { auth, db } from '../../backend/firebase';
 import { motion, AnimatePresence } from 'motion/react';
 import { useEntity } from '../hooks/useEntity';
 import { useStaticEntity } from '../hooks/useStaticEntity';
@@ -224,46 +224,34 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
 
     setIsSubmitting(true);
     try {
-      const orderId = `ORD-${crypto.randomUUID().split('-')[0].toUpperCase()}-${Date.now().toString().slice(-4)}`;
-      const orderDetails = cart.map(item => ({
-        id: item.id,
-        productId: item.id,
-        type: item.type,
-        name: item.type === 'product' ? item.product?.name : item.pack?.name,
-        price: item.price,
-        quantity: item.quantity,
-        image: item.type === 'product' ? item.product?.image : 'https://picsum.photos/seed/pack/200'
-      }));
-
-      const orderData: any = {
-        id: orderId,
-        uuid: crypto.randomUUID(),
-        userId: user.uid,
-        customer: `${formData.firstName} ${formData.lastName}`,
-        customerName: `${formData.firstName} ${formData.lastName}`,
-        type: 'standard',
-        address: `${formData.address}, ${formData.city}`,
-        phone: formData.phone,
-        coordinates: formData.coordinates,
-        items: cart.reduce((acc, item) => acc + item.quantity, 0),
-        orderDetails,
-        total: total,
-        shippingFee: shipping,
-        status: 'processing',
-        date: new Date().toLocaleDateString(),
-        createdAt: serverTimestamp(),
-        paymentMethod: formData.paymentMethod,
-        trackingSteps: [
-          { status: 'Confirmée', description: 'Votre commande a été reçue.', date: new Date().toLocaleDateString(), completed: true },
-          { status: 'Préparation', description: 'Nous préparons vos articles.', date: '', completed: false },
-          { status: 'Expédiée', description: 'Le colis est en route.', date: '', completed: false },
-          { status: 'Livrée', description: 'Colis reçu.', date: '', completed: false }
-        ]
-      };
-
-      orderData.invoiceData = await buildOrderInvoiceData(orderData);
-
-      await addDoc(collection(db, 'order'), orderData);
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) throw new Error('Session utilisateur expirée');
+      const checkoutResponse = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          items: cart.map((item) => ({
+            id: item.id,
+            productId: item.type === 'product' ? item.product?.id : item.id,
+            type: item.type,
+            quantity: item.quantity,
+            name: item.type === 'product' ? item.product?.name : item.pack?.name,
+            components: item.type === 'pack' ? item.pack?.products : undefined,
+            configuration: item.configuration,
+          })),
+          customer: `${formData.firstName} ${formData.lastName}`,
+          customerName: `${formData.firstName} ${formData.lastName}`,
+          address: `${formData.address}, ${formData.city}`,
+          phone: formData.phone,
+          coordinates: formData.coordinates,
+          paymentMethod: formData.paymentMethod,
+          discount,
+          shippingFee: shipping,
+        }),
+      });
+      const checkoutBody = await checkoutResponse.json().catch(() => null);
+      if (!checkoutResponse.ok) throw new Error(checkoutBody?.error || 'Impossible de réserver le stock');
       
       // Update coupon usage
       if (appliedCoupon) {

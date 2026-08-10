@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Wand2, 
@@ -27,6 +27,28 @@ interface PatternInstruction {
   steps: string[];
 }
 
+type PatternStitch =
+  | 'chain'
+  | 'single-crochet'
+  | 'half-double-crochet'
+  | 'double-crochet'
+  | 'treble-crochet'
+  | 'knit'
+  | 'purl'
+  | 'yarn-over'
+  | 'decrease-left'
+  | 'decrease-right'
+  | 'increase'
+  | 'slip';
+
+interface PatternChart {
+  technique: 'crochet' | 'knitting';
+  title: string;
+  orientation: 'bottom-to-top' | 'top-to-bottom';
+  rows: { number: number; stitches: PatternStitch[] }[];
+  legend: { symbol: string; label: string }[];
+}
+
 interface GeneratedPattern {
   title: string;
   description: string;
@@ -35,12 +57,119 @@ interface GeneratedPattern {
   gauge: string;
   sizes: string[];
   instructions: PatternInstruction[];
+  chart?: PatternChart;
 }
 
 interface PatternGeneratorProps {
   onNavigate?: (view: string) => void;
   onAddToCart?: (product: any) => void;
 }
+
+interface PatternModel {
+  id: string;
+  name: string;
+  type: string;
+  image: string;
+  mimeType?: string;
+}
+
+const parseGeneratedPattern = (text: string, fallbackSize: string): GeneratedPattern => {
+  const cleaned = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+  const start = cleaned.indexOf('{');
+  const end = cleaned.lastIndexOf('}');
+  if (start < 0 || end < start) throw new Error('La réponse de l’IA n’est pas un patron structuré valide.');
+  const raw = JSON.parse(cleaned.slice(start, end + 1)) as Partial<GeneratedPattern>;
+  if (!raw.title || !raw.description || !Array.isArray(raw.instructions)) throw new Error('Le patron généré est incomplet.');
+
+  const validStitches = new Set<PatternStitch>([
+    'chain', 'single-crochet', 'half-double-crochet', 'double-crochet', 'treble-crochet',
+    'knit', 'purl', 'yarn-over', 'decrease-left', 'decrease-right', 'increase', 'slip',
+  ]);
+  const sourceChart = raw.chart as Partial<PatternChart> | null | undefined;
+  const chart = sourceChart?.rows && Array.isArray(sourceChart.rows) ? {
+    technique: sourceChart.technique === 'crochet' ? 'crochet' as const : 'knitting' as const,
+    title: String(sourceChart.title || 'Représentation visuelle du patron'),
+    orientation: sourceChart.orientation === 'top-to-bottom' ? 'top-to-bottom' as const : 'bottom-to-top' as const,
+    rows: sourceChart.rows.slice(0, 80).map((row, index) => ({
+      number: Number(row?.number) || index + 1,
+      stitches: Array.isArray(row?.stitches) ? row.stitches.filter((stitch): stitch is PatternStitch => validStitches.has(stitch as PatternStitch)) : [],
+    })).filter((row) => row.stitches.length > 0),
+    legend: Array.isArray(sourceChart.legend) ? sourceChart.legend.map((item) => ({ symbol: String(item?.symbol || ''), label: String(item?.label || '') })).filter((item) => item.symbol && item.label) : [],
+  } : undefined;
+  return {
+    title: String(raw.title),
+    description: String(raw.description),
+    difficulty: raw.difficulty === 'Intermédiaire' || raw.difficulty === 'Avancé' ? raw.difficulty : 'Débutant',
+    materials: Array.isArray(raw.materials) ? raw.materials.map(String) : [],
+    gauge: raw.gauge ? String(raw.gauge) : 'À déterminer selon votre échantillon',
+    sizes: Array.isArray(raw.sizes) && raw.sizes.length > 0 ? raw.sizes.map(String) : [fallbackSize],
+    instructions: raw.instructions.map((section) => ({
+      section: String(section.section || 'Étape'),
+      steps: Array.isArray(section.steps) ? section.steps.map((step) => String(step).replace(/\*{1,2}/g, '').replace(/`/g, '').trim()).filter(Boolean) : [],
+    })).filter((section) => section.steps.length > 0),
+    chart: chart && chart.rows.length > 0 ? chart : undefined,
+  };
+};
+
+const stitchGlyphs: Record<PatternStitch, string> = {
+  chain: '○',
+  'single-crochet': '×',
+  'half-double-crochet': 'T',
+  'double-crochet': 'T̅',
+  'treble-crochet': 'T̅̅',
+  knit: '│',
+  purl: '—',
+  'yarn-over': '○',
+  'decrease-left': '╲',
+  'decrease-right': '╱',
+  increase: 'Y',
+  slip: '·',
+};
+
+const PatternChartView: React.FC<{ chart: PatternChart }> = ({ chart }) => {
+  const rows = chart.orientation === 'bottom-to-top' ? [...chart.rows].reverse() : chart.rows;
+  const cellSize = 42;
+  const labelWidth = 46;
+  const maxStitches = Math.max(...rows.map((row) => row.stitches.length), 1);
+  const width = labelWidth + maxStitches * cellSize + 16;
+  const height = rows.length * cellSize + 24;
+
+  return (
+    <section className="mb-16 rounded-[2.5rem] border border-primary/10 bg-[#F9F7F2] p-6 md:p-10" aria-label="Diagramme visuel du patron">
+      <div className="mb-8 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.25em] text-accent">Lecture graphique</p>
+          <h3 className="mt-2 text-3xl font-serif font-bold text-primary">{chart.title}</h3>
+        </div>
+        <span className="rounded-full bg-white px-4 py-2 text-xs font-bold uppercase tracking-widest text-primary/60">
+          {chart.technique === 'crochet' ? 'Diagramme crochet' : 'Diagramme tricot'}
+        </span>
+      </div>
+      <div className="overflow-x-auto rounded-3xl bg-white p-4 shadow-inner">
+        <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${chart.title}, ${rows.length} rangs`} className="mx-auto min-w-[520px] max-w-none">
+          <title>{chart.title}</title>
+          {rows.map((row, rowIndex) => (
+            <g key={`${row.number}-${rowIndex}`}>
+              <text x={labelWidth - 12} y={rowIndex * cellSize + 27} textAnchor="end" className="fill-primary/60 text-[11px] font-bold">{row.number}</text>
+              {row.stitches.map((stitch, stitchIndex) => (
+                <g key={`${row.number}-${stitchIndex}`}>
+                  <rect x={labelWidth + stitchIndex * cellSize} y={rowIndex * cellSize + 2} width={cellSize} height={cellSize} fill="white" stroke="#d8cfc2" strokeWidth="1" />
+                  <text x={labelWidth + stitchIndex * cellSize + cellSize / 2} y={rowIndex * cellSize + 29} textAnchor="middle" className="fill-primary text-[23px] font-serif">{stitchGlyphs[stitch]}</text>
+                </g>
+              ))}
+            </g>
+          ))}
+        </svg>
+      </div>
+      {chart.legend.length > 0 && (
+        <div className="mt-8 flex flex-wrap gap-3">
+          {chart.legend.map((item, index) => <span key={`${item.symbol}-${index}`} className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm text-primary/80 shadow-sm"><strong className="font-serif text-lg text-accent">{item.symbol}</strong>{item.label}</span>)}
+        </div>
+      )}
+      <p className="mt-6 text-xs italic text-primary/60">Les rangs sont numérotés dans le sens de lecture indiqué. Vérifiez toujours la légende et l’échantillon avant de commencer.</p>
+    </section>
+  );
+};
 
 export const PatternGeneratorView: React.FC<PatternGeneratorProps> = ({ onNavigate, onAddToCart }) => {
   const [isGenerating, setIsGenerating] = useState(false);
@@ -53,12 +182,37 @@ export const PatternGeneratorView: React.FC<PatternGeneratorProps> = ({ onNaviga
     size: 'Adulte Standard',
     extraNotes: ''
   });
+  const [referenceImage, setReferenceImage] = useState<{ preview: string; mimeType: string; data: string } | null>(null);
+  const [selectedModelId, setSelectedModelId] = useState('');
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const { data: patternModels } = useEntity<PatternModel>('pattern_model');
+  const selectedModel = patternModels.find((model) => model.id === selectedModelId);
 
   const { addEntity: addProject } = useEntity('knitting_project');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleReferenceImage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Veuillez sélectionner une image.');
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error('La photo doit faire moins de 8 Mo.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const value = String(reader.result || '');
+      const [, data] = value.split(',');
+      if (data) setReferenceImage({ preview: value, mimeType: file.type, data });
+    };
+    reader.readAsDataURL(file);
   };
 
   const generatePattern = async () => {
@@ -71,59 +225,110 @@ export const PatternGeneratorView: React.FC<PatternGeneratorProps> = ({ onNaviga
     setPattern(null);
 
     try {
-      const prompt = `Générer un patron de tricot détaillé en français pour:
-        Type: ${formData.type}
-        Style: ${formData.style}
-        Niveau: ${formData.skillLevel}
-        Poids de laine: ${formData.yarnWeight}
-        Taille: ${formData.size}
-        Notes additionnelles: ${formData.extraNotes || 'Aucune'}
+      const prompt = `
+Tu es un expert en crochet et en tricot spécialisé dans la rédaction de patrons professionnels.
 
-        Le patron doit être professionnel, précis et facile à suivre. 
-        Inclus des instructions section par section (ex: Montage, Corps, Finitions).`;
+OBJECTIF :
+Générer un patron complet et exploitable en français à partir des paramètres fournis et de l'image de référence jointe.
+
+PARAMÈTRES UTILISATEUR :
+- Type d'ouvrage : ${formData.type}
+- Style : ${formData.style}
+- Niveau : ${formData.skillLevel}
+- Poids de laine : ${formData.yarnWeight}
+- Taille : ${formData.size}
+- Notes additionnelles : ${formData.extraNotes || 'Aucune'}
+
+RÉFÉRENCE VISUELLE :
+${selectedModel
+  ? `Le modèle officiel « ${selectedModel.name} » est joint. Analyse attentivement sa silhouette, ses proportions, sa construction, son motif et ses détails techniques, puis rédige un patron fidèle à ce modèle.`
+  : referenceImage
+    ? `Une image de référence personnelle est jointe. Analyse sa forme, ses proportions, son motif et ses détails techniques, puis rédige un patron fidèle à l'ouvrage représenté.`
+    : 'Aucune image de référence n’est fournie. Génère un patron cohérent à partir des paramètres uniquement.'}
+
+INSTRUCTIONS IMPORTANTES :
+- Génère deux livrables complémentaires : une représentation visuelle structurée du motif et le patron textuel complet.
+- La représentation visuelle doit être fournie dans le champ chart avec des tokens autorisés ; elle sera dessinée par l'application, ne génère donc ni SVG, ni HTML, ni dessin ASCII.
+- Le patron textuel doit expliquer précisément la construction, même lorsque chart est fourni.
+- Si l'image contient un diagramme technique, interprète-le et transforme-le aussi en instructions textuelles détaillées.
+- N'invente pas de mesures irréalistes ; utilise des estimations cohérentes avec le type d'ouvrage et la taille demandée.
+- Le résultat doit être directement utilisable par une crocheteuse ou tricoteuse.
+- Retourne exclusivement un objet JSON valide, sans bloc Markdown et sans astérisques doubles.
+
+STRUCTURE OBLIGATOIRE DE LA RÉPONSE JSON :
+title, description, difficulty, materials, gauge, sizes et instructions.
+Chaque instruction contient section et steps, avec des phrases textuelles détaillées.
+Ajoute chart pour les motifs représentables en grille ; utilise chart: null lorsque ce n'est pas pertinent.
+
+EXIGENCE FINALE :
+Le patron doit être clair, précis, professionnel, cohérent du début à la fin et prêt à être publié sur une boutique de patrons.
+`;
 
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: prompt,
-          systemInstruction: 'Tu es un expert en tricot.',
+          systemInstruction: 'Tu es un expert en tricot et en crochet. Retourne un patron textuel complet ET une représentation visuelle structurée lorsque le motif s’y prête. Respecte strictement le JSON demandé, sans Markdown, sans astérisques et sans SVG.',
           responseSchema: {
-            type: "OBJECT",
+            type: 'OBJECT',
             properties: {
-              title: { type: "STRING" },
-              description: { type: "STRING" },
-              difficulty: { type: "STRING", enum: ['Débutant', 'Intermédiaire', 'Avancé'] },
-              materials: { type: "ARRAY", items: { type: "STRING" } },
-              gauge: { type: "STRING" },
-              sizes: { type: "ARRAY", items: { type: "STRING" } },
+              title: { type: 'STRING' },
+              description: { type: 'STRING' },
+              difficulty: { type: 'STRING', enum: ['Débutant', 'Intermédiaire', 'Avancé'] },
+              materials: { type: 'ARRAY', items: { type: 'STRING' } },
+              gauge: { type: 'STRING' },
+              sizes: { type: 'ARRAY', items: { type: 'STRING' } },
               instructions: {
-                type: "ARRAY",
+                type: 'ARRAY',
                 items: {
-                  type: "OBJECT",
+                  type: 'OBJECT',
                   properties: {
-                    section: { type: "STRING" },
-                    steps: { type: "ARRAY", items: { type: "STRING" } }
+                    section: { type: 'STRING' },
+                    steps: { type: 'ARRAY', items: { type: 'STRING' } },
                   },
-                  required: ['section', 'steps']
-                }
-              }
+                  required: ['section', 'steps'],
+                },
+              },
+              chart: {
+                type: 'OBJECT', nullable: true,
+                properties: {
+                  technique: { type: 'STRING', enum: ['crochet', 'knitting'] },
+                  title: { type: 'STRING' },
+                  orientation: { type: 'STRING', enum: ['bottom-to-top', 'top-to-bottom'] },
+                  rows: { type: 'ARRAY', items: { type: 'OBJECT', properties: {
+                    number: { type: 'INTEGER' },
+                    stitches: { type: 'ARRAY', items: { type: 'STRING', enum: ['chain', 'single-crochet', 'half-double-crochet', 'double-crochet', 'treble-crochet', 'knit', 'purl', 'yarn-over', 'decrease-left', 'decrease-right', 'increase', 'slip'] } },
+                  }, required: ['number', 'stitches'] } },
+                  legend: { type: 'ARRAY', items: { type: 'OBJECT', properties: { symbol: { type: 'STRING' }, label: { type: 'STRING' } }, required: ['symbol', 'label'] } },
+                },
+                required: ['technique', 'title', 'orientation', 'rows', 'legend'],
+              },
             },
-            required: ['title', 'description', 'difficulty', 'materials', 'gauge', 'instructions']
-          }
+            required: ['title', 'description', 'difficulty', 'materials', 'gauge', 'sizes', 'instructions'],
+          },
+          imagePart: selectedModel
+            ? { mimeType: selectedModel.mimeType || 'image/jpeg', data: selectedModel.image.split(',')[1] || selectedModel.image }
+            : referenceImage ? { mimeType: referenceImage.mimeType, data: referenceImage.data } : undefined
         })
       });
 
-      if (!response.ok) throw new Error("API Error");
+      if (!response.ok) {
+        const errorPayload = await response.json().catch(() => null) as { error?: string } | null;
+        throw new Error(errorPayload?.error || `Erreur API (${response.status})`);
+      }
       const result = await response.json();
 
-      if (result.text) {
-        const generatedData = JSON.parse(result.text.trim());
-        setPattern(generatedData);
-        toast.success('Patron généré avec succès !');
+      if (!result.text || typeof result.text !== 'string') {
+        throw new Error('La réponse de l’IA est vide.');
       }
+
+      const generatedData = parseGeneratedPattern(result.text, formData.size);
+      setPattern(generatedData);
+      toast.success('Patron généré avec succès !');
     } catch (error) {
-      toast.error('Une erreur est survenue lors de la génération du patron.');
+      const message = error instanceof Error ? error.message : 'Erreur inconnue';
+      toast.error(`Impossible de générer le patron : ${message}`);
     } finally {
       setIsGenerating(false);
     }
@@ -181,6 +386,9 @@ export const PatternGeneratorView: React.FC<PatternGeneratorProps> = ({ onNaviga
               >
                 <option>Écharpe</option>
                 <option>Bonnet</option>
+                <option>T-shirt</option>
+                <option>Robe</option>
+                <option>Jupe</option>
                 <option>Pull / Chandail</option>
                 <option>Gilet (Cardigan)</option>
                 <option>Couverture</option>
@@ -238,6 +446,16 @@ export const PatternGeneratorView: React.FC<PatternGeneratorProps> = ({ onNaviga
           </div>
 
           <div className="space-y-4">
+            <label className="block text-sm font-bold text-primary uppercase tracking-widest">Modèle enregistré</label>
+            <select value={selectedModelId} onChange={(event) => { setSelectedModelId(event.target.value); if (event.target.value) setReferenceImage(null); }} className="w-full rounded-2xl border border-primary/5 bg-secondary/50 px-5 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20">
+              <option value="">Choisir un modèle existant (facultatif)</option>
+              {patternModels.map((model) => <option key={model.id} value={model.id}>{model.name} · {model.type}</option>)}
+            </select>
+            {selectedModel && <img src={selectedModel.image} alt={selectedModel.name} className="h-40 w-full rounded-2xl border border-accent/20 bg-[#F9F7F2] object-contain" />}
+            <p className="text-xs leading-relaxed text-primary/60">Si le modèle existe, utilisez-le. Sinon, laissez ce champ vide et ajoutez votre propre photo ci-dessous.</p>
+          </div>
+
+          <div className="space-y-4">
             <label className="block text-sm font-bold text-primary uppercase tracking-widest">Poids de la laine</label>
             <div className="relative">
               <select 
@@ -259,25 +477,59 @@ export const PatternGeneratorView: React.FC<PatternGeneratorProps> = ({ onNaviga
 
           <div className="space-y-4">
             <label className="block text-sm font-bold text-primary uppercase tracking-widest">Taille souhaitée</label>
-            <input 
-              type="text"
+            <div className="relative">
+              <select
               name="size"
-              value={formData.size}
-              onChange={handleInputChange}
-              placeholder="Ex: S, M, L ou dimensions en cm"
-              className="w-full px-6 py-4 bg-secondary/50 rounded-2xl border border-primary/5 focus:outline-none focus:ring-2 focus:ring-accent/20"
-            />
+                value={formData.size}
+                onChange={handleInputChange}
+                className="appearance-none w-full px-6 py-4 bg-secondary/50 rounded-2xl border border-primary/5 focus:outline-none focus:ring-2 focus:ring-accent/20 cursor-pointer"
+              >
+                <option value="Bébé (0–12 mois)">Bébé (0–12 mois)</option>
+                <option value="Enfant (2–4 ans)">Enfant (2–4 ans)</option>
+                <option value="Enfant (6–10 ans)">Enfant (6–10 ans)</option>
+                <option value="Adolescent">Adolescent</option>
+                <option value="Adulte XS–S">Adulte XS–S</option>
+                <option value="Adulte M–L">Adulte M–L</option>
+                <option value="Adulte XL–XXL">Adulte XL–XXL</option>
+                <option value="Adulte Standard">Adulte Standard</option>
+                <option value="Taille unique">Taille unique</option>
+                <option value="Petite couverture (80 × 100 cm)">Petite couverture (80 × 100 cm)</option>
+                <option value="Couverture standard (120 × 150 cm)">Couverture standard (120 × 150 cm)</option>
+                <option value="Grande couverture (150 × 200 cm)">Grande couverture (150 × 200 cm)</option>
+              </select>
+              <div className="absolute inset-y-0 right-0 flex items-center pr-6 pointer-events-none">
+                <ChevronDown className="text-primary/70" size={20} />
+              </div>
+            </div>
           </div>
 
           <div className="space-y-4">
-            <label className="block text-sm font-bold text-primary uppercase tracking-widest">Précisions (Optionnel)</label>
-            <textarea 
+            <label className="block text-sm font-bold text-primary uppercase tracking-widest">Photo du modèle (optionnel)</label>
+            <input ref={imageInputRef} type="file" accept="image/*" onChange={handleReferenceImage} className="hidden" />
+            {referenceImage ? (
+              <div className="relative overflow-hidden rounded-2xl border border-accent/30 bg-secondary/30">
+                <img src={referenceImage.preview} alt="Modèle de référence" className="h-48 w-full object-contain" />
+                <button type="button" onClick={() => { setReferenceImage(null); if (imageInputRef.current) imageInputRef.current.value = ''; }} className="absolute right-3 top-3 rounded-full bg-white px-3 py-1 text-xs font-bold text-red-600 shadow-sm">Retirer</button>
+              </div>
+            ) : (
+              <button type="button" onClick={() => imageInputRef.current?.click()} className="w-full rounded-2xl border-2 border-dashed border-primary/15 bg-secondary/20 px-5 py-6 text-sm text-primary/60 transition-colors hover:border-accent hover:text-accent">
+                Ajouter une photo du modèle à reproduire
+              </button>
+            )}
+            <p className="text-xs leading-relaxed text-primary/60">La photo sert de référence pour la forme, les proportions, les motifs et les détails. Elle ne remplace pas les notes.</p>
+          </div>
+
+          <div className="space-y-4">
+            <label className="block text-sm font-bold text-primary uppercase tracking-widest">Notes et détails du modèle</label>
+            <textarea
               name="extraNotes"
               value={formData.extraNotes}
               onChange={handleInputChange}
-              placeholder="Couleurs, motifs spécifiques..."
-              className="w-full px-6 py-4 bg-secondary/50 rounded-2xl border border-primary/5 focus:outline-none focus:ring-2 focus:ring-accent/20 h-24 resize-none"
+              rows={5}
+              placeholder="Ex. manches courtes, col rond, longueur souhaitée, tour de poitrine, nombre de couleurs, motif, type de fermeture..."
+              className="w-full resize-none rounded-2xl border border-primary/5 bg-secondary/50 px-5 py-4 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-accent/20"
             />
+            <p className="text-xs leading-relaxed text-primary/60">Plus les mesures, la coupe et les détails sont précis, plus le patron sera fidèle au modèle choisi.</p>
           </div>
 
           <button 
@@ -399,13 +651,15 @@ export const PatternGeneratorView: React.FC<PatternGeneratorProps> = ({ onNaviga
                       </ul>
                       <div className="mt-8 flex justify-end">
                         <button 
-                          onClick={() => onNavigate?.('shop')}
+                          onClick={() => onNavigate?.('knitting-materials')}
                           className="px-6 py-3 bg-white text-primary rounded-xl text-xs font-bold uppercase tracking-widest hover:text-accent transition-all duration-300 border border-primary/10 shadow-sm"
                         >
                           Voir le matériel en boutique
                         </button>
                       </div>
                     </div>
+
+                    {pattern.chart && <PatternChartView chart={pattern.chart} />}
 
                     {/* Instructions */}
                     <div className="space-y-16">

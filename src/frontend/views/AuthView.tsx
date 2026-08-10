@@ -3,7 +3,9 @@ import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import { Loader } from '../components/Loader';
 import { 
-  signInWithPopup, 
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
   browserPopupRedirectResolver,
 } from 'firebase/auth';
@@ -26,6 +28,29 @@ const GoogleIcon = () => (
 
 export const AuthView: React.FC<AuthViewProps> = ({ onNavigate }) => {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkRedirectResult = async () => {
+      const { auth: firebaseAuth, db: firebaseDb } = initFirebase();
+      if (!firebaseAuth || !firebaseDb) return;
+
+      setIsSubmitting(true);
+      try {
+        const result = await getRedirectResult(firebaseAuth);
+        if (result?.user) {
+          await syncGoogleUserProfile(firebaseDb, result.user);
+          toast.success('Connexion réussie !');
+          handleSuccessRedirect();
+        }
+      } catch {
+        // Aucun traitement nécessaire ici, l'utilisateur peut se reconnecter manuellement.
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+
+    checkRedirectResult();
+  }, []);
 
   const handleSuccessRedirect = () => {
     const returnToCheckout = sessionStorage.getItem('returnToCheckout');
@@ -107,6 +132,17 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigate }) => {
       toast.success('Connexion réussie !');
       handleSuccessRedirect();
     } catch (error: any) {
+      const redirectFallback = error?.message?.includes('Cross-Origin-Opener-Policy') ||
+        error?.message?.includes('window.closed') ||
+        error?.code === 'auth/popup-blocked' ||
+        error?.code === 'auth/operation-not-supported-in-this-environment';
+
+      if (redirectFallback) {
+        toast('Popup indisponible, redirection vers Google...');
+        await signInWithRedirect(firebaseAuth, provider);
+        return;
+      }
+
       let errorMessage = "Erreur lors de la connexion avec Google.";
       if (error.code === 'auth/unauthorized-domain') {
         errorMessage = `Domaine non autorisé. Ajoutez ${window.location.hostname} aux domaines autorisés dans la console Firebase.`;

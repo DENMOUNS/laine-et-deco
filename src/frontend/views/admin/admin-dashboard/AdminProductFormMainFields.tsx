@@ -27,6 +27,7 @@ export function AdminProductFormMainFields({ ctx }: { ctx: any }) {
   const { ABANDONED_CARTS, ANALYTICS, BLOG_POSTS, CATEGORIES, CATEGORY_DISTRIBUTION, CHAT_MESSAGES, CITIES, CONVERSATIONS, COUPONS, CUSTOMER_GROUPS, DEVICE_DATA, EMAILS, EXPENSES, FAQS, LOGIN_LOGS, LOOKBOOK_POSTS, NAV_ITEMS, NOTIFICATIONS, ORDERS, PACKS, PRODUCTS, PROMO_EVENTS, PUSH_NOTIFICATIONS, REQUEST_LOGS, RETENTION_DATA, REVENUE_BY_PAYMENT, REVIEWS, SALES_DATA, SHIPPING_RULES, SUBSCRIBERS, TAX_RULES, TRAFFIC_SOURCES, USERS, activeMenuItem, activeTab, addBlogPost, addCatalogRule, addCategory, addCity, addCoupon, addCurrency, addCustomerGroup, addEvent, addExpense, addFAQ, addLocalRole, addLookbook, addNavItem, addPack, addProduct, addRMA, addReview, addShippingRule, addTaxRule, allOrders, averageOrderValue, catalogRulesWithDefaults, categoryPage, currentImage, currentSlug, currentUserDoc, customerDetailTab, customerFilter, deleteAbandonedCart, deleteCatalogRule, deleteCategory, deleteChatMessage, deleteCity, deleteConversation, deleteCoupon, deleteCurrency, deleteCustomerGroup, deleteEvent, deleteFAQ, deleteLocalRole, deleteLoginLog, deleteNavItem, deleteNotification, deleteOrder, deletePack, deleteProduct, deleteRequestLog, deleteReview, deleteShippingRule, deleteSiteConfig, deleteSubscriber, deleteTaxRule, deleteUser, editedOrder, editingItem, events, fetchedProducts, filteredMenuItems, formatDate, handleDeleteCatalogRule, handleDeleteCity, handleDeleteEvent, handleDeleteFAQ, handleEditCatalogRule, handleEditCity, handleEditCoupon, handleEditEvent, handleEditFAQ, handleFormSubmit, handleNotificationClick, handleSaveCatalogRule, handleSaveCity, handleSaveCoupon, handleSaveEvent, handleSaveFAQ, handleSearch, handleSeed, handleSendMessage, hasPermission, isAddModalOpen, isAuthLoading, isCatalogRuleEditorOpen, isCityEditorOpen, isCouponEditorOpen, isDataLoading, isEditingOrder, isEventEditorOpen, isFAQEditorOpen, isLoadingAbandoned, isLoadingBlog, isLoadingCatalog, isLoadingCategories, isLoadingCategoryDist, isLoadingDevice, isLoadingEmails, isLoadingExpenses, isLoadingGroups, isLoadingLookbook, isLoadingOrders, isLoadingPacks, isLoadingProducts, isLoadingPush, isLoadingRetention, isLoadingRevenue, isLoadingReviews, isLoadingRoles, isLoadingShipping, isLoadingSubscribers, isLoadingTax, isLoadingTraffic, isLogsLoading, isSaving, isSidebarOpen, isSuperAdmin, isTabAllowed, isUserCustomer, itemsPerPage, localAbandonedCarts, localBlogPosts, localCatalogPriceRules, localCategories, localCurrencies, localCustomerGroups, localExpenses, localLookbook, localNavItems, localOrders, localPacks, localProducts, localRMAs, localReviews, localRoles, localShippingRules, localSystemNotifications, localTaxRules, localUsers, logFilter, menuItems, messageInput, modalType, navItemsWithDefaults, newNote, newRMANote, notificationFilter, notificationPage, onNavigate, orderFilter, overviewOrderFilter, permissions, productFilter, propSetSiteConfig, propSiteConfig, rawSiteConfig, realLogs, requestLogFilter, reviewFilter, roleData, saveAllSiteConfig, saveSiteSection, searchResults, selectedCatalogRule, selectedCity, selectedConversation, selectedCoupon, selectedCustomer, selectedCustomerGroup, selectedEvent, selectedFAQ, selectedOrder, selectedPackProducts, setActiveTab, setCategoryPage, setCurrentImage, setCurrentSlug, setCustomerDetailTab, setCustomerFilter, setEditedOrder, setEditingItem, setEvents, setIsAddModalOpen, setIsCatalogRuleEditorOpen, setIsCityEditorOpen, setIsCouponEditorOpen, setIsEditingOrder, setIsEventEditorOpen, setIsFAQEditorOpen, setIsSaving, setIsSidebarOpen, setLocalAbandonedCarts, setLocalAbandonedCarts2, setLocalBlogPosts, setLocalBlogPosts2, setLocalCategories, setLocalCurrencies, setLocalCustomerGroups, setLocalCustomerGroups2, setLocalEmails, setLocalExpenses, setLocalLookbook, setLocalLookbook2, setLocalOrders, setLocalPacks, setLocalProducts, setLocalPushNotifications, setLocalReviews, setLocalReviews2, setLocalRole, setLocalRoles, setLocalShippingRules, setLocalShippingRules2, setLocalSubscribers, setLocalSystemNotifications, setLocalTaxRules, setLocalTaxRules2, setLocalUser, setLocalUsers, setLogFilter, setMessageInput, setModalType, setNewNote, setNewRMANote, setNotificationFilter, setNotificationPage, setOrderFilter, setOverviewOrderFilter, setProductFilter, setRequestLogFilter, setReviewFilter, setSearchResults, setSelectedCatalogRule, setSelectedCity, setSelectedConversation, setSelectedCoupon, setSelectedCustomer, setSelectedCustomerGroup, setSelectedEvent, setSelectedFAQ, setSelectedOrder, setSelectedPackProducts, setShowNotifications, setSiteConfig, setViewingCustomer, showNotifications, siteConfig, siteConfigs, sortByDate, stats, totalCustomers, totalOrdersCount, totalSales, totalVisitors, updateBlogPost, updateCatalogRule, updateCategory, updateCity, updateCoupon, updateCurrency, updateCustomerGroup, updateEvent, updateExpense, updateFAQ, updateLocalRole, updateLocalUser, updateLookbook, updateNavItem, updatePack, updateProduct, updateRMA, updateReview, updateShippingRule, updateSiteConfig, updateTaxRule, user, userRoleSlug, viewingCustomer } = ctx;
   const [showBulkSpecsModal, setShowBulkSpecsModal] = React.useState(false);
   const [bulkSpecsText, setBulkSpecsText] = React.useState('');
+  const [arrivalDraftId] = React.useState(() => `arrival-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
   return (
     <>
               {/* Main Content */}
@@ -139,9 +140,53 @@ export function AdminProductFormMainFields({ ctx }: { ctx: any }) {
                           className="w-full pl-6 pr-16 py-4 bg-secondary/50 border border-primary/10 rounded-2xl focus:outline-none focus:border-primary focus:bg-card transition-all font-bold text-accent" 
                           placeholder="Optionnel" 
                           defaultValue={editingItem?.promoPrice}
+                          onChange={(e) => {
+                            const val = Number(e.target.value) || 0;
+                            const salePrice = editingItem?.price || 0;
+                            if (val > 0 && val >= salePrice) {
+                              toast.error('Le prix promotionnel doit être inférieur au prix de vente');
+                            }
+                          }}
                         />
                         <span className="absolute right-6 top-1/2 -translate-y-1/2 text-primary/60 font-bold text-xs">FCFA</span>
                       </div>
+                      <p className="text-[10px] text-primary/50 italic">Laissez vide ou à 0 pour désactiver la promotion</p>
+                    </div>
+                    {editingItem?.promoPrice && editingItem.promoPrice > 0 && (
+                      <div className="flex items-center justify-between p-4 bg-accent/10 rounded-2xl border border-accent/20 md:col-span-2">
+                        <div>
+                          <p className="font-bold text-sm text-accent">Promotion activée</p>
+                          <p className="text-xs text-accent/60">Réduction: {Math.round((1 - editingItem.promoPrice / (editingItem.price || 1)) * 100)}%</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-primary/60">Prix normal</p>
+                          <p className="font-bold text-lg text-primary">{editingItem.price} FCFA</p>
+                          <p className="text-xs text-accent font-bold mt-1">Prix promo: {editingItem.promoPrice} FCFA</p>
+                        </div>
+                      </div>
+                    )}
+                    <div className="md:col-span-2 rounded-2xl border border-amber-200 bg-amber-50/60 p-5 space-y-4">
+                      <label className="flex items-center gap-3 text-sm font-bold text-amber-900">
+                        <input type="checkbox" name="allowPreorder" defaultChecked={editingItem?.allowPreorder === true} className="h-4 w-4 accent-amber-600" />
+                        Autoriser la précommande des arrivages futurs
+                      </label>
+                      <p className="text-xs text-amber-800/80">Un produit peut rester disponible immédiatement tout en ayant un stock commandé. L’arrivage peut cibler une couleur précise.</p>
+                      <input type="hidden" name="arrivalId" value={arrivalDraftId} />
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <input name="arrivalQuantity" type="number" min="0" placeholder="Quantité commandée" className="w-full px-4 py-3 bg-white border border-amber-200 rounded-xl" />
+                        <input name="arrivalDate" type="date" className="w-full px-4 py-3 bg-white border border-amber-200 rounded-xl" />
+                        <input name="arrivalColor" type="text" placeholder="Couleur (optionnel)" className="w-full px-4 py-3 bg-white border border-amber-200 rounded-xl" />
+                      </div>
+                      {Array.isArray(editingItem?.incomingStock) && editingItem.incomingStock.length > 0 && (
+                        <div className="space-y-2 text-xs text-amber-900">
+                          {editingItem.incomingStock.map((arrival: any) => (
+                            <div key={arrival.id} className="flex items-center justify-between rounded-lg bg-white/70 px-3 py-2">
+                              <span>{arrival.quantity} unité(s){arrival.color ? ` · ${arrival.color}` : ''} · arrivée le {new Date(arrival.availableAt).toLocaleDateString('fr-FR')}</span>
+                              <span className="font-bold">{arrival.status === 'cancelled' ? 'Annulé' : 'Planifié'}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Catégorie</label>
@@ -152,7 +197,7 @@ export function AdminProductFormMainFields({ ctx }: { ctx: any }) {
                         defaultValue={editingItem?.category}
                       >
                         <option value="">Sélectionner une catégorie</option>
-                        {CATEGORIES.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                        {CATEGORIES.map((c: any) => <option key={c.id} value={c.name}>{c.name}</option>)}
                       </select>
                     </div>
                     <div className="space-y-2">
@@ -186,7 +231,7 @@ export function AdminProductFormMainFields({ ctx }: { ctx: any }) {
                         onClick={() => {
                           const newSpecs = { ...(editingItem?.specs || {}) };
                           newSpecs['Nouvelle_caracteristique_' + Date.now()] = '';
-                          setEditingItem(prev => ({ ...(prev || {}), specs: newSpecs }));
+                          setEditingItem((prev: any) => ({ ...(prev || {}), specs: newSpecs }));
                         }}
                         className="text-xs font-bold uppercase tracking-widest text-primary/60 hover:text-primary transition-colors flex items-center gap-1 bg-secondary/50 px-3 py-1.5 rounded-xl border border-primary/10"
                       >
@@ -208,7 +253,7 @@ export function AdminProductFormMainFields({ ctx }: { ctx: any }) {
                             const oldVal = newSpecs[key];
                             delete newSpecs[key];
                             newSpecs[newKey] = oldVal;
-                            setEditingItem(prev => ({ ...prev, specs: newSpecs }));
+                            setEditingItem((prev: any) => ({ ...prev, specs: newSpecs }));
                           }}
                         />
                         <input 
@@ -219,7 +264,7 @@ export function AdminProductFormMainFields({ ctx }: { ctx: any }) {
                           onChange={(e) => {
                             const newSpecs = { ...(editingItem?.specs || {}) };
                             newSpecs[key] = e.target.value;
-                            setEditingItem(prev => ({ ...prev, specs: newSpecs }));
+                            setEditingItem((prev: any) => ({ ...prev, specs: newSpecs }));
                           }}
                         />
                         <button 
@@ -227,7 +272,7 @@ export function AdminProductFormMainFields({ ctx }: { ctx: any }) {
                           onClick={() => {
                             const newSpecs = { ...(editingItem?.specs || {}) };
                             delete newSpecs[key];
-                            setEditingItem(prev => ({ ...prev, specs: newSpecs }));
+                            setEditingItem((prev: any) => ({ ...prev, specs: newSpecs }));
                           }}
                           className="p-3 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
                         >

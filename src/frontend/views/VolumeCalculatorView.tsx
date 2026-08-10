@@ -17,14 +17,16 @@ const MOLD_OPTIONS = [
 ];
 
 const MATERIAL_OPTIONS = [
-  { id: 'gypsum', name: 'Gypsum', subtitle: 'SYSTÈME POUDRE/EAU (3.5:1)', ratioPart1: 3.5, ratioPart2: 1, part1Name: 'Poudre (G)', part2Name: 'Eau (ML)' },
-  { id: 'resin', name: 'Résine', subtitle: 'SYSTÈME ÉPOXY (2:1)', ratioPart1: 2, ratioPart2: 1, part1Name: 'Résine A (G)', part2Name: 'Durcisseur B (G)' },
+  { id: 'gypsum', name: 'Gypsum', subtitle: 'SYSTÈME POUDRE/EAU (3.5:1)', ratioPart1: 3.5, ratioPart2: 1, density: 1.3, fillFactor: 0.95, wasteFactor: 1.08, part1Name: 'Poudre (G)', part2Name: 'Eau (ML)' },
+  { id: 'resin', name: 'Résine', subtitle: 'SYSTÈME ÉPOXY (2:1)', ratioPart1: 2, ratioPart2: 1, density: 1.1, fillFactor: 0.92, wasteFactor: 1.05, part1Name: 'Résine A (G)', part2Name: 'Durcisseur B (G)' },
 ];
 
 export const VolumeCalculatorView: React.FC<VolumeCalculatorViewProps> = ({ onNavigate, onAddToCart }) => {
   const [material, setMaterial] = useState(MATERIAL_OPTIONS[0]);
   const [volume, setVolume] = useState(100);
   const [selectedMold, setSelectedMold] = useState<string | null>(null);
+  const [fillFactor, setFillFactor] = useState(material.fillFactor);
+  const [safetyMargin, setSafetyMargin] = useState(material.wasteFactor);
   
   // New State for geometric calculation
   const [calcMode, setCalcMode] = useState<'slider' | 'dimensions'>('slider');
@@ -45,10 +47,16 @@ export const VolumeCalculatorView: React.FC<VolumeCalculatorViewProps> = ({ onNa
     }
   }, [calcMode, geoShape, dim]);
 
+  useEffect(() => {
+    setFillFactor(material.fillFactor);
+    setSafetyMargin(material.wasteFactor);
+  }, [material]);
+
+  const effectiveVolumeMl = Math.max(1, Math.round(volume * fillFactor * safetyMargin));
+  const totalMassGr = Math.max(1, Math.round(effectiveVolumeMl * material.density));
   const totalParts = material.ratioPart1 + material.ratioPart2;
-  const onePart = volume / totalParts;
-  const part1Weight = Math.round(onePart * material.ratioPart1);
-  const part2Weight = Math.round(onePart * material.ratioPart2);
+  const part1Weight = Math.round(totalMassGr * material.ratioPart1 / totalParts);
+  const part2Weight = Math.round(totalMassGr * material.ratioPart2 / totalParts);
   const totalWeight = part1Weight + part2Weight;
 
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -66,6 +74,8 @@ export const VolumeCalculatorView: React.FC<VolumeCalculatorViewProps> = ({ onNa
     setVolume(100);
     setSelectedMold(null);
     setCalcMode('slider');
+    setFillFactor(material.fillFactor);
+    setSafetyMargin(material.wasteFactor);
     setDim({ length: 15, width: 10, height: 2, radius: 5 });
   };
 
@@ -241,9 +251,29 @@ export const VolumeCalculatorView: React.FC<VolumeCalculatorViewProps> = ({ onNa
               </div>
             </div>
 
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70">Remplissage réel du moule</label>
+                  <span className="text-sm font-bold text-[#e26d24]">{(fillFactor * 100).toFixed(0)}%</span>
+                </div>
+                <input type="range" min="0.7" max="1" step="0.01" value={fillFactor} onChange={(e) => setFillFactor(Number(e.target.value))} className="w-full h-2 bg-primary/10 rounded-lg appearance-none cursor-pointer accent-[#e26d24]" />
+                <p className="text-xs text-primary/60">Pour un objet décoratif, on ne remplit jamais à 100 % si le moule a des zones creuses ou si l’objet n’est pas complètement plein.</p>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70">Marge de sécurité</label>
+                  <span className="text-sm font-bold text-[#e26d24]">{(safetyMargin * 100).toFixed(0)}%</span>
+                </div>
+                <input type="range" min="1" max="1.15" step="0.01" value={safetyMargin} onChange={(e) => setSafetyMargin(Number(e.target.value))} className="w-full h-2 bg-primary/10 rounded-lg appearance-none cursor-pointer accent-[#e26d24]" />
+                <p className="text-xs text-primary/60">Ajoute une marge pour les pertes, les bulles, les finitions et les petites variations de mélange.</p>
+              </div>
+            </div>
+
             <div className="bg-[#eff3fd] border border-blue-100 p-4 rounded-xl flex gap-3 text-[#2d5db0] text-sm items-start">
               <div className="mt-0.5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></div>
-              <p>Les calculs sont basés sur les densités moyennes. Pour les pièces complexes, prévoyez 5% de mélange supplémentaire.</p>
+              <p>Le calcul combine le volume réel du moule, le remplissage utile du moule, la densité du matériau et une marge de sécurité. C’est plus adapté au moulage de pièces décoratives qu’un simple ratio brut.</p>
             </div>
           </div>
         </div>
@@ -283,8 +313,12 @@ export const VolumeCalculatorView: React.FC<VolumeCalculatorViewProps> = ({ onNa
 
           <div className="border-t border-white/10 pt-6 pb-10 space-y-4">
             <div className="flex justify-between items-center text-sm">
-              <span className="text-white/70">Volume Total</span>
+              <span className="text-white/70">Volume utile du moule</span>
               <span className="font-bold text-white">{volume} ml</span>
+            </div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-white/70">Volume à préparer</span>
+              <span className="font-bold text-white">{effectiveVolumeMl} ml</span>
             </div>
             <div className="flex justify-between items-center text-sm">
               <span className="text-white/70">Poids Total Est.</span>

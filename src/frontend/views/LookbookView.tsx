@@ -76,10 +76,6 @@ export const LookbookView: React.FC<LookbookViewProps> = ({ onNavigate, products
             <div className="p-6">
               <h3 className="font-serif text-lg text-primary mb-2">{post.title}</h3>
               <p className="text-primary/70 text-sm mb-4">{post.description}</p>
-              <div className="flex items-center gap-2">
-                <Heart size={16} className="text-accent" />
-                <span className="text-xs font-bold text-accent">{Math.floor(Math.random() * 100) + 12} coups de cœur</span>
-              </div>
             </div>
           </motion.div>
         ))}

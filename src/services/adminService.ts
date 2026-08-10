@@ -4,7 +4,7 @@
  * Extracts business logic from useAdminDashboardContext.
  */
 
-import { updateDoc, doc, getDocs, collection, serverTimestamp, setDoc } from 'firebase/firestore';
+import { updateDoc, doc, getDocs, collection, serverTimestamp, setDoc, query, limit } from 'firebase/firestore';
 import { db } from '../backend/firebase';
 import { toast } from 'sonner';
 import { SiteConfig, Order, PromoEvent, Coupon, City, FAQ, CatalogPriceRule } from '../types';
@@ -179,8 +179,8 @@ export function filterMenuByPermissions(
 export async function autoSeedIfEmpty(seedFirebaseFn: () => Promise<void>): Promise<void> {
   if (!db) return;
   try {
-    // Seed roles if empty
-    const rolesSnapshot = await getDocs(collection(db, 'admin_role'));
+    // Seed roles if empty — probe a single doc only
+    const rolesSnapshot = await getDocs(query(collection(db, 'admin_role'), limit(1)));
     if (rolesSnapshot.empty) {
       for (const role of DEFAULT_ADMIN_ROLES) {
         await setDoc(doc(db, 'admin_role', role.id), {
@@ -191,7 +191,8 @@ export async function autoSeedIfEmpty(seedFirebaseFn: () => Promise<void>): Prom
       }
     }
 
-    const snapshot = await getDocs(collection(db, 'product'));
+    // Probe products collection with a limit to avoid scanning entire collection
+    const snapshot = await getDocs(query(collection(db, 'product'), limit(1)));
     if (snapshot.empty) {
       toast.info('Initialisation automatique des données en cours...');
       await seedFirebaseFn();

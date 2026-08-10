@@ -3,14 +3,41 @@ import { collection, getDocs, query, limit, type QueryConstraint } from 'firebas
 import type { BaseEntity } from '../../domain/entities/BaseEntity';
 import { getStaticEntityCacheKey, readCache, writeCache, getTTLForEntity, readEntityCache } from '../utils/cacheStorage';
 import { initFirebase } from '../../backend/firebase';
+import { fetchEntityDataFromApi } from '../services/firestoreEntityService';
 
 interface UseStaticEntityOptions {
   enabled?: boolean;
   constraints?: QueryConstraint[];
   deps?: unknown[];
+  cacheOnly?: boolean;
 }
 
 const DEFAULT_LIMIT = 0;
+const sharedStaticEntityFetches = new Map<string, Promise<unknown>>();
+
+const fetchStaticEntityFromApi = async <T>(entityType: string, cacheKey: string): Promise<T[] | null> => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const existingPromise = sharedStaticEntityFetches.get(cacheKey) as Promise<T[] | null> | undefined;
+  if (existingPromise) {
+    return existingPromise;
+  }
+
+  const promise = (async () => {
+    try {
+      return await fetchEntityDataFromApi<T>(entityType);
+    } finally {
+      if (sharedStaticEntityFetches.get(cacheKey) === promise) {
+        sharedStaticEntityFetches.delete(cacheKey);
+      }
+    }
+  })();
+
+  sharedStaticEntityFetches.set(cacheKey, promise);
+  return promise;
+};
 
 const ENTITY_TYPE_ALIASES: Record<string, string> = {
   hero_banners: 'hero_banner',
@@ -21,8 +48,8 @@ const ENTITY_TYPE_ALIASES: Record<string, string> = {
   blog_posts: 'blog_post',
   promo_events: 'promo_event',
   flash_sales: 'flash_sale',
-  lookbook: 'lookbook_post',
-  lookbooks: 'lookbook_post',
+  lookbook: 'lookbook',
+  lookbooks: 'lookbook',
   lookbook_posts: 'lookbook_post',
 };
 
@@ -50,7 +77,7 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
   const [error, setError] = useState<Error | null>(null);
   const isMounted = useRef(true);
   const hasFetchedFromNetwork = useRef(false);
-  const { enabled = true, constraints = [], deps = [] } = options;
+  const { enabled = true, constraints = [], deps = [], cacheOnly = false } = options;
   const cacheKey = getStaticEntityCacheKey(resolvedEntityType, constraints);
 
   const getAuthHeaders = async () => {
@@ -101,22 +128,40 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
         setData(cachedData);
         setIsLoading(false);
         setError(null);
+      }
+
+      if (cacheOnly) {
+        // Mode strict : on n'effectue aucune requête réseau, on s'arrête
+        hasFetchedFromNetwork.current = false;
         return;
       }
 
       if (hasFetchedFromNetwork.current) {
-        setIsLoading(false);
         return;
       }
 
       // 2. Si le cache est vide ou absent, appel immédiat
       hasFetchedFromNetwork.current = true;
-      try {
-        const { db: firestoreDb } = initFirebase();
-        let items: T[] = [];
+      let items: T[] = [];
+      const useApiFallback = constraints.length === 0;
+      let apiRequestSucceeded = false;
 
-        if (firestoreDb) {
-          try {
+      try {
+      if (useApiFallback) {
+        const apiData = await fetchStaticEntityFromApi<T>(resolvedEntityType, cacheKey);
+        // Un tableau vide reçu en HTTP 200 est une réponse valide : ne pas
+        // relancer Firestore et ne pas transformer cette réponse en erreur.
+        apiRequestSucceeded = true;
+        if (apiData && apiData.length > 0) {
+          items = apiData;
+        }
+      }
+
+      const shouldTryClientFetch = items.length === 0 && !apiRequestSucceeded && (!cachedData || cachedData.length === 0);
+      if (shouldTryClientFetch) {
+        try {
+          const { db: firestoreDb } = initFirebase();
+          if (firestoreDb) {
             const finalConstraints: QueryConstraint[] = [...constraints];
             const hasLimit = finalConstraints.some((c) => (c as { type?: string }).type === 'limit');
             if (!hasLimit && DEFAULT_LIMIT > 0) {
@@ -131,7 +176,7 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
             // Timeout rapide de 1.5s sur le SDK Firestore client pour ne pas faire patienter l'utilisateur des minutes
             const fetchPromise = getDocs(q);
             const timeoutPromise = new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error('Firestore timeout')), 1500)
+              setTimeout(() => reject(new Error('Firestore timeout')), 5000)
             );
 
             const snapshot = await Promise.race([fetchPromise, timeoutPromise]);
@@ -139,8 +184,9 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
               id: docSnap.id,
               ...docSnap.data(),
             })) as T[];
-          } catch {
-            // En cas d'erreur de permissions ou de timeout, appel direct à l'API backend
+          }
+        } catch {
+          if (items.length === 0 && !useApiFallback) {
             const res = await fetch(`/api/entity/${encodeURIComponent(resolvedEntityType)}`, {
               credentials: 'same-origin',
               headers: await getAuthHeaders(),
@@ -161,42 +207,28 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
               items = Array.isArray(body) ? body : (body?.data || []);
             }
           }
-        } else {
-          const res = await fetch(`/api/entity/${encodeURIComponent(resolvedEntityType)}`, {
-            credentials: 'same-origin',
-            headers: await getAuthHeaders(),
-          }).catch(() => null);
-          if (res && res.ok) {
-            const body = await res.json().catch(() => null);
-            if (!body) {
-              const txt = await res.text().catch(() => null);
-              // eslint-disable-next-line no-console
-              console.warn('[useStaticEntity] empty JSON body from /api/entity (no firestoreDb)', {
-                entityType,
-                status: res.status,
-                statusText: res.statusText,
-                text: txt,
-                headers: Array.from(res.headers.entries()),
-              });
-            }
-            items = Array.isArray(body) ? body : (body?.data || []);
-          }
         }
-
-        if (cancelled || !isMounted.current) return;
-
-        const finalData = items.length > 0 ? items : initialData;
-        setData(finalData);
-        if (items.length > 0) {
-          writeCache(cacheKey, items, getTTLForEntity(resolvedEntityType));
-        }
-        setIsLoading(false);
-        setError(null);
-      } catch (err) {
-        if (!isMounted.current || cancelled) return;
-        setError(err as Error);
-        setIsLoading(false);
       }
+
+      if (cancelled || !isMounted.current) return;
+
+      const finalData = items.length > 0 ? items : (cachedData ?? initialData);
+      setData(finalData);
+      if (items.length > 0) {
+        writeCache(cacheKey, items, getTTLForEntity(resolvedEntityType));
+      }
+      setIsLoading(false);
+      setError(null);
+      } catch (err) {
+      if (!isMounted.current || cancelled) return;
+      // Le cache reste prioritaire : une erreur de revalidation ne doit pas
+      // remplacer les données déjà affichées par un skeleton.
+      if (!cachedData || cachedData.length === 0) {
+        setError(err as Error);
+      }
+      setIsLoading(false);
+      }
+    
     };
 
     void load();
@@ -204,7 +236,7 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
     return () => {
       cancelled = true;
     };
-  }, [cacheKey, enabled, entityType, ...deps]);
+  }, [cacheKey, enabled, entityType, cacheOnly, ...deps]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -229,7 +261,7 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
       }
     };
 
-    // Invalidation après create/update/delete : re-fetch immédiat depuis Firestore
+    // Invalidation après create/update/delete : re-fetch immédiat depuis API/cache.
     const onStaticEntityInvalidate = (event: Event) => {
       const customEvent = event as CustomEvent<{ entityType: string }>;
       if (!customEvent.detail) return;
@@ -239,12 +271,23 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
       hasFetchedFromNetwork.current = false;
       setIsLoading(true);
 
+      // Si en mode cache-only, on n'essaie pas de revalider via le réseau
+      if (cacheOnly) {
+        setIsLoading(false);
+        return;
+      }
+
       const doRefetch = async () => {
         try {
           const { db: firestoreDb } = initFirebase();
           let items: T[] = [];
 
-          if (firestoreDb) {
+          if (!firestoreDb || constraints.length === 0) {
+            const apiItems = await fetchStaticEntityFromApi<T>(resolvedEntityType, cacheKey);
+            if (apiItems) items = apiItems;
+          }
+
+          if (items.length === 0 && firestoreDb && constraints.length > 0) {
             const finalConstraints: QueryConstraint[] = [...constraints];
             const q =
               finalConstraints.length > 0
@@ -252,7 +295,7 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
                 : collection(firestoreDb, resolvedEntityType);
             const snapshot = await getDocs(q);
             items = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })) as T[];
-          } else {
+          } else if (items.length === 0 && !firestoreDb) {
             const res = await fetch(`/api/entity/${encodeURIComponent(resolvedEntityType)}`, {
               credentials: 'same-origin',
               headers: await getAuthHeaders(),

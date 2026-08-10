@@ -1,62 +1,77 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Product } from '../../types';
 import { toast } from 'sonner';
 import { Shirt, ShoppingBag, RotateCcw, Calculator, Scissors, Wind, Heart, ChevronDown, Baby, Hand, Flame } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useEntity } from '../hooks/useEntity';
 
 interface CalculatorViewProps {
   onNavigate: (view: string) => void;
   onAddToCart: (product: Product, quantity: number) => void;
 }
 
-const YARN_OPTIONS = [
-  { id: 'merino', name: 'Mérinos standard (125m)', price: 2500, description: 'Douce et chaude, idéale pour l\'hiver.', meterage: 125, factor: 1.0 },
-  { id: 'cotton', name: 'Coton Bio (150m)', price: 1800, description: 'Léger et respirant, parfait pour l\'été.', meterage: 150, factor: 0.8 },
-  { id: 'acrylic', name: 'Acrylique (100m)', price: 1200, description: 'Facile d\'entretien et durable.', meterage: 100, factor: 1.2 },
-];
-
 const GARMENT_OPTIONS = [
-  { id: 'sweater-f', name: 'Pull Femme', basePelotes: 10, icon: Shirt },
-  { id: 'sweater-m', name: 'Pull Homme', basePelotes: 12, icon: Shirt },
-  { id: 'scarf', name: 'Écharpe', basePelotes: 4, icon: Wind },
-  { id: 'hat', name: 'Bonnet', basePelotes: 2, icon: Heart },
-  { id: 'blanket', name: 'Couverture', basePelotes: 25, icon: Scissors },
-  { id: 'cardigan', name: 'Gilet', basePelotes: 11, icon: Shirt },
-  { id: 'socks', name: 'Chaussettes', basePelotes: 2, icon: Flame },
-  { id: 'mittens', name: 'Mitaines / Gants', basePelotes: 2, icon: Hand },
-  { id: 'baby-sweater', name: 'Pull Bébé', basePelotes: 4, icon: Baby },
-  { id: 'shawl', name: 'Châle', basePelotes: 6, icon: Wind },
+  { id: 'sweater-f', name: 'Pull Femme', baseSurface: 9000, icon: Shirt },
+  { id: 'sweater-m', name: 'Pull Homme', baseSurface: 11000, icon: Shirt },
+  { id: 'scarf', name: 'Écharpe', baseSurface: 3000, icon: Wind },
+  { id: 'hat', name: 'Bonnet', baseSurface: 1200, icon: Heart },
+  { id: 'blanket', name: 'Couverture', baseSurface: 30000, icon: Scissors },
+  { id: 'cardigan', name: 'Gilet', baseSurface: 9500, icon: Shirt },
+  { id: 'socks', name: 'Chaussettes', baseSurface: 1800, icon: Flame },
+  { id: 'mittens', name: 'Mitaines / Gants', baseSurface: 1400, icon: Hand },
+  { id: 'baby-sweater', name: 'Pull Bébé', baseSurface: 4000, icon: Baby },
+  { id: 'shawl', name: 'Châle', baseSurface: 5500, icon: Wind },
 ];
 
 const SIZES = ['S', 'M', 'L', 'XL'];
 const SIZE_FACTORS: Record<string, number> = { S: 0.8, M: 1.0, L: 1.2, XL: 1.4 };
 
 export const CalculatorView: React.FC<CalculatorViewProps> = ({ onNavigate, onAddToCart }) => {
+  const { data: products, isLoading: isProductsLoading } = useEntity<Product>('product', [], { cacheOnly: true });
+  const yarnProducts = products.filter(product => product.category?.toLowerCase().includes('laine'));
   const [garment, setGarment] = useState(GARMENT_OPTIONS[0]);
   const [size, setSize] = useState('M');
-  const [yarn, setYarn] = useState(YARN_OPTIONS[0]);
+  const [yarnId, setYarnId] = useState('');
+  const [surface, setSurface] = useState(GARMENT_OPTIONS[0].baseSurface);
+  const [sampleMeters, setSampleMeters] = useState(8);
+  const [stitchesPer10, setStitchesPer10] = useState(22);
+  const [rowsPer10, setRowsPer10] = useState(30);
 
-  // Logic: base pelotes * size factor * yarn factor
+  const yarn = yarnProducts.find(product => product.id === yarnId) || yarnProducts[0];
+  const yarnMeterage = Number(yarn?.specs?.meterage ?? yarn?.specs?.metrage ?? yarn?.specs?.length ?? 0);
+
+  useEffect(() => {
+    if (!yarnId && yarnProducts[0]) setYarnId(yarnProducts[0].id);
+  }, [yarnId, yarnProducts]);
+
+  // La consommation doit être mesurée sur un échantillon de 10 x 10 cm.
+  // Cette méthode conserve le point et le type de tricot réels du projet.
   const needsSize = ['sweater-f', 'sweater-m', 'cardigan', 'baby-sweater'].includes(garment.id);
-  const finalPelotes = Math.ceil(garment.basePelotes * (needsSize ? SIZE_FACTORS[size] : 1) * yarn.factor);
+  const recommendedSurface = Math.round(garment.baseSurface * (needsSize ? SIZE_FACTORS[size] : 1));
+  const sampleStitches = (stitchesPer10 * rowsPer10);
+  const projectStitches = (surface / 100) * sampleStitches;
+  const metersPerStitch = sampleStitches > 0 ? sampleMeters / sampleStitches : 0;
+  const requiredMeters = projectStitches * metersPerStitch * 1.10;
+  const finalPelotes = yarnMeterage > 0 && requiredMeters > 0 ? Math.ceil(requiredMeters / yarnMeterage) : 0;
 
   const reset = () => {
     setGarment(GARMENT_OPTIONS[0]);
     setSize('M');
-    setYarn(YARN_OPTIONS[0]);
+    setYarnId(yarnProducts[0]?.id || '');
+    setSurface(GARMENT_OPTIONS[0].baseSurface);
+    setSampleMeters(8);
+    setStitchesPer10(22);
+    setRowsPer10(30);
   };
 
   const handleOrder = () => {
+    if (!yarn || !yarnMeterage || !finalPelotes) {
+      toast.error('Le produit laine sélectionné ne possède pas encore de métrage renseigné.');
+      return;
+    }
     const product: Product = {
-      id: `yarn-${yarn.id}`,
-      name: `${yarn.name}`,
-      price: yarn.price,
+      ...yarn,
       description: `Laine pour tricoter un(e) ${garment.name}`,
-      image: 'https://picsum.photos/seed/laine/100', // Placeholder
-      category: 'Laine',
-      stock: 100,
-      isAvailable: true,
-      rating: 5,
     };
     onAddToCart(product, finalPelotes);
     toast.success(`${finalPelotes} pelotes ajoutées au panier !`);
@@ -95,7 +110,10 @@ export const CalculatorView: React.FC<CalculatorViewProps> = ({ onNavigate, onAd
                   return (
                     <button
                       key={g.id}
-                      onClick={() => setGarment(g)}
+                      onClick={() => {
+                        setGarment(g);
+                        setSurface(Math.round(g.baseSurface * (['sweater-f', 'sweater-m', 'cardigan', 'baby-sweater'].includes(g.id) ? SIZE_FACTORS[size] : 1)));
+                      }}
                       className={`p-4 rounded-xl flex flex-col items-center justify-center transition-all border-2 text-center gap-2 ${
                         garment.id === g.id 
                           ? 'border-[#e26d24] bg-[#e26d24]/5 text-[#e26d24]' 
@@ -118,7 +136,10 @@ export const CalculatorView: React.FC<CalculatorViewProps> = ({ onNavigate, onAd
                   {SIZES.map(s => (
                     <button
                       key={s}
-                      onClick={() => setSize(s)}
+                      onClick={() => {
+                        setSize(s);
+                        setSurface(Math.round(garment.baseSurface * (needsSize ? SIZE_FACTORS[s] : 1)));
+                      }}
                       className={`flex-1 py-3 rounded-xl border-2 transition-all font-bold text-sm ${
                         size === s 
                           ? 'border-[#e26d24] bg-[#e26d24]/5 text-[#e26d24]' 
@@ -138,11 +159,15 @@ export const CalculatorView: React.FC<CalculatorViewProps> = ({ onNavigate, onAd
               <div className="relative">
                 <select 
                   className="w-full p-4 rounded-2xl bg-[#eff3fd]/30 border border-primary/10 focus:outline-none focus:border-[#e26d24] text-primary font-bold appearance-none cursor-pointer"
-                  value={yarn.id}
-                  onChange={(e) => setYarn(YARN_OPTIONS.find(y => y.id === e.target.value)!)}
+                  value={yarn?.id || ''}
+                  onChange={(e) => setYarnId(e.target.value)}
                 >
-                  {YARN_OPTIONS.map((y, idx) => (
-                    <option key={y.id} value={y.id}>{y.name}</option>
+                  {isProductsLoading && <option value="">Chargement des laines...</option>}
+                  {!isProductsLoading && yarnProducts.length === 0 && <option value="">Aucune laine disponible</option>}
+                  {yarnProducts.map(y => (
+                    <option key={y.id} value={y.id}>
+                      {y.name} {Number(y.specs?.meterage ?? y.specs?.metrage ?? y.specs?.length ?? 0) > 0 ? `— ${Number(y.specs?.meterage ?? y.specs?.metrage ?? y.specs?.length)} m` : '— métrage manquant'}
+                    </option>
                   ))}
                 </select>
                 <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
@@ -151,9 +176,30 @@ export const CalculatorView: React.FC<CalculatorViewProps> = ({ onNavigate, onAd
               </div>
             </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 block">Surface totale du projet (cm²)</label>
+                <input type="number" min="1" step="100" value={surface} onChange={e => setSurface(Math.max(0, Number(e.target.value)))} className="w-full p-4 rounded-2xl bg-[#eff3fd]/30 border border-primary/10 focus:outline-none focus:border-[#e26d24] text-primary font-bold" />
+                <p className="text-xs text-primary/60">Valeur indicative : {recommendedSurface} cm². Remplacez-la par la surface de votre patron.</p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 block">Métrage mesuré pour 10 × 10 cm</label>
+                <input type="number" min="0.1" step="0.1" value={sampleMeters} onChange={e => setSampleMeters(Math.max(0, Number(e.target.value)))} className="w-full p-4 rounded-2xl bg-[#eff3fd]/30 border border-primary/10 focus:outline-none focus:border-[#e26d24] text-primary font-bold" />
+                <p className="text-xs text-primary/60">Défaites un carré tricoté de 10 × 10 cm et mesurez la laine utilisée.</p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 block">Échantillon : mailles / 10 cm</label>
+                <input type="number" min="1" step="1" value={stitchesPer10} onChange={e => setStitchesPer10(Math.max(0, Number(e.target.value)))} className="w-full p-4 rounded-2xl bg-[#eff3fd]/30 border border-primary/10 focus:outline-none focus:border-[#e26d24] text-primary font-bold" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 block">Échantillon : rangs / 10 cm</label>
+                <input type="number" min="1" step="1" value={rowsPer10} onChange={e => setRowsPer10(Math.max(0, Number(e.target.value)))} className="w-full p-4 rounded-2xl bg-[#eff3fd]/30 border border-primary/10 focus:outline-none focus:border-[#e26d24] text-primary font-bold" />
+              </div>
+            </div>
+
             <div className="bg-[#eff3fd] border border-blue-100 p-4 rounded-xl flex gap-3 text-[#2d5db0] text-sm items-start">
               <div className="mt-0.5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></div>
-              <p>Les estimations sont basées sur un échantillon standard. Prévoyez toujours une pelote de sécurité pour les finitions.</p>
+              <p>Formule tricot : mailles du projet × mètres par maille × 1,10. Les mailles et les rangs de l’échantillon intègrent la tension et le point ; les 10 % couvrent les finitions et la perte de matière.</p>
             </div>
 
           </div>
@@ -161,7 +207,7 @@ export const CalculatorView: React.FC<CalculatorViewProps> = ({ onNavigate, onAd
 
         {/* Right Side: Results Card */}
         <motion.div 
-          key={garment.id + size + yarn.id}
+          key={garment.id + size + (yarn?.id || 'no-yarn')}
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           className="bg-[#5c5e46] text-[#F9F7F2] p-10 lg:p-14 rounded-[3rem] shadow-2xl relative overflow-hidden"
@@ -176,7 +222,7 @@ export const CalculatorView: React.FC<CalculatorViewProps> = ({ onNavigate, onAd
               <Calculator size={28} className="text-[#e26d24] animate-pulse" />
             </div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-white/70 mb-2">Estimation finale</p>
-            <div className="text-8xl font-serif text-[#e26d24] leading-none mb-2">{finalPelotes}</div>
+            <div className="text-8xl font-serif text-[#e26d24] leading-none mb-2">{finalPelotes || '—'}</div>
             <div className="text-2xl font-serif text-white">Pelotes nécessaires</div>
           </div>
 
@@ -191,7 +237,11 @@ export const CalculatorView: React.FC<CalculatorViewProps> = ({ onNavigate, onAd
             </div>
             <div className="text-sm">
               <span className="text-white/70">Laine : </span>
-              <span className="font-bold text-white">{yarn.name}</span>
+              <span className="font-bold text-white">{yarn?.name || 'Aucune laine sélectionnée'}</span>
+            </div>
+            <div className="text-sm">
+              <span className="text-white/70">Métrage calculé : </span>
+              <span className="font-bold text-white">{Math.ceil(requiredMeters)} m, marge incluse</span>
             </div>
           </div>
 

@@ -25,5 +25,11 @@ export const updateSEOMeta = (title: string, description: string, ogImage?: stri
 };
 
 export const getEffectivePrice = (product: any, events: any[]) => {
+  // Si le produit est en promotion et a un prix promotionnel valide
+  if (product.promoPrice && product.promoPrice > 0 && product.promoPrice < (product.price || 0)) {
+    return product.promoPrice;
+  }
+  
+  // Sinon retourner le prix normal
   return product.price;
 };
