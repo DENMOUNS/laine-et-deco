@@ -23,7 +23,6 @@
     "@vitejs/plugin-react": "^5.0.4",
     "better-sqlite3": "^12.8.0",
     "clsx": "^2.1.1",
-    "dompurify": "^3.4.2",
     "dotenv": "^17.2.3",
     "eslint": "^10.3.0",
     "express": "^5.2.1",
@@ -35,7 +34,6 @@
     "highcharts": "^12.6.0",
     "highcharts-react-official": "^3.2.3",
     "idb-keyval": "^6.2.4",
-    "isomorphic-dompurify": "^3.12.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
     "leaflet": "^1.9.4",
@@ -58,7 +56,6 @@
     "zustand": "^5.0.13"
   },
   "devDependencies": {
-    "@types/dompurify": "^3.0.5",
     "@types/express": "^5.0.6",
     "@types/helmet": "^0.0.48",
     "@types/leaflet": "^1.9.21",

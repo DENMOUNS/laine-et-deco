@@ -3,7 +3,7 @@ import express from 'express';
 import { GoogleGenAI } from '@google/genai';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
-import DOMPurify from 'isomorphic-dompurify';
+import DOMPurify from './utils/sanitizer.js';
 import entityRoutes from './routes/entityRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import storageRoutes from './routes/storageRoutes.js';

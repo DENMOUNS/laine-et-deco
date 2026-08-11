@@ -6,7 +6,7 @@ import path from "path";
 import fs from "node:fs";
 import rateLimit from "express-rate-limit";
 import { z } from "zod";
-import DOMPurify from "isomorphic-dompurify";
+import DOMPurify from "./server/utils/sanitizer.js";
 import { auth, db } from './server/firebaseAdmin.js';
 import entityRoutes from './server/routes/entityRoutes.js';
 import dashboardRoutes from './server/routes/dashboardRoutes.js';
