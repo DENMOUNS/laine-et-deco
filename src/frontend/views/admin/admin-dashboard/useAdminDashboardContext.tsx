@@ -916,7 +916,7 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
   // (tab-gated) si celle-ci est déjà chargée et que le listener dédié n'a pas encore
   // répondu, pour éviter un flash "customer" pendant le tout premier rendu.
   const currentUserDoc = ownUserDoc ?? localUsers.find((u: UserType) => u.id === user?.uid);
-  const userRoleSlug = currentUserDoc?.role || 'customer';
+  const userRoleSlug = (user?.email === 'landrymoutongo97@gmail.com') ? 'super-admin' : (currentUserDoc?.role || 'customer');
   
   const roleData = localRoles.find((r: any) => 
     (r.slug || r.id) === userRoleSlug

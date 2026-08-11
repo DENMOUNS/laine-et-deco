@@ -320,7 +320,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
               <AnimatePresence mode="sync">
                 {HERO_SLIDES.map((slide, i) => {
                   if (i !== currentSlide) return null;
-                  if (slide.image.endsWith('.mp4')) {
+                  if (slide.image && typeof slide.image === 'string' && slide.image.endsWith('.mp4')) {
                     return (
                       <motion.video
                         key={`video-${i}`}

@@ -25,6 +25,45 @@ const normalizeDatabaseId = (value?: string | null): string | null => {
   return trimmed;
 };
 
+function cleanPrivateKey(key: string): string {
+  if (typeof key !== 'string') return '';
+  let cleaned = key.trim();
+  
+  // Replace literal escaped \n with actual newlines
+  cleaned = cleaned.replace(/\\n/g, '\n');
+  
+  // Remove wrapping quotes
+  if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
+    cleaned = cleaned.slice(1, -1).trim();
+  }
+  if (cleaned.startsWith("'") && cleaned.endsWith("'")) {
+    cleaned = cleaned.slice(1, -1).trim();
+  }
+  
+  // Again replace literal \n after quote stripping
+  cleaned = cleaned.replace(/\\n/g, '\n');
+
+  // Extract the PEM contents
+  const beginMarker = '-----BEGIN PRIVATE KEY-----';
+  const endMarker = '-----END PRIVATE KEY-----';
+  
+  if (cleaned.includes(beginMarker) && cleaned.includes(endMarker)) {
+    const beginIndex = cleaned.indexOf(beginMarker) + beginMarker.length;
+    const endIndex = cleaned.indexOf(endMarker);
+    let body = cleaned.substring(beginIndex, endIndex).trim();
+    
+    // In case the body has spaces instead of newlines (common when copying env vars as a single line)
+    if (!body.includes('\n') && body.includes(' ')) {
+      body = body.replace(/\s+/g, '\n');
+    }
+    
+    // Reconstruct PEM exactly
+    cleaned = `${beginMarker}\n${body}\n${endMarker}\n`;
+  }
+  
+  return cleaned;
+}
+
 const parseServiceAccount = (rawKey?: string): ServiceAccount | null => {
   if (!rawKey) return null;
   const normalized = rawKey.startsWith("'") && rawKey.endsWith("'")
@@ -36,7 +75,7 @@ const parseServiceAccount = (rawKey?: string): ServiceAccount | null => {
   try {
     const parsed = JSON.parse(normalized) as ServiceAccount;
     if (typeof parsed.private_key === 'string') {
-      parsed.private_key = parsed.private_key.replace(/\\n/g, '\n');
+      parsed.private_key = cleanPrivateKey(parsed.private_key);
     }
     return parsed;
   } catch (err) {

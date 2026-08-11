@@ -461,71 +461,8 @@ export const subscribeToEntityCollection = <T extends BaseEntity>(
       emitData(apiData);
     }
 
-    const snapshotQuery = buildEntityQuery(db, entityType, options.constraints ?? [], options.defaultLimit);
-    const unsub = onSnapshot(
-      snapshotQuery,
-      (snapshot) => {
-        incrementFirestoreMetric('onSnapshot', entityType);
-        const items = parseSnapshot<T>(snapshot);
-        if (CACHEABLE_COLLECTIONS.has(entityType)) {
-          void writeEntityCache(entityType, items, getTTLForEntity(entityType));
-          void writeCache(getEntityCacheKey(entityType), items, getTTLForEntity(entityType));
-        }
-        emitData(items);
-      },
-      (err) => {
-        (async () => {
-          const cachedData = CACHEABLE_COLLECTIONS.has(entityType)
-            ? await readEntityCache<T[]>(entityType)
-            : null;
-          if (cachedData) {
-            emitData(cachedData);
-            return;
-          }
-
-          try {
-            const token = await getAuthToken();
-            const resp = await fetch(`/api/entity/${encodeURIComponent(entityType)}`, {
-              method: 'GET',
-              headers: { Authorization: `Bearer ${token}` },
-              credentials: 'same-origin',
-            });
-            const body = await resp.json().catch(() => null);
-            if (resp.ok && Array.isArray(body)) {
-              if (CACHEABLE_COLLECTIONS.has(entityType)) {
-                await writeEntityCache(entityType, body as T[], getTTLForEntity(entityType));
-                await writeCache(getEntityCacheKey(entityType), body as T[], getTTLForEntity(entityType));
-              }
-              emitData(body as T[]);
-              return;
-            }
-
-            const fallbackCache = await readEntityCache<T[]>(entityType);
-            if (fallbackCache) {
-              emitData(fallbackCache);
-              return;
-            }
-          } catch (error) {
-            dispatchNetworkIssue(typeof navigator !== 'undefined' ? !navigator.onLine : false);
-            const fallbackCache = await readEntityCache<T[]>(entityType);
-            if (fallbackCache) {
-              emitData(fallbackCache);
-              return;
-            }
-          }
-
-          emitError(err instanceof Error ? err : new Error(String(err)));
-          handleFirestoreError(err, OperationType.LIST, entityType);
-        })();
-      }
-    );
-
     entry.unsubscribe = () => {
-      try {
-        unsub();
-      } catch {
-        // ignore
-      }
+      // Pas de souscription en cours, rien à désinscrire.
     };
   };
 

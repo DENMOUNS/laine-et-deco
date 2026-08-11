@@ -121,21 +121,21 @@ export const Navbar: React.FC<NavbarProps> = ({
   const dynamicSidebarLinks = featureAwareNavItems
     .filter(item => item.status === 'active' && item.order > 1 && item.view !== 'loyalty' && item.name !== 'Points VIP')
     .sort((a, b) => a.order - b.order)
-    .map(item => ({ name: item.name, view: item.view, icon: <ChevronRight size={18} /> }));
+    .map(item => ({ id: item.id, name: item.name, view: item.view, icon: <ChevronRight size={18} /> }));
 
   const aboutSectionViews = ['about', 'team', 'contact', 'faq', 'legal', 'privacy', 'terms'];
   const isAboutSectionActive = aboutSectionViews.includes(currentView);
 
   const sidebarLinks = dynamicSidebarLinks.length > 0 ? dynamicSidebarLinks : [
-    { name: 'Compagnon Tricot', view: 'knitting-companion', feature: 'knittingCompanion', icon: <ChevronRight size={18} /> },
-    { name: 'Générateur IA', view: 'pattern-generator', feature: 'patternGenerator', icon: <ChevronRight size={18} /> },
-    { name: 'Configurateur', view: 'configurator', feature: 'configurator', icon: <ChevronRight size={18} /> },
-    { name: 'Sur Mesure', view: 'custom-order', feature: 'customOrder', icon: <ChevronRight size={18} /> },
-    { name: 'Lookbook', view: 'lookbook', feature: 'lookbook', icon: <ChevronRight size={18} /> },
-    { name: 'Blog Inspirations', view: 'blog', feature: 'blog', icon: <ChevronRight size={18} /> },
-    { name: 'Contactez-nous', view: 'contact', feature: 'contact', icon: <ChevronRight size={18} /> },
-    { name: 'Calculateur de Laine', view: 'calculator', feature: 'calculator', icon: <ChevronRight size={18} /> },
-    { name: 'Calculateur de Volume', view: 'volume-calculator', feature: 'volumeCalculator', icon: <ChevronRight size={18} /> },
+    { id: 'sb-companion', name: 'Compagnon Tricot', view: 'knitting-companion', feature: 'knittingCompanion', icon: <ChevronRight size={18} /> },
+    { id: 'sb-generator', name: 'Générateur IA', view: 'pattern-generator', feature: 'patternGenerator', icon: <ChevronRight size={18} /> },
+    { id: 'sb-configurator', name: 'Configurateur', view: 'configurator', feature: 'configurator', icon: <ChevronRight size={18} /> },
+    { id: 'sb-custom', name: 'Sur Mesure', view: 'custom-order', feature: 'customOrder', icon: <ChevronRight size={18} /> },
+    { id: 'sb-lookbook', name: 'Lookbook', view: 'lookbook', feature: 'lookbook', icon: <ChevronRight size={18} /> },
+    { id: 'sb-blog', name: 'Blog Inspirations', view: 'blog', feature: 'blog', icon: <ChevronRight size={18} /> },
+    { id: 'sb-contact', name: 'Contactez-nous', view: 'contact', feature: 'contact', icon: <ChevronRight size={18} /> },
+    { id: 'sb-calculator', name: 'Calculateur de Laine', view: 'calculator', feature: 'calculator', icon: <ChevronRight size={18} /> },
+    { id: 'sb-volcalc', name: 'Calculateur de Volume', view: 'volume-calculator', feature: 'volumeCalculator', icon: <ChevronRight size={18} /> },
   ].filter(link => link.feature ? isFeatureEnabled(siteConfig, link.feature) : true);
 
   const navLinks = [
@@ -158,7 +158,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="hidden md:flex items-center gap-4 lg:gap-8">
             {mainNavLinks.map((link) => (
               <button
-                key={link.name}
+                key={link.id || link.view || link.name}
                 onClick={() => onNavigate(link.view)}
                 className={`text-sm font-bold uppercase tracking-widest transition-all hover:text-accent relative py-2 ${
                   currentView === link.view ? 'text-accent' : 'text-primary'
@@ -320,7 +320,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </button>
                   {mainNavLinks.map((link) => (
                     <button
-                      key={link.name}
+                      key={link.id || link.view || link.name}
                       onClick={() => {
                         onNavigate(link.view);
                         setIsMenuOpen(false);
@@ -382,7 +382,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </button>
                   {sidebarLinks.map((link) => (
                     <button
-                      key={link.name}
+                      key={link.id || link.view || link.name}
                       onClick={() => {
                         onNavigate(link.view);
                         setIsMenuOpen(false);
@@ -410,7 +410,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <div className="grid grid-cols-2 gap-2">
                   {CATEGORIES.map((cat) => (
                     <button
-                      key={cat.id}
+                      key={cat.id || cat.name || cat.slug}
                       onClick={() => {
                         onNavigate('shop', undefined, cat.name);
                         setIsMenuOpen(false);

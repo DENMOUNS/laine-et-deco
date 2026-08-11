@@ -10,6 +10,69 @@ const maskEmail = (value?: string) => {
   return `${name?.slice(0, 3) || '???'}***@${domain || 'unknown'}`;
 };
 
+function cleanPrivateKey(key: string): string {
+  if (typeof key !== 'string') return '';
+  let cleaned = key.trim();
+  
+  // Replace literal escaped \n with actual newlines
+  cleaned = cleaned.replace(/\\n/g, '\n');
+  
+  // Remove wrapping quotes
+  if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
+    cleaned = cleaned.slice(1, -1).trim();
+  }
+  if (cleaned.startsWith("'") && cleaned.endsWith("'")) {
+    cleaned = cleaned.slice(1, -1).trim();
+  }
+  
+  // Again replace literal \n after quote stripping
+  cleaned = cleaned.replace(/\\n/g, '\n');
+
+  // Extract the PEM contents
+  const beginMarker = '-----BEGIN PRIVATE KEY-----';
+  const endMarker = '-----END PRIVATE KEY-----';
+  
+  if (cleaned.includes(beginMarker) && cleaned.includes(endMarker)) {
+    const beginIndex = cleaned.indexOf(beginMarker) + beginMarker.length;
+    const endIndex = cleaned.indexOf(endMarker);
+    let body = cleaned.substring(beginIndex, endIndex).trim();
+    
+    // In case the body has spaces instead of newlines (common when copying env vars as a single line)
+    if (!body.includes('\n') && body.includes(' ')) {
+      body = body.replace(/\s+/g, '\n');
+    }
+    
+    // Reconstruct PEM exactly
+    cleaned = `${beginMarker}\n${body}\n${endMarker}\n`;
+  }
+  
+  return cleaned;
+}
+
+const logDiagnostics = (serviceAccount: any) => {
+  if (!serviceAccount) {
+    console.log('[firebaseAdmin-Diagnostics] Service account object is null/undefined');
+    return;
+  }
+  console.log('[firebaseAdmin-Diagnostics] serviceAccount properties:', Object.keys(serviceAccount));
+  console.log('[firebaseAdmin-Diagnostics] project_id:', serviceAccount.project_id);
+  console.log('[firebaseAdmin-Diagnostics] client_email:', maskEmail(serviceAccount.client_email));
+  if (typeof serviceAccount.private_key === 'string') {
+    const pk = serviceAccount.private_key;
+    console.log('[firebaseAdmin-Diagnostics] private_key length:', pk.length);
+    console.log('[firebaseAdmin-Diagnostics] private_key starts with BEGIN:', pk.includes('-----BEGIN PRIVATE KEY-----'));
+    console.log('[firebaseAdmin-Diagnostics] private_key ends with END:', pk.includes('-----END PRIVATE KEY-----'));
+    console.log('[firebaseAdmin-Diagnostics] private_key newline count:', (pk.match(/\n/g) || []).length);
+    console.log('[firebaseAdmin-Diagnostics] private_key literal \\n count:', (pk.match(/\\n/g) || []).length);
+    console.log('[firebaseAdmin-Diagnostics] private_key space count:', (pk.match(/ /g) || []).length);
+    console.log('[firebaseAdmin-Diagnostics] private_key character codes of first 30 chars:', 
+      pk.slice(0, 30).split('').map(c => c.charCodeAt(0))
+    );
+  } else {
+    console.log('[firebaseAdmin-Diagnostics] private_key type:', typeof serviceAccount.private_key);
+  }
+};
+
 function parseServiceAccount(rawKey?: string) {
   if (!rawKey) return null;
   let normalizedRawKey = rawKey.trim();
@@ -24,8 +87,9 @@ function parseServiceAccount(rawKey?: string) {
     const serviceAccount = JSON.parse(normalizedRawKey);
     if (serviceAccount && typeof serviceAccount === 'object') {
       if (typeof serviceAccount.private_key === 'string') {
-        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+        serviceAccount.private_key = cleanPrivateKey(serviceAccount.private_key);
       }
+      logDiagnostics(serviceAccount);
       return serviceAccount;
     }
   } catch (err: any) {
@@ -34,8 +98,9 @@ function parseServiceAccount(rawKey?: string) {
       const serviceAccount = JSON.parse(decoded);
       if (serviceAccount && typeof serviceAccount === 'object') {
         if (typeof serviceAccount.private_key === 'string') {
-          serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+          serviceAccount.private_key = cleanPrivateKey(serviceAccount.private_key);
         }
+        logDiagnostics(serviceAccount);
         return serviceAccount;
       }
     } catch (err2: any) {
@@ -74,19 +139,21 @@ const initializeFirebase = async () => {
   const resolvedProjectId = serviceAccount?.project_id || projectId;
 
   try {
-    if (!firebaseAdmin.apps.length) {
-      if (serviceAccount) {
-        firebaseAdmin.initializeApp({
-          credential: firebaseAdmin.credential.cert(serviceAccount as any),
-          projectId: resolvedProjectId || undefined,
-          storageBucket: storageBucket || undefined,
-        } as any);
-      } else {
-        firebaseAdmin.initializeApp({
-          projectId: resolvedProjectId || undefined,
-          storageBucket: storageBucket || undefined,
-        } as any);
-      }
+    if (firebaseAdmin.apps.length) {
+      await firebaseAdmin.app().delete().catch(() => {});
+    }
+
+    if (serviceAccount) {
+      firebaseAdmin.initializeApp({
+        credential: firebaseAdmin.credential.cert(serviceAccount as any),
+        projectId: resolvedProjectId || undefined,
+        storageBucket: storageBucket || undefined,
+      } as any);
+    } else {
+      firebaseAdmin.initializeApp({
+        projectId: resolvedProjectId || undefined,
+        storageBucket: storageBucket || undefined,
+      } as any);
     }
 
     if (emulatorHost) {

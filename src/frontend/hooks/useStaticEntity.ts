@@ -160,53 +160,16 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
       const shouldTryClientFetch = items.length === 0 && !apiRequestSucceeded && (!cachedData || cachedData.length === 0);
       if (shouldTryClientFetch) {
         try {
-          const { db: firestoreDb } = initFirebase();
-          if (firestoreDb) {
-            const finalConstraints: QueryConstraint[] = [...constraints];
-            const hasLimit = finalConstraints.some((c) => (c as { type?: string }).type === 'limit');
-            if (!hasLimit && DEFAULT_LIMIT > 0) {
-              finalConstraints.push(limit(DEFAULT_LIMIT));
-            }
-
-            const q =
-              finalConstraints.length > 0
-                ? query(collection(firestoreDb, resolvedEntityType), ...finalConstraints)
-                : collection(firestoreDb, resolvedEntityType);
-
-            // Timeout rapide de 1.5s sur le SDK Firestore client pour ne pas faire patienter l'utilisateur des minutes
-            const fetchPromise = getDocs(q);
-            const timeoutPromise = new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error('Firestore timeout')), 5000)
-            );
-
-            const snapshot = await Promise.race([fetchPromise, timeoutPromise]);
-            items = snapshot.docs.map((docSnap) => ({
-              id: docSnap.id,
-              ...docSnap.data(),
-            })) as T[];
+          const res = await fetch(`/api/entity/${encodeURIComponent(resolvedEntityType)}`, {
+            credentials: 'same-origin',
+            headers: await getAuthHeaders(),
+          }).catch(() => null);
+          if (res && res.ok) {
+            const body = await res.json().catch(() => null);
+            items = Array.isArray(body) ? body : (body?.data || []);
           }
         } catch {
-          if (items.length === 0 && !useApiFallback) {
-            const res = await fetch(`/api/entity/${encodeURIComponent(resolvedEntityType)}`, {
-              credentials: 'same-origin',
-              headers: await getAuthHeaders(),
-            }).catch(() => null);
-            if (res && res.ok) {
-              const body = await res.json().catch(() => null);
-              if (!body) {
-                const txt = await res.text().catch(() => null);
-                // eslint-disable-next-line no-console
-                console.warn('[useStaticEntity] empty JSON body from /api/entity (fallback after getDocs)', {
-                  entityType,
-                  status: res.status,
-                  statusText: res.statusText,
-                  text: txt,
-                  headers: Array.from(res.headers.entries()),
-                });
-              }
-              items = Array.isArray(body) ? body : (body?.data || []);
-            }
-          }
+          // ignore
         }
       }
 
@@ -279,40 +242,17 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
 
       const doRefetch = async () => {
         try {
-          const { db: firestoreDb } = initFirebase();
           let items: T[] = [];
-
-          if (!firestoreDb || constraints.length === 0) {
-            const apiItems = await fetchStaticEntityFromApi<T>(resolvedEntityType, cacheKey);
-            if (apiItems) items = apiItems;
-          }
-
-          if (items.length === 0 && firestoreDb && constraints.length > 0) {
-            const finalConstraints: QueryConstraint[] = [...constraints];
-            const q =
-              finalConstraints.length > 0
-                ? query(collection(firestoreDb, resolvedEntityType), ...finalConstraints)
-                : collection(firestoreDb, resolvedEntityType);
-            const snapshot = await getDocs(q);
-            items = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })) as T[];
-          } else if (items.length === 0 && !firestoreDb) {
+          const apiItems = await fetchStaticEntityFromApi<T>(resolvedEntityType, cacheKey);
+          if (apiItems) {
+            items = apiItems;
+          } else {
             const res = await fetch(`/api/entity/${encodeURIComponent(resolvedEntityType)}`, {
               credentials: 'same-origin',
               headers: await getAuthHeaders(),
             }).catch(() => null);
             if (res && res.ok) {
               const body = await res.json().catch(() => null);
-              if (!body) {
-                const txt = await res.text().catch(() => null);
-                // eslint-disable-next-line no-console
-                console.warn('[useStaticEntity] empty JSON body from /api/entity (invalidate refetch)', {
-                  entityType,
-                  status: res.status,
-                  statusText: res.statusText,
-                  text: txt,
-                  headers: Array.from(res.headers.entries()),
-                });
-              }
               items = Array.isArray(body) ? body : (body?.data || []);
             }
           }

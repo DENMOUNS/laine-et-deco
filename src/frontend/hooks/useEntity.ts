@@ -6,6 +6,7 @@ import {
   setFirestoreEntity,
   subscribeToEntityCollection,
   updateFirestoreEntity,
+  fetchEntityDataFromApi,
   type EntityPayload,
 } from '../services/firestoreEntityService';
 import type { BaseEntity } from '../../domain/entities/BaseEntity';
@@ -103,8 +104,8 @@ export function useEntity<T extends BaseEntity = BaseEntity>(
       let cached: T[] | null = null;
       let cacheTime: number | null = null;
       
-      if (CACHEABLE_ENTITIES.includes(entityType)) {
-        cached = await readEntityCache<T[]>(entityType);
+      if (CACHEABLE_ENTITIES.includes(resolvedEntityType)) {
+        cached = await readEntityCache<T[]>(resolvedEntityType);
         if (cached && !cancelled) {
           setData(cached);
           setIsLoading(false);
@@ -120,37 +121,18 @@ export function useEntity<T extends BaseEntity = BaseEntity>(
       }
 
       const dynamicEntities = ['order', 'user', 'notification', 'chat_message', 'conversation', 'abandoned_cart'];
-      const isDynamic = dynamicEntities.includes(entityType);
+      const isDynamic = dynamicEntities.includes(resolvedEntityType);
 
       if (!isAdmin && cached && !isDynamic) {
-        // SWR (Stale-While-Revalidate)
+        // SWR (Stale-While-Revalidate) via server proxy API
         if (!cacheTime) return;
         
         try {
-          const [{ collection, getDocs, query, where }, { initFirebase }] = await Promise.all([
-            import('firebase/firestore'),
-            import('../../backend/firebase')
-          ]);
-          
-          const { db: firestoreDb } = initFirebase();
-          if (!firestoreDb) return;
-          
-          const q = query(
-            collection(firestoreDb, resolvedEntityType),
-            where('updatedAt', '>', new Date(cacheTime).toISOString())
-          );
-          
-          const snapshot = await getDocs(q);
-          if (snapshot.empty || cancelled) return;
-          
-          const updatedItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as T));
-          setData(prev => {
-            const newMap = new Map(prev.map(p => [p.id, p]));
-            updatedItems.forEach(item => newMap.set(item.id, item));
-            const merged = Array.from(newMap.values());
-            writeCache(cacheKey, merged, getTTLForEntity(entityType));
-            return merged;
-          });
+          const apiData = await fetchEntityDataFromApi<T>(resolvedEntityType);
+          if (apiData && apiData.length > 0 && !cancelled) {
+            setData(apiData);
+            await writeEntityCache(resolvedEntityType, apiData, getTTLForEntity(resolvedEntityType));
+          }
         } catch (e) {
           // ignore SWR errors silently
         }
@@ -166,14 +148,19 @@ export function useEntity<T extends BaseEntity = BaseEntity>(
         (items) => {
           if (cancelled) return;
           setData(items);
-          if (CACHEABLE_ENTITIES.includes(entityType)) {
-            void writeEntityCache(entityType, items, getTTLForEntity(entityType));
+          if (CACHEABLE_ENTITIES.includes(resolvedEntityType)) {
+            void writeEntityCache(resolvedEntityType, items, getTTLForEntity(resolvedEntityType));
           }
           setIsLoading(false);
           setError(null);
         },
         (err) => {
           if (cancelled) return;
+          if (cached && cached.length > 0) {
+            console.warn(`[useEntity] Firebase subscription failed for ${resolvedEntityType}, falling back to cache:`, err);
+            setIsLoading(false);
+            return;
+          }
           setError(err);
           setIsLoading(false);
         }
