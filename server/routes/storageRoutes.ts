@@ -1,8 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { getDb, firebaseAdmin, getAuth } from '../firebaseAdmin.js';
-import { createRequire } from 'node:module';
-const require = createRequire(import.meta.url);
-const config = require('../../firebase-applet-config.json');
+import config from '../../firebase-applet-config.json' with { type: 'json' };
 
 const db = new Proxy({} as any, {
   get(target, prop) {

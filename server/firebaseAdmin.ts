@@ -1,9 +1,7 @@
 import './loadEnv.js';
 import firebaseAdmin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
-import { createRequire } from 'node:module';
-const require = createRequire(import.meta.url);
-const config = require('../firebase-applet-config.json');
+import config from '../firebase-applet-config.json' with { type: 'json' };
 import type { Firestore } from 'firebase-admin/firestore';
 
 const maskEmail = (value?: string) => {

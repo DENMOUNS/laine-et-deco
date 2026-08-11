@@ -1,7 +1,5 @@
 import * as crypto from 'node:crypto';
-import { createRequire } from 'node:module';
-const require = createRequire(import.meta.url);
-const config = require('../../firebase-applet-config.json');
+import config from '../../firebase-applet-config.json' with { type: 'json' };
 
 interface ServiceAccount {
   type: string;

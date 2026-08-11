@@ -8,9 +8,9 @@ import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import DOMPurify from "isomorphic-dompurify";
 import { auth, db } from './server/firebaseAdmin.js';
-import entityRoutes from './server/routes/entityRoutes';
-import dashboardRoutes from './server/routes/dashboardRoutes';
-import storageRoutes from './server/routes/storageRoutes';
+import entityRoutes from './server/routes/entityRoutes.js';
+import dashboardRoutes from './server/routes/dashboardRoutes.js';
+import storageRoutes from './server/routes/storageRoutes.js';
 import checkoutRoutes from './server/routes/checkoutRoutes.js';
 import { logWriteRequests } from './server/utils/requestLogger.js';
 
