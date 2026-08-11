@@ -9,7 +9,7 @@ import dashboardRoutes from './routes/dashboardRoutes.js';
 import storageRoutes from './routes/storageRoutes.js';
 import checkoutRoutes from './routes/checkoutRoutes.js';
 import { logWriteRequests } from './utils/requestLogger.js';
-import { ensureFirestoreConnection, initializationError, db, auth } from './firebaseAdmin.js';
+import { ensureFirestoreConnection, initializationError, getDb, getAuth } from './firebaseAdmin.js';
 
 const app = express();
 
@@ -25,7 +25,7 @@ const resolveUserRoleFromToken = async (token: string) => {
     const email = decoded.email;
     let role: string | null = null;
 
-    const firestoreDb = (await import('./firebaseAdmin.js')).db;
+    const firestoreDb = (await import('./firebaseAdmin.js')).getDb();
     if (!firestoreDb) {
       return null;
     }
@@ -79,7 +79,7 @@ app.use(logWriteRequests);
 
 // Middleware de garantie d'initialisation Firebase pour Vercel Serverless
 app.use(async (_req: any, _res: any, next: any) => {
-  if (db && auth) return next();
+  if (getDb() && getAuth()) return next();
   try {
     await ensureFirestoreConnection(2, 200);
   } catch (e) {
@@ -197,8 +197,8 @@ app.get('/api/debug/firebase-status', async (_req, res) => {
     serviceAccountPresent: Boolean(rawKey),
     serviceAccountLength: rawKey.length,
     projectId: process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || null,
-    dbReady: Boolean(db),
-    authReady: Boolean(auth),
+    dbReady: Boolean(getDb()),
+    authReady: Boolean(getAuth()),
     initError: initializationError ? initializationError.message : null,
     timestamp: new Date().toISOString(),
   });

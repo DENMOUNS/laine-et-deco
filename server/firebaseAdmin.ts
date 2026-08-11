@@ -131,4 +131,7 @@ export const ensureFirestoreConnection = async (attempts = 3, delayMs = 200) => 
   return Boolean(db && auth);
 };
 
+export const getDb = (): Firestore | null => db;
+export const getAuth = (): any => auth;
+
 export { firebaseAdmin, initializationError };

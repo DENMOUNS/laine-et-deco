@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { db, auth, ensureFirestoreConnection } from '../firebaseAdmin';
-import retryFirestoreOperation from '../utils/firestoreRetry';
+import { getDb, getAuth, ensureFirestoreConnection } from '../firebaseAdmin.js';
+import retryFirestoreOperation from '../utils/firestoreRetry.js';
 import {
   getFreshCachedResponse,
   getFallbackCachedResponse,
@@ -41,7 +41,7 @@ const rejectInvalidEntity = (res: Response, entity?: string) => {
 };
 
 const ensureFirebaseReady = async (req: AuthenticatedRequest, res: Response) => {
-  if (db && auth) return true;
+  if (getDb() && getAuth()) return true;
 
   logEntity(req.requestId, 'firebase:attempt-reconnect', {
     path: req.originalUrl,
@@ -114,10 +114,10 @@ const readPublicEntity = async (req: AuthenticatedRequest, res: Response, entity
     return sendPublicReadResponse(res, freshCache);
   }
 
-  let firestoreDb = db;
+  let firestoreDb = getDb();
   if (!firestoreDb) {
     await ensureFirestoreConnection(3, 500);
-    firestoreDb = db;
+    firestoreDb = getDb();
   }
 
   const fetchAdminData = async () => {
@@ -332,7 +332,8 @@ const OWNER_COLLECTIONS = new Set([
 // ==========================
 
 async function getUserRole(uid: string, email?: string, existingRole?: string): Promise<UserRole | null> {
-  if (!db) return null;
+  const currentDb = getDb();
+  if (!currentDb) return null;
 
   const validRoles: UserRole[] = ['super-admin', 'admin', 'editor', 'stock-manager', 'support-client', 'customer'];
 
@@ -342,12 +343,12 @@ async function getUserRole(uid: string, email?: string, existingRole?: string): 
 
   let role: string | undefined | null = null;
 
-  const userSnap = await db.collection('user').doc(uid).get();
+  const userSnap = await currentDb.collection('user').doc(uid).get();
   if (userSnap.exists) {
     role = userSnap.data()?.role;
 
     if (role === 'customer' && email) {
-      const emailQuery = await db.collection('user').where('email', '==', email).limit(1).get();
+      const emailQuery = await currentDb.collection('user').where('email', '==', email).limit(1).get();
       if (!emailQuery.empty) {
         const emailRole = emailQuery.docs[0].data()?.role;
         if (emailRole && validRoles.includes(emailRole as UserRole) && emailRole !== 'customer' && emailQuery.docs[0].id !== uid) {
@@ -358,14 +359,14 @@ async function getUserRole(uid: string, email?: string, existingRole?: string): 
   }
 
   if (!role && email) {
-    const emailQuery = await db.collection('user').where('email', '==', email).limit(1).get();
+    const emailQuery = await currentDb.collection('user').where('email', '==', email).limit(1).get();
     if (!emailQuery.empty) {
       role = emailQuery.docs[0].data()?.role;
     }
   }
 
   if (!role) {
-    const uidQuery = await db.collection('user').where('uid', '==', uid).limit(1).get();
+    const uidQuery = await currentDb.collection('user').where('uid', '==', uid).limit(1).get();
     if (!uidQuery.empty) {
       role = uidQuery.docs[0].data()?.role;
     }
@@ -420,7 +421,7 @@ const verifyToken = async (
 
     const token = bearer.replace('Bearer ', '');
 
-    const decoded = await auth.verifyIdToken(token);
+    const decoded = await getAuth().verifyIdToken(token);
     req.user = decoded as any;
     logEntity(req.requestId, 'auth:verified', {
       uid: shortUid(req.user?.uid),
@@ -485,6 +486,7 @@ router.post('/:entity', verifyToken, resolveRole, async (req: any, res) => {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
+  const db = getDb()!;
   try {
     logEntity(req.requestId, 'create:attempt', {
       entity,
@@ -641,6 +643,7 @@ const updateEntityHandler = async (req: any, res: Response) => {
     return rejectInvalidEntity(res, req.params.entity);
   }
 
+  const db = getDb()!;
   try {
     const ref = db!.collection(entity).doc(id);
     const snap = await ref.get();
@@ -828,6 +831,7 @@ router.delete('/:entity/:id', verifyToken, resolveRole, async (req: any, res) =>
     return rejectInvalidEntity(res, req.params.entity);
   }
 
+  const db = getDb()!;
   try {
     const ref = db!.collection(entity).doc(id);
 
@@ -865,7 +869,7 @@ const optionalAuth = async (
     if (bearer && bearer.startsWith('Bearer ')) {
       const token = bearer.replace('Bearer ', '');
       try {
-        const decoded = await auth.verifyIdToken(token);
+        const decoded = await getAuth().verifyIdToken(token);
         req.user = decoded as any;
         if (req.user?.uid) {
           req.user.role = await getUserRole(req.user.uid, req.user.email, req.user.role as string);
@@ -921,7 +925,7 @@ const readEntity = async (req: any, res: any) => {
     if (PUBLIC_READ_COLLECTIONS.has(entity)) {
       res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
       if (id) {
-        const snap = await retryFirestoreOperation<any>(() => (db as any).collection(entity).doc(id).get());
+        const snap = await retryFirestoreOperation<any>(() => (getDb() as any).collection(entity).doc(id).get());
         if (!snap.exists) return res.json(null);
         // Diagnostic log: taille + aperçu avant envoi
         // eslint-disable-next-line no-console
@@ -929,7 +933,7 @@ const readEntity = async (req: any, res: any) => {
         return res.json({ id: snap.id, ...snap.data() });
       }
 
-      const snap = await retryFirestoreOperation<any>(() => (db as any).collection(entity).get());
+      const snap = await retryFirestoreOperation<any>(() => (getDb() as any).collection(entity).get());
       const docs = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
       // Diagnostic log: nombre de docs et aperçu du premier document envoyé
       // eslint-disable-next-line no-console
@@ -950,11 +954,11 @@ const readEntity = async (req: any, res: any) => {
     // 3. Admin Level
     if (isAdminLevel(role)) {
       if (id) {
-        const snap = await retryFirestoreOperation<any>(() => (db as any).collection(entity).doc(id).get());
+        const snap = await retryFirestoreOperation<any>(() => (getDb() as any).collection(entity).doc(id).get());
         return res.json(snap.exists ? { id: snap.id, ...snap.data() } : null);
       }
 
-      const snap = await retryFirestoreOperation<any>(() => (db as any).collection(entity).get());
+      const snap = await retryFirestoreOperation<any>(() => (getDb() as any).collection(entity).get());
       return res.json(snap.docs.map((d: any) => ({
         id: d.id,
         ...d.data(),
@@ -964,11 +968,11 @@ const readEntity = async (req: any, res: any) => {
     // 4. Stock Manager
     if (isStockManager(role) && STAFF_READ_COLLECTIONS.has(entity)) {
       if (id) {
-        const snap = await retryFirestoreOperation<any>(() => (db as any).collection(entity).doc(id).get());
+        const snap = await retryFirestoreOperation<any>(() => (getDb() as any).collection(entity).doc(id).get());
         return res.json(snap.exists ? { id: snap.id, ...snap.data() } : null);
       }
 
-      const snap = await retryFirestoreOperation<any>(() => (db as any).collection(entity).get());
+      const snap = await retryFirestoreOperation<any>(() => (getDb() as any).collection(entity).get());
       return res.json(snap.docs.map((d: any) => ({
         id: d.id,
         ...d.data(),
@@ -977,7 +981,7 @@ const readEntity = async (req: any, res: any) => {
 
     // 5. Propriétaire de la ressource (Commande, avis, etc.)
     if (OWNER_COLLECTIONS.has(entity)) {
-      const snap = await retryFirestoreOperation<any>(() => (db as any).collection(entity).where('userId', '==', uid).get());
+      const snap = await retryFirestoreOperation<any>(() => (getDb() as any).collection(entity).where('userId', '==', uid).get());
 
       return res.json(
         snap.docs.map((d: any) => ({

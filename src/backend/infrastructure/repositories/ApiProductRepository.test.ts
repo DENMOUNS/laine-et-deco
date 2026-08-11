@@ -9,14 +9,14 @@ describe('ApiProductRepository', () => {
     vi.stubGlobal('fetch', vi.fn());
   });
 
-  it('should fetch products and parse JSON fields', async () => {
+  it('should fetch products and return them successfully', async () => {
     const mockData = [
       {
         id: '1',
         name: 'Product 1',
-        isNew: 1,
-        colors: JSON.stringify(['red', 'blue']),
-        reviews: JSON.stringify([{ id: 'r1', rating: 5, comment: 'Great' }])
+        isNew: true,
+        colors: ['red', 'blue'],
+        reviews: [{ id: 'r1', rating: 5, comment: 'Great' }]
       }
     ];
 
@@ -34,7 +34,7 @@ describe('ApiProductRepository', () => {
       expect(result.data[0].colors).toEqual(['red', 'blue']);
       expect(result.data[0].reviews).toEqual([{ id: 'r1', rating: 5, comment: 'Great' }]);
     }
-    expect(fetch).toHaveBeenCalledWith('/api/products');
+    expect(fetch).toHaveBeenCalledWith('/api/entity/product');
   });
 
   it('should return failure if fetch fails', async () => {
