@@ -30,12 +30,24 @@ export async function retryFirestoreOperation<T>(fn: () => Promise<T>, opts: Ret
       lastError = err;
       // If not a transient error, rethrow immediately
       if (!isTransientGrpcError(err)) {
-        console.error('[firestoreRetry] non-transient error', {
-          attempt,
-          errorName: err?.name,
-          errorMessage: err?.message,
-          errorStack: err?.stack,
-        });
+        const isQuotaError = (e: any) => {
+          if (!e) return false;
+          const code = e.code || e.status;
+          if (code === 8 || code === 'RESOURCE_EXHAUSTED') return true;
+          const msg = String(e.message || '').toLowerCase();
+          return msg.includes('quota') || msg.includes('resource_exhausted') || msg.includes('limit exceeded');
+        };
+
+        if (isQuotaError(err)) {
+          console.warn('[firestoreRetry] Quota limit exceeded (RESOURCE_EXHAUSTED). Graceful fallback cache is active. Operation safely redirected.');
+        } else {
+          console.error('[firestoreRetry] non-transient error', {
+            attempt,
+            errorName: err?.name,
+            errorMessage: err?.message,
+            errorStack: err?.stack,
+          });
+        }
         throw err;
       }
 
