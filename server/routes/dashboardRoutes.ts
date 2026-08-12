@@ -1,31 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { firebaseAdmin, getDb, getAuth, ensureFirestoreConnection } from '../firebaseAdmin.js';
+import { firebaseAdmin, db, auth, ensureFirestoreConnection } from '../firebaseAdmin.js';
 import * as constants from '../../src/constants.js';
 import { migrateCreatedAt, seedDashboardData } from '../dashboardSeed.js';
-
-const db = new Proxy({} as any, {
-  get(target, prop) {
-    const currentDb = getDb();
-    if (!currentDb) throw new Error("Firestore database is not initialized");
-    const val = (currentDb as any)[prop];
-    if (typeof val === 'function') {
-      return val.bind(currentDb);
-    }
-    return val;
-  }
-});
-
-const auth = new Proxy({} as any, {
-  get(target, prop) {
-    const currentAuth = getAuth();
-    if (!currentAuth) throw new Error("Firebase auth is not initialized");
-    const val = (currentAuth as any)[prop];
-    if (typeof val === 'function') {
-      return val.bind(currentAuth);
-    }
-    return val;
-  }
-});
 
 const router = Router();
 
@@ -227,11 +203,7 @@ function buildSystemConfigDocs(siteConfig: any) {
 }
 
 async function getUserRole(uid: string, email?: string, existingRole?: string): Promise<UserRole | null> {
-  if (email === 'landrymoutongo97@gmail.com') {
-    return 'super-admin';
-  }
-
-  if (!getDb()) return null;
+  if (!db) return null;
 
   const validRoles: UserRole[] = ['super-admin', 'admin', 'editor', 'stock-manager', 'support-client', 'customer'];
 

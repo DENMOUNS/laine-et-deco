@@ -1,17 +1,5 @@
-import { firebaseAdmin, getDb } from './firebaseAdmin.js';
+import { firebaseAdmin, db } from './firebaseAdmin.js';
 import { ensureServerCollections } from './utils/ensureCollectionsServer.js';
-
-const db = new Proxy({} as any, {
-  get(target, prop) {
-    const currentDb = getDb();
-    if (!currentDb) throw new Error("Firestore database is not initialized");
-    const val = (currentDb as any)[prop];
-    if (typeof val === 'function') {
-      return val.bind(currentDb);
-    }
-    return val;
-  }
-});
 
 const collectionsToSeed = [
   { name: 'product', data: [] },

@@ -1,8 +1,7 @@
-import { getDb, firebaseAdmin } from '../firebaseAdmin.js';
+import { db as adminDb, firebaseAdmin } from '../firebaseAdmin.js';
 
 // Ensure critical collections exist server-side, create minimal sample documents if empty
 export async function ensureServerCollections() {
-  const adminDb = getDb();
   if (!adminDb) return;
 
   const collections: { name: string; sample: any[] }[] = [

@@ -124,7 +124,7 @@ export const fetchEntityDataFromApi = async <T extends BaseEntity>(entityType: s
       'Content-Type': 'application/json',
     };
 
-    const token = PUBLIC_COLLECTIONS.has(entityType) ? null : await getAuthToken();
+    const token = PUBLIC_COLLECTIONS.has(entityType) ? null : await getAuthToken().catch(() => null);
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }
@@ -138,10 +138,12 @@ export const fetchEntityDataFromApi = async <T extends BaseEntity>(entityType: s
 
     const body = await response.json().catch(() => null);
     if (!response.ok) {
-      throw new Error(`Entity API ${entityType} responded with HTTP ${response.status}`);
+      console.warn(`[firestoreEntityService] Entity API ${entityType} responded with HTTP ${response.status}`);
+      return null;
     }
     if (!Array.isArray(body)) {
-      throw new Error(`Entity API ${entityType} returned an invalid payload`);
+      console.warn(`[firestoreEntityService] Entity API ${entityType} returned invalid payload`);
+      return null;
     }
 
     return body as T[];
@@ -150,8 +152,8 @@ export const fetchEntityDataFromApi = async <T extends BaseEntity>(entityType: s
       return null;
     }
 
-    dispatchNetworkIssue(typeof navigator !== 'undefined' ? !navigator.onLine : false);
-    throw error instanceof Error ? error : new Error(`Unable to load entity ${entityType}`);
+    console.warn(`[firestoreEntityService] Unable to load entity ${entityType}:`, error);
+    return null;
   } finally {
     if (timeoutId !== undefined) {
       window.clearTimeout(timeoutId);

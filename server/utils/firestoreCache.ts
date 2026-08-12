@@ -65,3 +65,26 @@ export const setCachedResponse = async (key: string, value: unknown) => {
   };
   await saveCacheFile();
 };
+
+export const clearEntityCache = async (entity: string, id?: string) => {
+  await loadCacheFile();
+  const keysToClear = [
+    `public-firestore:${entity}:list`,
+  ];
+  if (id) {
+    keysToClear.push(`public-firestore:${entity}:${id}`);
+  }
+  
+  // Clear any variations of keys that match this entity
+  const normalized = entity.toLowerCase();
+  for (const k of Object.keys(cache)) {
+    const lowerKey = k.toLowerCase();
+    if (
+      lowerKey.startsWith(`public-firestore:${normalized}:`) ||
+      (id && lowerKey.includes(`:${id.toLowerCase()}`))
+    ) {
+      delete cache[k];
+    }
+  }
+  await saveCacheFile();
+};

@@ -107,9 +107,9 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
 
   const HERO_BANNERS = React.useMemo(() => {
     return (rawHeroBanners || [])
-      .filter((b) => b.status === 'active')
+      .filter((b) => !b.status || ['active', 'actif', 'true', '1', true].includes(b.status as any))
       .sort((a, b) => (a.order ?? 999) - (b.order ?? 999))
-      .slice(0, 15);
+      .slice(0, 50);
   }, [rawHeroBanners]);
   const activeFlashSales = RECENT_FLASH_SALES.filter(fs =>
     fs.status === 'active' &&
@@ -145,12 +145,12 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
-  // Défilement automatique du carrousel Hero (toutes les 12 secondes)
+  // Défilement automatique du carrousel Hero (toutes les 7 secondes)
   React.useEffect(() => {
     if (HERO_SLIDES.length <= 1) return;
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
-    }, 12_000);
+    }, 15_000);
     return () => clearInterval(timer);
   }, [HERO_SLIDES.length]);
 
@@ -310,7 +310,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
       <AdBanner />
       
       {/* Hero Section Slider — Hauteur fixe responsive par breakpoint, images non zoomées */}
-      <section className="relative h-[530px] sm:h-[520px] md:h-[600px] lg:h-[680px] xl:h-[720px] flex items-center overflow-hidden">
+      <section className="relative h-[420px] sm:h-[520px] md:h-[600px] lg:h-[680px] xl:h-[720px] flex items-center overflow-hidden">
         {/* Background */}
         <div className="absolute inset-0 z-0 bg-slate-950">
           {isHeroLoading || HERO_SLIDES.length === 0 ? (
@@ -320,7 +320,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
               <AnimatePresence mode="sync">
                 {HERO_SLIDES.map((slide, i) => {
                   if (i !== currentSlide) return null;
-                  if (slide.image && typeof slide.image === 'string' && slide.image.endsWith('.mp4')) {
+                  if (slide.image.endsWith('.mp4')) {
                     return (
                       <motion.video
                         key={`video-${i}`}
@@ -369,29 +369,40 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
               <YarnLoadingBanner />
             )}
 
-            {/* Animated Title/Subtitle — Quand les bannières sont chargées */}
+            {/* Animated Title/Subtitle/CTA — Quand les bannières sont chargées */}
             {!isHeroLoading && HERO_SLIDES.length > 0 && currentHeroSlide?.title && (
-              <motion.div key={currentSlide} className="mb-2 sm:mb-6 animate-hero-fade-in">
+              <motion.div key={currentSlide} className="mb-6 space-y-4 animate-hero-fade-in">
                 {currentHeroSlide.subtitle && (
-                  <span className="block text-[10px] sm:text-sm font-bold uppercase tracking-[0.15em] sm:tracking-[0.3em] mb-1 sm:mb-3 text-white/90 leading-relaxed max-w-2xl whitespace-normal break-words">
+                  <span className="block text-xs sm:text-sm font-bold uppercase tracking-[0.2em] sm:tracking-[0.3em] text-white/90 leading-relaxed max-w-2xl whitespace-normal break-words">
                     {currentHeroSlide.subtitle}
                   </span>
                 )}
-                <h1 className="text-2xl xs:text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-serif leading-[1.15] text-white">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif leading-[1.1] text-white">
                   {currentHeroSlide.title}
                 </h1>
+                {currentHeroSlide.ctaText && (
+                  <div className="pt-2">
+                    <button 
+                      onClick={() => onNavigate(currentHeroSlide.link || 'shop')}
+                      className="bg-white text-slate-900 px-6 sm:px-8 py-3 sm:py-4 rounded-full font-bold hover:bg-accent hover:text-white transition-all duration-300 inline-flex items-center group shadow-xl animate-shine text-sm sm:text-base cursor-pointer"
+                    >
+                      {currentHeroSlide.ctaText}
+                      <ArrowRight className="ml-3 group-hover:translate-x-1 transition-transform" size={18} />
+                    </button>
+                  </div>
+                )}
               </motion.div>
             )}
 
             {/* Static Controls */}
-            <div className="max-w-3xl mt-3 sm:mt-8 mb-3 sm:mb-8 relative z-50" ref={searchContainerRef}>
+            <div className="max-w-3xl mt-12 sm:mt-24 mb-6 sm:mb-12 relative z-50" ref={searchContainerRef}>
               <form onSubmit={handleSearch} className="relative group">
                 {/* ... search input ... */}
                 <label htmlFor="home-search" className="sr-only">
                   Rechercher un produit
                 </label>
-                <div className={`absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 transition-colors z-10 ${isSearchFocused ? 'text-accent' : 'text-white'}`} aria-hidden="true">
-                  <Search className="w-5 h-5 sm:w-6 sm:h-6" />
+                <div className={`absolute left-6 top-1/2 -translate-y-1/2 transition-colors z-10 ${isSearchFocused ? 'text-accent' : 'text-white'}`} aria-hidden="true">
+                  <Search size={24} />
                 </div>
                 <input
                   id="home-search"
@@ -401,7 +412,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => setIsSearchFocused(true)}
                   autoComplete="off"
-                  className={`w-full backdrop-blur-2xl border rounded-full py-3 sm:py-5 pl-12 sm:pl-16 pr-24 sm:pr-48 text-sm sm:text-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-white transition-all shadow-2xl relative z-0 ${
+                  className={`w-full backdrop-blur-2xl border rounded-full py-3.5 sm:py-6 pl-14 sm:pl-16 pr-32 sm:pr-48 text-base sm:text-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-white transition-all shadow-2xl relative z-0 ${
                     isSearchFocused 
                       ? 'bg-white/95 border-white text-primary placeholder:text-primary' 
                       : 'bg-white/10 border-white/20 text-white placeholder:text-white hover:bg-white/15'
@@ -412,28 +423,28 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                     type="button"
                     onClick={startVoiceSearch}
                     aria-label="Recherche vocale"
-                    className={`p-1.5 sm:p-3 rounded-full transition-all flex items-center gap-2 ${
+                    className={`p-2 sm:p-3 rounded-full transition-all flex items-center gap-2 ${
                       isVoiceSearching ? 'bg-accent text-white animate-pulse' : (isSearchFocused ? 'bg-primary/5 text-primary hover:bg-primary/10' : 'bg-white/10 text-white hover:bg-white/20')
                     }`}
                     title="Recherche vocale"
                   >
-                    <Mic className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
+                    <Mic size={18} />
                   </button>
                   <button 
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     aria-label="Rechercher par image"
-                    className={`p-1.5 sm:p-3 rounded-full transition-all flex items-center gap-2 ${
+                    className={`p-2 sm:p-3 rounded-full transition-all flex items-center gap-2 ${
                       isSearchFocused ? 'bg-primary/5 text-primary hover:bg-primary/10' : 'bg-white/10 text-white hover:bg-white/20'
                     }`}
                     title="Rechercher par image"
                   >
-                    {isAnalyzingImage ? <Loader2 className="w-4 h-4 sm:w-[18px] sm:h-[18px] animate-spin" /> : <Camera className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />}
+                    {isAnalyzingImage ? <Loader2 size={18} className="animate-spin" /> : <Camera size={18} />}
                   </button>
                   <button
                     type="submit"
                     aria-label="Lancer la recherche"
-                    className="bg-accent text-white px-3 sm:px-6 py-1.5 sm:py-3 rounded-full font-bold hover:bg-primary transition-all shadow-lg text-xs sm:text-base"
+                    className="bg-accent text-white px-4 sm:px-6 py-2 sm:py-3 rounded-full font-bold hover:bg-primary transition-all shadow-lg text-sm sm:text-base"
                   >
                     Go
                   </button>
@@ -448,20 +459,20 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
               </form>
 
               {/* ... tracking ... */}
-              <div className="mt-2.5 sm:mt-4 flex flex-col items-center sm:items-start relative">
+              <div className="mt-4 sm:mt-6 flex flex-col items-center sm:items-start">
                 {!isTrackingExpanded ? (
                   <button 
                     onClick={() => setIsTrackingExpanded(true)}
-                    className="flex items-center gap-2 text-white/90 hover:text-accent transition-all text-xs sm:text-sm font-bold uppercase tracking-widest bg-white/5 px-5 sm:px-6 py-2 sm:py-3 rounded-full backdrop-blur-2xl border border-white/10 hover:bg-white/10 hover:scale-105 active:scale-95 shadow-xl"
+                    className="flex items-center gap-2 text-white/90 hover:text-accent transition-all text-sm font-bold uppercase tracking-widest bg-white/5 px-6 py-2.5 sm:py-3 rounded-full backdrop-blur-2xl border border-white/10 hover:bg-white/10 hover:scale-105 active:scale-95 shadow-xl"
                   >
-                    <Package className="w-4 h-4" />
+                    <Package size={16} />
                     Suivre ma commande
                   </button>
                 ) : (
                   <motion.div 
-                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
-                    className="absolute top-full left-1/2 -translate-x-1/2 sm:left-0 sm:translate-x-0 mt-2 z-[60] bg-slate-950/95 backdrop-blur-3xl border border-white/10 p-5 sm:p-6 rounded-[2rem] w-[calc(100vw-2rem)] sm:w-[400px] shadow-2xl text-left"
+                    className="bg-white/5 backdrop-blur-3xl border border-white/10 p-6 sm:p-8 rounded-[2.5rem] w-full max-w-md relative shadow-2xl"
                   >
                     <button 
                       aria-label="Fermer le suivi de commande"
@@ -529,7 +540,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                     initial={{ opacity: 0, y: 10, scale: 0.98 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.98 }}
-                    className="absolute top-full left-0 right-0 mt-3 bg-white/98 backdrop-blur-3xl rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/20 p-6 sm:p-8 text-primary overflow-hidden text-left z-[100]"
+                    className="relative mt-8 bg-white/98 backdrop-blur-3xl rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/20 p-8 text-primary overflow-hidden text-left z-[100]"
                   >
                     <button 
                       aria-label="Fermer la recherche"
@@ -608,17 +619,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
               </AnimatePresence>
             </div>
 
-            {!isHeroLoading && currentHeroSlide && (
-              <div className="flex flex-wrap gap-4 pt-1 sm:pt-2">
-                <button 
-                  onClick={() => onNavigate(currentHeroSlide.link || 'shop')}
-                  className="bg-white text-slate-900 px-8 sm:px-12 py-3.5 sm:py-5 rounded-full font-bold hover:bg-accent hover:text-white transition-all duration-300 flex items-center group shadow-xl animate-shine text-sm sm:text-base"
-                >
-                  {currentHeroSlide.ctaText || 'Découvrir la boutique'}
-                  <ArrowRight className="ml-3 group-hover:translate-x-1 transition-transform" size={20} />
-                </button>
-              </div>
-            )}
+            {/* CTA handled in header block */}
             </div>
 
             {/* Colonne de Droite (Desktop) — Widget de Réassurance & Avantages clés Artisanats */}
@@ -627,24 +628,24 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
             </div>
           </div>
 
-          {/* Flèches gauche / droite */}
-          {HERO_SLIDES.length > 1 && (
+          {/* Flèches gauche / droite positionnées aux extrémités de la section */}
+          {HERO_SLIDES.length > 0 && (
             <>
               <button
                 type="button"
                 aria-label="Bannière précédente"
                 onClick={() => setCurrentSlide((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)}
-                className="absolute left-4 top-1/2 -translate-y-1/2 z-20 p-3 bg-black/30 hover:bg-black/60 text-white rounded-full backdrop-blur-sm border border-white/15 transition-all shadow-xl"
+                className="absolute left-2 sm:left-6 top-[48%] sm:top-[50%] -translate-y-1/2 z-30 p-3 sm:p-4 bg-white/10 hover:bg-white/25 text-white rounded-full backdrop-blur-2xl border border-white/20 transition-all shadow-2xl cursor-pointer"
               >
-                <ChevronLeft size={24} />
+                <ChevronLeft size={28} />
               </button>
               <button
                 type="button"
                 aria-label="Bannière suivante"
                 onClick={() => setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 z-20 p-3 bg-black/30 hover:bg-black/60 text-white rounded-full backdrop-blur-sm border border-white/15 transition-all shadow-xl"
+                className="absolute right-2 sm:right-6 top-[48%] sm:top-[50%] -translate-y-1/2 z-30 p-3 sm:p-4 bg-white/10 hover:bg-white/25 text-white rounded-full backdrop-blur-2xl border border-white/20 transition-all shadow-2xl cursor-pointer"
               >
-                <ChevronRight size={24} />
+                <ChevronRight size={28} />
               </button>
             </>
           )}
@@ -659,8 +660,8 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
             onClick={() => window.scrollTo({ top: window.innerHeight * 0.7, behavior: 'smooth' })}
             title="Découvrir la suite de la boutique"
           >
-            <span className="text-[10px] font-bold uppercase tracking-widest text-accent">Découvrir nos créations</span>
-            <ChevronDown size={18} className="text-accent" />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-white">Découvrir nos créations</span>
+            <ChevronDown size={18} className="text-white" />
           </motion.div>
         </div>
       </section>

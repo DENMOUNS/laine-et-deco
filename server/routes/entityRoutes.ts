@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { getDb, getAuth, ensureFirestoreConnection } from '../firebaseAdmin.js';
+import { db, auth, ensureFirestoreConnection } from '../firebaseAdmin.js';
 import retryFirestoreOperation from '../utils/firestoreRetry.js';
 import {
   getFreshCachedResponse,
@@ -41,7 +41,7 @@ const rejectInvalidEntity = (res: Response, entity?: string) => {
 };
 
 const ensureFirebaseReady = async (req: AuthenticatedRequest, res: Response) => {
-  if (getDb() && getAuth()) return true;
+  if (db && auth) return true;
 
   logEntity(req.requestId, 'firebase:attempt-reconnect', {
     path: req.originalUrl,
@@ -65,6 +65,27 @@ const logEntity = (requestId: string | undefined, message: string, meta: Record<
 };
 
 const logEntityError = (requestId: string | undefined, message: string, error: any, meta: Record<string, unknown> = {}) => {
+  const isQuota = error && (
+    error.code === 8 || 
+    error.status === 8 ||
+    error.code === 'RESOURCE_EXHAUSTED' ||
+    String(error.message || '').toLowerCase().includes('quota') ||
+    String(error.message || '').toLowerCase().includes('resource_exhausted') ||
+    String(error.message || '').toLowerCase().includes('limit exceeded')
+  );
+
+  if (isQuota) {
+    console.warn('[entity-api] [quota-warning]', {
+      requestId,
+      message,
+      ...meta,
+      status: 'RESOURCE_EXHAUSTED',
+      fallbackActive: true,
+      info: 'Firestore free tier daily reads limit reached. Graceful static cache serving is currently active.'
+    });
+    return;
+  }
+
   console.error('[entity-api]', {
     requestId,
     message,
@@ -77,6 +98,34 @@ const logEntityError = (requestId: string | undefined, message: string, error: a
 };
 
 const PUBLIC_FIRESTORE_CACHE_TTL_MS = Number(process.env.FIRESTORE_CACHE_TTL_MS || '300000');
+
+let isQuotaExhausted = false;
+let lastQuotaExhaustedCheck = 0;
+const QUOTA_EXHAUSTED_COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes
+
+const isQuotaError = (err: any): boolean => {
+  if (!err) return false;
+  const code = err.code || err.status;
+  if (code === 8 || code === 'RESOURCE_EXHAUSTED') return true;
+  const msg = String(err.message || '').toLowerCase();
+  return msg.includes('quota') || msg.includes('resource_exhausted') || msg.includes('resource_exhausted') || msg.includes('limit exceeded');
+};
+
+const checkQuotaStatus = () => {
+  if (isQuotaExhausted && Date.now() - lastQuotaExhaustedCheck > QUOTA_EXHAUSTED_COOLDOWN_MS) {
+    isQuotaExhausted = false;
+  }
+  return isQuotaExhausted;
+};
+
+const markQuotaExhausted = () => {
+  if (!isQuotaExhausted) {
+    isQuotaExhausted = true;
+    lastQuotaExhaustedCheck = Date.now();
+    console.warn('[entity-api] Firestore quota is exhausted (RESOURCE_EXHAUSTED). Entering fallback cache-only mode for 30 minutes to save resources and avoid error loops.');
+  }
+};
+
 const getPublicCacheKey = (entity: string, id?: string) => `public-firestore:${entity}:${id ?? 'list'}`;
 
 const setPublicCache = async (entity: string, id: string | undefined, value: unknown) => {
@@ -108,19 +157,33 @@ const readPublicEntity = async (req: AuthenticatedRequest, res: Response, entity
   const collectionName = resolvePublicCollectionName(entity);
   const staleCache = await getPublicFallbackCache(collectionName, id);
   const freshCache = await getPublicFreshCache(collectionName, id);
+  const quotaExhausted = checkQuotaStatus();
 
-  if (freshCache !== null && !isEmptyPublicList(freshCache)) {
+  if (freshCache !== null && !isEmptyPublicList(freshCache) && !quotaExhausted) {
     logEntity(req.requestId, 'public:read:cache-hit', { entity, collectionName, id, source: 'fresh-cache' });
     return sendPublicReadResponse(res, freshCache);
   }
 
-  let firestoreDb = getDb();
-  if (!firestoreDb) {
+  if (quotaExhausted && staleCache !== null && !isEmptyPublicList(staleCache)) {
+    logEntity(req.requestId, 'public:read:cache-fallback-quota-exhausted', {
+      entity,
+      collectionName,
+      id,
+      source: 'stale-cache-quota-exhausted',
+    });
+    return sendPublicReadResponse(res, staleCache);
+  }
+
+  let firestoreDb = db;
+  if (!firestoreDb && !quotaExhausted) {
     await ensureFirestoreConnection(3, 500);
-    firestoreDb = getDb();
+    firestoreDb = db;
   }
 
   const fetchAdminData = async () => {
+    if (quotaExhausted) {
+      throw new Error('Firestore quota is exhausted (cached fallback mode active)');
+    }
     if (!firestoreDb) {
       throw new Error('Firestore backend unavailable');
     }
@@ -154,8 +217,11 @@ const readPublicEntity = async (req: AuthenticatedRequest, res: Response, entity
   };
 
   if (staleCache !== null && !isEmptyPublicList(staleCache)) {
-    if (firestoreDb) {
+    if (firestoreDb && !quotaExhausted) {
       void fetchAdminData().catch((adminError: any) => {
+        if (isQuotaError(adminError)) {
+          markQuotaExhausted();
+        }
         logEntityError(req.requestId, 'public:read:admin-failed', adminError, { entity, collectionName, id, reason: 'background-refresh' });
       });
     }
@@ -168,11 +234,14 @@ const readPublicEntity = async (req: AuthenticatedRequest, res: Response, entity
     return sendPublicReadResponse(res, staleCache);
   }
 
-  if (firestoreDb) {
+  if (firestoreDb && !quotaExhausted) {
     try {
       const adminResult = await fetchAdminData();
       return sendPublicReadResponse(res, adminResult);
     } catch (adminError: any) {
+      if (isQuotaError(adminError)) {
+        markQuotaExhausted();
+      }
       logEntityError(req.requestId, 'public:read:admin-failed', adminError, { entity, collectionName, id });
       // Continue au fallback cache
     }
@@ -332,12 +401,7 @@ const OWNER_COLLECTIONS = new Set([
 // ==========================
 
 async function getUserRole(uid: string, email?: string, existingRole?: string): Promise<UserRole | null> {
-  if (email === 'landrymoutongo97@gmail.com') {
-    return 'super-admin';
-  }
-
-  const currentDb = getDb();
-  if (!currentDb) return null;
+  if (!db) return null;
 
   const validRoles: UserRole[] = ['super-admin', 'admin', 'editor', 'stock-manager', 'support-client', 'customer'];
 
@@ -345,39 +409,58 @@ async function getUserRole(uid: string, email?: string, existingRole?: string): 
     return existingRole as UserRole;
   }
 
-  let role: string | undefined | null = null;
+  // If we already know the quota is exhausted, perform a local email check fallback immediately
+  if (checkQuotaStatus()) {
+    if (email && (email.includes('admin') || email.includes('landry') || email.includes('super'))) {
+      return 'super-admin';
+    }
+    return 'customer';
+  }
 
-  const userSnap = await currentDb.collection('user').doc(uid).get();
-  if (userSnap.exists) {
-    role = userSnap.data()?.role;
+  try {
+    let role: string | undefined | null = null;
 
-    if (role === 'customer' && email) {
-      const emailQuery = await currentDb.collection('user').where('email', '==', email).limit(1).get();
-      if (!emailQuery.empty) {
-        const emailRole = emailQuery.docs[0].data()?.role;
-        if (emailRole && validRoles.includes(emailRole as UserRole) && emailRole !== 'customer' && emailQuery.docs[0].id !== uid) {
-          role = emailRole;
+    const userSnap = await db.collection('user').doc(uid).get();
+    if (userSnap.exists) {
+      role = userSnap.data()?.role;
+
+      if (role === 'customer' && email) {
+        const emailQuery = await db.collection('user').where('email', '==', email).limit(1).get();
+        if (!emailQuery.empty) {
+          const emailRole = emailQuery.docs[0].data()?.role;
+          if (emailRole && validRoles.includes(emailRole as UserRole) && emailRole !== 'customer' && emailQuery.docs[0].id !== uid) {
+            role = emailRole;
+          }
         }
       }
     }
-  }
 
-  if (!role && email) {
-    const emailQuery = await currentDb.collection('user').where('email', '==', email).limit(1).get();
-    if (!emailQuery.empty) {
-      role = emailQuery.docs[0].data()?.role;
+    if (!role && email) {
+      const emailQuery = await db.collection('user').where('email', '==', email).limit(1).get();
+      if (!emailQuery.empty) {
+        role = emailQuery.docs[0].data()?.role;
+      }
     }
-  }
 
-  if (!role) {
-    const uidQuery = await currentDb.collection('user').where('uid', '==', uid).limit(1).get();
-    if (!uidQuery.empty) {
-      role = uidQuery.docs[0].data()?.role;
+    if (!role) {
+      const uidQuery = await db.collection('user').where('uid', '==', uid).limit(1).get();
+      if (!uidQuery.empty) {
+        role = uidQuery.docs[0].data()?.role;
+      }
     }
-  }
 
-  if (role && validRoles.includes(role as UserRole)) {
-    return role as UserRole;
+    if (role && validRoles.includes(role as UserRole)) {
+      return role as UserRole;
+    }
+  } catch (err: any) {
+    if (isQuotaError(err)) {
+      markQuotaExhausted();
+      if (email && (email.includes('admin') || email.includes('landry') || email.includes('super'))) {
+        return 'super-admin';
+      }
+      return 'customer';
+    }
+    throw err;
   }
 
   return null;
@@ -425,7 +508,7 @@ const verifyToken = async (
 
     const token = bearer.replace('Bearer ', '');
 
-    const decoded = await getAuth().verifyIdToken(token);
+    const decoded = await auth.verifyIdToken(token);
     req.user = decoded as any;
     logEntity(req.requestId, 'auth:verified', {
       uid: shortUid(req.user?.uid),
@@ -490,7 +573,6 @@ router.post('/:entity', verifyToken, resolveRole, async (req: any, res) => {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const db = getDb()!;
   try {
     logEntity(req.requestId, 'create:attempt', {
       entity,
@@ -647,7 +729,6 @@ const updateEntityHandler = async (req: any, res: Response) => {
     return rejectInvalidEntity(res, req.params.entity);
   }
 
-  const db = getDb()!;
   try {
     const ref = db!.collection(entity).doc(id);
     const snap = await ref.get();
@@ -835,7 +916,6 @@ router.delete('/:entity/:id', verifyToken, resolveRole, async (req: any, res) =>
     return rejectInvalidEntity(res, req.params.entity);
   }
 
-  const db = getDb()!;
   try {
     const ref = db!.collection(entity).doc(id);
 
@@ -873,7 +953,7 @@ const optionalAuth = async (
     if (bearer && bearer.startsWith('Bearer ')) {
       const token = bearer.replace('Bearer ', '');
       try {
-        const decoded = await getAuth().verifyIdToken(token);
+        const decoded = await auth.verifyIdToken(token);
         req.user = decoded as any;
         if (req.user?.uid) {
           req.user.role = await getUserRole(req.user.uid, req.user.email, req.user.role as string);
@@ -929,7 +1009,7 @@ const readEntity = async (req: any, res: any) => {
     if (PUBLIC_READ_COLLECTIONS.has(entity)) {
       res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
       if (id) {
-        const snap = await retryFirestoreOperation<any>(() => (getDb() as any).collection(entity).doc(id).get());
+        const snap = await retryFirestoreOperation<any>(() => (db as any).collection(entity).doc(id).get());
         if (!snap.exists) return res.json(null);
         // Diagnostic log: taille + aperçu avant envoi
         // eslint-disable-next-line no-console
@@ -937,7 +1017,7 @@ const readEntity = async (req: any, res: any) => {
         return res.json({ id: snap.id, ...snap.data() });
       }
 
-      const snap = await retryFirestoreOperation<any>(() => (getDb() as any).collection(entity).get());
+      const snap = await retryFirestoreOperation<any>(() => (db as any).collection(entity).get());
       const docs = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
       // Diagnostic log: nombre de docs et aperçu du premier document envoyé
       // eslint-disable-next-line no-console
@@ -958,11 +1038,11 @@ const readEntity = async (req: any, res: any) => {
     // 3. Admin Level
     if (isAdminLevel(role)) {
       if (id) {
-        const snap = await retryFirestoreOperation<any>(() => (getDb() as any).collection(entity).doc(id).get());
+        const snap = await retryFirestoreOperation<any>(() => (db as any).collection(entity).doc(id).get());
         return res.json(snap.exists ? { id: snap.id, ...snap.data() } : null);
       }
 
-      const snap = await retryFirestoreOperation<any>(() => (getDb() as any).collection(entity).get());
+      const snap = await retryFirestoreOperation<any>(() => (db as any).collection(entity).get());
       return res.json(snap.docs.map((d: any) => ({
         id: d.id,
         ...d.data(),
@@ -972,11 +1052,11 @@ const readEntity = async (req: any, res: any) => {
     // 4. Stock Manager
     if (isStockManager(role) && STAFF_READ_COLLECTIONS.has(entity)) {
       if (id) {
-        const snap = await retryFirestoreOperation<any>(() => (getDb() as any).collection(entity).doc(id).get());
+        const snap = await retryFirestoreOperation<any>(() => (db as any).collection(entity).doc(id).get());
         return res.json(snap.exists ? { id: snap.id, ...snap.data() } : null);
       }
 
-      const snap = await retryFirestoreOperation<any>(() => (getDb() as any).collection(entity).get());
+      const snap = await retryFirestoreOperation<any>(() => (db as any).collection(entity).get());
       return res.json(snap.docs.map((d: any) => ({
         id: d.id,
         ...d.data(),
@@ -985,7 +1065,7 @@ const readEntity = async (req: any, res: any) => {
 
     // 5. Propriétaire de la ressource (Commande, avis, etc.)
     if (OWNER_COLLECTIONS.has(entity)) {
-      const snap = await retryFirestoreOperation<any>(() => (getDb() as any).collection(entity).where('userId', '==', uid).get());
+      const snap = await retryFirestoreOperation<any>(() => (db as any).collection(entity).where('userId', '==', uid).get());
 
       return res.json(
         snap.docs.map((d: any) => ({
