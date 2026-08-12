@@ -18,14 +18,25 @@ export const useProducts = (options: UseProductsOptions = {}) => {
     cacheOnly,
   });
 
-  // Normalisation du stock entre stock / quantity pour garder le front cohérent
+  // Normalisation du stock et des images pour garder le front parfaitement cohérent
   const normalizedProducts = allProducts.map((p) => {
     const normalizedStock = typeof p.stock === 'number'
       ? p.stock
       : typeof (p as any).quantity === 'number'
         ? (p as any).quantity
         : 0;
-    return { ...p, stock: normalizedStock, quantity: normalizedStock } as Product & { quantity: number };
+    
+    const primaryImg = p.image || (p as any).imageUrl || (Array.isArray(p.images) && p.images[0]) || '';
+    const imgArray = Array.isArray(p.images) && p.images.length > 0 ? p.images : (primaryImg ? [primaryImg] : []);
+
+    return {
+      ...p,
+      image: primaryImg,
+      imageUrl: primaryImg,
+      images: imgArray,
+      stock: normalizedStock,
+      quantity: normalizedStock
+    } as Product & { quantity: number };
   });
 
   // Pour le front-office (isAdmin = false), on ne renvoie que les produits actifs (isAvailable n'est pas faux)

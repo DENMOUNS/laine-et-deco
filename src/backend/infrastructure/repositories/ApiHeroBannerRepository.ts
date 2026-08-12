@@ -1,24 +1,21 @@
 import { HeroBannerRepository } from '../../domain/repositories/HeroBannerRepository';
 import { HeroBannerConfig } from '../../../types';
 import { Result, success, failure } from '../../domain/shared/Result';
-import { readCache, writeCache, getStaticEntityCacheKey, getTTLForEntity } from '../../../frontend/utils/cacheStorage';
+import { readCache, writeCache, removeCache, getStaticEntityCacheKey, getTTLForEntity } from '../../../frontend/utils/cacheStorage';
 
 export class ApiHeroBannerRepository implements HeroBannerRepository {
-  private cacheKey = getStaticEntityCacheKey('hero_banner', []);
+  private cacheKey = 'staticEntity:hero_banner:v3';
 
   async getHeroBanners(): Promise<Result<HeroBannerConfig[]>> {
     try {
-      // 1. Instant cache read
       const cached = await readCache<HeroBannerConfig[]>(this.cacheKey);
       if (cached && cached.length > 0) {
         const processed = cached
-          .filter((b) => b.status === 'active')
-          .sort((a, b) => (a.order ?? 999) - (b.order ?? 999))
-          .slice(0, 15);
+          .filter((b) => !b.status || ['active', 'actif', 'true', '1', true].includes(b.status as any))
+          .sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
         return success(processed);
       }
 
-      // 2. Fast API fetch
       const res = await fetch('/api/entity/hero_banner').catch(() => null);
       if (res && res.ok) {
         const raw = await res.json().catch(() => []);
@@ -27,9 +24,8 @@ export class ApiHeroBannerRepository implements HeroBannerRepository {
           writeCache(this.cacheKey, banners, getTTLForEntity('hero_banner'));
         }
         const processed = banners
-          .filter((b) => b.status === 'active')
-          .sort((a, b) => (a.order ?? 999) - (b.order ?? 999))
-          .slice(0, 15);
+          .filter((b) => !b.status || ['active', 'actif', 'true', '1', true].includes(b.status as any))
+          .sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
         return success(processed);
       }
 
@@ -59,6 +55,7 @@ export class ApiHeroBannerRepository implements HeroBannerRepository {
       });
       if (!res.ok) return failure(new Error('Failed to create hero banner'));
       const data = await res.json();
+      await removeCache(this.cacheKey);
       return success(data as HeroBannerConfig);
     } catch (error) {
       return failure(error instanceof Error ? error : new Error('Failed to create hero banner'));
@@ -74,6 +71,7 @@ export class ApiHeroBannerRepository implements HeroBannerRepository {
       });
       if (!res.ok) return failure(new Error('Failed to update hero banner'));
       const data = await res.json();
+      await removeCache(this.cacheKey);
       return success(data as HeroBannerConfig);
     } catch (error) {
       return failure(error instanceof Error ? error : new Error('Failed to update hero banner'));
@@ -86,6 +84,7 @@ export class ApiHeroBannerRepository implements HeroBannerRepository {
         method: 'DELETE',
       });
       if (!res.ok) return failure(new Error('Failed to delete hero banner'));
+      await removeCache(this.cacheKey);
       return success(undefined);
     } catch (error) {
       return failure(error instanceof Error ? error : new Error('Failed to delete hero banner'));

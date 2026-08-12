@@ -4,6 +4,7 @@ import { Product, PromoEvent } from '../../types';
 import { motion } from 'motion/react';
 import { getEffectivePrice } from '../utils/siteUtils';
 import { generateSvgPlaceholder } from './ui/ImageWithFallback';
+import { optimizeImageUrl } from '../utils/imageUtils';
 import { toast } from 'sonner';
 
 interface ProductCardProps {
@@ -62,7 +63,7 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, on
       {/* Image Container */}
       <div className="relative aspect-square sm:aspect-[3/4] overflow-hidden cursor-pointer group/img" onClick={() => onClick(product)}>
         <img
-          src={product.image || generateSvgPlaceholder(product.name)}
+          src={optimizeImageUrl(product.image || (product as any).imageUrl || (Array.isArray(product.images) && product.images[0]) || generateSvgPlaceholder(product.name), 600)}
           alt={product.name}
           className="w-full h-full object-cover transition-transform duration-1000 ease-out group-hover/img:scale-110"
           referrerPolicy="no-referrer"

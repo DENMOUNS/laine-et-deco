@@ -1,12 +1,14 @@
-const LOCAL_IMAGE_PLACEHOLDER = '/icons/icon-192.png';
-
-export function optimizeImageUrl(url: string, _width = 960): string {
+export function optimizeImageUrl(url: string, width = 960): string {
   if (!url || url.startsWith('data:') || url.endsWith('.mp4')) return url;
 
   try {
     const parsed = new URL(url);
     if (parsed.hostname.includes('unsplash.com')) {
-      return LOCAL_IMAGE_PLACEHOLDER;
+      parsed.searchParams.set('w', width.toString());
+      parsed.searchParams.set('auto', 'format');
+      parsed.searchParams.set('fit', 'crop');
+      parsed.searchParams.set('q', '80');
+      return parsed.toString();
     }
   } catch {
     /* URL relative ou invalide */

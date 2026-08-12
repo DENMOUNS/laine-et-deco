@@ -88,6 +88,17 @@ export async function readCacheCreatedAt(key: string): Promise<number | null> {
   }
 }
 
+export function getTTLUntilMidnight(): number {
+  const now = new Date();
+  const night = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() + 1,
+    0, 0, 0, 0
+  );
+  return night.getTime() - now.getTime();
+}
+
 export function getTTLForEntity(entityType: string): number {
   switch (entityType) {
     case 'order':
@@ -102,6 +113,8 @@ export function getTTLForEntity(entityType: string): number {
     case 'admin_role':
       return HOUR_MS; // Short TTL for dynamic/frequently changing data
     case 'product':
+    case 'hero_banner':
+      return getTTLUntilMidnight();
     case 'pack':
     case 'blog_post':
     case 'lookbook':

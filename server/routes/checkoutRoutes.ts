@@ -1,29 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { getAuth, getDb, firebaseAdmin } from '../firebaseAdmin.js';
-
-const db = new Proxy({} as any, {
-  get(target, prop) {
-    const currentDb = getDb();
-    if (!currentDb) throw new Error("Firestore database is not initialized");
-    const val = (currentDb as any)[prop];
-    if (typeof val === 'function') {
-      return val.bind(currentDb);
-    }
-    return val;
-  }
-});
-
-const auth = new Proxy({} as any, {
-  get(target, prop) {
-    const currentAuth = getAuth();
-    if (!currentAuth) throw new Error("Firebase auth is not initialized");
-    const val = (currentAuth as any)[prop];
-    if (typeof val === 'function') {
-      return val.bind(currentAuth);
-    }
-    return val;
-  }
-});
+import { auth, db, firebaseAdmin } from '../firebaseAdmin.js';
 
 const router = Router();
 
@@ -31,7 +7,7 @@ const asPositiveInt = (value: unknown) => Math.max(0, Math.floor(Number(value) |
 
 router.post('/', async (req: Request, res: Response) => {
   try {
-    if (!getAuth() || !getDb()) return res.status(503).json({ error: 'Firebase backend unavailable' });
+    if (!auth || !db) return res.status(503).json({ error: 'Firebase backend unavailable' });
     const bearer = req.headers.authorization;
     if (!bearer?.startsWith('Bearer ')) return res.status(401).json({ error: 'Authentication required' });
     const decoded = await auth.verifyIdToken(bearer.slice(7));

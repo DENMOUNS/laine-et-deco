@@ -3,13 +3,13 @@ import express from 'express';
 import { GoogleGenAI } from '@google/genai';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
-import DOMPurify from './utils/sanitizer.js';
+import DOMPurify from 'isomorphic-dompurify';
 import entityRoutes from './routes/entityRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import storageRoutes from './routes/storageRoutes.js';
 import checkoutRoutes from './routes/checkoutRoutes.js';
 import { logWriteRequests } from './utils/requestLogger.js';
-import { ensureFirestoreConnection, initializationError, getDb, getAuth } from './firebaseAdmin.js';
+import { ensureFirestoreConnection, initializationError, db, auth } from './firebaseAdmin.js';
 
 const app = express();
 
@@ -23,14 +23,9 @@ const resolveUserRoleFromToken = async (token: string) => {
     const decoded = await auth.verifyIdToken(token);
     const uid = decoded.uid;
     const email = decoded.email;
-
-    if (email === 'landrymoutongo97@gmail.com') {
-      return 'super-admin';
-    }
-
     let role: string | null = null;
 
-    const firestoreDb = (await import('./firebaseAdmin.js')).getDb();
+    const firestoreDb = (await import('./firebaseAdmin.js')).db;
     if (!firestoreDb) {
       return null;
     }
@@ -84,7 +79,7 @@ app.use(logWriteRequests);
 
 // Middleware de garantie d'initialisation Firebase pour Vercel Serverless
 app.use(async (_req: any, _res: any, next: any) => {
-  if (getDb() && getAuth()) return next();
+  if (db && auth) return next();
   try {
     await ensureFirestoreConnection(2, 200);
   } catch (e) {
@@ -202,8 +197,8 @@ app.get('/api/debug/firebase-status', async (_req, res) => {
     serviceAccountPresent: Boolean(rawKey),
     serviceAccountLength: rawKey.length,
     projectId: process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || null,
-    dbReady: Boolean(getDb()),
-    authReady: Boolean(getAuth()),
+    dbReady: Boolean(db),
+    authReady: Boolean(auth),
     initError: initializationError ? initializationError.message : null,
     timestamp: new Date().toISOString(),
   });

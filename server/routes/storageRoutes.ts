@@ -1,30 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { getDb, firebaseAdmin, getAuth } from '../firebaseAdmin.js';
-import config from '../../firebase-applet-config.json' with { type: 'json' };
-
-const db = new Proxy({} as any, {
-  get(target, prop) {
-    const currentDb = getDb();
-    if (!currentDb) throw new Error("Firestore database is not initialized");
-    const val = (currentDb as any)[prop];
-    if (typeof val === 'function') {
-      return val.bind(currentDb);
-    }
-    return val;
-  }
-});
-
-const auth = new Proxy({} as any, {
-  get(target, prop) {
-    const currentAuth = getAuth();
-    if (!currentAuth) throw new Error("Firebase auth is not initialized");
-    const val = (currentAuth as any)[prop];
-    if (typeof val === 'function') {
-      return val.bind(currentAuth);
-    }
-    return val;
-  }
-});
+import { db, firebaseAdmin, auth } from '../firebaseAdmin';
+import config from '../../firebase-applet-config.json';
 
 const router = Router();
 
@@ -39,11 +15,7 @@ type UserRole =
 const validRoles: UserRole[] = ['super-admin', 'admin', 'editor', 'stock-manager', 'support-client', 'customer'];
 
 async function getUserRole(uid: string, email?: string, existingRole?: string): Promise<UserRole | null> {
-  if (email === 'landrymoutongo97@gmail.com') {
-    return 'super-admin';
-  }
-
-  if (!getDb()) return null;
+  if (!db) return null;
 
   let role: string | undefined | null = null;
   const userSnap = await db.collection('user').doc(uid).get();

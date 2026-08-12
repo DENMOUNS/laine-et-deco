@@ -1,14 +1,29 @@
 import { ProductRepository } from '../../domain/repositories/ProductRepository';
 import { Product } from '../../domain/entities/Product';
 import { Result, success, failure } from '../../domain/shared/Result';
+import { readCache, writeCache, getStaticEntityCacheKey, getTTLForEntity } from '../../../frontend/utils/cacheStorage';
 
 export class ApiProductRepository implements ProductRepository {
+  private cacheKey = getStaticEntityCacheKey('product', []);
+
   async getProducts(): Promise<Result<Product[]>> {
     try {
-      const res = await fetch('/api/entity/product');
-      if (!res.ok) return failure(new Error('Failed to fetch products'));
-      const products = await res.json();
-      return success(products as Product[]);
+      const cached = await readCache<Product[]>(this.cacheKey);
+      if (cached && cached.length > 0) {
+        return success(cached);
+      }
+
+      const res = await fetch('/api/entity/product').catch(() => null);
+      if (res && res.ok) {
+        const raw = await res.json().catch(() => []);
+        const products: Product[] = Array.isArray(raw) ? raw : raw?.data || [];
+        if (products.length > 0) {
+          writeCache(this.cacheKey, products, getTTLForEntity('product'));
+        }
+        return success(products);
+      }
+
+      return success([]);
     } catch (error) {
       return failure(error instanceof Error ? error : new Error('Failed to fetch products'));
     }
