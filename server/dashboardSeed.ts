@@ -1,5 +1,5 @@
-import { firebaseAdmin, db } from './firebaseAdmin';
-import { ensureServerCollections } from './utils/ensureCollectionsServer';
+import { firebaseAdmin, db } from './firebaseAdmin.js';
+import { ensureServerCollections } from './utils/ensureCollectionsServer.js';
 
 const collectionsToSeed = [
   { name: 'product', data: [] },

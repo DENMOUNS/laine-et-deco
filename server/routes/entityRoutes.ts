@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { db, auth, ensureFirestoreConnection } from '../firebaseAdmin';
-import retryFirestoreOperation from '../utils/firestoreRetry';
+import { db, auth, ensureFirestoreConnection } from '../firebaseAdmin.js';
+import retryFirestoreOperation from '../utils/firestoreRetry.js';
 import {
   getFreshCachedResponse,
   getFallbackCachedResponse,

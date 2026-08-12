@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { db, firebaseAdmin, auth } from '../firebaseAdmin';
+import { db, firebaseAdmin, auth } from '../firebaseAdmin.js';
 import config from '../../firebase-applet-config.json';
 
 const router = Router();
