@@ -149,10 +149,8 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
       try {
       if (useApiFallback) {
         const apiData = await fetchStaticEntityFromApi<T>(resolvedEntityType, cacheKey);
-        // Un tableau vide reçu en HTTP 200 est une réponse valide : ne pas
-        // relancer Firestore et ne pas transformer cette réponse en erreur.
-        apiRequestSucceeded = true;
-        if (apiData && apiData.length > 0) {
+        if (apiData !== null) {
+          apiRequestSucceeded = true;
           items = apiData;
         }
       }
@@ -179,6 +177,10 @@ export function useStaticEntity<T extends BaseEntity = BaseEntity>(
       setData(finalData);
       if (items.length > 0) {
         writeCache(cacheKey, items, getTTLForEntity(resolvedEntityType));
+        hasFetchedFromNetwork.current = true;
+      } else {
+        // En cas de tableau vide reçu ou d'échec temporaire réseau, autoriser un re-fetch ultérieur
+        hasFetchedFromNetwork.current = false;
       }
       setIsLoading(false);
       setError(null);

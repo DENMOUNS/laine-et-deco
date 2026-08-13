@@ -1,3 +1,4 @@
 import dotenv from 'dotenv';
 
-dotenv.config({ path: ['.env', 'env'] });
+dotenv.config({ path: ['.env', 'env'], quiet: true });
+

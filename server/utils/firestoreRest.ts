@@ -82,6 +82,11 @@ function cleanPrivateKey(key: string): string {
 
     body = body.replace(/[^A-Za-z0-9+/=]/g, '\n');
     const lines = body.split('\n').map((line) => line.trim()).filter(Boolean);
+    const bodyLength = lines.join('').length;
+
+    if (bodyLength < 500) {
+      console.warn(`[firestoreRest] WARNING: private_key body length is only ${bodyLength} chars (expected ~1600+ chars for a valid RSA private key). The key in FIREBASE_SERVICE_ACCOUNT_KEY may be truncated or a placeholder.`);
+    }
 
     cleaned = `${beginMarker}\n${lines.join('\n')}\n${endMarker}\n`;
   }
