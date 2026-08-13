@@ -4,7 +4,7 @@ import type { Auth } from 'firebase/auth';
 import { getAuth, setPersistence, browserSessionPersistence } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
 import { initializeFirestore, memoryLocalCache } from 'firebase/firestore';
-import config from '../../firebase-applet-config.json';
+import config from '../../firebase-applet-config.json' with { type: 'json' };
 
 type FirebaseOptionsWithFirestoreDb = FirebaseOptions & { firestoreDatabaseId?: string };
 type FirebaseConfigInput = { default?: FirebaseOptionsWithFirestoreDb } & FirebaseOptionsWithFirestoreDb;

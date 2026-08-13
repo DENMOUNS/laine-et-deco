@@ -1,8 +1,23 @@
 import './loadEnv.js';
 import firebaseAdmin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
-import config from '../firebase-applet-config.json';
+import fs from 'node:fs';
+import path from 'node:path';
 import type { Firestore } from 'firebase-admin/firestore';
+
+function loadFirebaseConfig() {
+  try {
+    const configPath = path.resolve(process.cwd(), 'firebase-applet-config.json');
+    if (fs.existsSync(configPath)) {
+      return JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    }
+  } catch (e) {
+    console.warn('[firebaseAdmin] Failed to read firebase-applet-config.json:', e);
+  }
+  return {};
+}
+
+const config = loadFirebaseConfig();
 
 const maskEmail = (value?: string) => {
   if (!value) return 'missing';

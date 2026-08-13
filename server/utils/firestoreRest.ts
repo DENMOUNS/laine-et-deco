@@ -1,5 +1,20 @@
 import * as crypto from 'node:crypto';
-import config from '../../firebase-applet-config.json' with { type: 'json' };
+import fs from 'node:fs';
+import path from 'node:path';
+
+function loadFirebaseConfig() {
+  try {
+    const configPath = path.resolve(process.cwd(), 'firebase-applet-config.json');
+    if (fs.existsSync(configPath)) {
+      return JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    }
+  } catch (e) {
+    console.warn('[firestoreRest] Failed to read firebase-applet-config.json:', e);
+  }
+  return {};
+}
+
+const config = loadFirebaseConfig();
 
 interface ServiceAccount {
   type: string;
