@@ -28,73 +28,128 @@ const maskEmail = (value?: string) => {
 function cleanPrivateKey(key: string): string {
   if (typeof key !== 'string') return '';
   let cleaned = key.trim();
-  
-  // Remove wrapping quotes
-  if ((cleaned.startsWith('"') && cleaned.endsWith('"')) || (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+
+  // Remove surrounding single or double quotes repeatedly
+  while (
+    (cleaned.startsWith('"') && cleaned.endsWith('"')) ||
+    (cleaned.startsWith("'") && cleaned.endsWith("'"))
+  ) {
     cleaned = cleaned.slice(1, -1).trim();
   }
 
-  // Replace literal escaped \n with actual newlines
+  // Convert literal backslash-n (\n) or \r\n into real newlines
   cleaned = cleaned.replace(/\\n/g, '\n').replace(/\\r/g, '');
 
-  // Remove wrapping quotes if double wrapped
-  if ((cleaned.startsWith('"') && cleaned.endsWith('"')) || (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+  // Remove surrounding quotes again if double-encoded
+  while (
+    (cleaned.startsWith('"') && cleaned.endsWith('"')) ||
+    (cleaned.startsWith("'") && cleaned.endsWith("'"))
+  ) {
     cleaned = cleaned.slice(1, -1).trim();
   }
 
-  // Extract the PEM contents
   const beginMarker = '-----BEGIN PRIVATE KEY-----';
   const endMarker = '-----END PRIVATE KEY-----';
-  
+
+  if (!cleaned.includes(beginMarker) || !cleaned.includes(endMarker)) {
+    // Try case-insensitive recovery if header/footer markers were damaged
+    const upper = cleaned.toUpperCase();
+    if (upper.includes('BEGIN PRIVATE KEY') && upper.includes('END PRIVATE KEY')) {
+      cleaned = cleaned
+        .replace(/-----?BEGIN PRIVATE KEY-----?/i, beginMarker)
+        .replace(/-----?END PRIVATE KEY-----?/i, endMarker);
+    }
+  }
+
   if (cleaned.includes(beginMarker) && cleaned.includes(endMarker)) {
     const beginIndex = cleaned.indexOf(beginMarker) + beginMarker.length;
     const endIndex = cleaned.indexOf(endMarker);
     let body = cleaned.substring(beginIndex, endIndex).trim();
-    
-    // In case the body has spaces instead of newlines (common when copying env vars as a single line)
-    if (!body.includes('\n') && body.includes(' ')) {
-      body = body.replace(/\s+/g, '\n');
-    }
-    
-    // Reconstruct PEM exactly
-    cleaned = `${beginMarker}\n${body}\n${endMarker}\n`;
+
+    // Clean up base64 body: standard PEM base64 only contains A-Z, a-z, 0-9, +, /, = and newlines
+    // Replace any space or invalid character with newlines
+    body = body.replace(/[^A-Za-z0-9+/=]/g, '\n');
+    const lines = body.split('\n').map((line) => line.trim()).filter(Boolean);
+
+    cleaned = `${beginMarker}\n${lines.join('\n')}\n${endMarker}\n`;
   }
-  
+
   return cleaned;
 }
 
 function parseServiceAccount(rawKey?: string) {
-  if (!rawKey) return null;
-  let normalizedRawKey = rawKey.trim();
-  if (
-    (normalizedRawKey.startsWith("'") && normalizedRawKey.endsWith("'")) ||
-    (normalizedRawKey.startsWith('"') && normalizedRawKey.endsWith('"'))
-  ) {
-    normalizedRawKey = normalizedRawKey.slice(1, -1).trim();
-  }
+  let account: any = null;
 
-  const processAccount = (account: any) => {
-    if (account && typeof account === 'object') {
-      if (typeof account.private_key === 'string') {
-        account.private_key = cleanPrivateKey(account.private_key);
-      }
-      return account;
+  if (rawKey) {
+    let s = rawKey.trim();
+
+    // Remove leading export / variable assignment if pasted directly like FIREBASE_SERVICE_ACCOUNT_KEY='...'
+    s = s.replace(/^(export\s+)?FIREBASE_SERVICE_ACCOUNT_KEY\s*=\s*/i, '').trim();
+
+    // Strip wrapping single or double quotes repeatedly
+    while (
+      (s.startsWith("'") && s.endsWith("'")) ||
+      (s.startsWith('"') && s.endsWith('"'))
+    ) {
+      s = s.slice(1, -1).trim();
     }
-    return null;
-  };
 
-  try {
-    const serviceAccount = JSON.parse(normalizedRawKey);
-    return processAccount(serviceAccount);
-  } catch (err: any) {
+    // Extract JSON object if wrapped in text or extra quotes
+    const firstBrace = s.indexOf('{');
+    const lastBrace = s.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      s = s.substring(firstBrace, lastBrace + 1);
+    }
+
+    // Attempt 1: Direct JSON.parse
     try {
-      const decoded = Buffer.from(normalizedRawKey, 'base64').toString('utf8');
-      const serviceAccount = JSON.parse(decoded);
-      return processAccount(serviceAccount);
-    } catch (err2: any) {
-      console.error('[firebaseAdmin] Invalid FIREBASE_SERVICE_ACCOUNT_KEY (JSON and base64 parsing failed):', err2?.message);
+      account = JSON.parse(s);
+    } catch (err1) {
+      // Attempt 2: Fix unescaped newlines inside string values
+      try {
+        const fixedKey = s.replace(/"([^"\\]*(\\.[^"\\]*)*)"/g, (match) => {
+          return match.replace(/\r?\n/g, '\\n');
+        });
+        account = JSON.parse(fixedKey);
+      } catch (err2) {
+        // Attempt 3: Only try Base64 if s looks like pure Base64 (no { or })
+        const trimmedOriginal = rawKey.trim();
+        if (!trimmedOriginal.includes('{') && /^[A-Za-z0-9+/=\s]+$/.test(trimmedOriginal)) {
+          try {
+            const decoded = Buffer.from(trimmedOriginal, 'base64').toString('utf8');
+            account = JSON.parse(decoded);
+          } catch (err3: any) {
+            console.error('[firebaseAdmin] Base64 decode failed:', err3?.message);
+          }
+        } else {
+          console.error('[firebaseAdmin] Invalid FIREBASE_SERVICE_ACCOUNT_KEY JSON string');
+        }
+      }
     }
   }
+
+  // Fallback to individual environment variables if rawKey was not valid JSON
+  if (!account || typeof account !== 'object') {
+    const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+    const projId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID;
+
+    if (privateKey && clientEmail) {
+      account = {
+        project_id: projId,
+        client_email: clientEmail,
+        private_key: privateKey,
+      };
+    }
+  }
+
+  if (account && typeof account === 'object') {
+    if (typeof account.private_key === 'string') {
+      account.private_key = cleanPrivateKey(account.private_key);
+    }
+    return account;
+  }
+
   return null;
 }
 

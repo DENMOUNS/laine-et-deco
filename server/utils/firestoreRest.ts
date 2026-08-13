@@ -43,62 +43,126 @@ const normalizeDatabaseId = (value?: string | null): string | null => {
 function cleanPrivateKey(key: string): string {
   if (typeof key !== 'string') return '';
   let cleaned = key.trim();
-  
-  // Replace literal escaped \n with actual newlines
-  cleaned = cleaned.replace(/\\n/g, '\n');
-  
-  // Remove wrapping quotes
-  if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
-    cleaned = cleaned.slice(1, -1).trim();
-  }
-  if (cleaned.startsWith("'") && cleaned.endsWith("'")) {
-    cleaned = cleaned.slice(1, -1).trim();
-  }
-  
-  // Again replace literal \n after quote stripping
-  cleaned = cleaned.replace(/\\n/g, '\n');
 
-  // Extract the PEM contents
+  // Remove surrounding single or double quotes repeatedly
+  while (
+    (cleaned.startsWith('"') && cleaned.endsWith('"')) ||
+    (cleaned.startsWith("'") && cleaned.endsWith("'"))
+  ) {
+    cleaned = cleaned.slice(1, -1).trim();
+  }
+
+  // Convert literal backslash-n (\n) or \r\n into real newlines
+  cleaned = cleaned.replace(/\\n/g, '\n').replace(/\\r/g, '');
+
+  // Remove surrounding quotes again if double-encoded
+  while (
+    (cleaned.startsWith('"') && cleaned.endsWith('"')) ||
+    (cleaned.startsWith("'") && cleaned.endsWith("'"))
+  ) {
+    cleaned = cleaned.slice(1, -1).trim();
+  }
+
   const beginMarker = '-----BEGIN PRIVATE KEY-----';
   const endMarker = '-----END PRIVATE KEY-----';
-  
+
+  if (!cleaned.includes(beginMarker) || !cleaned.includes(endMarker)) {
+    const upper = cleaned.toUpperCase();
+    if (upper.includes('BEGIN PRIVATE KEY') && upper.includes('END PRIVATE KEY')) {
+      cleaned = cleaned
+        .replace(/-----?BEGIN PRIVATE KEY-----?/i, beginMarker)
+        .replace(/-----?END PRIVATE KEY-----?/i, endMarker);
+    }
+  }
+
   if (cleaned.includes(beginMarker) && cleaned.includes(endMarker)) {
     const beginIndex = cleaned.indexOf(beginMarker) + beginMarker.length;
     const endIndex = cleaned.indexOf(endMarker);
     let body = cleaned.substring(beginIndex, endIndex).trim();
-    
-    // In case the body has spaces instead of newlines (common when copying env vars as a single line)
-    if (!body.includes('\n') && body.includes(' ')) {
-      body = body.replace(/\s+/g, '\n');
-    }
-    
-    // Reconstruct PEM exactly
-    cleaned = `${beginMarker}\n${body}\n${endMarker}\n`;
+
+    body = body.replace(/[^A-Za-z0-9+/=]/g, '\n');
+    const lines = body.split('\n').map((line) => line.trim()).filter(Boolean);
+
+    cleaned = `${beginMarker}\n${lines.join('\n')}\n${endMarker}\n`;
   }
-  
+
   return cleaned;
 }
 
 const parseServiceAccount = (rawKey?: string): ServiceAccount | null => {
-  if (!rawKey) return null;
-  const normalized = rawKey.startsWith("'") && rawKey.endsWith("'")
-    ? rawKey.slice(1, -1)
-    : rawKey.startsWith('"') && rawKey.endsWith('"')
-    ? rawKey.slice(1, -1)
-    : rawKey;
+  let account: any = null;
 
-  try {
-    const parsed = JSON.parse(normalized) as ServiceAccount;
-    if (typeof parsed.private_key === 'string') {
-      parsed.private_key = cleanPrivateKey(parsed.private_key);
+  if (rawKey) {
+    let s = rawKey.trim();
+
+    // Remove leading export / variable assignment if pasted directly like FIREBASE_SERVICE_ACCOUNT_KEY='...'
+    s = s.replace(/^(export\s+)?FIREBASE_SERVICE_ACCOUNT_KEY\s*=\s*/i, '').trim();
+
+    // Strip wrapping single or double quotes repeatedly
+    while (
+      (s.startsWith("'") && s.endsWith("'")) ||
+      (s.startsWith('"') && s.endsWith('"'))
+    ) {
+      s = s.slice(1, -1).trim();
     }
-    return parsed;
-  } catch (err) {
-    console.error('[firestoreRest] invalid service account JSON', {
-      error: err instanceof Error ? err.message : String(err),
-    });
-    return null;
+
+    // Extract JSON object if wrapped in text or extra quotes
+    const firstBrace = s.indexOf('{');
+    const lastBrace = s.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      s = s.substring(firstBrace, lastBrace + 1);
+    }
+
+    // Attempt 1: Direct JSON.parse
+    try {
+      account = JSON.parse(s);
+    } catch (err1) {
+      // Attempt 2: Fix unescaped newlines inside string values
+      try {
+        const fixedKey = s.replace(/"([^"\\]*(\\.[^"\\]*)*)"/g, (match) => {
+          return match.replace(/\r?\n/g, '\\n');
+        });
+        account = JSON.parse(fixedKey);
+      } catch (err2) {
+        // Attempt 3: Only try Base64 if s looks like pure Base64 (no { or })
+        const trimmedOriginal = rawKey.trim();
+        if (!trimmedOriginal.includes('{') && /^[A-Za-z0-9+/=\s]+$/.test(trimmedOriginal)) {
+          try {
+            const decoded = Buffer.from(trimmedOriginal, 'base64').toString('utf8');
+            account = JSON.parse(decoded);
+          } catch (err3) {
+            console.error('[firestoreRest] Base64 decode failed');
+          }
+        } else {
+          console.error('[firestoreRest] Invalid FIREBASE_SERVICE_ACCOUNT_KEY JSON string');
+        }
+      }
+    }
   }
+
+  if (!account || typeof account !== 'object') {
+    const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+    const projId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID;
+
+    if (privateKey && clientEmail) {
+      account = {
+        type: 'service_account',
+        project_id: projId,
+        client_email: clientEmail,
+        private_key: privateKey,
+      };
+    }
+  }
+
+  if (account && typeof account === 'object') {
+    if (typeof account.private_key === 'string') {
+      account.private_key = cleanPrivateKey(account.private_key);
+    }
+    return account as ServiceAccount;
+  }
+
+  return null;
 };
 
 const getServiceAccount = (): ServiceAccount => {
