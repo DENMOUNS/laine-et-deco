@@ -25,6 +25,44 @@ const maskEmail = (value?: string) => {
   return `${name?.slice(0, 3) || '???'}***@${domain || 'unknown'}`;
 };
 
+function cleanPrivateKey(key: string): string {
+  if (typeof key !== 'string') return '';
+  let cleaned = key.trim();
+  
+  // Remove wrapping quotes
+  if ((cleaned.startsWith('"') && cleaned.endsWith('"')) || (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+    cleaned = cleaned.slice(1, -1).trim();
+  }
+
+  // Replace literal escaped \n with actual newlines
+  cleaned = cleaned.replace(/\\n/g, '\n').replace(/\\r/g, '');
+
+  // Remove wrapping quotes if double wrapped
+  if ((cleaned.startsWith('"') && cleaned.endsWith('"')) || (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+    cleaned = cleaned.slice(1, -1).trim();
+  }
+
+  // Extract the PEM contents
+  const beginMarker = '-----BEGIN PRIVATE KEY-----';
+  const endMarker = '-----END PRIVATE KEY-----';
+  
+  if (cleaned.includes(beginMarker) && cleaned.includes(endMarker)) {
+    const beginIndex = cleaned.indexOf(beginMarker) + beginMarker.length;
+    const endIndex = cleaned.indexOf(endMarker);
+    let body = cleaned.substring(beginIndex, endIndex).trim();
+    
+    // In case the body has spaces instead of newlines (common when copying env vars as a single line)
+    if (!body.includes('\n') && body.includes(' ')) {
+      body = body.replace(/\s+/g, '\n');
+    }
+    
+    // Reconstruct PEM exactly
+    cleaned = `${beginMarker}\n${body}\n${endMarker}\n`;
+  }
+  
+  return cleaned;
+}
+
 function parseServiceAccount(rawKey?: string) {
   if (!rawKey) return null;
   let normalizedRawKey = rawKey.trim();
@@ -35,24 +73,24 @@ function parseServiceAccount(rawKey?: string) {
     normalizedRawKey = normalizedRawKey.slice(1, -1).trim();
   }
 
+  const processAccount = (account: any) => {
+    if (account && typeof account === 'object') {
+      if (typeof account.private_key === 'string') {
+        account.private_key = cleanPrivateKey(account.private_key);
+      }
+      return account;
+    }
+    return null;
+  };
+
   try {
     const serviceAccount = JSON.parse(normalizedRawKey);
-    if (serviceAccount && typeof serviceAccount === 'object') {
-      if (typeof serviceAccount.private_key === 'string') {
-        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
-      }
-      return serviceAccount;
-    }
+    return processAccount(serviceAccount);
   } catch (err: any) {
     try {
       const decoded = Buffer.from(normalizedRawKey, 'base64').toString('utf8');
       const serviceAccount = JSON.parse(decoded);
-      if (serviceAccount && typeof serviceAccount === 'object') {
-        if (typeof serviceAccount.private_key === 'string') {
-          serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
-        }
-        return serviceAccount;
-      }
+      return processAccount(serviceAccount);
     } catch (err2: any) {
       console.error('[firebaseAdmin] Invalid FIREBASE_SERVICE_ACCOUNT_KEY (JSON and base64 parsing failed):', err2?.message);
     }
@@ -90,13 +128,21 @@ const initializeFirebase = async () => {
 
   try {
     if (!firebaseAdmin.apps.length) {
-      if (serviceAccount) {
-        firebaseAdmin.initializeApp({
-          credential: firebaseAdmin.credential.cert(serviceAccount as any),
-          projectId: resolvedProjectId || undefined,
-          storageBucket: storageBucket || undefined,
-        } as any);
-      } else {
+      let certSuccess = false;
+      if (serviceAccount && serviceAccount.private_key && serviceAccount.client_email) {
+        try {
+          firebaseAdmin.initializeApp({
+            credential: firebaseAdmin.credential.cert(serviceAccount as any),
+            projectId: resolvedProjectId || undefined,
+            storageBucket: storageBucket || undefined,
+          } as any);
+          certSuccess = true;
+        } catch (certErr: any) {
+          console.error('[firebaseAdmin] credential.cert initialization failed, falling back to default application credentials:', certErr?.message || certErr);
+        }
+      }
+
+      if (!certSuccess && !firebaseAdmin.apps.length) {
         firebaseAdmin.initializeApp({
           projectId: resolvedProjectId || undefined,
           storageBucket: storageBucket || undefined,
