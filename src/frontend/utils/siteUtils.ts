@@ -24,6 +24,22 @@ export const updateSEOMeta = (title: string, description: string, ogImage?: stri
   }
 };
 
+export const cleanText = (input?: string | null): string => {
+  if (!input) return '';
+  // Supprime toutes les balises HTML et attributs accidentels (ex: <p data-start="111" class="...">)
+  const stripped = input
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return stripped;
+};
+
 export const getEffectivePrice = (product: any, events: any[]) => {
   // Si le produit est en promotion et a un prix promotionnel valide
   if (product.promoPrice && product.promoPrice > 0 && product.promoPrice < (product.price || 0)) {

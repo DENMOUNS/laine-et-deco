@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Heart, Star, Minus, Plus, ShoppingBag, Share2, Truck, ShieldCheck, RefreshCcw } from 'lucide-react';
 import { Product, PromoEvent } from '../../../types';
-import { getEffectivePrice } from '../../utils/siteUtils';
+import { getEffectivePrice, cleanText } from '../../utils/siteUtils';
 import { toast } from 'sonner';
 import { Button } from '../ui/Button';
 
@@ -97,7 +97,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({ product, onAddToCart, 
       </div>
       
       <p className="text-primary/70 leading-relaxed mb-10 text-lg">
-        {product.description} Notre sélection est faite avec passion pour vous offrir le meilleur de l'artisanat.
+        {cleanText(product.description) || "Notre sélection est faite avec passion pour vous offrir le meilleur de l'artisanat."}
       </p>
 
       <div className="space-y-8 mb-12">

@@ -4,6 +4,8 @@ import { toast as sonnerToast } from 'sonner';
 import { Navbar, Footer } from './Layout';
 import { TopMarquee } from './TopMarquee';
 import { CartAnimation } from './CartAnimation';
+import { MobileGlassDock } from './MobileGlassDock';
+import { MobileGlassHeader } from './MobileGlassHeader';
 
 const InstallBanner = lazy(() => import('./InstallBanner').then((m) => ({ default: m.InstallBanner })));
 const ChatBubble = lazy(() => import('./ChatBubble').then((m) => ({ default: m.ChatBubble })));
@@ -157,6 +159,11 @@ export const AppLayout: React.FC = () => {
       
       {!isAdmin && <TopMarquee siteConfig={siteConfig} />}
       {!isAdmin && (
+        <MobileGlassHeader
+          onNavigate={handleNavigate}
+        />
+      )}
+      {!isAdmin && (
         <Navbar 
           onNavigate={handleNavigate}
           currentView={currentView}
@@ -173,11 +180,21 @@ export const AppLayout: React.FC = () => {
           <Outlet />
         </ErrorBoundary>
       ) : (
-        <main id="main-content" className="relative min-h-[calc(100vh-200px)]">
+        <main id="main-content" className="relative min-h-[calc(100vh-200px)] pb-24 md:pb-0">
           <ErrorBoundary onNavigate={handleNavigate}>
             <Outlet />
           </ErrorBoundary>
         </main>
+      )}
+
+      {!isAdmin && (
+        <MobileGlassDock
+          currentView={currentView}
+          onNavigate={handleNavigate}
+          cartCount={cartCount}
+          wishlistCount={wishlist.length}
+          user={user}
+        />
       )}
 
       {!isAdmin && <Footer onNavigate={handleNavigate} user={user} />}
@@ -190,10 +207,11 @@ export const AppLayout: React.FC = () => {
               type="button"
               aria-label="Ouvrir l’assistant de chat"
               onClick={() => setChatMounted(true)}
-              className="fixed bottom-6 right-6 z-50 bg-primary text-white p-5 rounded-full shadow-2xl hover:bg-[#2a3529] transition-colors"
+              className="fixed bottom-20 right-3 sm:bottom-6 sm:right-6 z-[80] glass-ios text-primary dark:text-white p-3.5 sm:p-4 rounded-full shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center relative group"
             >
+              <div className="absolute top-1 right-1 w-2.5 h-2.5 bg-accent rounded-full animate-pulse shadow-sm" aria-hidden="true" />
               <span className="sr-only">Chat</span>
-              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             </button>
           )}
         </Suspense>

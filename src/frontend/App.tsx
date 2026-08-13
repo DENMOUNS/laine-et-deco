@@ -7,10 +7,7 @@ import { SiteConfig, PromoEvent, NavItem } from '../types';
 import { DEFAULT_NAV_ITEMS } from '../siteDefaults';
 import { getStaticEntityCacheKey, readCache, writeCache, getTTLForEntity } from './utils/cacheStorage';
 import { dispatchNetworkIssue, getNetworkWarningMessage } from './utils/networkStatus';
-
-const AppRoutes = lazy(() =>
-  import('./components/AppRoutes').then((m) => ({ default: m.AppRoutes }))
-);
+import { AppRoutes } from './components/AppRoutes';
 
 const HOME_CACHE_COLLECTIONS = [
   { name: 'product', max: 24 },

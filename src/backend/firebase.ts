@@ -69,7 +69,8 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     path,
   };
 
-  void errInfo;
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
 }
 
 function ensureFirebaseInitialized() {
@@ -89,8 +90,15 @@ function ensureFirebaseInitialized() {
       normalizeDatabaseId(firebaseConfig.firestoreDatabaseId) ||
       '(default)';
 
-    // Cache mémoire uniquement : pas d'IndexedDB Firestore (meilleur LCP / Lighthouse).
-    db = initializeFirestore(app, { localCache: memoryLocalCache() }, databaseId);
+    // Cache mémoire uniquement avec auto-détection du Long Polling pour éviter les blocages WebChannel/Streaming.
+    db = initializeFirestore(
+      app,
+      {
+        localCache: memoryLocalCache(),
+        experimentalAutoDetectLongPolling: true,
+      },
+      databaseId
+    );
 
     auth = getAuth(app);
     void setPersistence(auth, browserSessionPersistence).catch((error) => {

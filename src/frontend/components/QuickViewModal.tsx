@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, ShoppingBag, Star, Heart } from 'lucide-react';
 import { Product } from '../../types';
 import { Button } from './ui/Button';
+import { cleanText } from '../utils/siteUtils';
 
 interface QuickViewModalProps {
   product: Product | null;
@@ -74,7 +75,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
                 <p className="text-2xl font-bold text-primary mb-6">{product.price.toLocaleString()} FCFA</p>
                 
                 <p className="text-primary/70 leading-relaxed mb-8 line-clamp-4">
-                  {product.description}
+                  {cleanText(product.description) || "Une pièce d'exception façonnée avec passion pour vos plus beaux projets."}
                 </p>
 
                 <div className="mt-8 space-y-4">

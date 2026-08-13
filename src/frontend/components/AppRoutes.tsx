@@ -23,43 +23,77 @@ import { toast } from 'sonner';
 import { Product } from '../../types';
 import { isFeatureEnabled } from '../utils/featureFlags';
 
-// ── Lazy loaded views ──
-const HomeView = lazy(() => import('../views/HomeView').then(m => ({ default: m.HomeView })));
-const ShopView = lazy(() => import('../views/ShopView').then(m => ({ default: m.ShopView })));
-const AuthView = lazy(() => import('../views/AuthView').then(m => ({ default: m.AuthView })));
-const CartView = lazy(() => import('../views/CartView').then(m => ({ default: m.CartView })));
-const AdminDashboard = lazy(() => import('../views/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
-const AdminProductDetailView = lazy(() => import('../views/AdminProductDetailView').then(m => ({ default: m.AdminProductDetailView })));
-const AdminUserDetailView = lazy(() => import('../views/AdminUserDetailView').then(m => ({ default: m.AdminUserDetailView })));
-const ProductDetailView = lazy(() => import('../views/ProductDetailView').then(m => ({ default: m.ProductDetailView })));
-const CheckoutView = lazy(() => import('../views/CheckoutView').then(m => ({ default: m.CheckoutView })));
+// ── Resilient Lazy Loading with Retry ──
+function lazyRetry<P = any>(
+  componentImport: () => Promise<any>,
+  exportName?: string
+): React.LazyExoticComponent<React.ComponentType<P>> {
+  return lazy(async () => {
+    try {
+      const module = await componentImport();
+      if (exportName && (module as any)[exportName]) {
+        return { default: (module as any)[exportName] };
+      }
+      if ((module as any).default) {
+        return { default: (module as any).default };
+      }
+      return module;
+    } catch (error) {
+      console.warn('Dynamic import failed, retrying once...', error);
+      // Wait 300ms and retry once
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      const module = await componentImport();
+      if (exportName && (module as any)[exportName]) {
+        return { default: (module as any)[exportName] };
+      }
+      if ((module as any).default) {
+        return { default: (module as any).default };
+      }
+      return module;
+    }
+  }) as any;
+}
 
-const TeamView = lazy(() => import('../views/TeamView').then(m => ({ default: m.TeamView })));
-const PacksView = lazy(() => import('../views/PacksView').then(m => ({ default: m.PacksView })));
-const CustomPackBuilderView = lazy(() => import('../views/CustomPackBuilderView').then(m => ({ default: m.CustomPackBuilderView })));
-const PackDetailView = lazy(() => import('../views/PackDetailView').then(m => ({ default: m.PackDetailView })));
-const BlogIndexView = lazy(() => import('../views/BlogIndexView').then(m => ({ default: m.BlogIndexView })));
-const BlogPostView = lazy(() => import('../views/BlogPostView').then(m => ({ default: m.BlogPostView })));
-const CustomerDashboard = lazy(() => import('../views/CustomerDashboard').then(m => ({ default: m.CustomerDashboard })));
-const CalculatorView = lazy(() => import('../views/CalculatorView').then(m => ({ default: m.CalculatorView })));
-const CustomOrderView = lazy(() => import('../views/CustomOrderView').then(m => ({ default: m.CustomOrderView })));
-const VolumeCalculatorView = lazy(() => import('../views/VolumeCalculatorView').then(m => ({ default: m.VolumeCalculatorView })));
-const CareGuideView = lazy(() => import('../views/CareGuideView').then(m => ({ default: m.CareGuideView })));
-const LookbookView = lazy(() => import('../views/LookbookView').then(m => ({ default: m.LookbookView })));
-const CommunityGalleryView = lazy(() => import('../views/CommunityGalleryView').then(m => ({ default: m.CommunityGalleryView })));
-const KnittingConfiguratorView = lazy(() => import('../views/KnittingConfiguratorView').then(m => ({ default: m.KnittingConfiguratorView })));
-const OrderSuccessView = lazy(() => import('../views/OrderSuccessView').then(m => ({ default: m.OrderSuccessView })));
-const KnittingCompanionView = lazy(() => import('../views/KnittingCompanionView').then(m => ({ default: m.KnittingCompanionView })));
-const PatternGeneratorView = lazy(() => import('../views/PatternGeneratorView').then(m => ({ default: m.PatternGeneratorView })));
-const PrivacyPolicyView = lazy(() => import('../views/PrivacyPolicyView').then(m => ({ default: m.PrivacyPolicyView })));
-const ComparisonView = lazy(() => import('../views/ComparisonView').then(m => ({ default: m.ComparisonView })));
-const ContactView = lazy(() => import('../views/ContactView').then(m => ({ default: m.ContactView })));
-const FAQView = lazy(() => import('../views/FAQView').then(m => ({ default: m.FAQView })));
-const QRLandingView = lazy(() => import('../views/QRLandingView').then(m => ({ default: m.QRLandingView })));
-const Error404View = lazy(() => import('../views/Error404View').then(m => ({ default: m.Error404View })));
-const AboutView = lazy(() => import('../views/AboutView').then(m => ({ default: m.AboutView })));
-const UserManualView = lazy(() => import('../views/UserManualView').then(m => ({ default: m.UserManualView })));
-const TechnicalSupportView = lazy(() => import('../views/TechnicalSupportView').then(m => ({ default: m.TechnicalSupportView })));
+// Core views (static for instant startup without dynamic chunk delays)
+import { HomeView } from '../views/HomeView';
+import { ShopView } from '../views/ShopView';
+import { AuthView } from '../views/AuthView';
+import { CartView } from '../views/CartView';
+
+// ── Lazy loaded secondary views ──
+const AdminDashboard = lazyRetry(() => import('../views/AdminDashboard'), 'AdminDashboard');
+const AdminProductDetailView = lazyRetry(() => import('../views/AdminProductDetailView'), 'AdminProductDetailView');
+const AdminUserDetailView = lazyRetry(() => import('../views/AdminUserDetailView'), 'AdminUserDetailView');
+const ProductDetailView = lazyRetry(() => import('../views/ProductDetailView'), 'ProductDetailView');
+const CheckoutView = lazyRetry(() => import('../views/CheckoutView'), 'CheckoutView');
+
+const TeamView = lazyRetry(() => import('../views/TeamView'), 'TeamView');
+const PacksView = lazyRetry(() => import('../views/PacksView'), 'PacksView');
+const CustomPackBuilderView = lazyRetry(() => import('../views/CustomPackBuilderView'), 'CustomPackBuilderView');
+const PackDetailView = lazyRetry(() => import('../views/PackDetailView'), 'PackDetailView');
+const BlogIndexView = lazyRetry(() => import('../views/BlogIndexView'), 'BlogIndexView');
+const BlogPostView = lazyRetry(() => import('../views/BlogPostView'), 'BlogPostView');
+const CustomerDashboard = lazyRetry(() => import('../views/CustomerDashboard'), 'CustomerDashboard');
+const CalculatorView = lazyRetry(() => import('../views/CalculatorView'), 'CalculatorView');
+const CustomOrderView = lazyRetry(() => import('../views/CustomOrderView'), 'CustomOrderView');
+const VolumeCalculatorView = lazyRetry(() => import('../views/VolumeCalculatorView'), 'VolumeCalculatorView');
+const CareGuideView = lazyRetry(() => import('../views/CareGuideView'), 'CareGuideView');
+const LookbookView = lazyRetry(() => import('../views/LookbookView'), 'LookbookView');
+const CommunityGalleryView = lazyRetry(() => import('../views/CommunityGalleryView'), 'CommunityGalleryView');
+const KnittingConfiguratorView = lazyRetry(() => import('../views/KnittingConfiguratorView'), 'KnittingConfiguratorView');
+const OrderSuccessView = lazyRetry(() => import('../views/OrderSuccessView'), 'OrderSuccessView');
+const KnittingCompanionView = lazyRetry(() => import('../views/KnittingCompanionView'), 'KnittingCompanionView');
+const PatternGeneratorView = lazyRetry(() => import('../views/PatternGeneratorView'), 'PatternGeneratorView');
+const PrivacyPolicyView = lazyRetry(() => import('../views/PrivacyPolicyView'), 'PrivacyPolicyView');
+const ComparisonView = lazyRetry(() => import('../views/ComparisonView'), 'ComparisonView');
+const ContactView = lazyRetry(() => import('../views/ContactView'), 'ContactView');
+const FAQView = lazyRetry(() => import('../views/FAQView'), 'FAQView');
+const QRLandingView = lazyRetry(() => import('../views/QRLandingView'), 'QRLandingView');
+const Error404View = lazyRetry(() => import('../views/Error404View'), 'Error404View');
+const AboutView = lazyRetry(() => import('../views/AboutView'), 'AboutView');
+const UserManualView = lazyRetry(() => import('../views/UserManualView'), 'UserManualView');
+const TechnicalSupportView = lazyRetry(() => import('../views/TechnicalSupportView'), 'TechnicalSupportView');
+
 
 // ── Route wrapper components ──
 // Each wrapper reads ONLY what it needs from stores — no monolithic useSharedData
@@ -477,3 +511,5 @@ export const AppRoutes: React.FC = () => {
     </Suspense>
   );
 };
+
+export default AppRoutes;

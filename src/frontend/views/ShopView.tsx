@@ -600,7 +600,7 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8"
+                className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-3.5 sm:gap-6 md:gap-8"
               >
                 {[1, 2, 3, 4, 5, 6].map(i => <ProductSkeleton key={i} />)}
               </motion.div>
@@ -610,7 +610,7 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
-                className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8"
+                className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-3.5 sm:gap-6 md:gap-8"
               >
                 {paginatedProducts.map((product) => (
                   <motion.div key={product.id} variants={itemVariants}>

@@ -44,7 +44,7 @@ export const PromotionsView: React.FC<PromotionsViewProps> = ({
       </div>
 
       {promoProducts.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-6 md:gap-8">
           {promoProducts.map((product, index) => (
             <motion.div
               key={product.id}

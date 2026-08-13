@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingBag, Search, User, Heart, Menu, X, ChevronRight, ArrowRight, Moon, Sun, Home, Shield, ArrowRightLeft, QrCode, Scissors } from 'lucide-react';
+import { ShoppingBag, Search, User, Heart, Menu, X, ChevronRight, ChevronDown, ArrowRight, Moon, Sun, Home, Shield, ArrowRightLeft, QrCode, Scissors } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { where } from 'firebase/firestore';
 
@@ -12,7 +12,7 @@ import { useConfigStore } from '../../stores/configStore';
 import { isFeatureEnabled } from '../utils/featureFlags';
 import type { User as FirebaseUser } from 'firebase/auth';
 
-const LogoDisplay = () => {
+export const LogoDisplay: React.FC<{ compact?: boolean }> = ({ compact }) => {
   const { isMarqueeReady } = useLoadingSequence();
   const { data: logos } = useStaticEntity<any>('site_logo', [], {
     enabled: isMarqueeReady,
@@ -26,28 +26,26 @@ const LogoDisplay = () => {
     setImgError(false);
   }, [logoSrc]);
 
-
-  
   if (logoSrc && !imgError && logoSrc !== '/logo.png') {
     return (
       <img 
         src={logoSrc} 
         alt="LAINE ET DECO" 
         onError={() => setImgError(true)}
-        className="h-10 md:h-12 w-auto object-contain transition-transform group-hover:scale-105" 
+        className={`${compact ? 'h-7 sm:h-8' : 'h-10 md:h-12'} w-auto object-contain transition-transform group-hover:scale-105`} 
       />
     );
   }
   
   return (
-    <>
-      <div className="flex items-center justify-center p-2 bg-gradient-to-br from-accent to-accent/90 text-white rounded-xl shadow-[0_4px_12px_rgba(230,111,105,0.3)] border border-white/20 transition-transform group-hover:scale-105">
-         <Scissors className="h-6 w-6 sm:h-8 sm:w-8 text-white stroke-[2]" />
+    <div className="flex items-center">
+      <div className={`flex items-center justify-center ${compact ? 'p-1.5 rounded-lg' : 'p-2 rounded-xl'} bg-gradient-to-br from-accent to-accent/90 text-white shadow-[0_4px_12px_rgba(230,111,105,0.3)] border border-white/20 transition-transform group-hover:scale-105`}>
+         <Scissors className={`${compact ? 'h-4 w-4 sm:h-5 sm:w-5' : 'h-6 w-6 sm:h-8 sm:w-8'} text-white stroke-[2]`} />
       </div>
-      <h1 className="text-xl sm:text-2xl md:text-3xl font-serif font-black tracking-tight text-primary ml-3 relative whitespace-nowrap">
+      <span className={`${compact ? 'text-lg sm:text-xl' : 'text-xl sm:text-2xl md:text-3xl'} font-serif font-black tracking-tight text-primary ml-2.5 relative whitespace-nowrap`}>
         Laine & <span className="text-accent underline decoration-accent/30 decoration-2 underline-offset-4">Déco</span>
-      </h1>
-    </>
+      </span>
+    </div>
   );
 };
 
@@ -145,7 +143,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <>
-      <nav className="sticky top-0 z-50 bg-white shadow-md border-b border-primary/10 transition-all duration-300">
+      <nav className="hidden md:block sticky top-0 z-50 glass-ios-navbar transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20 relative">
           <div className="flex items-center gap-3 z-20 flex-shrink-0">
@@ -177,35 +175,35 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <div className="flex items-center space-x-1 md:space-x-2 z-20">
             {/* Icons visible on all screens */}
-            <div className="flex items-center space-x-0.5 sm:space-x-1 flex-nowrap z-20">
+            <div className="flex items-center space-x-1 sm:space-x-1.5 flex-nowrap z-20">
               <button 
                 aria-label="Rechercher"
                 onClick={() => onNavigate('shop')} 
-                className="p-2 text-primary hover:text-accent transition-colors rounded-full hover:bg-primary/5"
+                className="p-2.5 text-primary hover:text-accent transition-colors rounded-full glass-ios-pill hover:bg-white/90"
                 title="Rechercher"
               >
-                <Search size={20} />
+                <Search size={19} />
               </button>
-              <button aria-label="Favoris" onClick={() => onNavigate('wishlist')} className="flex p-2 text-primary hover:text-accent transition-colors relative rounded-full hover:bg-primary/5">
-                <Heart size={20} />
+              <button aria-label="Favoris" onClick={() => onNavigate('wishlist')} className="flex p-2.5 text-primary hover:text-accent transition-colors relative rounded-full glass-ios-pill hover:bg-white/90">
+                <Heart size={19} />
                 {wishlistCount > 0 && (
-                  <span className="absolute top-1 right-1 bg-accent text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                  <span className="absolute top-0.5 right-0.5 bg-accent text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm">
                     {wishlistCount}
                   </span>
                 )}
               </button>
-              <button aria-label="Panier" onClick={() => onNavigate('cart')} className="p-2 text-primary hover:text-accent transition-colors relative rounded-full hover:bg-primary/5">
-                <ShoppingBag size={20} />
+              <button aria-label="Panier" onClick={() => onNavigate('cart')} className="p-2.5 text-primary hover:text-accent transition-colors relative rounded-full glass-ios-pill hover:bg-white/90">
+                <ShoppingBag size={19} />
                 {cartCount > 0 && (
-                  <span className="absolute top-1 right-1 bg-primary text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                  <span className="absolute top-0.5 right-0.5 bg-primary text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm">
                     {cartCount}
                   </span>
                 )}
               </button>
-              <button aria-label="Comparateur" onClick={() => onNavigate('comparison')} className="hidden sm:flex lg:flex p-2 text-primary hover:text-accent transition-colors relative rounded-full hover:bg-primary/5">
-                <ArrowRightLeft size={20} />
+              <button aria-label="Comparateur" onClick={() => onNavigate('comparison')} className="hidden sm:flex lg:flex p-2.5 text-primary hover:text-accent transition-colors relative rounded-full glass-ios-pill hover:bg-white/90">
+                <ArrowRightLeft size={19} />
                 {comparisonList?.length > 0 && (
-                  <span className="absolute top-1 right-1 bg-accent text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                  <span className="absolute top-0.5 right-0.5 bg-accent text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm">
                     {comparisonList.length}
                   </span>
                 )}
@@ -214,16 +212,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <button 
                   aria-label="Tableau de bord Admin"
                   onClick={() => onNavigate('admin-dashboard')} 
-                  className={`hidden md:flex p-2 transition-colors rounded-full hover:bg-primary/5 ${currentView === 'admin-dashboard' ? 'text-accent' : 'text-primary'}`}
+                  className={`hidden md:flex p-2.5 transition-colors rounded-full glass-ios-pill hover:bg-white/90 ${currentView === 'admin-dashboard' ? 'text-accent' : 'text-primary'}`}
                   title="Tableau de bord Admin"
                 >
-                  <Shield size={20} />
+                  <Shield size={19} />
                 </button>
               )}
               <button 
                 aria-label="Compte utilisateur"
                 onClick={() => user ? onNavigate('customer-dashboard') : onNavigate('auth')} 
-                className={`flex p-2 transition-colors rounded-full hover:bg-primary/5 ${currentView === 'customer-dashboard' ? 'text-accent' : 'text-primary'} items-center gap-2`}
+                className={`flex p-2 sm:p-2.5 transition-colors rounded-full glass-ios-pill hover:bg-white/90 ${currentView === 'customer-dashboard' ? 'text-accent' : 'text-primary'} items-center gap-2`}
               >
                 {user?.photoURL ? (
                   <img
@@ -240,16 +238,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                     }}
                   />
                 ) : (
-                  <User size={20} />
+                  <User size={19} />
                 )}
                 {user && <span className="hidden xl:block text-xs font-bold">{user.displayName || 'Compte'}</span>}
               </button>
               <button 
                 aria-label="Menu principal"
                 onClick={() => setIsMenuOpen(true)}
-                className="p-2 text-primary hover:text-accent transition-colors rounded-full hover:bg-primary/5 ml-1"
+                className="p-2.5 text-primary hover:text-accent transition-colors rounded-full glass-ios-pill hover:bg-white/90 ml-0.5"
               >
-                <Menu size={20} />
+                <Menu size={19} />
               </button>
             </div>
           </div>
@@ -266,24 +264,24 @@ export const Navbar: React.FC<NavbarProps> = ({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsMenuOpen(false)}
-              className="fixed inset-0 bg-primary/20 z-[100] backdrop-blur-md"
+              className="fixed inset-0 bg-black/40 z-[100] backdrop-blur-xl transition-all"
             />
             <motion.div
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 left-0 w-[85%] max-w-sm shadow-2xl z-[110] flex flex-col overflow-y-auto bg-primary text-white"
+              transition={{ type: 'spring', damping: 28, stiffness: 240 }}
+              className="fixed inset-y-0 left-0 w-[88%] max-w-sm shadow-[0_25px_60px_rgba(0,0,0,0.5)] z-[110] flex flex-col overflow-y-auto bg-[#232d24]/90 backdrop-blur-2xl border-r border-white/20 text-white"
             >
-              <div className="p-6 border-b border-white/10 bg-primary/50 backdrop-blur-sm sticky top-0 z-10">
+              <div className="p-6 border-b border-white/10 bg-white/5 backdrop-blur-xl sticky top-0 z-10">
                 <div className="flex justify-between items-center mb-6">
                   <h1 className="text-xl font-serif font-bold text-white">Menu & Services</h1>
-                  <button aria-label="Fermer le menu" onClick={() => setIsMenuOpen(false)} className="p-2 bg-white/10 rounded-full shadow-sm text-white hover:text-accent transition-colors">
-                    <X size={20} />
+                  <button aria-label="Fermer le menu" onClick={() => setIsMenuOpen(false)} className="p-2.5 bg-white/15 hover:bg-white/25 rounded-full shadow-sm text-white hover:text-accent transition-colors border border-white/20">
+                    <X size={18} />
                   </button>
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-white/10 rounded-2xl shadow-sm border border-white/5">
-                  <div className="w-10 h-10 rounded-full bg-accent text-white flex items-center justify-center overflow-hidden">
+                <div className="flex items-center gap-3 p-3 bg-white/10 rounded-2xl shadow-sm border border-white/15 backdrop-blur-md">
+                  <div className="w-10 h-10 rounded-full bg-accent text-white flex items-center justify-center overflow-hidden shadow-md">
                     {user?.photoURL ? (
                       <img
                         src={user.photoURL}
@@ -500,26 +498,176 @@ interface FooterProps {
 
 export const Footer: React.FC<FooterProps> = ({ onNavigate, user }) => {
   const siteConfig = useConfigStore((state) => state.siteConfig);
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    shop: false,
+    apps: false,
+    about: false,
+    tools: false,
+  });
+
+  const toggleSection = (key: string) => {
+    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
 
   return (
-    <footer className="bg-primary text-white pt-16 pb-8">
+    <footer className="bg-primary text-white pt-10 sm:pt-16 pb-32 sm:pb-36 md:pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 md:gap-12 mb-12">
-          <div className="space-y-4">
-            <div className="bg-white/10 p-4 rounded-2xl inline-block group cursor-pointer" onClick={() => onNavigate('home')}>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center p-1.5 bg-gradient-to-br from-accent to-accent/90 text-white rounded-lg shadow-lg border border-white/20 transition-transform group-hover:scale-105">
-                   <Scissors className="h-6 w-6 text-white stroke-[2]" />
-                </div>
-                <h2 className="text-xl font-serif font-black tracking-tight whitespace-nowrap">
-                  Laine & <span className="text-accent underline decoration-accent/30 decoration-2 underline-offset-4">Déco</span>
-                </h2>
+        {/* Brand presentation */}
+        <div className="flex flex-col items-center text-center md:items-start md:text-left mb-8 md:mb-12">
+          <div className="bg-white/10 p-3 sm:p-4 rounded-2xl inline-block group cursor-pointer" onClick={() => onNavigate('home')}>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center p-1.5 bg-gradient-to-br from-accent to-accent/90 text-white rounded-lg shadow-lg border border-white/20 transition-transform group-hover:scale-105">
+                 <Scissors className="h-5 w-5 sm:h-6 sm:w-6 text-white stroke-[2]" />
               </div>
+              <h2 className="text-xl font-serif font-black tracking-tight whitespace-nowrap">
+                Laine & <span className="text-accent underline decoration-accent/30 decoration-2 underline-offset-4">Déco</span>
+              </h2>
             </div>
-            <p className="text-white/70 text-sm leading-relaxed">
-              Créer une atmosphère chaleureuse et authentique dans votre foyer avec nos laines sélectionnées et nos objets de décoration artisanaux.
-            </p>
           </div>
+          <p className="text-white/70 text-xs sm:text-sm leading-relaxed max-w-md mt-3">
+            Créer une atmosphère chaleureuse et authentique dans votre foyer avec nos laines sélectionnées et nos objets de décoration artisanaux.
+          </p>
+        </div>
+
+        {/* Mobile Accordion Style Footer (md:hidden) */}
+        <div className="md:hidden space-y-3 mb-8">
+          {/* Section Boutique */}
+          <div className="rounded-2xl bg-white/10 dark:bg-black/30 border border-white/20 dark:border-white/15 overflow-hidden backdrop-blur-2xl shadow-[0_8px_24px_rgba(0,0,0,0.12),inset_0_1px_1.5px_rgba(255,255,255,0.25)]">
+            <button
+              onClick={() => toggleSection('shop')}
+              className="w-full py-4 px-4 flex items-center justify-between font-bold text-xs uppercase tracking-wider text-white"
+            >
+              <span>Boutique</span>
+              <ChevronDown
+                size={16}
+                className={`transition-transform duration-300 ${openSections.shop ? 'rotate-180 text-accent' : 'text-white/60'}`}
+              />
+            </button>
+            <AnimatePresence initial={false}>
+              {openSections.shop && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="overflow-hidden border-t border-white/10"
+                >
+                  <ul className="py-3 px-4 space-y-2.5 text-xs text-white/80 bg-white/5">
+                    <li><button onClick={() => onNavigate('shop')} className="hover:text-white py-1 block w-full text-left">Toutes les laines</button></li>
+                    <li><button onClick={() => onNavigate('shop')} className="hover:text-white py-1 block w-full text-left">Décoration</button></li>
+                    <li><button onClick={() => onNavigate('shop')} className="hover:text-white py-1 block w-full text-left">Nouveautés</button></li>
+                    <li><button onClick={() => onNavigate('shop')} className="hover:text-white py-1 block w-full text-left">Promotions</button></li>
+                    <li><button onClick={() => onNavigate('packs')} className="hover:text-white py-1 block w-full text-left font-medium text-accent">Packs & Bundles</button></li>
+                  </ul>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Section Applications */}
+          <div className="rounded-2xl bg-white/10 dark:bg-black/30 border border-white/20 dark:border-white/15 overflow-hidden backdrop-blur-2xl shadow-[0_8px_24px_rgba(0,0,0,0.12),inset_0_1px_1.5px_rgba(255,255,255,0.25)]">
+            <button
+              onClick={() => toggleSection('apps')}
+              className="w-full py-4 px-4 flex items-center justify-between font-bold text-xs uppercase tracking-wider text-white"
+            >
+              <span>Applications & Créativité</span>
+              <ChevronDown
+                size={16}
+                className={`transition-transform duration-300 ${openSections.apps ? 'rotate-180 text-accent' : 'text-white/60'}`}
+              />
+            </button>
+            <AnimatePresence initial={false}>
+              {openSections.apps && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="overflow-hidden border-t border-white/10"
+                >
+                  <ul className="py-3 px-4 space-y-2.5 text-xs text-white/80 bg-white/5">
+                    {isFeatureEnabled(siteConfig, 'comparison') && <li><button onClick={() => onNavigate('comparison')} className="hover:text-white py-1 block w-full text-left">Comparateur</button></li>}
+                    {isFeatureEnabled(siteConfig, 'knittingCompanion') && <li><button onClick={() => onNavigate('knitting-companion')} className="hover:text-white py-1 block w-full text-left">Compagnon Tricot</button></li>}
+                    {isFeatureEnabled(siteConfig, 'lookbook') && <li><button onClick={() => onNavigate('lookbook')} className="hover:text-white py-1 block w-full text-left">Lookbook</button></li>}
+                    {isFeatureEnabled(siteConfig, 'customOrder') && <li><button onClick={() => onNavigate('custom-order')} className="hover:text-white py-1 block w-full text-left">Sur Mesure</button></li>}
+                    {isFeatureEnabled(siteConfig, 'patternGenerator') && <li><button onClick={() => onNavigate('pattern-generator')} className="hover:text-white py-1 block w-full text-left">Générateur IA</button></li>}
+                    <li><button onClick={() => onNavigate('configurator')} className="hover:text-white py-1 block w-full text-left">Configurateur</button></li>
+                  </ul>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Section Aide & Outils */}
+          <div className="rounded-2xl bg-white/10 dark:bg-black/30 border border-white/20 dark:border-white/15 overflow-hidden backdrop-blur-2xl shadow-[0_8px_24px_rgba(0,0,0,0.12),inset_0_1px_1.5px_rgba(255,255,255,0.25)]">
+            <button
+              onClick={() => toggleSection('tools')}
+              className="w-full py-4 px-4 flex items-center justify-between font-bold text-xs uppercase tracking-wider text-white"
+            >
+              <span>Aide & Outils</span>
+              <ChevronDown
+                size={16}
+                className={`transition-transform duration-300 ${openSections.tools ? 'rotate-180 text-accent' : 'text-white/60'}`}
+              />
+            </button>
+            <AnimatePresence initial={false}>
+              {openSections.tools && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="overflow-hidden border-t border-white/10"
+                >
+                  <ul className="py-3 px-4 space-y-2.5 text-xs text-white/80 bg-white/5">
+                    {isFeatureEnabled(siteConfig, 'calculator') && <li><button onClick={() => onNavigate('calculator')} className="hover:text-white py-1 block w-full text-left">Calculateur de Laine</button></li>}
+                    {isFeatureEnabled(siteConfig, 'volumeCalculator') && <li><button onClick={() => onNavigate('volume-calculator')} className="hover:text-white py-1 block w-full text-left">Calculateur de Volume</button></li>}
+                    <li><button onClick={() => onNavigate('care-guide')} className="hover:text-white py-1 block w-full text-left">Guide d'Entretien</button></li>
+                    <li><button onClick={() => user ? onNavigate('customer-dashboard') : onNavigate('auth')} className="hover:text-white py-1 block w-full text-left">Mon Compte</button></li>
+                  </ul>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Section À propos & Légal */}
+          <div className="rounded-2xl bg-white/10 dark:bg-black/30 border border-white/20 dark:border-white/15 overflow-hidden backdrop-blur-2xl shadow-[0_8px_24px_rgba(0,0,0,0.12),inset_0_1px_1.5px_rgba(255,255,255,0.25)]">
+            <button
+              onClick={() => toggleSection('about')}
+              className="w-full py-4 px-4 flex items-center justify-between font-bold text-xs uppercase tracking-wider text-white"
+            >
+              <span>À propos & Contact</span>
+              <ChevronDown
+                size={16}
+                className={`transition-transform duration-300 ${openSections.about ? 'rotate-180 text-accent' : 'text-white/60'}`}
+              />
+            </button>
+            <AnimatePresence initial={false}>
+              {openSections.about && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="overflow-hidden border-t border-white/10"
+                >
+                  <ul className="py-3 px-4 space-y-2.5 text-xs text-white/80 bg-white/5">
+                    {isFeatureEnabled(siteConfig, 'about') && <li><button onClick={() => onNavigate('about')} className="hover:text-white py-1 block w-full text-left">À propos</button></li>}
+                    {isFeatureEnabled(siteConfig, 'team') && <li><button onClick={() => onNavigate('team')} className="hover:text-white py-1 block w-full text-left">Notre équipe</button></li>}
+                    {isFeatureEnabled(siteConfig, 'faq') && <li><button onClick={() => onNavigate('faq')} className="hover:text-white py-1 block w-full text-left">FAQ</button></li>}
+                    {isFeatureEnabled(siteConfig, 'contact') && <li><button onClick={() => onNavigate('contact')} className="hover:text-white py-1 block w-full text-left">Nous contacter</button></li>}
+                    <li><button onClick={() => onNavigate('legal')} className="hover:text-white py-1 block w-full text-left">Mentions légales</button></li>
+                    <li><button onClick={() => onNavigate('terms')} className="hover:text-white py-1 block w-full text-left">CGV</button></li>
+                    <li><button onClick={() => onNavigate('privacy')} className="hover:text-white py-1 block w-full text-left">Confidentialité</button></li>
+                  </ul>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Desktop Footer Grid (hidden on mobile, visible from md:) */}
+        <div className="hidden md:grid grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12 mb-12">
           <div>
             <h3 className="font-bold mb-6 uppercase tracking-widest text-xs">Boutique</h3>
             <ul className="space-y-3 text-sm text-white/70">
@@ -560,13 +708,14 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, user }) => {
             </ul>
           </div>
         </div>
-        <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-white/70">
-          <div className="flex flex-col items-center md:items-start gap-2">
+
+        {/* Legal & Copyright */}
+        <div className="border-t border-white/10 pt-6 flex flex-col md:flex-row justify-between items-center text-xs text-white/70 gap-4 text-center md:text-left">
+          <div className="flex flex-col items-center md:items-start gap-1">
             <p>© {new Date().getFullYear()} Laine et Déco. Tous droits réservés.</p>
-            <p>Site réalisé par <span className="font-bold text-white/70">Mouns avec amour</span> | Propriété de <span className="font-bold text-white/70">Laine et Déco</span></p>
-            <p className="font-bold opacity-50 mt-1">Version 1.0.0</p>
+            <p className="opacity-75">Site réalisé avec amour | Propriété de Laine et Déco</p>
           </div>
-          <div className="flex space-x-6 mt-4 md:mt-0">
+          <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
             <button onClick={() => onNavigate('about')} className="hover:text-white transition-colors">À propos</button>
             <button onClick={() => onNavigate('team')} className="hover:text-white transition-colors">Équipe</button>
             <button onClick={() => onNavigate('legal')} className="hover:text-white transition-colors">Mentions légales</button>

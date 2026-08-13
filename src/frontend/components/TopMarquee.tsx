@@ -43,7 +43,7 @@ export const TopMarquee: React.FC<TopMarqueeProps> = () => {
   const items = [...baseItems, ...baseItems, ...baseItems, ...baseItems];
 
   return (
-    <div className="bg-primary text-secondary overflow-hidden py-2 relative z-30 flex w-full">
+    <div className="hidden md:flex bg-primary text-secondary overflow-hidden py-2 relative z-30 w-full">
       <div className="flex w-max animate-marquee">
         {[0, 1].map((setIndex) => (
           <div key={setIndex} className="flex gap-16 items-center pr-16 whitespace-nowrap">
