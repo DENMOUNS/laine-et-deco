@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Sparkles, Truck, HeartHandshake, ShieldCheck, Gift } from 'lucide-react';
+import { Award, Truck, HeartHandshake, ShieldCheck, Gift } from 'lucide-react';
 
 export const HeroTrustWidget: React.FC<{ onNavigate?: (route: string) => void }> = ({ onNavigate }) => {
   return (
@@ -13,7 +13,7 @@ export const HeroTrustWidget: React.FC<{ onNavigate?: (route: string) => void }>
       {/* En-tête du Widget */}
       <div className="flex items-center gap-3 pb-3 border-b border-white/15">
         <div className="p-2.5 rounded-2xl bg-accent/20 text-accent border border-accent/30 shadow-inner">
-          <Sparkles size={20} />
+          <Award size={20} />
         </div>
         <div>
           <h4 className="font-serif text-base font-bold tracking-wide">L'Excellence Artisanale</h4>

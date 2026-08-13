@@ -244,7 +244,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ startOpen = false }) => 
               <div className="bg-primary p-5 text-white flex justify-between items-center shrink-0">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 bg-white/10 rounded-full flex items-center justify-center">
-                    <Sparkles size={18} className="text-accent" aria-hidden="true" />
+                    <MessageCircle size={18} className="text-accent" aria-hidden="true" />
                   </div>
                   <div>
                     <h3 id="chat-assistant-title" className="font-serif text-base leading-tight">Assistant IA</h3>

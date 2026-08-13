@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Check, ShoppingBag, Sparkles } from 'lucide-react';
+import { Check, ShoppingBag, Award } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEntity } from '../hooks/useEntity';
 import { useProducts } from '../hooks/useProducts';
@@ -48,7 +48,7 @@ export const KnittingConfiguratorView: React.FC<KnittingConfiguratorProps> = ({ 
   };
 
   return <div className="mx-auto max-w-7xl px-4 py-12">
-    <header className="mb-12"><p className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.25em] text-accent"><Sparkles size={15} /> Atelier de personnalisation</p><h1 className="text-4xl font-serif font-bold text-primary md:text-5xl">Configurez votre ouvrage</h1><p className="mt-3 max-w-2xl text-primary/65">Choisissez un modèle de notre collection, une laine disponible au catalogue et sa couleur. Votre sélection sera conservée dans la commande.</p></header>
+    <header className="mb-12"><p className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.25em] text-accent"><Award size={15} /> Atelier de personnalisation</p><h1 className="text-4xl font-serif font-bold text-primary md:text-5xl">Configurez votre ouvrage</h1><p className="mt-3 max-w-2xl text-primary/65">Choisissez un modèle de notre collection, une laine disponible au catalogue et sa couleur. Votre sélection sera conservée dans la commande.</p></header>
     {modelsLoading ? <p className="rounded-3xl bg-secondary/30 p-8 text-primary/60">Chargement des modèles…</p> : activeModels.length === 0 ? <p className="rounded-3xl border border-dashed border-primary/15 p-8 text-primary/60">Les modèles sont bientôt disponibles.</p> : <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr]">
       <section className="space-y-6">
         <div className="overflow-hidden rounded-[2.5rem] border border-primary/10 bg-white shadow-sm">

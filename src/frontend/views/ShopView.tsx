@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Filter, Search, ChevronDown, Grid, List as ListIcon, Loader2, Camera, X, Mic, SlidersHorizontal, Sparkles, Recycle } from 'lucide-react';
+import { Filter, Search, ChevronDown, Grid, List as ListIcon, Loader2, Camera, X, Mic, SlidersHorizontal, Tag, Recycle, Zap } from 'lucide-react';
 import { toast as sonnerToast } from 'sonner';
 
 import { useEntity } from '../hooks/useEntity';
@@ -57,7 +57,7 @@ const FilterContent: React.FC<FilterContentProps> = ({
   <div className="space-y-10">
     <div>
       <h3 className="font-bold uppercase tracking-widest text-xs mb-6 flex items-center">
-        <Sparkles size={14} className="mr-2 text-accent" /> Nouveautés
+        <Zap size={14} className="mr-2 text-accent" /> Nouveautés
       </h3>
       <button
         onClick={() => setOnlyNewArrivals(!onlyNewArrivals)}
@@ -77,7 +77,7 @@ const FilterContent: React.FC<FilterContentProps> = ({
       <div className="grid grid-cols-1 gap-2">
         {[
           { id: 'Tous', label: 'Tous les articles', icon: null },
-          { id: 'new', label: 'Articles Neufs', icon: <Sparkles size={12} /> },
+          { id: 'new', label: 'Articles Neufs', icon: <Tag size={12} /> },
           { id: 'second-hand', label: 'Deuxième Main', icon: <Recycle size={12} /> }
         ].map(cond => (
           <button

@@ -10,7 +10,7 @@ interface TopMarqueeProps {
 
 const iconMap: Record<string, typeof Package> = {
   Package,
-  Sparkles,
+  Sparkles: Star,
   Heart,
   Star,
   Truck,

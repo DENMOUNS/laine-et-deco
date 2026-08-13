@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Package, Plus, Minus, ShoppingBag, Sparkles, ArrowRight, Check } from 'lucide-react';
+import { Package, Plus, Minus, ShoppingBag, Tag, ArrowRight, Check } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { toast } from 'sonner';
 import { Product } from '../../types';
@@ -167,7 +167,7 @@ export const CustomPackBuilderView: React.FC<CustomPackBuilderViewProps> = ({ on
               {discount > 0 && (
                 <div className="flex justify-between text-accent font-bold">
                   <span className="flex items-center gap-2">
-                    <Sparkles size={14} /> Remise Pack (-{discount * 100}%)
+                    <Tag size={14} /> Remise Pack (-{discount * 100}%)
                   </span>
                   <span>-{(totalPrice * discount).toLocaleString()} FCFA</span>
                 </div>

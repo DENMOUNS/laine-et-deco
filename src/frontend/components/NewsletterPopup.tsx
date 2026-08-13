@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Mail, Sparkles } from 'lucide-react';
+import { X, Mail, Gift } from 'lucide-react';
 import { SiteConfig } from '../../types';
 import { Button } from './ui/Button';
 
@@ -78,7 +78,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({ config }) => {
               {!isSubscribed ? (
                 <>
                   <div className="flex items-center gap-2 text-accent font-bold uppercase tracking-widest text-[10px] mb-4">
-                    <Sparkles size={14} />
+                    <Gift size={14} />
                     <span>Offre Exclusive</span>
                   </div>
                   <h2 className="text-3xl font-serif text-primary mb-4 leading-tight">
@@ -118,7 +118,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({ config }) => {
                   className="text-center"
                 >
                   <div className="w-20 h-20 bg-green-50 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Sparkles size={40} />
+                    <Gift size={40} />
                   </div>
                   <h2 className="text-2xl font-serif text-primary mb-2">Bienvenue parmi nous !</h2>
                   <p className="text-primary/70 text-sm mb-6">

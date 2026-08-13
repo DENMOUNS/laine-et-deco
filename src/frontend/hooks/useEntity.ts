@@ -106,10 +106,12 @@ export function useEntity<T extends BaseEntity = BaseEntity>(
       
       if (CACHEABLE_ENTITIES.includes(resolvedEntityType)) {
         cached = await readEntityCache<T[]>(resolvedEntityType);
-        if (cached && !cancelled) {
+        if (cached && cached.length > 0 && !cancelled) {
           setData(cached);
           setIsLoading(false);
           cacheTime = await import('../utils/cacheStorage').then(m => m.readCacheCreatedAt(cacheKey));
+        } else {
+          cached = null;
         }
       }
 

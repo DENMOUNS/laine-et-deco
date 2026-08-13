@@ -115,12 +115,12 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
     }
   }, [isHeroLoading, isMarqueeReady]);
 
-  // Étape 3 : Chargement de toutes les autres entités une fois Marquee ET Hero Banner chargés
+  // Étape 3 : Chargement immédiat de toutes les entités
   const { products: fetchedProducts, isLoading: isProductsLoading, error: productsError } = useProducts({
-    enabled: isAllReady,
+    enabled: true,
   });
   const PRODUCTS = fetchedProducts;
-  const secondaryOpts = { enabled: isAllReady };
+  const secondaryOpts = { enabled: true };
   const { data: CATEGORIES, isLoading: isCategoriesLoading, error: categoriesError } = useStaticEntity<any>('category', [], secondaryOpts);
   const { data: BLOG_POSTS, isLoading: isBlogLoading, error: blogError } = useStaticEntity<any>('blog_post', [], secondaryOpts);
   const { data: PACKS, isLoading: isPacksLoading, error: packsError } = useStaticEntity<any>('pack', [], secondaryOpts);
@@ -1006,7 +1006,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
               <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
                 <div className="w-full md:w-1/2 space-y-4 sm:space-y-6 text-left">
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent text-[11px] sm:text-xs font-bold uppercase tracking-widest">
-                    <Sparkles size={13} />
                     <span>Création d'Exception</span>
                   </div>
                   <h2 className="text-2xl sm:text-4xl md:text-5xl font-serif text-primary leading-tight">{featuredProduct.name}</h2>
@@ -1181,7 +1180,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 auto-rows-[160px] sm:auto-rows-[220px] md:auto-rows-[300px]">
           {isCategoriesLoading || categoriesError ? [0, 1, 2, 3].map((i) => (
             <CategorySkeleton key={i} className={i === 0 ? 'md:col-span-2 md:row-span-2' : i === 3 ? 'md:row-span-2' : ''} />
-          )) : (featuredCategories.length > 0 ? featuredCategories : CATEGORIES.slice(0, 4)).map((cat, i) => {
+          )) : (featuredCategories.length > 0 ? featuredCategories : CATEGORIES).slice(0, 4).map((cat, i) => {
             const isLarge = i === 0;
             const isTall = i === 3;
             return (
@@ -1214,6 +1213,35 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
               </motion.div>
             );
           })}
+        </div>
+      </section>
+      )}
+
+      {/* Nos Coups de Cœur (Max 6 derniers) */}
+      {(isProductsLoading || productsError || PRODUCTS.length > 0) && (
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-12">
+        <div className="flex justify-between items-end mb-6 md:mb-10">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-widest text-accent mb-1 sm:mb-2 block">Incontournables</span>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif">Nos Coups de Cœur</h2>
+          </div>
+          <button onClick={() => onNavigate('shop')} className="text-primary font-bold text-xs sm:text-sm md:text-base border-b-2 border-primary/20 hover:border-accent hover:text-accent transition-all pb-1">
+            Voir toute la boutique
+          </button>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 md:gap-5">
+          {isProductsLoading || productsError ? [0, 1, 2, 3, 4, 5].map((i) => <ProductSkeleton key={i} />) : (featuredProducts.length > 0 ? featuredProducts : PRODUCTS).slice(0, 6).map((product) => (
+            <ProductCard 
+              key={product.id}
+              product={product} 
+              onAddToCart={onAddToCart}
+              onAddToWishlist={onAddToWishlist}
+              onQuickView={onQuickView}
+              onClick={onProductClick}
+              onAddToComparison={onAddToComparison}
+              events={events}
+            />
+          ))}
         </div>
       </section>
       )}
@@ -1611,25 +1639,49 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
         </section>
       ))}
 
-      {/* Newsletter / CTA */}
+      {/* Newsletter / CTA Redesigned */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-primary rounded-[3rem] p-12 md:p-24 text-center text-white relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl translate-x-1/4 translate-y-1/4" />
+        <div className="bg-gradient-to-r from-stone-900 via-primary to-stone-900 rounded-3xl sm:rounded-[2.5rem] p-6 sm:p-8 md:p-10 text-white relative overflow-hidden border border-amber-500/20 shadow-xl">
+          <div className="absolute top-0 right-0 w-72 h-72 bg-accent/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary/20 rounded-full blur-2xl pointer-events-none" />
           
-          <div className="relative z-10 max-w-2xl mx-auto">
-            <h2 className="text-4xl md:text-5xl font-serif mb-6">Rejoignez la communauté Laine&Déco</h2>
-            <p className="text-white/70 mb-10 text-lg">Recevez 10% de réduction sur votre première commande et restez informé de nos nouveaux arrivages.</p>
-            <form className="flex flex-col sm:flex-row gap-4">
-              <input
-                type="email"
-                placeholder="Votre adresse email"
-                className="flex-grow bg-white/10 border border-white/20 rounded-full px-8 py-4 focus:outline-none focus:border-white transition-colors"
-              />
-              <button className="bg-accent text-white px-10 py-4 rounded-full font-bold hover:bg-white hover:text-primary transition-all duration-300">
-                S'abonner
-              </button>
-            </form>
+          <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-6 lg:gap-10">
+            <div className="text-center lg:text-left space-y-2 max-w-xl">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/20 text-amber-300 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
+                <span>Club Privilège Laine & Déco</span>
+              </div>
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-serif text-white leading-tight">Rejoignez la communauté</h2>
+              <p className="text-xs sm:text-sm text-stone-300/90 leading-relaxed">
+                Profitez de <span className="text-amber-300 font-bold">-10% sur votre première commande</span> et recevez nos tutoriels créatifs & ventes privées en avant-première.
+              </p>
+            </div>
+
+            <div className="w-full lg:w-auto shrink-0 max-w-md">
+              <form 
+                onSubmit={(e) => { 
+                  e.preventDefault(); 
+                  toast.success("Merci ! Votre inscription à la communauté est confirmée. Vérifiez vos emails pour votre code promo de -10%."); 
+                }} 
+                className="relative flex items-center group w-full"
+              >
+                <input
+                  type="email"
+                  required
+                  placeholder="Votre adresse email..."
+                  className="w-full bg-white/10 dark:bg-black/40 border border-white/20 rounded-full py-3 sm:py-3.5 pl-4 sm:pl-5 pr-28 sm:pr-32 text-xs sm:text-sm text-white placeholder:text-white/60 focus:outline-none focus:border-amber-400 focus:bg-black/30 transition-all shadow-inner"
+                />
+                <button
+                  type="submit"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-accent hover:bg-amber-400 text-primary font-bold text-xs sm:text-sm px-4 sm:px-5 py-2 rounded-full transition-all shadow-md active:scale-95 flex items-center gap-1.5 whitespace-nowrap"
+                >
+                  <span>S'abonner</span>
+                  <ArrowRight size={13} />
+                </button>
+              </form>
+              <p className="text-[10px] text-stone-400/70 mt-2 text-center lg:text-left">
+                Pas de spam. Désinscription possible à tout moment.
+              </p>
+            </div>
           </div>
         </div>
       </section>
