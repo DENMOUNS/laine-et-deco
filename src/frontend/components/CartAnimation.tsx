@@ -9,6 +9,15 @@ export const CartAnimation: React.FC<CartAnimationProps> = ({ cartCount }) => {
   const [animations, setAnimations] = useState<{ id: number }[]>([]);
   const [prevCount, setPrevCount] = useState(cartCount);
 
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   useEffect(() => {
     if (cartCount > prevCount) {
       // Trigger animation
@@ -29,25 +38,45 @@ export const CartAnimation: React.FC<CartAnimationProps> = ({ cartCount }) => {
         {animations.map((anim) => (
           <motion.div
             key={anim.id}
-            initial={{ 
-              x: '50vw', 
-              y: '80vh', 
-              scale: 0.5, 
-              opacity: 0,
-              rotate: 0 
-            }}
-            animate={{ 
-              x: 'calc(100vw - 80px)', // roughly where the cart icon is on desktop
-              y: '30px', 
-              scale: [0.5, 1.5, 1], 
-              opacity: [0, 1, 1, 0],
-              rotate: 720
-            }}
+            initial={
+              isMobile
+                ? { 
+                    x: '45vw', 
+                    y: '25vh', 
+                    scale: 0.4, 
+                    opacity: 0,
+                    rotate: 0 
+                  }
+                : { 
+                    x: '50vw', 
+                    y: '80vh', 
+                    scale: 0.5, 
+                    opacity: 0,
+                    rotate: 0 
+                  }
+            }
+            animate={
+              isMobile
+                ? { 
+                    x: 'calc(50vw + 65px)', // perfectly enters the mobile navigation dock 'Panier' icon
+                    y: 'calc(100vh - 42px)', 
+                    scale: [0.4, 1.3, 0.9, 0.4], 
+                    opacity: [0, 1, 1, 0],
+                    rotate: 720
+                  }
+                : { 
+                    x: 'calc(100vw - 80px)', // roughly where the cart icon is on desktop
+                    y: '30px', 
+                    scale: [0.5, 1.5, 1, 0.5], 
+                    opacity: [0, 1, 1, 0],
+                    rotate: 720
+                  }
+            }
             exit={{ opacity: 0, scale: 0 }}
             transition={{ 
               duration: 1.2, 
               ease: "easeInOut",
-              times: [0, 0.4, 0.8, 1]
+              times: [0, 0.3, 0.8, 1]
             }}
             className="absolute rounded-full shadow-lg"
           >

@@ -8,6 +8,7 @@ import { DEFAULT_NAV_ITEMS } from '../siteDefaults';
 import { getStaticEntityCacheKey, readCache, writeCache, getTTLForEntity } from './utils/cacheStorage';
 import { dispatchNetworkIssue, getNetworkWarningMessage } from './utils/networkStatus';
 import { AppRoutes } from './components/AppRoutes';
+import { useThemeStore } from '../stores/themeStore';
 
 const HOME_CACHE_COLLECTIONS = [
   { name: 'product', max: 24 },
@@ -157,6 +158,7 @@ function useDeferredConfigSync() {
 
 export function App() {
   useDeferredConfigSync();
+  const theme = useThemeStore((s) => s.theme); // Force React-binding/re-render on theme change at root level
 
   const initAuthListener = useAuthStore((s) => s.initAuthListener);
   const networkWarningShownRef = useRef(false);

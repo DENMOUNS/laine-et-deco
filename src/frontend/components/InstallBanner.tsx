@@ -59,15 +59,15 @@ export const InstallBanner: React.FC<InstallBannerProps> = ({ showInstallBanner,
           initial={{ height: 0, opacity: 0 }}
           animate={{ height: 'auto', opacity: 1 }}
           exit={{ height: 0, opacity: 0 }}
-          className="bg-primary/95 backdrop-blur-xl text-white md:hidden overflow-hidden border-b border-white/10"
+          className="bg-[#3E4A3D] dark:bg-[#1A1D1A] text-white md:hidden overflow-hidden border-b border-white/10"
         >
           <div className="px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white/15 rounded-xl flex items-center justify-center shadow-inner">
-                <Smartphone size={20} className="text-accent" />
+                <Smartphone size={20} className="text-[#E2C29B]" />
               </div>
               <div>
-                <p className="text-sm font-bold tracking-tight">Laine et Déco App</p>
+                <p className="text-sm font-bold tracking-tight text-white">Laine et Déco App</p>
                 <p className="text-[10px] text-white/80">Accès rapide & expérience fluide</p>
               </div>
             </div>
@@ -77,7 +77,7 @@ export const InstallBanner: React.FC<InstallBannerProps> = ({ showInstallBanner,
                 size="sm"
                 aria-label="Installer l'application"
                 onClick={handleInstallClick}
-                className="text-xs font-bold bg-white text-primary hover:bg-white/90 px-3.5 py-1.5 rounded-full h-auto shadow-md"
+                className="text-xs font-bold bg-[#E2C29B] text-[#111311] hover:bg-white hover:text-[#111311] px-3.5 py-1.5 rounded-full h-auto shadow-md transition-colors"
               >
                 Installer
               </Button>

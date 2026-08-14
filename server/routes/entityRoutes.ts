@@ -65,13 +65,16 @@ const logEntity = (requestId: string | undefined, message: string, meta: Record<
 };
 
 const logEntityError = (requestId: string | undefined, message: string, error: any, meta: Record<string, unknown> = {}) => {
-  const isQuota = error && (
+  const msg = String(error?.message || '').toLowerCase();
+  const isFallbackError = msg.includes('cached fallback mode active') || msg.includes('fallback cache-only mode');
+
+  const isQuota = !isFallbackError && error && (
     error.code === 8 || 
     error.status === 8 ||
     error.code === 'RESOURCE_EXHAUSTED' ||
-    String(error.message || '').toLowerCase().includes('quota') ||
-    String(error.message || '').toLowerCase().includes('resource_exhausted') ||
-    String(error.message || '').toLowerCase().includes('limit exceeded')
+    msg.includes('quota') ||
+    msg.includes('resource_exhausted') ||
+    msg.includes('limit exceeded')
   );
 
   if (isQuota) {
@@ -105,10 +108,16 @@ const QUOTA_EXHAUSTED_COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes
 
 const isQuotaError = (err: any): boolean => {
   if (!err) return false;
+  const msg = String(err.message || '').toLowerCase();
+  
+  // EXPLICITLY ignore our own self-inflicted fallback/cached mode errors to prevent self-reinforcing loops
+  if (msg.includes('cached fallback mode active') || msg.includes('fallback cache-only mode')) {
+    return false;
+  }
+
   const code = err.code || err.status;
   if (code === 8 || code === 'RESOURCE_EXHAUSTED') return true;
-  const msg = String(err.message || '').toLowerCase();
-  return msg.includes('quota') || msg.includes('resource_exhausted') || msg.includes('resource_exhausted') || msg.includes('limit exceeded');
+  return msg.includes('quota') || msg.includes('resource_exhausted') || msg.includes('limit exceeded');
 };
 
 const checkQuotaStatus = () => {
@@ -243,13 +252,23 @@ const readPublicEntity = async (req: AuthenticatedRequest, res: Response, entity
         markQuotaExhausted();
       }
       logEntityError(req.requestId, 'public:read:admin-failed', adminError, { entity, collectionName, id });
-      // Continue au fallback cache
+      
+      // En cas d'erreur de la BDD, utiliser le staleCache s'il existe
+      if (staleCache !== null && !isEmptyPublicList(staleCache)) {
+        logEntity(req.requestId, 'public:read:cache-fallback-on-error', { entity, collectionName, id });
+        return sendPublicReadResponse(res, staleCache);
+      }
+
+      // Si aucune donnée en cache et la BDD a échoué, retourner une erreur 503 au lieu d'un faux 200 []
+      return res.status(503).json({ error: `Database temporarily unavailable for ${entity}` });
     }
   }
 
-  const defaultResult = id ? null : [];
-  logEntity(req.requestId, 'public:read:empty-fallback', { entity, id, defaultResultType: id ? 'null' : 'array' });
-  return sendPublicReadResponse(res, defaultResult);
+  if (staleCache !== null && !isEmptyPublicList(staleCache)) {
+    return sendPublicReadResponse(res, staleCache);
+  }
+
+  return res.status(503).json({ error: `Database backend unavailable for ${entity}` });
 };
 
 router.use((req: AuthenticatedRequest, res, next) => {

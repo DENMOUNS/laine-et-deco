@@ -107,7 +107,7 @@ export const VolumeCalculatorView: React.FC<VolumeCalculatorViewProps> = ({ onNa
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-20 items-start">
         {/* Left Side: Form */}
         <div className="space-y-8">
           <div>

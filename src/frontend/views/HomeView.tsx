@@ -104,6 +104,24 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
   const isLookbookEnabled = isFeatureEnabled({ featureFlags: siteConfig.featureFlags }, 'lookbook');
   const isBlogEnabled = isFeatureEnabled({ featureFlags: siteConfig.featureFlags }, 'blog');
 
+  // ── Mobile Landscape detector ──
+  const [isMobileLandscape, setIsMobileLandscape] = React.useState(false);
+
+  React.useEffect(() => {
+    const handleResize = () => {
+      setIsMobileLandscape(
+        window.innerWidth < 768 && window.innerWidth > window.innerHeight
+      );
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
+  }, []);
+
   // Étape 2 : Chargement du Hero Banner via le Repository & Use-case dédié
   const { data: rawHeroBanners, isLoading: isHeroLoading } = useHeroBannersService({
     enabled: isMarqueeReady,
@@ -208,7 +226,28 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
   const featuredProducts = PRODUCTS.filter(p => siteConfig.homeFeaturedProducts.includes(p.id));
   const featuredCategories = CATEGORIES.filter(c => siteConfig.homeFeaturedCategories.includes(c.id));
 
-  const activeFlashSale = activeFlashSales[0];
+  const activeFlashSale = React.useMemo(() => {
+    if (activeFlashSales.length > 0) return activeFlashSales[0];
+    if (PRODUCTS.length > 0) {
+      const targetProduct = PRODUCTS.find(p => p.price && p.price > 0) || PRODUCTS[0];
+      return {
+        id: 'fallback-flash',
+        name: 'Vente Flash Exceptionnelle',
+        status: 'active',
+        endDate: new Date(Date.now() + 1000 * 60 * 60 * 7).toISOString(), // 7 hours from now
+        items: [
+          {
+            productId: targetProduct.id,
+            flashPrice: targetProduct.salePrice || Math.round(targetProduct.price * 0.7), // 30% discount
+            totalQuantity: 15,
+            soldQuantity: 3
+          }
+        ]
+      } as FlashSale;
+    }
+    return null;
+  }, [activeFlashSales, PRODUCTS]);
+
   const flashSaleEndDate = activeFlashSale ? activeFlashSale.endDate : new Date(Date.now() + 1000 * 60 * 60 * 5).toISOString();
   const flashSaleProduct = PRODUCTS.find(p => activeFlashSale?.items?.some(i => i.productId === p.id)) || null;
   const flashSalePrice = flashSaleProduct
@@ -434,7 +473,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                   <div className="pt-2">
                     <button 
                       onClick={() => onNavigate(currentHeroSlide.link || 'shop')}
-                      className="bg-white text-slate-900 px-6 sm:px-8 py-3 sm:py-4 rounded-full font-bold hover:bg-accent hover:text-white transition-all duration-300 inline-flex items-center group shadow-xl animate-shine text-sm sm:text-base cursor-pointer"
+                      className="bg-[#ffffff] text-[#111311] px-6 sm:px-8 py-3 sm:py-4 rounded-full font-bold hover:bg-[#E2C29B] hover:text-[#111311] transition-all duration-300 inline-flex items-center group shadow-xl animate-shine text-sm sm:text-base cursor-pointer"
                     >
                       {currentHeroSlide.ctaText}
                       <ArrowRight className="ml-3 group-hover:translate-x-1 transition-transform" size={18} />
@@ -717,8 +756,12 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
       </section>
 
       {/* ── Mobile Story Highlights (Découverte Express Mobile) ── */}
-      <section className="md:hidden px-3 -mt-4 sm:-mt-8">
-        <div className="flex items-center gap-3 overflow-x-auto pb-2 pt-1 no-scrollbar snap-x snap-mandatory">
+      <section className={`md:hidden px-3 transition-all duration-300 ${
+        isMobileLandscape ? '-mt-2 mb-2 flex justify-center w-full' : '-mt-4 sm:-mt-8'
+      }`}>
+        <div className={`flex items-center overflow-x-auto no-scrollbar snap-x snap-mandatory transition-all duration-300 ${
+          isMobileLandscape ? 'gap-2 pb-1 pt-0.5 justify-center w-full max-w-full' : 'gap-3 pb-2 pt-1 w-full'
+        }`}>
           {[
             { label: 'Laines', icon: '🧶', view: 'shop', query: 'Laine', bg: 'from-amber-400 to-orange-500' },
             { label: 'Déco', icon: '🏺', view: 'shop', query: 'Décoration', bg: 'from-rose-400 to-pink-600' },
@@ -732,14 +775,20 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
               key={idx}
               whileTap={{ scale: 0.92 }}
               onClick={() => onNavigate(item.view, undefined, item.query)}
-              className="flex flex-col items-center gap-1.5 snap-start shrink-0 focus:outline-none group"
+              className="flex flex-col items-center gap-1 snap-start shrink-0 focus:outline-none group"
             >
-              <div className={`w-14 h-14 rounded-full p-[2px] bg-gradient-to-tr ${item.bg} shadow-sm group-hover:shadow-md transition-shadow`}>
-                <div className="w-full h-full rounded-full bg-white dark:bg-slate-900 flex items-center justify-center text-xl backdrop-blur-sm group-hover:scale-105 transition-transform">
+              <div className={`rounded-full p-[1.5px] bg-gradient-to-tr ${item.bg} shadow-sm group-hover:shadow-md transition-all duration-300 ${
+                isMobileLandscape ? 'w-11 h-11' : 'w-14 h-14'
+              }`}>
+                <div className={`w-full h-full rounded-full bg-white dark:bg-slate-900 flex items-center justify-center backdrop-blur-sm group-hover:scale-105 transition-transform duration-300 ${
+                  isMobileLandscape ? 'text-base' : 'text-xl'
+                }`}>
                   <span>{item.icon}</span>
                 </div>
               </div>
-              <span className="text-[11px] font-semibold tracking-tight text-primary/85 dark:text-white/90 truncate max-w-[62px]">
+              <span className={`font-semibold tracking-tight text-primary/85 dark:text-white/90 truncate transition-all duration-300 ${
+                isMobileLandscape ? 'text-[9px] max-w-[50px]' : 'text-[11px] max-w-[62px]'
+              }`}>
                 {item.label}
               </span>
             </motion.button>
@@ -751,7 +800,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
       {activeFlashSale && flashSaleProduct && (
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* ── Mobile Flash Sale Layout ── */}
-        <div className="md:hidden bg-gradient-to-br from-primary via-primary/95 to-slate-900 rounded-[2rem] p-5 relative overflow-hidden text-white shadow-xl border border-primary/20">
+        <div className="md:hidden bg-gradient-to-br from-[#3E4A3D] via-[#2F392E] to-slate-900 rounded-[2rem] p-5 relative overflow-hidden text-white shadow-xl border border-white/10">
           {/* Subtle Ambient Glow */}
           <div className="absolute -top-12 -right-12 w-40 h-40 bg-accent/20 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute -bottom-12 -left-12 w-40 h-40 bg-white/5 rounded-full blur-3xl pointer-events-none" />
@@ -818,7 +867,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
         </div>
 
         {/* ── Desktop / Tablet Flash Sale Layout ── */}
-        <div className="hidden md:block bg-primary rounded-[3rem] overflow-hidden relative">
+        <div className="hidden md:block bg-[#3E4A3D] dark:bg-[#1A1D1A] border border-white/5 rounded-[3rem] overflow-hidden relative shadow-2xl">
           <div className="absolute top-0 right-0 w-1/2 h-full bg-primary/10 skew-x-12 translate-x-1/4" />
           <div className="relative z-10 flex flex-col lg:flex-row items-center">
             <div className="w-full lg:w-1/2 p-12 md:p-20 space-y-8">
@@ -1641,7 +1690,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
 
       {/* Newsletter / CTA Redesigned */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-gradient-to-r from-stone-900 via-primary to-stone-900 rounded-3xl sm:rounded-[2.5rem] p-6 sm:p-8 md:p-10 text-white relative overflow-hidden border border-amber-500/20 shadow-xl">
+        <div className="bg-gradient-to-r from-[#2C3E35] via-[#3E4A3D] to-[#2C3E35] dark:from-[#1C1F1C] dark:via-[#141614] dark:to-[#0D0F0D] rounded-3xl sm:rounded-[2.5rem] p-6 sm:p-8 md:p-10 text-white relative overflow-hidden border border-amber-500/20 dark:border-white/10 shadow-xl">
           <div className="absolute top-0 right-0 w-72 h-72 bg-accent/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary/20 rounded-full blur-2xl pointer-events-none" />
           

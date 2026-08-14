@@ -51,6 +51,11 @@ export const PromotionsView: React.FC<PromotionsViewProps> = ({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
+              className={
+                promoProducts.length % 2 !== 0 && index === promoProducts.length - 1
+                  ? 'col-span-2 sm:col-span-1'
+                  : ''
+              }
             >
               <ProductCard 
                 product={product}
@@ -58,6 +63,7 @@ export const PromotionsView: React.FC<PromotionsViewProps> = ({
                 onAddToWishlist={onAddToWishlist}
                 onQuickView={onQuickView}
                 onClick={() => onNavigate('product-detail', product.id)}
+                isFullWidthOnMobile={promoProducts.length % 2 !== 0 && index === promoProducts.length - 1}
               />
             </motion.div>
           ))}

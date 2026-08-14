@@ -89,7 +89,7 @@ export const CalculatorView: React.FC<CalculatorViewProps> = ({ onNavigate, onAd
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-20 items-start">
         {/* Left Side: Form */}
         <div className="space-y-8">
           <div>
@@ -99,12 +99,12 @@ export const CalculatorView: React.FC<CalculatorViewProps> = ({ onNavigate, onAd
             </p>
           </div>
 
-          <div className="bg-white p-8 rounded-[2.5rem] border border-primary/10 shadow-xl shadow-primary/5 space-y-10">
+          <div className="bg-white md:clay-tactile p-8 md:p-10 rounded-[2.5rem] border border-primary/10 shadow-xl shadow-primary/5 space-y-10">
             
             {/* Project type */}
             <div className="space-y-4">
               <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 block">Quel est votre projet ?</label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3.5">
                 {GARMENT_OPTIONS.map((g, idx) => {
                   const Icon = g.icon;
                   return (
@@ -114,14 +114,14 @@ export const CalculatorView: React.FC<CalculatorViewProps> = ({ onNavigate, onAd
                         setGarment(g);
                         setSurface(Math.round(g.baseSurface * (['sweater-f', 'sweater-m', 'cardigan', 'baby-sweater'].includes(g.id) ? SIZE_FACTORS[size] : 1)));
                       }}
-                      className={`p-4 rounded-xl flex flex-col items-center justify-center transition-all border-2 text-center gap-2 ${
+                      className={`p-4 rounded-2xl flex flex-col items-center justify-center transition-all border-2 text-center gap-2.5 ${
                         garment.id === g.id 
-                          ? 'border-[#e26d24] bg-[#e26d24]/5 text-[#e26d24]' 
-                          : 'border-primary/5 hover:border-primary/20 text-primary'
+                          ? 'border-accent bg-accent/10 text-accent font-bold shadow-sm' 
+                          : 'border-primary/5 hover:border-primary/20 text-primary bg-secondary/30'
                       }`}
                     >
-                      <Icon size={20} className={garment.id === g.id ? 'text-[#e26d24]' : 'text-primary/70'} />
-                      <span className="font-bold text-xs">{g.name}</span>
+                      <Icon size={22} className={garment.id === g.id ? 'text-accent' : 'text-primary/70'} />
+                      <span className="text-xs">{g.name}</span>
                     </button>
                   );
                 })}
@@ -140,10 +140,10 @@ export const CalculatorView: React.FC<CalculatorViewProps> = ({ onNavigate, onAd
                         setSize(s);
                         setSurface(Math.round(garment.baseSurface * (needsSize ? SIZE_FACTORS[s] : 1)));
                       }}
-                      className={`flex-1 py-3 rounded-xl border-2 transition-all font-bold text-sm ${
+                      className={`flex-1 py-3.5 rounded-2xl border-2 transition-all font-bold text-sm ${
                         size === s 
-                          ? 'border-[#e26d24] bg-[#e26d24]/5 text-[#e26d24]' 
-                          : 'border-primary/5 hover:border-primary/20 text-primary'
+                          ? 'border-accent bg-accent/10 text-accent shadow-sm' 
+                          : 'border-primary/5 hover:border-primary/20 text-primary bg-secondary/30'
                       }`}
                     >
                       {s}
@@ -158,7 +158,7 @@ export const CalculatorView: React.FC<CalculatorViewProps> = ({ onNavigate, onAd
               <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 block">Quelle laine ?</label>
               <div className="relative">
                 <select 
-                  className="w-full p-4 rounded-2xl bg-[#eff3fd]/30 border border-primary/10 focus:outline-none focus:border-[#e26d24] text-primary font-bold appearance-none cursor-pointer"
+                  className="w-full p-4 rounded-2xl bg-secondary/40 border border-primary/10 focus:outline-none focus:border-accent text-primary font-bold appearance-none cursor-pointer"
                   value={yarn?.id || ''}
                   onChange={(e) => setYarnId(e.target.value)}
                 >
@@ -176,29 +176,29 @@ export const CalculatorView: React.FC<CalculatorViewProps> = ({ onNavigate, onAd
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 block">Surface totale du projet (cm²)</label>
-                <input type="number" min="1" step="100" value={surface} onChange={e => setSurface(Math.max(0, Number(e.target.value)))} className="w-full p-4 rounded-2xl bg-[#eff3fd]/30 border border-primary/10 focus:outline-none focus:border-[#e26d24] text-primary font-bold" />
+                <input type="number" min="1" step="100" value={surface} onChange={e => setSurface(Math.max(0, Number(e.target.value)))} className="w-full p-4 rounded-2xl bg-secondary/40 border border-primary/10 focus:outline-none focus:border-accent text-primary font-bold" />
                 <p className="text-xs text-primary/60">Valeur indicative : {recommendedSurface} cm². Remplacez-la par la surface de votre patron.</p>
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 block">Métrage mesuré pour 10 × 10 cm</label>
-                <input type="number" min="0.1" step="0.1" value={sampleMeters} onChange={e => setSampleMeters(Math.max(0, Number(e.target.value)))} className="w-full p-4 rounded-2xl bg-[#eff3fd]/30 border border-primary/10 focus:outline-none focus:border-[#e26d24] text-primary font-bold" />
+                <input type="number" min="0.1" step="0.1" value={sampleMeters} onChange={e => setSampleMeters(Math.max(0, Number(e.target.value)))} className="w-full p-4 rounded-2xl bg-secondary/40 border border-primary/10 focus:outline-none focus:border-accent text-primary font-bold" />
                 <p className="text-xs text-primary/60">Défaites un carré tricoté de 10 × 10 cm et mesurez la laine utilisée.</p>
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 block">Échantillon : mailles / 10 cm</label>
-                <input type="number" min="1" step="1" value={stitchesPer10} onChange={e => setStitchesPer10(Math.max(0, Number(e.target.value)))} className="w-full p-4 rounded-2xl bg-[#eff3fd]/30 border border-primary/10 focus:outline-none focus:border-[#e26d24] text-primary font-bold" />
+                <input type="number" min="1" step="1" value={stitchesPer10} onChange={e => setStitchesPer10(Math.max(0, Number(e.target.value)))} className="w-full p-4 rounded-2xl bg-secondary/40 border border-primary/10 focus:outline-none focus:border-accent text-primary font-bold" />
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 block">Échantillon : rangs / 10 cm</label>
-                <input type="number" min="1" step="1" value={rowsPer10} onChange={e => setRowsPer10(Math.max(0, Number(e.target.value)))} className="w-full p-4 rounded-2xl bg-[#eff3fd]/30 border border-primary/10 focus:outline-none focus:border-[#e26d24] text-primary font-bold" />
+                <input type="number" min="1" step="1" value={rowsPer10} onChange={e => setRowsPer10(Math.max(0, Number(e.target.value)))} className="w-full p-4 rounded-2xl bg-secondary/40 border border-primary/10 focus:outline-none focus:border-accent text-primary font-bold" />
               </div>
             </div>
 
-            <div className="bg-[#eff3fd] border border-blue-100 p-4 rounded-xl flex gap-3 text-[#2d5db0] text-sm items-start">
-              <div className="mt-0.5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></div>
+            <div className="bg-accent/10 border border-accent/20 p-5 rounded-2xl flex gap-3.5 text-primary text-sm items-start">
+              <div className="mt-0.5 text-accent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></div>
               <p>Formule tricot : mailles du projet × mètres par maille × 1,10. Les mailles et les rangs de l’échantillon intègrent la tension et le point ; les 10 % couvrent les finitions et la perte de matière.</p>
             </div>
 
@@ -210,7 +210,7 @@ export const CalculatorView: React.FC<CalculatorViewProps> = ({ onNavigate, onAd
           key={garment.id + size + (yarn?.id || 'no-yarn')}
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-[#5c5e46] text-[#F9F7F2] p-10 lg:p-14 rounded-[3rem] shadow-2xl relative overflow-hidden"
+          className="bg-[#5c5e46] text-[#F9F7F2] p-10 lg:p-14 rounded-[3rem] shadow-2xl relative overflow-hidden clay-tactile border border-white/20"
         >
           {/* Subtle decoration */}
           <div className="absolute top-0 right-0 p-8 opacity-20">

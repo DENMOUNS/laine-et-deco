@@ -169,13 +169,13 @@ export const CartView: React.FC<CartViewProps> = ({
               <ShoppingBag className="text-accent" size={20} />
               <span className="font-serif font-bold text-lg">Code Promo</span>
             </div>
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <input 
                 type="text" 
                 placeholder="Entrez votre code (ex: BIENVENUE10)" 
-                className="flex-grow px-6 py-4 bg-secondary rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all font-medium text-sm"
+                className="flex-grow px-6 py-4 bg-secondary rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all font-medium text-sm w-full"
               />
-              <button className="bg-[#5c5e46] text-white px-10 py-4 rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg text-sm">
+              <button className="w-full sm:w-auto bg-[#5c5e46] text-white px-6 sm:px-10 py-4 rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg text-sm whitespace-nowrap">
                 Appliquer
               </button>
             </div>

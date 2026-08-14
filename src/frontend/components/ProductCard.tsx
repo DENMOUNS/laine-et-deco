@@ -15,9 +15,10 @@ interface ProductCardProps {
   onAddToComparison?: (p: Product) => void;
   onClick: (p: Product) => void;
   events?: PromoEvent[];
+  isFullWidthOnMobile?: boolean;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, onAddToCart, onAddToWishlist, onQuickView, onAddToComparison, onClick, events = [] }) => {
+export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, onAddToCart, onAddToWishlist, onQuickView, onAddToComparison, onClick, events = [], isFullWidthOnMobile = false }) => {
   const effectivePrice = getEffectivePrice(product, events);
   const hasDiscount = effectivePrice < product.price;
   const isOutOfStock = !product.isAvailable || product.stock <= 0;
@@ -43,10 +44,18 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, on
       layout
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className={`group relative bg-white rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs hover:shadow-xl transition-all duration-500 flex flex-col h-full ${isOutOfStock ? 'opacity-75 grayscale-[0.5]' : ''}`}
+      className={`group relative bg-white md:clay-tactile rounded-2xl sm:rounded-3xl md:rounded-[2rem] overflow-hidden shadow-xs hover:shadow-xl transition-all duration-500 flex ${
+        isFullWidthOnMobile 
+          ? 'flex-row items-center p-3 h-[160px] sm:h-[180px] md:h-[220px] gap-4 w-full' 
+          : 'flex-col h-full'
+      } ${isOutOfStock ? 'opacity-75 grayscale-[0.5]' : ''}`}
     >
       {/* Badges with iPhone glass finish */}
-      <div className="absolute top-2.5 left-2.5 sm:top-3.5 sm:left-3.5 z-10 flex flex-col gap-1 sm:gap-1.5">
+      <div className={`absolute z-10 flex flex-col gap-1 sm:gap-1.5 ${
+        isFullWidthOnMobile 
+          ? 'top-4 left-4' 
+          : 'top-2.5 left-2.5 sm:top-3.5 sm:left-3.5'
+      }`}>
         {product.isNew && (
           <span className="glass-ios text-primary text-[9px] sm:text-[10px] font-black uppercase tracking-wider px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full shadow-xs">
             Nouveau
@@ -65,7 +74,14 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, on
       </div>
 
       {/* Image Container */}
-      <div className="relative aspect-square sm:aspect-[3/4] overflow-hidden cursor-pointer group/img" onClick={() => onClick(product)}>
+      <div 
+        className={`relative overflow-hidden cursor-pointer group/img ${
+          isFullWidthOnMobile 
+            ? 'w-[136px] h-[136px] sm:w-[156px] sm:h-[156px] md:w-[196px] md:h-[196px] rounded-xl shrink-0' 
+            : 'aspect-square sm:aspect-[3/4]'
+        }`} 
+        onClick={() => onClick(product)}
+      >
         <img
           src={optimizeImageUrl(product.image || (product as any).imageUrl || (Array.isArray(product.images) && product.images[0]) || generateSvgPlaceholder(product.name), 600)}
           alt={product.name}
@@ -125,7 +141,11 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, on
       </div>
 
       {/* Content */}
-      <div className="p-3 sm:p-5 md:p-6 flex flex-col justify-between flex-grow">
+      <div className={`flex flex-col justify-between flex-grow min-w-0 ${
+        isFullWidthOnMobile 
+          ? 'p-2 sm:p-5 md:p-6 h-full' 
+          : 'p-3 sm:p-5 md:p-6'
+      }`}>
         <div>
           <div className="flex justify-between items-start mb-1 gap-1">
             <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-primary/70 font-bold truncate">{product.category}</p>
@@ -137,7 +157,11 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, on
               {product.stock > 0 ? `${product.stock} dispo` : 'Épuisé'}
             </span>
           </div>
-          <h3 className="font-serif text-xs sm:text-base md:text-lg text-primary group-hover:text-accent transition-colors mb-2 cursor-pointer line-clamp-2 font-medium" onClick={() => onClick(product)}>
+          <h3 className={`font-serif text-primary group-hover:text-accent transition-colors mb-2 cursor-pointer line-clamp-2 font-medium ${
+            isFullWidthOnMobile 
+              ? 'text-sm sm:text-base md:text-lg' 
+              : 'text-xs sm:text-base md:text-lg'
+          }`} onClick={() => onClick(product)}>
             {product.name}
           </h3>
         </div>
@@ -146,7 +170,11 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, on
             {hasDiscount && (
               <span className="text-[10px] sm:text-xs text-primary/60 line-through font-medium truncate">{product.price.toLocaleString()} FCFA</span>
             )}
-            <span className="text-xs sm:text-base md:text-xl font-bold text-primary truncate">{effectivePrice.toLocaleString()} FCFA</span>
+            <span className={`font-bold text-primary truncate ${
+              isFullWidthOnMobile 
+                ? 'text-sm sm:text-base md:text-xl' 
+                : 'text-xs sm:text-base md:text-xl'
+            }`}>{effectivePrice.toLocaleString()} FCFA</span>
           </div>
           <div className="flex items-center text-amber-500 text-xs sm:text-sm shrink-0">
             <Star size={12} className="sm:w-3.5 sm:h-3.5" fill="currentColor" />

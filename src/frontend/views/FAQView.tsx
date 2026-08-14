@@ -40,7 +40,7 @@ export const FAQView: React.FC<{ onNavigate: (view: string) => void }> = ({ onNa
   return (
     <div className="min-h-screen bg-slate-50/30 pb-20 overflow-hidden">
       {/* Hero Section */}
-      <div className="bg-primary text-white pt-24 pb-16 px-4 rounded-b-[2.5rem] md:rounded-b-[4rem] relative overflow-hidden">
+      <div className="bg-[#3E4A3D] dark:bg-[#141614] text-white pt-24 pb-16 px-4 rounded-b-[2.5rem] md:rounded-b-[4rem] relative overflow-hidden border-b border-white/5">
         <div className="absolute top-0 right-0 w-64 h-64 bg-accent/20 rounded-full blur-3xl -mr-20 -mt-20" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full blur-2xl -ml-10 -mb-10" />
         
@@ -187,12 +187,12 @@ export const FAQView: React.FC<{ onNavigate: (view: string) => void }> = ({ onNa
             </div>
 
             {/* Bottom CTA */}
-            <div className="mt-12 md:mt-16 bg-primary rounded-[2rem] md:rounded-[3rem] p-6 sm:p-8 md:p-12 text-white relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="mt-12 md:mt-16 bg-[#3E4A3D] dark:bg-[#1A1D1A] border border-white/5 rounded-[2rem] md:rounded-[3rem] p-6 sm:p-8 md:p-12 text-white relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl">
               <div className="relative z-10 text-center md:text-left">
                 <h2 className="text-xl sm:text-2xl md:text-3xl font-serif mb-4">Besoin d'un accompagnement personnalisé ?</h2>
-                <p className="text-white/70 mb-6 md:mb-8 max-w-lg text-sm sm:text-base">Nos experts sont disponibles pour vous guider dans vos projets sur mesure ou vos choix de décoration.</p>
+                <p className="text-white/80 mb-6 md:mb-8 max-w-lg text-sm sm:text-base">Nos experts sont disponibles pour vous guider dans vos projets sur mesure ou vos choix de décoration.</p>
                 <div className="flex flex-wrap gap-4 justify-center md:justify-start">
-                  <button onClick={() => onNavigate('contact')} className="bg-accent text-white px-6 sm:px-8 py-3 sm:py-4 rounded-2xl font-bold hover:shadow-xl transition-all flex items-center gap-2 text-sm sm:text-base">
+                  <button onClick={() => onNavigate('contact')} className="bg-[#E2C29B] text-[#111311] hover:bg-white hover:text-[#111311] px-6 sm:px-8 py-3 sm:py-4 rounded-2xl font-bold hover:shadow-xl transition-all flex items-center gap-2 text-sm sm:text-base">
                     Nous écrire <ChevronRight size={18} />
                   </button>
                   <button onClick={() => onNavigate('shop')} className="bg-white/10 hover:bg-white/20 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-2xl font-bold transition-all text-sm sm:text-base">

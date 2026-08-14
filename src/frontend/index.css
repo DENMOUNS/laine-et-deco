@@ -19,10 +19,10 @@
   }
   
   .dark {
-    --primary-color: #E8EBE7;
-    --secondary-color: #1A1D1A;
-    --accent-color: #A3B18A;
-    --card-color: #232823;
+    --primary-color: #F3F5F3; /* Blanc cachemire pour une lisibilité premium */
+    --secondary-color: #111311; /* Noir ébène forêt très chic, profond et reposant */
+    --accent-color: #E2C29B; /* Or cachemire / laine naturelle pour les accents haut de gamme */
+    --card-color: #1A1D1A; /* Écorce sombre pour les cartes et conteneurs */
   }
 
   html,
@@ -207,21 +207,21 @@
 }
 
 .glass-ios-dock {
-  backdrop-filter: blur(14px) saturate(180%);
-  -webkit-backdrop-filter: blur(14px) saturate(180%);
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(20px) saturate(190%);
+  -webkit-backdrop-filter: blur(20px) saturate(190%);
+  background: rgba(255, 255, 255, 0.96); /* High-quality premium opaque background to completely isolate scrolling content */
+  border: 1px solid rgba(0, 0, 0, 0.08);
   box-shadow: 
-    0 16px 36px -6px rgba(0, 0, 0, 0.08),
-    0 4px 12px -2px rgba(0, 0, 0, 0.03);
+    0 16px 36px -6px rgba(0, 0, 0, 0.15),
+    0 4px 12px -2px rgba(0, 0, 0, 0.08);
 }
 
 .dark .glass-ios-dock {
-  background: rgba(15, 20, 15, 0.18);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(30, 35, 30, 0.98); /* High-quality premium opaque background to completely isolate scrolling content */
+  border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 
-    0 16px 36px -6px rgba(0, 0, 0, 0.35),
-    0 4px 12px -2px rgba(0, 0, 0, 0.18);
+    0 16px 36px -6px rgba(0, 0, 0, 0.5),
+    0 4px 12px -2px rgba(0, 0, 0, 0.25);
 }
 
 .glass-ios-navbar {
@@ -302,4 +302,144 @@
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
+}
+
+/* ── Mode Sombre Global Corrections & Enhancements ── */
+.dark {
+  /* Assurer que tous les éléments de fond clairs codés en dur s'adaptent au mode sombre */
+  .bg-\[\#F9F7F2\],
+  .bg-\[\#FDFBF7\],
+  .bg-secondary,
+  .bg-stone-50,
+  .bg-slate-50,
+  .bg-slate-100 {
+    background-color: var(--secondary-color) !important;
+  }
+
+  .bg-white,
+  .bg-card,
+  article.bg-white,
+  .bg-gradient-to-br.from-stone-50 {
+    background-color: var(--card-color) !important;
+    background-image: none !important;
+  }
+  
+  /* Boutons et inputs génériques */
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="password"],
+  input[type="date"],
+  textarea,
+  select,
+  .bg-\[\#eff3fd\]\/30,
+  .bg-\[\#eff3fd\] {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    color: var(--primary-color) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    
+    &::placeholder {
+      color: rgba(232, 235, 231, 0.4) !important;
+    }
+  }
+  
+  /* Ajustement des bordures fines d'accentuation */
+  .border-primary\/10,
+  .border-primary\/5,
+  .border-white\/20,
+  .border-white\/10 {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
+  
+  .border-amber-200 {
+    border-color: rgba(226, 194, 155, 0.3) !important;
+  }
+
+  /* Ombres plus douces et adaptées en mode sombre */
+  .shadow-sm,
+  .shadow-md,
+  .shadow-xl,
+  .shadow-2xl {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+  }
+
+  /* Textes de contrastes secondaires */
+  .text-primary,
+  .text-primary\/70,
+  .text-primary\/60,
+  .text-primary\/50,
+  .text-primary\/85 {
+    color: var(--primary-color) !important;
+  }
+  
+  /* Pour conserver une nuance sur les textes secondaires */
+  .text-primary\/70, .text-primary\/60 {
+    opacity: 0.8 !important;
+  }
+  .text-primary\/50 {
+    opacity: 0.6 !important;
+  }
+}
+
+/* Custom Claymorphism styles for premium tablet experience */
+.clay-tactile {
+  background: linear-gradient(135deg, #ffffff 0%, #faf9f6 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.95) !important;
+  box-shadow: 
+    0 12px 32px rgba(62, 74, 61, 0.04),
+    inset 0 3px 6px rgba(255, 255, 255, 0.95),
+    inset 0 -3px 8px rgba(62, 74, 61, 0.02) !important;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.dark .clay-tactile {
+  background: linear-gradient(135deg, #1f221f 0%, #161816 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 
+    0 14px 36px rgba(0, 0, 0, 0.25),
+    inset 0 1.5px 3px rgba(255, 255, 255, 0.12),
+    inset 0 -3px 8px rgba(0, 0, 0, 0.45) !important;
+}
+
+.clay-tactile-button {
+  background: linear-gradient(135deg, #5c6b5a 0%, #465244 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 
+    0 6px 16px rgba(62, 74, 61, 0.12),
+    inset 0 1.5px 3px rgba(255, 255, 255, 0.25),
+    inset 0 -1.5px 3px rgba(0, 0, 0, 0.15) !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.clay-tactile-button:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 
+    0 10px 20px rgba(62, 74, 61, 0.16),
+    inset 0 2px 4px rgba(255, 255, 255, 0.3),
+    inset 0 -1.5px 3px rgba(0, 0, 0, 0.15) !important;
+}
+
+.clay-tactile-button:active {
+  transform: translateY(1px) !important;
+  box-shadow: 
+    0 4px 8px rgba(62, 74, 61, 0.08),
+    inset 0 1px 2px rgba(255, 255, 255, 0.15),
+    inset 0 -1.5px 3px rgba(0, 0, 0, 0.15) !important;
+}
+
+.dark .clay-tactile-button {
+  background: linear-gradient(135deg, #e2c29b 0%, #cba576 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  color: #111311 !important;
+  box-shadow: 
+    0 6px 16px rgba(0, 0, 0, 0.2),
+    inset 0 1.5px 3px rgba(255, 255, 255, 0.4),
+    inset 0 -1.5px 3px rgba(0, 0, 0, 0.15) !important;
+}
+
+.dark .clay-tactile-button:hover {
+  box-shadow: 
+    0 10px 20px rgba(0, 0, 0, 0.25),
+    inset 0 2px 4px rgba(255, 255, 255, 0.5),
+    inset 0 -1.5px 3px rgba(0, 0, 0, 0.15) !important;
 }

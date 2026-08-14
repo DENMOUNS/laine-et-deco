@@ -65,6 +65,11 @@ export const SecondHandView: React.FC<SecondHandViewProps> = ({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
+              className={
+                secondHandProducts.length % 2 !== 0 && index === secondHandProducts.length - 1
+                  ? 'col-span-2 sm:col-span-1'
+                  : ''
+              }
             >
               <ProductCard 
                 product={product}
@@ -72,6 +77,7 @@ export const SecondHandView: React.FC<SecondHandViewProps> = ({
                 onAddToWishlist={onAddToWishlist}
                 onQuickView={onQuickView}
                 onClick={() => onNavigate('product-detail', product.id)}
+                isFullWidthOnMobile={secondHandProducts.length % 2 !== 0 && index === secondHandProducts.length - 1}
               />
             </motion.div>
           ))}

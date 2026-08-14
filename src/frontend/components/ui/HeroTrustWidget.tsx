@@ -66,7 +66,7 @@ export const HeroTrustWidget: React.FC<{ onNavigate?: (route: string) => void }>
         {onNavigate && (
           <button
             onClick={() => onNavigate('shop')}
-            className="text-[11px] font-bold bg-white text-slate-900 px-3 py-1.5 rounded-xl hover:bg-accent hover:text-white transition-colors"
+            className="text-[11px] font-bold bg-[#ffffff] text-[#111311] px-3 py-1.5 rounded-xl hover:bg-[#E2C29B] hover:text-[#111311] transition-colors"
           >
             En profiter
           </button>

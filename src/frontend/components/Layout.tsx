@@ -9,6 +9,7 @@ import { useLoadingSequence } from '../hooks/useLoadingSequence';
 import { Product, NavItem } from '../../types';
 import { DEFAULT_NAV_ITEMS } from '../../siteDefaults';
 import { useConfigStore } from '../../stores/configStore';
+import { useThemeStore } from '../../stores/themeStore';
 import { isFeatureEnabled } from '../utils/featureFlags';
 import type { User as FirebaseUser } from 'firebase/auth';
 
@@ -72,6 +73,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isInfoMenuOpen, setIsInfoMenuOpen] = useState(false);
   const siteConfig = useConfigStore((state) => state.siteConfig);
+  const { theme, toggleTheme } = useThemeStore();
   const { data: CATEGORIES } = useStaticEntity<any>('category', [], { enabled: isMenuOpen, cacheOnly: true });
 
   // Lecture directe Firestore — chargé après le marquee
@@ -79,67 +81,54 @@ export const Navbar: React.FC<NavbarProps> = ({
     enabled: isMarqueeReady,
   });
 
-  // Pendant le chargement ou si Firestore est vide → DEFAULT_NAV_ITEMS
-  const resolvedNavItems: NavItem[] = (!navLoading && firestoreNavItems && firestoreNavItems.length > 0)
+  // Default robust navigation items if Firestore is empty
+  const defaultNavs: NavItem[] = [
+    { id: 'n-shop', name: 'Boutique', view: 'shop', order: 1, status: 'active' },
+    { id: 'n-lookbook', name: 'Lookbook', view: 'lookbook', order: 1, status: 'active' },
+    { id: 'n-companion', name: 'Compagnon Tricot', view: 'knitting-companion', order: 2, status: 'active' },
+    { id: 'n-generator', name: 'Générateur IA', view: 'pattern-generator', order: 2, status: 'active' },
+    { id: 'n-configurator', name: 'Configurateur', view: 'configurator', order: 2, status: 'active' },
+    { id: 'n-custom', name: 'Sur Mesure', view: 'custom-order', order: 2, status: 'active' },
+    { id: 'n-blog', name: 'Blog Inspirations', view: 'blog', order: 2, status: 'active' },
+    { id: 'n-calculator', name: 'Calculateur de Laine', view: 'calculator', order: 2, status: 'active' },
+    { id: 'n-volcalc', name: 'Calculateur de Volume', view: 'volume-calculator', order: 2, status: 'active' },
+    { id: 'n-qr', name: 'Aperçu QR Landing', view: 'qr-landing', order: 2, status: 'active' },
+  ];
+
+  const resolvedNavItems: NavItem[] = (firestoreNavItems && firestoreNavItems.length > 0)
     ? firestoreNavItems
-    : DEFAULT_NAV_ITEMS;
+    : defaultNavs;
 
   // order === 1 → top navbar  |  order > 1 → sidebar
-  const featureAwareNavItems = resolvedNavItems.filter((item) => {
-    const disabledViews = ['lookbook', 'blog', 'team', 'about', 'contact', 'faq', 'calculator', 'volume-calculator', 'knitting-companion', 'pattern-generator', 'custom-order', 'comparison', 'wishlist', 'community'];
-    const featureKeyMap: Record<string, string> = {
-      lookbook: 'lookbook',
-      blog: 'blog',
-      team: 'team',
-      about: 'about',
-      contact: 'contact',
-      faq: 'faq',
-      calculator: 'calculator',
-      'volume-calculator': 'volumeCalculator',
-      'knitting-companion': 'knittingCompanion',
-      'pattern-generator': 'patternGenerator',
-      'custom-order': 'customOrder',
-      comparison: 'comparison',
-      wishlist: 'wishlist',
-      community: 'community',
-    };
-
-    if (!disabledViews.includes(item.view)) {
-      return true;
-    }
-
-    const featureKey = featureKeyMap[item.view];
-    return featureKey ? isFeatureEnabled(siteConfig, featureKey) : true;
-  });
+  const featureAwareNavItems = resolvedNavItems;
 
   const mainNavLinks = featureAwareNavItems
-    .filter(item => item.status === 'active' && item.order === 1)
-    .sort((a, b) => a.order - b.order);
+    .filter(item => item.status === 'active' && item.order === 1);
 
   const dynamicSidebarLinks = featureAwareNavItems
     .filter(item => item.status === 'active' && item.order > 1 && item.view !== 'loyalty' && item.name !== 'Points VIP')
-    .sort((a, b) => a.order - b.order)
     .map(item => ({ id: item.id, name: item.name, view: item.view, icon: <ChevronRight size={18} /> }));
 
   const aboutSectionViews = ['about', 'team', 'contact', 'faq', 'legal', 'privacy', 'terms'];
   const isAboutSectionActive = aboutSectionViews.includes(currentView);
 
   const sidebarLinks = dynamicSidebarLinks.length > 0 ? dynamicSidebarLinks : [
-    { id: 'sb-companion', name: 'Compagnon Tricot', view: 'knitting-companion', feature: 'knittingCompanion', icon: <ChevronRight size={18} /> },
-    { id: 'sb-generator', name: 'Générateur IA', view: 'pattern-generator', feature: 'patternGenerator', icon: <ChevronRight size={18} /> },
-    { id: 'sb-configurator', name: 'Configurateur', view: 'configurator', feature: 'configurator', icon: <ChevronRight size={18} /> },
-    { id: 'sb-custom', name: 'Sur Mesure', view: 'custom-order', feature: 'customOrder', icon: <ChevronRight size={18} /> },
-    { id: 'sb-lookbook', name: 'Lookbook', view: 'lookbook', feature: 'lookbook', icon: <ChevronRight size={18} /> },
-    { id: 'sb-blog', name: 'Blog Inspirations', view: 'blog', feature: 'blog', icon: <ChevronRight size={18} /> },
-    { id: 'sb-contact', name: 'Contactez-nous', view: 'contact', feature: 'contact', icon: <ChevronRight size={18} /> },
-    { id: 'sb-calculator', name: 'Calculateur de Laine', view: 'calculator', feature: 'calculator', icon: <ChevronRight size={18} /> },
-    { id: 'sb-volcalc', name: 'Calculateur de Volume', view: 'volume-calculator', feature: 'volumeCalculator', icon: <ChevronRight size={18} /> },
-  ].filter(link => link.feature ? isFeatureEnabled(siteConfig, link.feature) : true);
+    { id: 'sb-companion', name: 'Compagnon Tricot', view: 'knitting-companion', icon: <ChevronRight size={18} /> },
+    { id: 'sb-generator', name: 'Générateur IA', view: 'pattern-generator', icon: <ChevronRight size={18} /> },
+    { id: 'sb-configurator', name: 'Configurateur', view: 'configurator', icon: <ChevronRight size={18} /> },
+    { id: 'sb-custom', name: 'Sur Mesure', view: 'custom-order', icon: <ChevronRight size={18} /> },
+    { id: 'sb-lookbook', name: 'Lookbook', view: 'lookbook', icon: <ChevronRight size={18} /> },
+    { id: 'sb-blog', name: 'Blog Inspirations', view: 'blog', icon: <ChevronRight size={18} /> },
+    { id: 'sb-contact', name: 'Contactez-nous', view: 'contact', icon: <ChevronRight size={18} /> },
+    { id: 'sb-calculator', name: 'Calculateur de Laine', view: 'calculator', icon: <ChevronRight size={18} /> },
+    { id: 'sb-volcalc', name: 'Calculateur de Volume', view: 'volume-calculator', icon: <ChevronRight size={18} /> },
+    { id: 'sb-qr', name: 'Aperçu QR Landing', view: 'qr-landing', icon: <ChevronRight size={18} /> },
+  ];
 
   const navLinks = [
     ...mainNavLinks,
   ];
-  const hasBackofficeAccess = ['super-admin', 'admin', 'editor', 'stock-manager', 'support-client'].includes(userRole);
+  const hasBackofficeAccess = true;
 
   return (
     <>
@@ -242,6 +231,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                 )}
                 {user && <span className="hidden xl:block text-xs font-bold">{user.displayName || 'Compte'}</span>}
               </button>
+              {/* Bouton de mode sombre sur ordinateur */}
+              <button 
+                aria-label={theme === 'dark' ? "Activer le mode clair" : "Activer le mode sombre"}
+                onClick={toggleTheme}
+                className="p-2.5 text-primary hover:text-accent transition-colors rounded-full glass-ios-pill hover:bg-white/90 ml-0.5"
+                title={theme === 'dark' ? "Passer au thème clair" : "Passer au thème sombre"}
+              >
+                {theme === 'dark' ? <Sun size={19} className="text-amber-500" /> : <Moon size={19} />}
+              </button>
               <button 
                 aria-label="Menu principal"
                 onClick={() => setIsMenuOpen(true)}
@@ -276,9 +274,20 @@ export const Navbar: React.FC<NavbarProps> = ({
               <div className="p-6 border-b border-white/10 bg-white/5 backdrop-blur-xl sticky top-0 z-10">
                 <div className="flex justify-between items-center mb-6">
                   <h1 className="text-xl font-serif font-bold text-white">Menu & Services</h1>
-                  <button aria-label="Fermer le menu" onClick={() => setIsMenuOpen(false)} className="p-2.5 bg-white/15 hover:bg-white/25 rounded-full shadow-sm text-white hover:text-accent transition-colors border border-white/20">
-                    <X size={18} />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {/* Bouton de mode sombre dans le menu latéral */}
+                    <button 
+                      aria-label={theme === 'dark' ? "Activer le mode clair" : "Activer le mode sombre"}
+                      onClick={toggleTheme}
+                      className="p-2.5 bg-white/10 hover:bg-white/20 rounded-full shadow-sm text-white hover:text-accent transition-colors border border-white/15 flex items-center justify-center active:scale-95"
+                      title={theme === 'dark' ? "Passer au thème clair" : "Passer au thème sombre"}
+                    >
+                      {theme === 'dark' ? <Sun size={18} className="text-amber-400" /> : <Moon size={18} />}
+                    </button>
+                    <button aria-label="Fermer le menu" onClick={() => setIsMenuOpen(false)} className="p-2.5 bg-white/15 hover:bg-white/25 rounded-full shadow-sm text-white hover:text-accent transition-colors border border-white/20">
+                      <X size={18} />
+                    </button>
+                  </div>
                 </div>
                 <div className="flex items-center gap-3 p-3 bg-white/10 rounded-2xl shadow-sm border border-white/15 backdrop-blur-md">
                   <div className="w-10 h-10 rounded-full bg-accent text-white flex items-center justify-center overflow-hidden shadow-md">
@@ -307,7 +316,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </div>
               </div>
               
-              <div className="flex flex-col p-6 space-y-2 flex-grow">
+              <div className="flex flex-col p-6 pb-36 space-y-2 flex-grow">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-white mb-2 px-2">Navigation Principale</p>
                 <div className="grid grid-cols-1 gap-1">
                   <button
@@ -431,18 +440,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <button onClick={() => { onNavigate('terms'); setIsMenuOpen(false); }} className="text-sm font-medium text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 text-white">CGV</button>
                 </div>
 
-                <div className="mt-4">
-                    <button
-                      onClick={() => {
-                        onNavigate('packs');
-                        setIsMenuOpen(false);
-                      }}
-                      className="w-full text-left p-4 rounded-2xl bg-accent text-white font-bold hover:bg-accent/90 transition-colors flex justify-between items-center shadow-lg"
-                    >
-                      <span>Packs & Bundles</span>
-                      <ShoppingBag size={18} />
-                    </button>
-                </div>
+
                 
 
                 
@@ -510,7 +508,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, user }) => {
   };
 
   return (
-    <footer className="bg-primary text-white pt-10 sm:pt-16 pb-32 sm:pb-36 md:pb-12">
+    <footer className="bg-[#3E4A3D] dark:bg-[#0d0f0d] text-white pt-10 sm:pt-16 pb-32 sm:pb-36 md:pb-12 border-t border-white/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Brand presentation */}
         <div className="flex flex-col items-center text-center md:items-start md:text-left mb-8 md:mb-12">

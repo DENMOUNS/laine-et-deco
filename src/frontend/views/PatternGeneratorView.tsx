@@ -535,7 +535,7 @@ Le patron doit être clair, précis, professionnel, cohérent du début à la fi
           <button 
             onClick={generatePattern}
             disabled={isGenerating}
-            className="w-full py-5 bg-primary text-white rounded-[2rem] font-bold text-lg hover:bg-accent transition-all duration-300 shadow-xl shadow-primary/20 flex items-center justify-center gap-3 disabled:opacity-70"
+            className="w-full py-5 bg-[#5c5e46] dark:bg-[#E2C29B] text-white dark:text-[#111311] rounded-[2rem] font-bold text-lg hover:opacity-95 transition-all duration-300 shadow-xl shadow-[#5c5e46]/20 flex items-center justify-center gap-3 disabled:opacity-70"
           >
             {isGenerating ? (
               <>

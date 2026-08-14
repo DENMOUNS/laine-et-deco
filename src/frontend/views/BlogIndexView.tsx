@@ -43,7 +43,7 @@ export const BlogIndexView: React.FC = () => {
                 referrerPolicy="no-referrer"
               />
               <div className="absolute top-6 left-6">
-                <span className="px-4 py-2 bg-white/90 backdrop-blur-md text-primary text-[10px] font-bold uppercase tracking-widest rounded-full shadow-sm">
+                <span className="px-4 py-2 bg-white/90 dark:bg-[#1A1D1A]/90 backdrop-blur-md text-[#3E4A3D] dark:text-[#E2C29B] border border-black/5 dark:border-white/5 text-[10px] font-bold uppercase tracking-widest rounded-full shadow-sm">
                   {post.category}
                 </span>
               </div>

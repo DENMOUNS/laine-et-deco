@@ -18,6 +18,7 @@ import { useCartStore } from '../../stores/cartStore';
 import { useWishlistStore } from '../../stores/wishlistStore';
 import { useComparisonStore } from '../../stores/comparisonStore';
 import { useConfigStore } from '../../stores/configStore';
+import { useThemeStore } from '../../stores/themeStore';
 import { useNavigateAdapter } from '../hooks/useNavigateAdapter';
 
 /**
@@ -75,6 +76,29 @@ export const AppLayout: React.FC = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location.pathname]);
+
+  // ── Mobile Landscape Orientation detector & notifier ──
+  useEffect(() => {
+    let lastState = window.innerWidth < 768 && window.innerWidth > window.innerHeight;
+    
+    const handleResize = () => {
+      const currentState = window.innerWidth < 768 && window.innerWidth > window.innerHeight;
+      if (currentState && !lastState) {
+        sonnerToast("Mode paysage activé 📱", {
+          description: "L'affichage s'est adapté pour vous offrir un confort optimal.",
+          duration: 4000,
+        });
+      }
+      lastState = currentState;
+    };
+    
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
+  }, []);
 
   // ── SEO Meta Tags (updates on each route change) ──
   useEffect(() => {
@@ -139,13 +163,16 @@ export const AppLayout: React.FC = () => {
     return () => window.removeEventListener('auth-required' as any, handleAuthRequired);
   }, [handleNavigate]);
 
+  const theme = useThemeStore((s) => s.theme);
+  const isDark = theme === 'dark';
+
   return (
     <div
-      className="min-h-screen bg-[#FDFBF7] text-primary font-sans"
-      style={{
+      className="min-h-screen bg-secondary text-primary font-sans transition-colors duration-300"
+      style={!isDark ? {
         '--primary-color': siteConfig?.primaryColor || '#2C3E35',
         '--accent-color': siteConfig?.accentColor || '#D6B4A3',
-      } as React.CSSProperties}
+      } as React.CSSProperties : {}}
     >
       <a href="#main-content" className="sr-only">
         Aller au contenu principal
@@ -207,7 +234,7 @@ export const AppLayout: React.FC = () => {
               type="button"
               aria-label="Ouvrir l’assistant de chat"
               onClick={() => setChatMounted(true)}
-              className="fixed bottom-20 right-3 sm:bottom-6 sm:right-6 z-[80] glass-ios text-primary dark:text-white p-3.5 sm:p-4 rounded-full shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center relative group"
+              className="fixed bottom-20 right-3 sm:bottom-6 sm:right-6 z-[80] glass-ios text-primary dark:text-white p-3.5 sm:p-4 rounded-full shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center group"
             >
               <div className="absolute top-1 right-1 w-2.5 h-2.5 bg-accent rounded-full animate-pulse shadow-sm" aria-hidden="true" />
               <span className="sr-only">Chat</span>

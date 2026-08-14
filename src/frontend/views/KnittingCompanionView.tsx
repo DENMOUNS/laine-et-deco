@@ -282,7 +282,7 @@ export const KnittingCompanionView: React.FC = () => {
       ) : projects.length === 0 ? (
         <EmptyState onCreate={() => setIsCreateOpen(true)} />
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
           {projects.map((project, index) => (
             <ProjectCard
               key={project.id}
@@ -299,9 +299,9 @@ export const KnittingCompanionView: React.FC = () => {
         </div>
       )}
 
-      <section className={`mt-10 p-6 md:p-10 rounded-[2.5rem] border transition-all ${isExpertMode ? 'bg-primary text-white border-primary shadow-2xl shadow-primary/20' : 'bg-secondary/30 border-primary/5'}`}>
+      <section className={`mt-12 p-6 md:p-12 rounded-[2.5rem] md:clay-tactile border transition-all ${isExpertMode ? 'bg-primary text-white border-primary shadow-2xl shadow-primary/25' : 'bg-secondary/30 md:bg-white border-primary/10'}`}>
         <div className="flex flex-col lg:flex-row items-start lg:items-center gap-6">
-          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 ${isExpertMode ? 'bg-white/10 text-accent' : 'bg-accent/10 text-accent'}`}>
+          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 ${isExpertMode ? 'bg-white/10 text-accent' : 'bg-accent/15 text-accent shadow-inner'}`}>
             <Clock3 size={30} />
           </div>
           <div className="flex-1">
@@ -315,7 +315,7 @@ export const KnittingCompanionView: React.FC = () => {
             {isExpertMode && <p className="text-3xl font-bold mt-4 tracking-tight">{formatDuration(sessionSeconds)}</p>}
           </div>
           <div className="flex flex-wrap gap-3 w-full lg:w-auto">
-            <Button variant={isExpertMode ? 'accent' : 'primary'} onClick={toggleTimer} className="rounded-full">
+            <Button variant={isExpertMode ? 'accent' : 'primary'} onClick={toggleTimer} className="rounded-full clay-tactile-button py-3 px-6">
               {isTimerRunning ? <Pause size={18} className="mr-2" /> : <Play size={18} className="mr-2" />}
               {isTimerRunning ? 'Mettre en pause' : isExpertMode ? 'Reprendre' : 'Démarrer une session'}
             </Button>
@@ -324,9 +324,9 @@ export const KnittingCompanionView: React.FC = () => {
         </div>
       </section>
 
-      <div className="mt-8 flex items-start gap-3 text-sm text-primary/60 bg-accent/5 rounded-2xl p-5">
+      <div className="mt-8 flex items-start gap-3 text-sm text-primary/60 bg-accent/5 rounded-2xl p-5 md:p-6 border border-accent/10">
         <Lightbulb size={20} className="text-accent shrink-0 mt-0.5" />
-        <p><strong className="text-primary">Astuce :</strong> lancez une session au début d’un moment de tricot et arrêtez-la quand vous posez vos aiguilles. Le temps est automatiquement rattaché au projet sélectionné.</p>
+        <p><strong className="text-primary">Astuce tactile :</strong> lancez une session au début d’un moment de tricot et arrêtez-la quand vous posez vos aiguilles. Le temps est automatiquement rattaché au projet sélectionné.</p>
       </div>
 
       {isCreateOpen && <CreateProjectModal form={form} setForm={setForm} isSaving={isSaving} woolProducts={woolProducts} isProductsLoading={isProductsLoading} onClose={() => setIsCreateOpen(false)} onSubmit={handleCreateProject} />}
@@ -335,18 +335,18 @@ export const KnittingCompanionView: React.FC = () => {
 };
 
 const StatCard: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <div className="bg-card rounded-2xl border border-primary/5 p-5">
-    <p className="text-2xl md:text-3xl font-bold text-primary">{value}</p>
+  <div className="bg-card md:clay-tactile rounded-2xl md:rounded-3xl border border-primary/10 p-5 md:p-6 transition-transform hover:scale-[1.02]">
+    <p className="text-3xl md:text-4xl font-bold text-primary font-serif">{value}</p>
     <p className="text-[10px] font-bold uppercase tracking-widest text-primary/60 mt-1">{label}</p>
   </div>
 );
 
 const EmptyState: React.FC<{ onCreate: () => void }> = ({ onCreate }) => (
-  <div className="text-center py-16 md:py-24 px-6 bg-card rounded-[2.5rem] border border-primary/5">
-    <div className="w-20 h-20 mx-auto mb-6 rounded-3xl bg-accent/10 text-accent flex items-center justify-center"><Archive size={36} /></div>
-    <h2 className="text-2xl font-serif text-primary mb-3">Votre prochain ouvrage commence ici</h2>
+  <div className="text-center py-16 md:py-24 px-6 bg-card md:clay-tactile rounded-[2.5rem] border border-primary/10">
+    <div className="w-20 h-20 mx-auto mb-6 rounded-3xl bg-accent/10 text-accent flex items-center justify-center shadow-inner"><Archive size={36} /></div>
+    <h2 className="text-2xl md:text-3xl font-serif text-primary mb-3">Votre prochain ouvrage commence ici</h2>
     <p className="max-w-md mx-auto text-primary/70 mb-7">Créez un projet pour compter vos rangs, garder vos informations et reprendre facilement votre tricot.</p>
-    <Button onClick={onCreate} size="lg" className="rounded-full px-8"><Plus size={18} className="mr-2" /> Créer mon premier projet</Button>
+    <Button onClick={onCreate} size="lg" className="rounded-full px-8 clay-tactile-button"><Plus size={18} className="mr-2" /> Créer mon premier projet</Button>
   </div>
 );
 
@@ -364,7 +364,7 @@ type ProjectCardProps = {
 const ProjectCard: React.FC<ProjectCardProps> = ({ project, index, isActive, onSelect, onIncrement, onDecrement, onReset, onDelete }) => {
   const progress = project.targetRows > 0 ? Math.min(100, Math.round((project.rowCount / project.targetRows) * 100)) : 0;
   return (
-    <motion.article initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.08 }} onClick={onSelect} className={`bg-card p-6 md:p-8 rounded-[2.5rem] border cursor-pointer transition-all ${isActive ? 'border-accent/50 shadow-xl shadow-accent/10' : 'border-primary/5 shadow-sm hover:shadow-md'}`}>
+    <motion.article initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.08 }} onClick={onSelect} className={`bg-card md:clay-tactile p-6 md:p-8 rounded-[2.5rem] border cursor-pointer transition-all ${isActive ? 'border-accent shadow-xl shadow-accent/15 ring-2 ring-accent/20' : 'border-primary/10 shadow-sm hover:shadow-md'}`}>
       <div className="flex items-start justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-2 mb-2">
@@ -373,19 +373,23 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, index, isActive, onS
           </div>
           <p className="text-xs text-primary/60">Commencé le {formatDate(project.startDate)}</p>
         </div>
-        <button type="button" aria-label={`Supprimer ${project.name}`} onClick={(event) => { event.stopPropagation(); onDelete(); }} className="p-2 rounded-full text-primary/30 hover:bg-red-50 hover:text-red-500 transition-colors"><Trash2 size={17} /></button>
+        <button type="button" aria-label={`Supprimer ${project.name}`} onClick={(event) => { event.stopPropagation(); onDelete(); }} className="p-2.5 rounded-full text-primary/30 hover:bg-red-50 hover:text-red-500 transition-colors"><Trash2 size={18} /></button>
       </div>
-      <div className="flex items-end justify-between gap-4 mb-3"><span className="text-4xl font-bold text-accent">{progress}%</span><span className="text-sm font-bold text-primary/60">{project.rowCount} / {project.targetRows} rangs</span></div>
-      <div className="h-3 bg-primary/5 rounded-full overflow-hidden mb-6"><motion.div animate={{ width: `${progress}%` }} className="h-full bg-accent rounded-full" /></div>
+      <div className="flex items-end justify-between gap-4 mb-3"><span className="text-4xl font-bold text-accent font-serif">{progress}%</span><span className="text-sm font-bold text-primary/70">{project.rowCount} / {project.targetRows} rangs</span></div>
+      <div className="h-3.5 bg-primary/10 rounded-full overflow-hidden mb-6 shadow-inner"><motion.div animate={{ width: `${progress}%` }} className="h-full bg-accent rounded-full shadow-sm" /></div>
       <div className="grid grid-cols-2 gap-3 text-xs text-primary/60 mb-6">
-        <div className="bg-primary/5 rounded-xl p-3"><span className="block font-bold text-primary">{project.yarn || 'Non renseignée'}</span>Laine</div>
-        <div className="bg-primary/5 rounded-xl p-3"><span className="block font-bold text-primary">{project.needleSize || 'Non renseignées'}</span>Aiguilles</div>
+        <div className="bg-primary/5 rounded-2xl p-3.5 border border-primary/5"><span className="block font-bold text-primary text-sm mb-0.5">{project.yarn || 'Non renseignée'}</span>Laine</div>
+        <div className="bg-primary/5 rounded-2xl p-3.5 border border-primary/5"><span className="block font-bold text-primary text-sm mb-0.5">{project.needleSize || 'Non renseignées'}</span>Aiguilles</div>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3" onClick={(event) => event.stopPropagation()}>
-        <div className="flex items-center gap-2"><Button variant="outline" size="icon" onClick={onDecrement} disabled={project.rowCount === 0} className="w-10 h-10 rounded-xl">−</Button><Button variant="outline" size="icon" onClick={onReset} className="w-10 h-10 rounded-xl" title="Réinitialiser"><RotateCcw size={16} /></Button><Button variant="outline" size="icon" onClick={onIncrement} disabled={project.status === 'completed'} className="w-10 h-10 rounded-xl">+</Button></div>
-        <Button variant="primary" onClick={onIncrement} disabled={project.status === 'completed'} className="rounded-xl px-5">{project.status === 'completed' ? <><Check size={16} className="mr-2" /> Terminé</> : <>Rang suivant <Plus size={16} className="ml-2" /></>}</Button>
+        <div className="flex items-center gap-2.5">
+          <Button variant="outline" size="icon" onClick={onDecrement} disabled={project.rowCount === 0} className="w-11 h-11 rounded-2xl border-primary/15 hover:bg-primary/5 font-bold text-lg">−</Button>
+          <Button variant="outline" size="icon" onClick={onReset} className="w-11 h-11 rounded-2xl border-primary/15 hover:bg-primary/5" title="Réinitialiser"><RotateCcw size={17} /></Button>
+          <Button variant="outline" size="icon" onClick={onIncrement} disabled={project.status === 'completed'} className="w-11 h-11 rounded-2xl border-primary/15 hover:bg-primary/5 font-bold text-lg">+</Button>
+        </div>
+        <Button variant="primary" onClick={onIncrement} disabled={project.status === 'completed'} className="rounded-2xl px-6 py-3 clay-tactile-button">{project.status === 'completed' ? <><Check size={16} className="mr-2" /> Terminé</> : <>Rang suivant <Plus size={16} className="ml-2" /></>}</Button>
       </div>
-      {project.notes && <p className="mt-5 pt-5 border-t border-primary/5 text-sm text-primary/60 line-clamp-2">{project.notes}</p>}
+      {project.notes && <p className="mt-5 pt-5 border-t border-primary/10 text-sm text-primary/70 line-clamp-2">{project.notes}</p>}
     </motion.article>
   );
 };

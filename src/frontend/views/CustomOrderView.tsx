@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { CheckCircle2, Scissors, PenTool, Sparkles } from 'lucide-react';
+import { CheckCircle2, Scissors, PenTool, Sparkles, Crown } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { toast } from 'sonner';
 import { collection, addDoc, serverTimestamp, where } from 'firebase/firestore';
@@ -161,8 +161,8 @@ export const CustomOrderView: React.FC = () => {
             </div>
 
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-[#F9F7F2] flex items-center justify-center flex-shrink-0 border border-primary/5">
-                <Sparkles className="text-accent" size={22} />
+              <div className="w-12 h-12 rounded-2xl bg-[#F9F7F2] dark:bg-[#1A1D1A] flex items-center justify-center flex-shrink-0 border border-primary/5">
+                <Crown className="text-accent" size={22} />
               </div>
               <div>
                 <h3 className="font-bold text-primary mb-1 text-lg">3. L'Excellence</h3>

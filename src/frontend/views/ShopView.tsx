@@ -612,19 +612,46 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
                 animate="visible"
                 className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-3.5 sm:gap-6 md:gap-8"
               >
-                {paginatedProducts.map((product) => (
-                  <motion.div key={product.id} variants={itemVariants}>
-                    <ProductCard 
-                      product={product} 
-                      onAddToCart={onAddToCart}
-                      onAddToWishlist={onAddToWishlist}
-                      onQuickView={onQuickView}
-                      onAddToComparison={onAddToComparison}
-                      onClick={onProductClick}
-                      events={events}
-                    />
-                  </motion.div>
-                ))}
+                {paginatedProducts.map((product, index) => {
+                  const isLastItem = index === paginatedProducts.length - 1;
+                  const isTotalOdd = paginatedProducts.length % 2 !== 0;
+                  const isTotalMod3Is1 = paginatedProducts.length % 3 === 1;
+
+                  let colSpanClass = "";
+                  let isFullWidth = false;
+
+                  if (isLastItem) {
+                    if (isTotalOdd) {
+                      colSpanClass += " col-span-2";
+                      isFullWidth = true;
+                    }
+                    if (isTotalMod3Is1) {
+                      colSpanClass += " xl:col-span-3";
+                      isFullWidth = true;
+                    } else if (isTotalOdd) {
+                      colSpanClass += " xl:col-span-1";
+                    }
+                  }
+
+                  return (
+                    <motion.div 
+                      key={product.id} 
+                      variants={itemVariants}
+                      className={colSpanClass}
+                    >
+                      <ProductCard 
+                        product={product} 
+                        onAddToCart={onAddToCart}
+                        onAddToWishlist={onAddToWishlist}
+                        onQuickView={onQuickView}
+                        onAddToComparison={onAddToComparison}
+                        onClick={onProductClick}
+                        events={events}
+                        isFullWidthOnMobile={isFullWidth}
+                      />
+                    </motion.div>
+                  );
+                })}
               </motion.div>
             )}
           </AnimatePresence>

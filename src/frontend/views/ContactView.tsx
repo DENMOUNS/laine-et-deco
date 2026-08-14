@@ -96,7 +96,7 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate }) => {
               </div>
             </div>
 
-            <div className="bg-primary text-white p-10 rounded-[2.5rem] relative overflow-hidden">
+            <div className="bg-[#3E4A3D] dark:bg-[#1A1D1A] text-white p-10 rounded-[2.5rem] relative overflow-hidden border border-white/5">
               <div className="absolute top-0 right-0 w-64 h-64 bg-accent/20 rounded-bl-[100%] opacity-20 pointer-events-none" />
               <div className="relative z-10">
                 <h3 className="text-2xl font-serif mb-4">Commandes sur mesure</h3>
@@ -189,7 +189,7 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate }) => {
                 <Button 
                   type="submit" 
                   disabled={isSubmitting || !formData.name || !formData.email || !formData.message}
-                  className="w-full py-5 bg-primary hover:bg-accent text-white rounded-2xl text-lg font-bold shadow-xl shadow-primary/10 transition-all flex items-center justify-center gap-2 mt-4"
+                  className="w-full py-5 bg-[#5c5e46] dark:bg-[#E2C29B] text-white dark:text-[#111311] hover:opacity-95 rounded-2xl text-lg font-bold shadow-xl shadow-[#5c5e46]/10 transition-all flex items-center justify-center gap-2 mt-4"
                 >
                   {isSubmitting ? (
                     <span className="flex items-center gap-2">

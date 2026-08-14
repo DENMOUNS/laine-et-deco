@@ -11,7 +11,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ onNavigate }) => {
   return (
     <div className="min-h-screen bg-slate-50/30 pb-20">
       {/* Hero Header */}
-      <div className="bg-primary text-white pt-28 pb-20 px-4 rounded-b-[2.5rem] md:rounded-b-[4rem] relative overflow-hidden">
+      <div className="bg-[#3E4A3D] dark:bg-[#141614] text-white pt-28 pb-20 px-4 rounded-b-[2.5rem] md:rounded-b-[4rem] relative overflow-hidden border-b border-white/5">
         <div className="absolute top-0 right-0 w-80 h-80 bg-accent/15 rounded-full blur-3xl -mr-20 -mt-20" />
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full blur-2xl -ml-10 -mb-10" />
         
@@ -162,7 +162,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ onNavigate }) => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
-            className="bg-primary rounded-[2rem] md:rounded-[3rem] p-8 md:p-12 text-white relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8"
+            className="bg-[#3E4A3D] dark:bg-[#1A1D1A] rounded-[2rem] md:rounded-[3rem] p-8 md:p-12 text-white relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 border border-white/5"
           >
             <div className="absolute top-0 right-0 w-80 h-80 bg-accent opacity-10 rounded-full blur-[100px] -mr-40 -mt-40" />
             

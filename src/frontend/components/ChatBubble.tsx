@@ -220,14 +220,14 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ startOpen = false }) => 
     <>
       <AnimatePresence>
         {isOpen && (
-          <div className="fixed inset-0 sm:inset-auto sm:bottom-20 sm:right-6 z-[100] flex flex-col justify-end sm:justify-start items-center sm:items-end pointer-events-none p-3 sm:p-0">
+          <div className="fixed inset-0 md:inset-auto md:bottom-24 md:right-6 z-[100] flex flex-col justify-end md:justify-start items-center md:items-end pointer-events-none p-3 md:p-0">
             {/* Mobile backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsOpen(false)}
-              className="fixed inset-0 bg-black/40 backdrop-blur-xs sm:hidden pointer-events-auto"
+              className="fixed inset-0 bg-black/40 backdrop-blur-xs md:hidden pointer-events-auto"
             />
 
             {/* Floating Chat Window Card */}
@@ -238,7 +238,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ startOpen = false }) => 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="pointer-events-auto relative z-10 bg-white/95 dark:bg-[#1a1d1a]/95 backdrop-blur-2xl rounded-[2rem] shadow-2xl border border-primary/10 w-full sm:w-96 max-h-[75vh] sm:max-h-[80vh] overflow-hidden mb-16 sm:mb-0 flex flex-col"
+              className="pointer-events-auto relative z-10 bg-white/95 dark:bg-[#1a1d1a]/95 backdrop-blur-2xl rounded-[2rem] shadow-2xl border border-primary/10 w-full sm:w-96 max-h-[75vh] sm:max-h-[80vh] overflow-hidden mb-20 md:mb-0 flex flex-col"
             >
               {/* Header */}
               <div className="bg-primary p-5 text-white flex justify-between items-center shrink-0">
@@ -342,7 +342,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ startOpen = false }) => 
       </AnimatePresence>
 
       {/* Floating Trigger Button */}
-      <div className="fixed bottom-20 right-3 sm:bottom-6 sm:right-6 z-[90] pointer-events-auto">
+      <div className="fixed bottom-20 right-3 md:bottom-6 md:right-6 z-[90] pointer-events-auto">
         <motion.button
           type="button"
           whileHover={{ scale: 1.08 }}

@@ -2,13 +2,58 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Mail, Instagram, Linkedin, Sparkles, Heart, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
-import { doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../backend/firebase';
 import { MemberPortfolio } from '../../types';
 
 interface TeamViewProps {
   onNavigate?: (view: string) => void;
 }
+
+const DEFAULT_MEMBERS: MemberPortfolio[] = [
+  {
+    id: 'landry',
+    profileType: 'developer',
+    name: 'Landry',
+    role: 'Co-fondateur & Responsable Technique',
+    bio: 'Développeur passionné et garant de toute la partie digitale de Laine & Déco. Landry conçoit et optimise notre plateforme pour vous offrir une expérience d\'achat fluide, sécurisée et à la pointe de l\'innovation.',
+    email: 'landry@laine-deco.com',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600',
+    linkedin: 'https://linkedin.com',
+    externalPortfolioUrl: '#',
+    expertise: [
+      {
+        category: 'Frontend',
+        skills: [{ name: 'React', iconUrl: '' }, { name: 'Tailwind CSS', iconUrl: '' }]
+      }
+    ],
+    projects: [],
+    experience: [],
+    education: [],
+    certifications: []
+  },
+  {
+    id: 'doleres',
+    profileType: 'manager',
+    name: 'Dolères',
+    role: 'Co-fondatrice & Responsable Opérationnelle',
+    bio: 'Le cœur logistique et artistique du projet. Dolères coordonne les arrivages, supervise le sourcing soigné de nos laines et objets de décoration, et veille à ce que chaque colis préparé soit un vrai cadeau.',
+    email: 'doleres@laine-deco.com',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=600',
+    linkedin: 'https://linkedin.com',
+    externalPortfolioUrl: '#',
+    expertise: [
+      {
+        category: 'Organisation',
+        skills: [{ name: 'Logistique', iconUrl: '' }, { name: 'Sourcing', iconUrl: '' }]
+      }
+    ],
+    projects: [],
+    experience: [],
+    education: [],
+    certifications: []
+  }
+];
 
 export const TeamView: React.FC<TeamViewProps> = ({ onNavigate }) => {
   const [teamMembers, setTeamMembers] = useState<MemberPortfolio[]>([]);
@@ -18,24 +63,53 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate }) => {
     const fetchTeam = async () => {
       setLoading(true);
       try {
-        const ids = ['landry', 'doleres'];
+        const querySnapshot = await getDocs(collection(db, 'member_portfolio'));
         const members: MemberPortfolio[] = [];
-        for (const id of ids) {
-          const docRef = doc(db, 'member_portfolio', id);
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-            members.push({ id, ...docSnap.data() } as MemberPortfolio);
-          }
+        querySnapshot.forEach((docSnap) => {
+          members.push({ id: docSnap.id, ...docSnap.data() } as MemberPortfolio);
+        });
+        
+        if (members.length > 0) {
+          setTeamMembers(members);
+        } else {
+          setTeamMembers(DEFAULT_MEMBERS);
         }
-        setTeamMembers(members);
       } catch (error) {
         console.error("Error fetching team:", error);
+        setTeamMembers(DEFAULT_MEMBERS);
       } finally {
         setLoading(false);
       }
     };
     fetchTeam();
   }, []);
+
+  const renderAvatar = (member: MemberPortfolio) => {
+    const photo = member.avatar || (member as any).photo || (member as any).image || (member as any).photoUrl || (member as any).avatarUrl || (member as any).imageUrl;
+    
+    if (photo && photo.trim() !== '' && !photo.includes('placeholder')) {
+      return (
+        <img 
+          src={photo} 
+          alt={member.name} 
+          className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105"
+          referrerPolicy="no-referrer"
+        />
+      );
+    }
+    
+    // Premium theme-safe neutral initials avatar
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-[#E2C29B]/20 via-[#F9F7F2] to-[#5C6B5A]/20 dark:from-[#1A1D1A] dark:to-[#111311] text-primary transition-colors">
+        <div className="w-24 h-24 rounded-full bg-[#3E4A3D]/10 dark:bg-[#E2C29B]/10 flex items-center justify-center border border-primary/5 shadow-inner">
+          <span className="text-4xl font-serif font-bold text-[#3E4A3D] dark:text-[#E2C29B]">
+            {member.name ? member.name.charAt(0).toUpperCase() : '?'}
+          </span>
+        </div>
+        <p className="mt-4 text-[10px] uppercase tracking-widest font-bold text-primary/60">Laine & Déco</p>
+      </div>
+    );
+  };
 
   if (loading) {
      return (
@@ -71,14 +145,9 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate }) => {
             transition={{ delay: index * 0.1 }}
             className="group"
           >
-            <div className="relative mb-8 aspect-[4/5] overflow-hidden rounded-[3rem] shadow-lg">
-              <img 
-                src={member.avatar || '/icons/icon-192.png'} 
-                alt={member.name} 
-                className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105"
-                referrerPolicy="no-referrer"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-primary/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-8">
+            <div className="relative mb-8 aspect-[4/5] overflow-hidden rounded-[3rem] shadow-lg bg-card border border-primary/5">
+              {renderAvatar(member)}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-8">
                 <div className="flex gap-4">
                   <a href={`mailto:${member.email}`} className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-accent transition-colors">
                     <Mail size={18} />
@@ -97,7 +166,7 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate }) => {
               <p className="text-primary/70 text-sm leading-relaxed px-4 mb-8">
                 {member.bio}
               </p>
-              {member.externalPortfolioUrl && (
+              {member.externalPortfolioUrl && member.externalPortfolioUrl !== '#' && (
                 <Button 
                   variant="outline"
                   onClick={() => window.open(member.externalPortfolioUrl, '_blank')}
@@ -122,6 +191,7 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate }) => {
           variant="primary" 
           size="lg"
           className="rounded-full px-10 py-6 text-lg font-bold"
+          onClick={() => onNavigate && onNavigate('contact')}
         >
           Contactez-nous
         </Button>
