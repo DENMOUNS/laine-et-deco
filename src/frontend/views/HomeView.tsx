@@ -88,6 +88,15 @@ const CountdownTimer: React.FC<{ endDate: string; compact?: boolean }> = ({ endD
   );
 };
 
+// Helper function for deterministic daily product rotation changing at midnight
+const getDailyRotationIndex = (itemCount: number, salt: number = 0): number => {
+  if (itemCount <= 0) return 0;
+  const now = new Date();
+  const dayId = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
+  const hash = Math.abs((dayId * 9301 + 49297 + salt * 31337) % 233280);
+  return hash % itemCount;
+};
+
 interface HomeViewProps {
   onNavigate: (view: string, id?: string, query?: string) => void;
   onAddToCart: (p: Product) => void;
@@ -226,19 +235,53 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
   const featuredProducts = PRODUCTS.filter(p => siteConfig.homeFeaturedProducts.includes(p.id));
   const featuredCategories = CATEGORIES.filter(c => siteConfig.homeFeaturedCategories.includes(c.id));
 
+  // Produits éligibles avec un prix valide
+  const validProducts = React.useMemo(() => {
+    const list = PRODUCTS.filter(p => p && p.price && p.price > 0);
+    return list.length > 0 ? list : PRODUCTS;
+  }, [PRODUCTS]);
+
+  // Produit du jour pour la Vente Flash (-10%, rotation automatique quotidienne à minuit)
+  const flashSaleProduct = React.useMemo(() => {
+    if (validProducts.length === 0) return null;
+    const index = getDailyRotationIndex(validProducts.length, 17);
+    return validProducts[index] || validProducts[0];
+  }, [validProducts]);
+
+  // Prix de la vente flash avec réduction de 10% appliquée
+  const flashSalePrice = React.useMemo(() => {
+    if (!flashSaleProduct || !flashSaleProduct.price) return 0;
+    return Math.round(flashSaleProduct.price * 0.9); // 10% de réduction
+  }, [flashSaleProduct]);
+
+  // Produit du jour pour la Création d'Exception (sans réduction, obligatoirement distinct de la vente flash, rotation à minuit)
+  const exceptionProduct = React.useMemo(() => {
+    if (validProducts.length === 0) return null;
+    const candidates = validProducts.filter(p => p.id !== flashSaleProduct?.id);
+    const pool = candidates.length > 0 ? candidates : validProducts;
+    const index = getDailyRotationIndex(pool.length, 83);
+    return pool[index] || pool[0];
+  }, [validProducts, flashSaleProduct]);
+
+  // Fin de la vente flash : prochain minuit exact
+  const flashSaleEndDate = React.useMemo(() => {
+    const now = new Date();
+    const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+    return nextMidnight.toISOString();
+  }, []);
+
   const activeFlashSale = React.useMemo(() => {
     if (activeFlashSales.length > 0) return activeFlashSales[0];
-    if (PRODUCTS.length > 0) {
-      const targetProduct = PRODUCTS.find(p => p.price && p.price > 0) || PRODUCTS[0];
+    if (flashSaleProduct) {
       return {
-        id: 'fallback-flash',
-        name: 'Vente Flash Exceptionnelle',
+        id: 'daily-flash',
+        name: 'Vente Flash du Jour',
         status: 'active',
-        endDate: new Date(Date.now() + 1000 * 60 * 60 * 7).toISOString(), // 7 hours from now
+        endDate: flashSaleEndDate,
         items: [
           {
-            productId: targetProduct.id,
-            flashPrice: targetProduct.salePrice || Math.round(targetProduct.price * 0.7), // 30% discount
+            productId: flashSaleProduct.id,
+            flashPrice: flashSalePrice,
             totalQuantity: 15,
             soldQuantity: 3
           }
@@ -246,13 +289,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
       } as FlashSale;
     }
     return null;
-  }, [activeFlashSales, PRODUCTS]);
-
-  const flashSaleEndDate = activeFlashSale ? activeFlashSale.endDate : new Date(Date.now() + 1000 * 60 * 60 * 5).toISOString();
-  const flashSaleProduct = PRODUCTS.find(p => activeFlashSale?.items?.some(i => i.productId === p.id)) || null;
-  const flashSalePrice = flashSaleProduct
-    ? (activeFlashSale?.items?.find(i => i.productId === flashSaleProduct.id)?.flashPrice ?? flashSaleProduct.salePrice ?? flashSaleProduct.price)
-    : 0;
+  }, [activeFlashSales, flashSaleProduct, flashSalePrice, flashSaleEndDate]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -797,7 +834,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
       </section>
 
       {/* Flash Sale Section */}
-      {activeFlashSale && flashSaleProduct && (
+      {flashSaleProduct && (
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* ── Mobile Flash Sale Layout ── */}
         <div className="md:hidden bg-gradient-to-br from-[#3E4A3D] via-[#2F392E] to-slate-900 rounded-[2rem] p-5 relative overflow-hidden text-white shadow-xl border border-white/10">
@@ -809,18 +846,21 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
           <div className="flex items-center justify-between gap-2 mb-4 relative z-10">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/20 border border-accent/30 text-amber-300 text-xs font-bold uppercase tracking-wider">
               <Zap size={14} className="animate-pulse" fill="currentColor" />
-              <span>Vente Flash</span>
+              <span>Vente Flash (-10%)</span>
             </div>
             <CountdownTimer endDate={flashSaleEndDate} compact />
           </div>
 
           {/* Product Spotlight */}
           <div className="relative z-10 space-y-3.5">
-            <div className="relative aspect-[16/10] rounded-2xl overflow-hidden bg-black/20 shadow-inner group">
+            <div 
+              onClick={() => onProductClick({ ...flashSaleProduct, salePrice: flashSalePrice })}
+              className="relative aspect-[16/10] rounded-2xl overflow-hidden bg-black/20 shadow-inner group cursor-pointer"
+            >
               <img 
                 src={flashSaleProduct?.image || 'https://picsum.photos/seed/flash/600/600'} 
                 alt={flashSaleProduct?.name || "Vente Flash"} 
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 referrerPolicy="no-referrer"
                 loading="lazy"
                 width={400}
@@ -830,13 +870,13 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
               
               {/* Discount Tag */}
               <div className="absolute top-3 left-3 bg-accent text-primary font-black text-xs px-2.5 py-1 rounded-lg shadow-md uppercase tracking-wider">
-                Jusqu'à -40%
+                -10%
               </div>
 
               {/* Price Pill */}
               <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between text-white">
                 <div>
-                  <p className="text-[10px] uppercase font-bold tracking-widest text-white/70">Prix exceptionnel</p>
+                  <p className="text-[10px] uppercase font-bold tracking-widest text-white/70">Prix flash du jour</p>
                   <p className="text-xl font-bold text-amber-300">{flashSalePrice.toLocaleString()} FCFA</p>
                 </div>
                 {flashSaleProduct.price && flashSaleProduct.price > flashSalePrice && (
@@ -849,18 +889,18 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
 
             <div>
               <h3 className="text-lg font-serif text-white leading-snug">
-                Offre limitée sur la <span className="text-accent italic">Collection Hiver</span>
+                Offre flash sur <span className="text-accent italic">{flashSaleProduct.name}</span>
               </h3>
               <p className="text-xs text-white/75 mt-1 line-clamp-2">
-                Profitez de remises exclusives sur une sélection de laines et objets déco artisanaux.
+                Profitez d'une remise exclusive de 10% sur cet article sélectionné aujourd'hui jusqu'à minuit.
               </p>
             </div>
 
             <Button 
-              onClick={() => onNavigate('shop')}
+              onClick={() => onProductClick({ ...flashSaleProduct, salePrice: flashSalePrice })}
               className="w-full py-3.5 bg-gradient-to-r from-accent to-amber-500 hover:from-amber-500 hover:to-accent text-primary font-bold shadow-lg shadow-accent/20 rounded-xl flex items-center justify-center gap-2 text-sm"
             >
-              <span>En profiter maintenant</span>
+              <span>En profiter maintenant (-10%)</span>
               <ArrowRight size={16} />
             </Button>
           </div>
@@ -873,13 +913,13 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
             <div className="w-full lg:w-1/2 p-12 md:p-20 space-y-8">
               <div className="flex items-center gap-3 text-accent font-bold uppercase tracking-widest text-sm">
                 <Zap size={20} fill="currentColor" />
-                <span>Vente Flash Exceptionnelle</span>
+                <span>Vente Flash du Jour • Offre Limitée</span>
               </div>
               <h2 className="text-4xl md:text-6xl font-serif text-white leading-tight">
-                Offre limitée sur la <span className="italic text-accent">Collection Hiver</span>
+                -10% sur <span className="italic text-accent">{flashSaleProduct.name}</span>
               </h2>
               <p className="text-white text-lg max-w-md">
-                Profitez de remises allant jusqu'à -40% sur une sélection exclusive de laines et objets déco.
+                Profitez d'une remise exceptionnelle de 10% sur cette création artisanale sélectionnée, valable aujourd'hui jusqu'à minuit.
               </p>
               
               <div className="space-y-4">
@@ -891,15 +931,18 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
               </div>
 
               <Button 
-                onClick={() => onNavigate('shop')}
+                onClick={() => onProductClick({ ...flashSaleProduct, salePrice: flashSalePrice })}
                 className="px-10 py-4 animate-shine"
               >
-                En profiter maintenant
+                En profiter maintenant (-10%)
               </Button>
             </div>
             
             <div className="w-full lg:w-1/2 p-12 lg:p-0">
-              <div className="relative aspect-square max-w-md mx-auto">
+              <div 
+                onClick={() => onProductClick({ ...flashSaleProduct, salePrice: flashSalePrice })}
+                className="relative aspect-square max-w-md mx-auto cursor-pointer group"
+              >
                 <motion.div 
                   animate={{ rotate: 360 }}
                   transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
@@ -908,15 +951,21 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                 <img 
                   src={flashSaleProduct?.image || 'https://picsum.photos/seed/flash/600/600'} 
                   alt={flashSaleProduct?.name || "Vente Flash"} 
-                  className="w-full h-full object-cover rounded-full relative z-10"
+                  className="w-full h-full object-cover rounded-full relative z-10 group-hover:scale-105 transition-transform duration-500 shadow-2xl"
                   referrerPolicy="no-referrer"
                   loading="lazy"
                   width={400}
                   height={400}
                 />
-                <div className="absolute top-1/4 -right-4 bg-white p-4 rounded-2xl shadow-2xl z-20 rotate-12">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-primary/70">À partir de</p>
+                <div className="absolute top-1/4 -right-4 bg-white dark:bg-stone-900 p-4 rounded-2xl shadow-2xl z-20 rotate-12 border border-primary/10">
+                  <div className="inline-block bg-accent text-primary text-[10px] font-black uppercase px-2 py-0.5 rounded-md mb-1">-10%</div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-primary/70 dark:text-stone-300">Prix Flash</p>
                   <p className="text-2xl font-bold text-accent">{flashSalePrice.toLocaleString()} FCFA</p>
+                  {flashSaleProduct.price && flashSaleProduct.price > flashSalePrice && (
+                    <p className="text-xs line-through text-primary/50 dark:text-stone-400 font-normal">
+                      {flashSaleProduct.price.toLocaleString()} FCFA
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -1044,9 +1093,9 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
         </div>
       </section>
 
-      {/* Featured Slider */}
+      {/* Featured Slider / Création d'Exception */}
       {(() => {
-        const featuredProduct = PRODUCTS.find(p => siteConfig.homeFeaturedProducts?.includes(p.id)) || PRODUCTS[0];
+        const featuredProduct = exceptionProduct;
         if (!featuredProduct) return null;
         const cleanedDescription = cleanText(featuredProduct.description) || "Une création d'exception façonnée avec des matières nobles pour sublimer vos projets les plus précieux.";
         return (
@@ -1072,7 +1121,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                   </div>
                 </div>
 
-                <div className="w-full md:w-1/2 relative">
+                <div 
+                  onClick={() => onProductClick(featuredProduct)}
+                  className="w-full md:w-1/2 relative cursor-pointer group"
+                >
                   <motion.div 
                     animate={{ y: [0, -12, 0] }}
                     transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
@@ -1081,7 +1133,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                     <ImageWithFallback 
                       src={optimizeImageUrl(featuredProduct.image, 800)} 
                       alt={featuredProduct.name} 
-                      className="w-full aspect-[4/3] sm:aspect-square object-cover rounded-2xl sm:rounded-[3rem] shadow-xl"
+                      className="w-full aspect-[4/3] sm:aspect-square object-cover rounded-2xl sm:rounded-[3rem] shadow-xl group-hover:scale-102 transition-transform duration-500"
                       referrerPolicy="no-referrer"
                       loading="lazy"
                       width={800}

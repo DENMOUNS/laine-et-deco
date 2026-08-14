@@ -60,46 +60,6 @@ const ensureFirebaseReady = async (req: AuthenticatedRequest, res: Response) => 
   return true;
 };
 
-const logEntity = (requestId: string | undefined, message: string, meta: Record<string, unknown> = {}) => {
-  console.info('[entity-api]', { requestId, message, ...meta });
-};
-
-const logEntityError = (requestId: string | undefined, message: string, error: any, meta: Record<string, unknown> = {}) => {
-  const msg = String(error?.message || '').toLowerCase();
-  const isFallbackError = msg.includes('cached fallback mode active') || msg.includes('fallback cache-only mode');
-
-  const isQuota = !isFallbackError && error && (
-    error.code === 8 || 
-    error.status === 8 ||
-    error.code === 'RESOURCE_EXHAUSTED' ||
-    msg.includes('quota') ||
-    msg.includes('resource_exhausted') ||
-    msg.includes('limit exceeded')
-  );
-
-  if (isQuota) {
-    console.warn('[entity-api] [quota-warning]', {
-      requestId,
-      message,
-      ...meta,
-      status: 'RESOURCE_EXHAUSTED',
-      fallbackActive: true,
-      info: 'Firestore free tier daily reads limit reached. Graceful static cache serving is currently active.'
-    });
-    return;
-  }
-
-  console.error('[entity-api]', {
-    requestId,
-    message,
-    ...meta,
-    errorName: error?.name,
-    errorCode: error?.code,
-    errorMessage: error?.message,
-    errorStack: error?.stack,
-  });
-};
-
 const PUBLIC_FIRESTORE_CACHE_TTL_MS = Number(process.env.FIRESTORE_CACHE_TTL_MS || '300000');
 
 let isQuotaExhausted = false;
@@ -133,6 +93,37 @@ const markQuotaExhausted = () => {
     lastQuotaExhaustedCheck = Date.now();
     console.warn('[entity-api] Firestore quota is exhausted (RESOURCE_EXHAUSTED). Entering fallback cache-only mode for 30 minutes to save resources and avoid error loops.');
   }
+};
+
+const logEntity = (requestId: string | undefined, message: string, meta: Record<string, unknown> = {}) => {
+  console.info('[entity-api]', { requestId, message, ...meta });
+};
+
+const logEntityError = (requestId: string | undefined, message: string, error: any, meta: Record<string, unknown> = {}) => {
+  const isQuota = isQuotaError(error);
+
+  if (isQuota) {
+    markQuotaExhausted();
+    console.warn('[entity-api] [quota-warning]', {
+      requestId,
+      message,
+      ...meta,
+      status: 'RESOURCE_EXHAUSTED',
+      fallbackActive: true,
+      info: 'Firestore free tier daily reads limit reached. Graceful static cache serving is currently active.'
+    });
+    return;
+  }
+
+  console.error('[entity-api]', {
+    requestId,
+    message,
+    ...meta,
+    errorName: error?.name,
+    errorCode: error?.code,
+    errorMessage: error?.message,
+    errorStack: error?.stack,
+  });
 };
 
 const getPublicCacheKey = (entity: string, id?: string) => `public-firestore:${entity}:${id ?? 'list'}`;
