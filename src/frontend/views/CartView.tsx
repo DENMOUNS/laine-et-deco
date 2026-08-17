@@ -1,8 +1,10 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trash2, Plus, Minus, ArrowRight, ShoppingBag, ArrowLeft, Truck, Package } from 'lucide-react';
+import { Trash2, Plus, Minus, ArrowRight, ShoppingBag, ArrowLeft, Truck, Package, Gift, Sparkles } from 'lucide-react';
 import { CartItem, Product, Pack } from '../../types';
 import { formatAvailabilityDate, getProductAvailability } from '../utils/stockAvailability';
+import { useCartStore } from '../../stores/cartStore';
+import { GiftWrapSection } from '../components/GiftWrapSection';
 
 interface CartViewProps {
   cart: CartItem[];
@@ -22,11 +24,13 @@ export const CartView: React.FC<CartViewProps> = ({
   onNavigate,
   allProducts = []
 }) => {
+  const giftWrap = useCartStore((s) => s.giftWrap);
+  const setGiftWrap = useCartStore((s) => s.setGiftWrap);
+
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const giftWrapFee = giftWrap.enabled ? (giftWrap.fee || 2000) : 0;
   const FREE_SHIPPING_THRESHOLD = 200000;
-  const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 5000; 
-  const total = subtotal + (cart.length > 0 ? shipping : 0);
-  const progress = Math.min(100, (subtotal / FREE_SHIPPING_THRESHOLD) * 100);
+  const estimatedTotal = subtotal + giftWrapFee;
 
   if (cart.length === 0) {
     return (
@@ -163,6 +167,12 @@ export const CartView: React.FC<CartViewProps> = ({
             </AnimatePresence>
           </div>
 
+          {/* Gift Wrap & Calligraphy Card Section */}
+          <GiftWrapSection
+            giftWrap={giftWrap}
+            onChange={setGiftWrap}
+          />
+
           {/* Promo Code */}
           <div className="bg-white p-8 rounded-[2.5rem] border border-primary/5 shadow-sm">
             <div className="flex items-center gap-3 mb-6">
@@ -187,11 +197,22 @@ export const CartView: React.FC<CartViewProps> = ({
           <div className="bg-white p-10 rounded-[3rem] border border-primary/5 shadow-sm sticky top-24">
             <h2 className="text-3xl font-serif font-bold text-primary mb-10">Récapitulatif</h2>
             
-            <div className="space-y-6 mb-10 pb-10 border-b border-primary/5">
+            <div className="space-y-4 mb-10 pb-10 border-b border-primary/5">
               <div className="flex justify-between text-primary/70 font-medium">
-                <span>Sous-total</span>
+                <span>Sous-total articles</span>
                 <span>{subtotal.toLocaleString()} FCFA</span>
               </div>
+
+              {giftWrap.enabled && (
+                <div className="flex justify-between text-amber-900 font-medium bg-amber-50/80 p-3 rounded-xl border border-amber-200/70 text-xs">
+                  <span className="flex items-center gap-1.5 font-bold">
+                    <Gift size={14} className="text-amber-700 shrink-0" />
+                    Emballage Kraft + Carte Calligraphiée
+                  </span>
+                  <span className="font-bold">+{(giftWrap.fee || 2000).toLocaleString()} FCFA</span>
+                </div>
+              )}
+
               <p className="text-xs italic text-accent opacity-80 mt-4">
                 Les frais de livraison seront calculés à l'étape de paiement.
               </p>
@@ -199,7 +220,7 @@ export const CartView: React.FC<CartViewProps> = ({
 
             <div className="flex justify-between items-end mb-12">
               <span className="text-2xl font-serif font-bold text-primary">Total estimé</span>
-              <span className="text-4xl font-serif font-bold text-primary">{subtotal.toLocaleString()} FCFA</span>
+              <span className="text-4xl font-serif font-bold text-primary">{estimatedTotal.toLocaleString()} FCFA</span>
             </div>
 
             <button 

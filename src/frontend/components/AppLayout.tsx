@@ -169,9 +169,9 @@ export const AppLayout: React.FC = () => {
   return (
     <div
       className="min-h-screen bg-secondary text-primary font-sans transition-colors duration-300"
-      style={!isDark ? {
-        '--primary-color': siteConfig?.primaryColor || '#2C3E35',
-        '--accent-color': siteConfig?.accentColor || '#D6B4A3',
+      style={!isDark && siteConfig?.primaryColor ? {
+        '--primary-color': siteConfig.primaryColor,
+        '--accent-color': siteConfig?.accentColor || '#5C6B5A',
       } as React.CSSProperties : {}}
     >
       <a href="#main-content" className="sr-only">
@@ -188,6 +188,7 @@ export const AppLayout: React.FC = () => {
       {!isAdmin && (
         <MobileGlassHeader
           onNavigate={handleNavigate}
+          user={user}
         />
       )}
       {!isAdmin && (

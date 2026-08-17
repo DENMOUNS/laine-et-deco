@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { X, MapPin, RefreshCcw, Truck } from 'lucide-react';
+import { X, MapPin, RefreshCcw, Truck, Gift, Sparkles, Feather } from 'lucide-react';
 import { Order, Product } from '../../../types';
 import { generateInvoicePDF } from '../../utils/invoiceUtils';
 import { toast } from 'sonner';
@@ -160,6 +160,15 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                     })()} FCFA
                   </p>
                 </div>
+                {selectedOrder.giftWrap?.enabled && (
+                  <div className="flex justify-between items-center text-sm text-amber-900 bg-amber-50 p-2.5 rounded-xl border border-amber-200/70">
+                    <span className="flex items-center gap-1.5 font-bold">
+                      <Gift size={14} className="text-amber-700" />
+                      Coffret Cadeau Kraft Noble & Ruban
+                    </span>
+                    <span className="font-bold">+ {(selectedOrder.giftFee || selectedOrder.giftWrap?.fee || 2000).toLocaleString()} FCFA</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center text-sm">
                   <p className="text-primary/70">Frais de livraison</p>
                   <p className="font-bold text-primary">
@@ -168,7 +177,8 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                 </div>
                 {(() => {
                   const subtotal = (selectedOrder.orderDetails || []).reduce((sum, item) => sum + item.price * item.quantity, 0);
-                  const discount = (subtotal + (selectedOrder.shippingFee || 0)) - selectedOrder.total;
+                  const giftFee = selectedOrder.giftFee || selectedOrder.giftWrap?.fee || (selectedOrder.giftWrap?.enabled ? 2000 : 0);
+                  const discount = (subtotal + (selectedOrder.shippingFee || 0) + giftFee) - selectedOrder.total;
                   if (discount > 0) {
                     return (
                       <div className="flex justify-between items-center text-sm text-green-600">
@@ -184,6 +194,43 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                   <p className="text-xl font-bold text-primary">{selectedOrder.total.toLocaleString()} FCFA</p>
                 </div>
               </div>
+
+              {selectedOrder.giftWrap?.enabled && (
+                <div className="bg-[#FAF7F2] p-6 rounded-2xl border border-amber-200/80 space-y-4">
+                  <div className="flex items-center justify-between border-b border-amber-200/50 pb-3">
+                    <div className="flex items-center gap-2">
+                      <Gift className="text-amber-800" size={18} />
+                      <span className="font-serif font-bold text-primary text-base">Coffret Cadeau & Message Calligraphié</span>
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-900 px-3 py-1 rounded-full border border-amber-200">
+                      Ruban {selectedOrder.giftWrap.ribbonColor || 'Satin Doré'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    <div>
+                      <span className="text-primary/60 font-semibold block text-[10px] uppercase">Destinataire :</span>
+                      <p className="font-bold text-primary text-sm mt-0.5">{selectedOrder.giftWrap.recipientName || 'Non spécifié'}</p>
+                    </div>
+                    <div>
+                      <span className="text-primary/60 font-semibold block text-[10px] uppercase">Offert par :</span>
+                      <p className="font-bold text-primary text-sm mt-0.5">{selectedOrder.giftWrap.senderName || selectedOrder.customer || 'Non spécifié'}</p>
+                    </div>
+                  </div>
+
+                  {selectedOrder.giftWrap.message && (
+                    <div className="bg-white p-4 rounded-xl border border-amber-200/60 shadow-sm">
+                      <div className="flex items-center gap-1.5 text-amber-800 text-[10px] uppercase font-bold tracking-wider mb-2">
+                        <Feather size={12} />
+                        Mot rédigé à la main sur carte prestige
+                      </div>
+                      <p className="font-serif italic text-primary text-sm leading-relaxed">
+                        « {selectedOrder.giftWrap.message} »
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-slate-50 p-6 rounded-2xl flex items-start gap-4 flex-col sm:flex-row">

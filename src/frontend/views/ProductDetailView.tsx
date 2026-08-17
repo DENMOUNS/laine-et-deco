@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Product, PromoEvent } from '../../types';
 import { Button } from '../components/ui/Button';
-import { Minus, Plus, ShoppingBag } from 'lucide-react';
+import { Minus, Plus, ShoppingBag, Heart } from 'lucide-react';
 import { ImageWithFallback } from '../components/ui/ImageWithFallback';
+import { ProductImageGallery } from '../components/ProductImageGallery';
 import { formatAvailabilityDate, getProductAvailability } from '../utils/stockAvailability';
 import { getEffectivePrice } from '../utils/siteUtils';
+import { triggerHaptic } from '../utils/haptics';
 
 interface FlyingDot {
   id: number;
@@ -34,10 +36,21 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
 }) => {
   const [quantity, setQuantity] = useState(1);
   const [flyingDots, setFlyingDots] = useState<FlyingDot[]>([]);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | undefined>();
   const availability = getProductAvailability(product, selectedColor);
   const maxQuantity = availability.total;
+
+  // Rassembler toutes les photos du produit
+  const productImages = React.useMemo(() => {
+    const list: string[] = [];
+    if (product.image) list.push(product.image);
+    if (product.images && Array.isArray(product.images)) {
+      product.images.forEach(img => {
+        if (img && !list.includes(img)) list.push(img);
+      });
+    }
+    return list.length > 0 ? list : [product.image];
+  }, [product]);
 
   // Filter for similar products: same category, not the current product
   const recommendedProducts = allProducts
@@ -46,39 +59,18 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-12">
-      <div className="bg-card p-8 md:p-12 rounded-[3rem] border border-primary/5 shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-          <div className="flex flex-col gap-4">
-            <div className="relative">
-              <ImageWithFallback src={selectedImage || product.image} alt={product.name} className="w-full aspect-square object-cover rounded-3xl transition-opacity duration-300" loading="lazy" width={800} height={800} />
-              {product.isSale && (
-                <span className="absolute top-4 left-4 bg-accent text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest">
-                  Promo
-                </span>
-              )}
-            </div>
-            {product.images && product.images.length > 0 && (
-              <div className="grid grid-cols-4 gap-4">
-                <button 
-                  onClick={() => setSelectedImage(product.image)}
-                  className={`relative rounded-xl overflow-hidden aspect-square border-2 ${selectedImage === product.image || !selectedImage ? 'border-accent shadow-md scale-95' : 'border-transparent hover:scale-95 transition-transform'}`}
-                >
-                  <ImageWithFallback src={product.image} alt={product.name} className="w-full h-full object-cover" />
-                </button>
-                {product.images.map((img, idx) => (
-                  <button 
-                    key={idx}
-                    onClick={() => setSelectedImage(img)}
-                    className={`relative rounded-xl overflow-hidden aspect-square border-2 ${selectedImage === img ? 'border-accent shadow-md scale-95' : 'border-transparent hover:scale-95 transition-transform'}`}
-                  >
-                    <ImageWithFallback src={img} alt={`${product.name} ${idx + 1}`} className="w-full h-full object-cover" />
-                  </button>
-                ))}
-              </div>
-            )}
+      <div className="bg-card p-6 sm:p-8 md:p-12 rounded-[2.5rem] md:rounded-[3rem] border border-primary/5 shadow-sm">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
+          {/* Galerie d'images avec swipe tactile et points de pagination */}
+          <div>
+            <ProductImageGallery
+              images={productImages}
+              productName={product.name}
+              isSale={product.isSale}
+            />
           </div>
           <div className="space-y-6">
-            <h1 className="text-4xl font-serif text-primary">{product.name}</h1>
+            <h1 className="text-3xl sm:text-4xl font-serif text-primary">{product.name}</h1>
             <div className="flex items-center gap-4">
               {product.promoPrice && product.promoPrice > 0 && product.promoPrice < (product.price || 0) ? (
                 <>
@@ -117,9 +109,12 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                     <button 
                       key={idx} 
                       type="button"
-                      onClick={() => setSelectedColor(color)}
+                      onClick={() => {
+                        triggerHaptic('selection');
+                        setSelectedColor(color);
+                      }}
                       aria-pressed={selectedColor === color}
-                      className={`w-8 h-8 rounded-full border-2 ${selectedColor === color ? 'border-accent ring-2 ring-accent/30' : 'border-primary/20'} shadow-sm`}
+                      className={`w-8 h-8 rounded-full border-2 transition-transform ${selectedColor === color ? 'border-accent ring-2 ring-accent/30 scale-110' : 'border-primary/20 hover:scale-105'} shadow-sm`}
                       style={{ backgroundColor: color }}
                       title={color}
                     />
@@ -154,7 +149,10 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                 <Button 
                   variant="ghost"
                   size="icon"
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  onClick={() => {
+                    triggerHaptic('light');
+                    setQuantity(Math.max(1, quantity - 1));
+                  }}
                   className="w-10 h-10 flex items-center justify-center hover:text-accent"
                   disabled={quantity <= 1 || maxQuantity <= 0}
                 >
@@ -179,7 +177,10 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                 <Button 
                   variant="ghost"
                   size="icon"
-                  onClick={() => setQuantity(Math.min(maxQuantity, quantity + 1))}
+                  onClick={() => {
+                    triggerHaptic('light');
+                    setQuantity(Math.min(maxQuantity, quantity + 1));
+                  }}
                   className="w-10 h-10 flex items-center justify-center hover:text-accent"
                   disabled={quantity >= maxQuantity || maxQuantity <= 0}
                 >
@@ -189,6 +190,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
               <div className="flex gap-4">
                 <Button variant="primary" className="flex-grow relative overflow-hidden" onClick={(e) => {
                   if (maxQuantity <= 0) return;
+                  triggerHaptic('success');
                   const rect = e.currentTarget.getBoundingClientRect();
                   const newDot = { id: Date.now(), x: e.clientX, y: e.clientY };
                   setFlyingDots(prev => [...prev, newDot]);
@@ -197,8 +199,11 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                 }} disabled={maxQuantity <= 0}>
                   <ShoppingBag size={20} className="mr-2" /> {availability.immediate >= quantity ? 'Ajouter au panier' : 'Précommander'}
                 </Button>
-                <Button variant="outline" onClick={() => onAddToWishlist(product)}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                <Button variant="outline" onClick={() => {
+                  triggerHaptic('selection');
+                  onAddToWishlist(product);
+                }}>
+                  <Heart size={20} />
                 </Button>
               </div>
             </div>

@@ -116,6 +116,11 @@ async function startServer() {
   app.use('/api/checkout', checkoutRoutes);
   app.use('/checkout', checkoutRoutes);
 
+  // Health check endpoint
+  app.get("/api/health", (_req, res) => {
+    res.json({ status: "ok" });
+  });
+
   // Test route to verify API routing works
   app.get('/api/test', (_req, res) => {
     return res.json({ ok: true, message: 'API routing works' });
@@ -238,40 +243,35 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     const indexHtml = path.join(distPath, 'index.html');
-    if (!fs.existsSync(indexHtml)) {
-      process.exit(1);
+    if (fs.existsSync(distPath)) {
+      app.use(
+        express.static(distPath, {
+          maxAge: '1y',
+          immutable: true,
+          setHeaders: (res, filePath) => {
+            if (filePath.endsWith('index.html')) {
+              res.setHeader('Cache-Control', 'no-cache');
+            }
+          },
+        })
+      );
     }
-    app.use(
-      express.static(distPath, {
-        maxAge: '1y',
-        immutable: true,
-        setHeaders: (res, filePath) => {
-          if (filePath.endsWith('index.html')) {
-            res.setHeader('Cache-Control', 'no-cache');
-          }
-        },
-      })
-    );
-    app.get(/(.*)/, (_req, res) => {
+    app.get('*all', (_req, res) => {
       res.setHeader('Cache-Control', 'no-cache');
-      res.sendFile(path.join(distPath, 'index.html'));
+      if (fs.existsSync(indexHtml)) {
+        res.sendFile(indexHtml);
+      } else {
+        res.status(404).send('Application build in progress, please refresh in a moment.');
+      }
     });
   }
 
-  app.listen(PORT, "0.0.0.0", async () => {
+  app.listen(PORT, "0.0.0.0", () => {
     const mode = useViteDevServer ? "développement (Vite)" : "production (fichiers dist/)";
-    try {
-      const admin = (await import('./server/firebaseAdmin.js')).firebaseAdmin;
-      const firestoreDb = (await import('./server/firebaseAdmin.js')).db;
-      if (!firestoreDb) return;
-      const snap = await firestoreDb.collection('qr_config').doc('global').get();
-      if (snap.exists) {
-        await firestoreDb.collection('qr_config').limit(5).get();
-        await firestoreDb.collection('invoice_config').limit(5).get();
-      }
-    } catch (e) {
-    }
+    console.log(`Serveur démarré sur http://localhost:${PORT} (${mode})`);
   });
 }
 
-startServer();
+startServer().catch((err) => {
+  console.error('[server] Fatal server startup error:', err);
+});

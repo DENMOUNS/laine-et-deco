@@ -29,7 +29,7 @@ export const HeroTrustWidget: React.FC<{ onNavigate?: (route: string) => void }>
           </div>
           <div>
             <h5 className="text-xs font-bold">Livraison Rapide & Offerte</h5>
-            <p className="text-[11px] text-slate-300">Expédition sous 24/48h • Gratuite dès 50€</p>
+            <p className="text-[11px] text-slate-300">Expédition sous 24/48h • Gratuite dès 200 000 FCFA</p>
           </div>
         </div>
 
@@ -60,7 +60,7 @@ export const HeroTrustWidget: React.FC<{ onNavigate?: (route: string) => void }>
           <Gift size={20} className="text-accent shrink-0 animate-bounce" />
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-accent block">Offre de Bienvenue</span>
-            <span className="text-xs font-semibold">1 Patron offert dès 100.000FR</span>
+            <span className="text-xs font-semibold">1 Patron offert dès 100 000 FCFA</span>
           </div>
         </div>
         {onNavigate && (

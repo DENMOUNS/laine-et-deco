@@ -694,7 +694,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                                 <div className="flex-grow">
                                   <h4 className="text-base font-bold group-hover:text-accent transition-colors line-clamp-1">{product.name}</h4>
                                   <p className="text-[10px] text-primary/70 uppercase tracking-widest font-bold mt-1">{product.category}</p>
-                                  <p className="text-sm font-serif italic text-accent mt-1">{product.price}€</p>
+                                  <p className="text-sm font-serif italic text-accent mt-1">{product.price.toLocaleString()} FCFA</p>
                                 </div>
                                 <ArrowRight size={18} className="text-primary/70 group-hover:text-accent group-hover:translate-x-1 transition-all" />
                               </button>

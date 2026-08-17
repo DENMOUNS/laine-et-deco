@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { User as FirebaseUser } from 'firebase/auth';
+import { triggerHaptic } from '../utils/haptics';
+import { initialsAvatarDataUri } from '../utils/avatarFallback';
 
 interface MobileGlassDockProps {
   currentView: string;
@@ -154,7 +156,7 @@ export const MobileGlassDock: React.FC<MobileGlassDockProps> = ({
     { 
       id: 'tools', 
       label: 'Outils', 
-      icon: Sparkles, 
+      icon: Wand2, 
       isToolsButton: true,
       active: isToolActive
     },
@@ -180,15 +182,19 @@ export const MobileGlassDock: React.FC<MobileGlassDockProps> = ({
       {/* Barre de navigation tactile - STRICTEMENT RÉSERVÉE À LA VUE MOBILE (< 768px) */}
       <aside 
         aria-label="Navigation tactile mobile" 
-        className={`fixed inset-x-0 z-50 flex justify-center items-center pointer-events-none px-3 md:hidden transition-all duration-300 ${
-          isMobileLandscape ? 'bottom-1.5' : 'bottom-3'
-        }`}
+        className="fixed inset-x-0 z-[90] flex justify-center items-center pointer-events-none px-3 md:hidden transition-all duration-300"
+        style={{
+          bottom: isMobileLandscape 
+            ? 'max(6px, env(safe-area-inset-bottom, 6px))' 
+            : 'max(12px, calc(8px + env(safe-area-inset-bottom, 0px)))',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+        }}
       >
         <nav
-          className={`pointer-events-auto relative w-full max-w-[390px] transition-all duration-300 clay-tactile glass-ios-dock overflow-hidden ${
+          className={`pointer-events-auto relative w-full max-w-[400px] transition-all duration-300 overflow-hidden ${
             isMobileLandscape 
-              ? 'rounded-full p-1 shadow-xl' 
-              : 'rounded-[2.2rem] p-1.5 shadow-2xl border border-white/40 dark:border-white/10'
+              ? 'rounded-full p-1 shadow-2xl bg-white/95 dark:bg-[#181C18]/95 backdrop-blur-2xl border-2 border-[#3E4A3D]/25 dark:border-white/20' 
+              : 'rounded-[2.2rem] p-1.5 shadow-[0_12px_36px_rgba(45,69,51,0.25),0_4px_16px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_36px_rgba(0,0,0,0.6)] bg-white/95 dark:bg-[#181C18]/95 backdrop-blur-2xl border-2 border-[#3E4A3D]/20 dark:border-white/20'
           }`}
         >
           <div className="flex items-center justify-between relative px-1">
@@ -202,6 +208,7 @@ export const MobileGlassDock: React.FC<MobileGlassDockProps> = ({
                   whileTap={{ scale: 0.88 }}
                   whileHover={{ scale: 1.05 }}
                   onClick={() => {
+                    triggerHaptic('light');
                     if (item.isToolsButton) {
                       setIsToolsSheetOpen(true);
                     } else if (item.view) {
@@ -210,8 +217,8 @@ export const MobileGlassDock: React.FC<MobileGlassDockProps> = ({
                   }}
                   className={`relative flex flex-col items-center justify-center rounded-2xl flex-1 transition-all py-1.5 px-1 group ${
                     active
-                      ? 'text-accent dark:text-accent font-bold'
-                      : 'text-primary/75 dark:text-white/75 hover:text-primary'
+                      ? 'text-[#243325] dark:text-accent font-bold'
+                      : 'text-[#2D3E31] dark:text-[#E2ECE2] hover:text-[#182419]'
                   }`}
                   aria-label={item.label}
                 >
@@ -220,7 +227,7 @@ export const MobileGlassDock: React.FC<MobileGlassDockProps> = ({
                     <motion.div
                       layoutId="mobile-dock-active-indicator"
                       transition={{ type: 'spring', stiffness: 420, damping: 32 }}
-                      className={`absolute inset-0 bg-accent/15 dark:bg-accent/30 shadow-[inset_0_1px_3px_rgba(255,255,255,0.4)] ${
+                      className={`absolute inset-0 bg-[#3E4A3D]/12 dark:bg-accent/25 border border-[#3E4A3D]/15 dark:border-accent/40 shadow-[inset_0_1px_3px_rgba(255,255,255,0.4)] ${
                         isMobileLandscape ? 'rounded-xl' : 'rounded-2xl'
                       }`}
                     />
@@ -228,26 +235,53 @@ export const MobileGlassDock: React.FC<MobileGlassDockProps> = ({
 
                   {/* Icon Container */}
                   <div className="relative z-10 flex items-center justify-center">
-                    <Icon
-                      size={isMobileLandscape ? 17 : 20}
-                      className={`transition-all duration-300 ${
-                        active ? 'stroke-[2.5] scale-110 text-accent' : 'stroke-[1.8] group-hover:scale-105'
-                      }`}
-                    />
-                    {typeof item.badge === 'number' && item.badge > 0 && (
-                      <motion.span
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="absolute -top-1.5 -right-2 min-w-[17px] h-[17px] px-1 bg-accent text-white text-[9px] font-black rounded-full flex items-center justify-center shadow-md border border-white/90 dark:border-white/30"
-                      >
-                        {item.badge > 99 ? '99+' : item.badge}
-                      </motion.span>
+                    {item.id === 'account' && user ? (
+                      <div className="relative flex items-center justify-center">
+                        <img
+                          src={user.photoURL || initialsAvatarDataUri(user.displayName, 48)}
+                          alt={user.displayName || 'Profil'}
+                          className={`rounded-full object-cover border border-primary/20 ${
+                            isMobileLandscape ? 'w-[19px] h-[19px]' : 'w-[23px] h-[23px]'
+                          } ${active ? 'ring-2 ring-accent' : ''}`}
+                          loading="lazy"
+                          decoding="async"
+                          referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            e.currentTarget.src = initialsAvatarDataUri(user.displayName, 48);
+                          }}
+                        />
+                        {/* Bouton/Pastille verte qui clignote (Status connecté actif) */}
+                        <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 border border-white dark:border-[#181C18] shadow-sm" />
+                        </span>
+                      </div>
+                    ) : (
+                      <>
+                        <Icon
+                          size={isMobileLandscape ? 18 : 21}
+                          className={`transition-all duration-300 ${
+                            active ? 'stroke-[2.6] scale-110 text-[#2D3E31] dark:text-accent' : 'stroke-[2] text-[#2D3E31] dark:text-[#E2ECE2] group-hover:scale-105'
+                          }`}
+                        />
+                        {typeof item.badge === 'number' && item.badge > 0 && (
+                          <motion.span
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            className="absolute -top-1.5 -right-2 min-w-[17px] h-[17px] px-1 bg-accent text-white text-[9px] font-black rounded-full flex items-center justify-center shadow-md border-2 border-white dark:border-[#181C18]"
+                          >
+                            {item.badge > 99 ? '99+' : item.badge}
+                          </motion.span>
+                        )}
+                      </>
                     )}
                   </div>
 
                   {/* Label */}
                   {!isMobileLandscape && (
-                    <span className="relative z-10 text-[10px] tracking-tight mt-0.5 leading-none font-medium truncate max-w-[58px]">
+                    <span className={`relative z-10 text-[10.5px] tracking-tight mt-0.5 leading-none truncate max-w-[62px] ${
+                      active ? 'font-bold text-[#1F2C21] dark:text-accent' : 'font-semibold text-[#2D3E31] dark:text-[#E2ECE2]'
+                    }`}>
                       {item.label}
                     </span>
                   )}

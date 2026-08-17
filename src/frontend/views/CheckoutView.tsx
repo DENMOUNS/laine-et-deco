@@ -2,13 +2,15 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { CartItem, Product, ShippingRule, City } from '../../types';
 import { Button } from '../components/ui/Button';
 import { toast } from 'sonner';
-import { MapPin, CreditCard, ShoppingBag, Truck, Package, Lock, Phone, CheckCircle } from 'lucide-react';
+import { MapPin, CreditCard, ShoppingBag, Truck, Package, Lock, Phone, CheckCircle, Gift, Sparkles, Feather } from 'lucide-react';
 import { User as FirebaseUser } from 'firebase/auth';
 import { collection, serverTimestamp, query, where, getDocs, updateDoc, doc, increment, setDoc, getDoc, limit } from 'firebase/firestore';
 import { auth, db } from '../../backend/firebase';
 import { motion, AnimatePresence } from 'motion/react';
 import { useEntity } from '../hooks/useEntity';
 import { useStaticEntity } from '../hooks/useStaticEntity';
+import { useCartStore } from '../../stores/cartStore';
+import { GiftWrapSection } from '../components/GiftWrapSection';
 
 
 interface CheckoutViewProps {
@@ -21,6 +23,8 @@ interface CheckoutViewProps {
 
 export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNavigate, onComplete, allProducts }) => {
   const [step, setStep] = useState(1);
+  const giftWrap = useCartStore((s) => s.giftWrap);
+  const setGiftWrap = useCartStore((s) => s.setGiftWrap);
   const [formData, setFormData] = useState({ 
     firstName: '', 
     lastName: '', 
@@ -42,6 +46,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const giftFee = giftWrap.enabled ? (giftWrap.fee || 2000) : 0;
 
   // Check for referral discount if it's the first order
   useEffect(() => {
@@ -95,7 +100,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
     return 0; // No matching rule
   }, [subtotal, formData.city, shippingRules, allCities, appliedCoupon]);
 
-  const total = subtotal + shipping - discount;
+  const total = subtotal + shipping + giftFee - discount;
 
   const handleApplyCoupon = () => {
     const coupon = allCoupons.find((c: any) => c.code === formData.couponCode && c.status === 'active');
@@ -233,10 +238,12 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
         body: JSON.stringify({
           items: cart.map((item) => ({
             id: item.id,
-            productId: item.type === 'product' ? item.product?.id : item.id,
+            productId: item.type === 'product' ? (item.product?.id || item.id) : item.id,
             type: item.type,
             quantity: item.quantity,
+            price: item.price,
             name: item.type === 'product' ? item.product?.name : item.pack?.name,
+            image: item.type === 'product' ? item.product?.image : undefined,
             components: item.type === 'pack' ? item.pack?.products : undefined,
             configuration: item.configuration,
           })),
@@ -248,6 +255,8 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
           paymentMethod: formData.paymentMethod,
           discount,
           shippingFee: shipping,
+          giftWrap: giftWrap.enabled ? giftWrap : undefined,
+          giftFee,
         }),
       });
       const checkoutBody = await checkoutResponse.json().catch(() => null);
@@ -369,9 +378,18 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
 
       <div className="space-y-4 mb-10 pb-10 border-b border-primary/5">
         <div className="flex justify-between text-primary/70 font-medium">
-          <span>Sous-total</span>
+          <span>Sous-total articles</span>
           <span>{subtotal.toLocaleString()} FCFA</span>
         </div>
+        {giftWrap.enabled && (
+          <div className="flex justify-between text-amber-900 font-medium bg-amber-50 p-2.5 rounded-xl border border-amber-200/80 text-xs">
+            <span className="flex items-center gap-1.5 font-bold">
+              <Gift size={13} className="text-amber-700 shrink-0" />
+              Coffret Kraft + Carte Calligraphiée
+            </span>
+            <span className="font-bold">+{(giftWrap.fee || 2000).toLocaleString()} FCFA</span>
+          </div>
+        )}
         <div className="flex justify-between text-primary/70 font-medium">
           <span>Livraison</span>
           <span>{shipping === 0 ? 'Offerte' : `${shipping.toLocaleString()} FCFA`}</span>
@@ -542,6 +560,14 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
                       className="absolute top-1 w-6 h-6 bg-white rounded-full shadow-sm"
                     />
                   </button>
+                </div>
+
+                {/* Gift Wrap & Message Option in Checkout */}
+                <div className="pt-2">
+                  <GiftWrapSection
+                    giftWrap={giftWrap}
+                    onChange={setGiftWrap}
+                  />
                 </div>
 
                 <button 
@@ -727,6 +753,38 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
                         </div>
                       </div>
 
+                      {/* Gift Wrap Information Card */}
+                      {giftWrap.enabled && (
+                        <div className="bg-amber-50/60 p-6 rounded-[2rem] border border-amber-200/80 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h4 className="flex items-center gap-2 text-[11px] font-bold tracking-widest text-amber-900 uppercase">
+                              <Gift size={14} className="text-amber-700" /> Option Coffret Cadeau & Message Calligraphié
+                            </h4>
+                            <span className="text-xs font-bold text-amber-800 bg-amber-100/80 px-2.5 py-1 rounded-full">+{(giftWrap.fee || 2000).toLocaleString()} FCFA</span>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-amber-950/80 pt-1">
+                            <div>
+                              <span className="text-amber-900/60 font-semibold block text-[10px] uppercase">Destinataire</span>
+                              <span className="font-serif font-bold text-sm text-primary">{giftWrap.recipientName || 'Non spécifié'}</span>
+                            </div>
+                            <div>
+                              <span className="text-amber-900/60 font-semibold block text-[10px] uppercase">Expéditeur</span>
+                              <span className="font-serif font-bold text-sm text-primary">{giftWrap.senderName || `${formData.firstName} ${formData.lastName}` || 'Non spécifié'}</span>
+                            </div>
+                          </div>
+
+                          {giftWrap.message && (
+                            <div className="bg-white/80 p-4 rounded-xl border border-amber-200/60 mt-2">
+                              <span className="text-[10px] uppercase tracking-wider text-amber-900/60 font-semibold block mb-1">Texte calligraphié sur la carte :</span>
+                              <p className="font-serif italic text-primary/90 text-sm leading-relaxed">
+                                « {giftWrap.message} »
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {/* Votre commande summary card */}
                       <div className="bg-[#FDFBF7] p-6 rounded-[2.5rem] border border-accent/20 space-y-4">
                         <h4 className="text-xs font-bold uppercase tracking-widest text-accent">Détails financiers</h4>
@@ -735,6 +793,12 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
                             <span>Sous-total ({cart.reduce((a, c) => a + c.quantity, 0)} articles)</span>
                             <span className="font-medium">{subtotal.toLocaleString()} FCFA</span>
                           </div>
+                          {giftWrap.enabled && (
+                            <div className="flex justify-between text-amber-900 font-medium">
+                              <span>Coffret cadeau Kraft & Carte</span>
+                              <span>+{(giftWrap.fee || 2000).toLocaleString()} FCFA</span>
+                            </div>
+                          )}
                           <div className="flex justify-between text-primary/80">
                             <span>Frais de livraison</span>
                             <span className="font-medium">{shipping === 0 ? 'Gratuit' : `${shipping.toLocaleString()} FCFA`}</span>

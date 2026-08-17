@@ -90,12 +90,12 @@ function ensureFirebaseInitialized() {
       normalizeDatabaseId(firebaseConfig.firestoreDatabaseId) ||
       '(default)';
 
-    // Cache mémoire uniquement avec auto-détection du Long Polling pour éviter les blocages WebChannel/Streaming.
+    // Direct long polling for fast and reliable connections in container / iframe environments
     db = initializeFirestore(
       app,
       {
         localCache: memoryLocalCache(),
-        experimentalAutoDetectLongPolling: true,
+        experimentalForceLongPolling: true,
       },
       databaseId
     );

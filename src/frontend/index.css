@@ -12,6 +12,7 @@
 
 @layer base {
   :root {
+    color-scheme: light;
     --primary-color: #3E4A3D; /* Marron-vert */
     --secondary-color: #F9F7F2; /* Beige clair */
     --accent-color: #5C6B5A; /* Marron-vert plus foncé */
@@ -19,6 +20,7 @@
   }
   
   .dark {
+    color-scheme: dark;
     --primary-color: #F3F5F3; /* Blanc cachemire pour une lisibilité premium */
     --secondary-color: #111311; /* Noir ébène forêt très chic, profond et reposant */
     --accent-color: #E2C29B; /* Or cachemire / laine naturelle pour les accents haut de gamme */
@@ -28,6 +30,10 @@
   html,
   body {
     position: relative;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   body {

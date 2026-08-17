@@ -264,3 +264,5 @@ export function TechnicalSupportView() {
     </div>
   );
 }
+
+export default TechnicalSupportView;

@@ -7,8 +7,32 @@ import { StatusBadge } from '../../../components/ui/StatusBadge';
 import { ImageWithFallback } from '../../../components/ui/ImageWithFallback';
 import type { Category } from '../../../../types';
 
-const formatDate = (val: any) => 
-  val ? new Date(val.seconds ? val.seconds * 1000 : val).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+const formatDate = (val: any) => {
+  if (!val) return '-';
+  try {
+    if (typeof val?.toDate === 'function') {
+      return val.toDate().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+    if (typeof val === 'object') {
+      const secs = val.seconds ?? val._seconds;
+      if (typeof secs === 'number') {
+        return new Date(secs * 1000).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+      }
+    }
+    if (typeof val === 'number') {
+      return new Date(val).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+    if (typeof val === 'string') {
+      const d = new Date(val);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+      }
+    }
+    return '-';
+  } catch {
+    return '-';
+  }
+};
 
 export function AdminCategories({ ctx }: { ctx: any }) {
   const {
@@ -36,7 +60,6 @@ export function AdminCategories({ ctx }: { ctx: any }) {
         dateFilterKey="createdAt"
         data={categories}
         onRowClick={(cat) => { setEditingItem(cat); setModalType('category'); setActiveTab('category-edit'); }}
-        onDelete={(cat) => deleteCategory(cat.id!, cat.name)}
         title="Catégories"
         columns={[
           { 
@@ -66,24 +89,33 @@ export function AdminCategories({ ctx }: { ctx: any }) {
           {
             header: 'Actions',
             accessor: (cat: Category) => (
-              <div className="flex gap-3 items-center">
+              <div className="flex gap-2 items-center" onClick={(e) => e.stopPropagation()}>
                 <button 
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
+                  type="button"
+                  onClick={() => { 
                     setEditingItem(cat); 
                     setModalType('category'); 
                     setActiveTab('category-edit'); 
                   }}
-                  className="text-primary font-bold text-sm hover:underline"
+                  className="px-3 py-1 bg-primary/10 text-primary rounded-lg font-bold text-xs hover:bg-primary hover:text-white transition-all cursor-pointer"
                 >
                   Modifier
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => { 
+                    deleteCategory(cat.id!, cat.name); 
+                  }}
+                  className="px-3 py-1 bg-rose-500/10 text-rose-600 rounded-lg font-bold text-xs hover:bg-rose-600 hover:text-white transition-all cursor-pointer"
+                >
+                  Supprimer
                 </button>
               </div>
             )
           },
           { 
             header: 'Créé le', 
-            accessor: (cat: any) => formatDate(cat.createdAt || cat.date || new Date().toISOString()), 
+            accessor: (cat: any) => formatDate(cat.createdAt || cat.date || cat.updatedAt), 
             className: 'text-primary/60 text-sm', 
             sortable: true 
           }

@@ -143,6 +143,7 @@ async function generateInvoiceClientSide(order: Order, isDuplicata: boolean): Pr
   const totalsX = pageW - 80;
   const subtotal = iv.subtotal ?? 0;
   const shippingFee = iv.shippingFee ?? order.shippingFee ?? 0;
+  const giftFee = iv.giftFee ?? order.giftFee ?? (order.giftWrap?.enabled ? 2000 : 0);
   const discount = iv.discount ?? 0;
   const total = iv.total ?? order.total ?? 0;
 
@@ -160,6 +161,7 @@ async function generateInvoiceClientSide(order: Order, isDuplicata: boolean): Pr
   };
 
   if (subtotal) drawRow('Sous-total', `${subtotal.toLocaleString('fr-FR')} FCFA`);
+  if (giftFee) drawRow('Coffret Kraft & Carte', `+${giftFee.toLocaleString('fr-FR')} FCFA`, false, [160, 110, 40]);
   if (shippingFee) drawRow('Livraison', `${shippingFee.toLocaleString('fr-FR')} FCFA`);
   if (discount) drawRow('Réduction', `-${discount.toLocaleString('fr-FR')} FCFA`, false, [180, 50, 50]);
 
@@ -167,6 +169,27 @@ async function generateInvoiceClientSide(order: Order, isDuplicata: boolean): Pr
   doc.line(totalsX, y, pageW - 14, y);
   y += 4;
   drawRow('TOTAL', `${total.toLocaleString('fr-FR')} FCFA`, true, [pr, pg, pb]);
+
+  // ── Gift Wrap & Calligraphy Note ──────────────────────────────────────────
+  if (order.giftWrap?.enabled) {
+    y += 4;
+    doc.setFillColor(254, 250, 240);
+    doc.roundedRect(14, y, pageW - 28, 22, 2, 2, 'F');
+    doc.setFontSize(8);
+    doc.setTextColor(140, 90, 20);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`[COFFRET CADEAU KRAFT & RUBAN ${order.giftWrap.ribbonColor?.toUpperCase() || 'DORÉ'}]`, 18, y + 6);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(70, 70, 70);
+    if (order.giftWrap.recipientName || order.giftWrap.senderName) {
+      doc.text(`Pour : ${order.giftWrap.recipientName || '-'} | De la part de : ${order.giftWrap.senderName || '-'}`, 18, y + 11);
+    }
+    if (order.giftWrap.message) {
+      doc.setFont('helvetica', 'italic');
+      doc.text(`Message calligraphié : "${order.giftWrap.message}"`, 18, y + 17);
+    }
+    y += 26;
+  }
 
   // ── Payment method ───────────────────────────────────────────────────────
   y += 6;

@@ -93,6 +93,8 @@ const Error404View = lazyRetry(() => import('../views/Error404View'), 'Error404V
 const AboutView = lazyRetry(() => import('../views/AboutView'), 'AboutView');
 const UserManualView = lazyRetry(() => import('../views/UserManualView'), 'UserManualView');
 const TechnicalSupportView = lazyRetry(() => import('../views/TechnicalSupportView'), 'TechnicalSupportView');
+const LegalView = lazyRetry(() => import('../views/LegalView'), 'LegalView');
+const TermsView = lazyRetry(() => import('../views/TermsView'), 'TermsView');
 
 
 // ── Route wrapper components ──
@@ -484,14 +486,15 @@ export const AppRoutes: React.FC = () => {
           <Route path="/user-manual" element={<UserManualView />} />
           <Route path="/support" element={<TechnicalSupportView />} />
           
-          {/* Legal */}
-          <Route path="/privacy" element={<PrivacyPolicyView onNavigate={onNavigate} />} />
-          <Route path="/legal" element={<StaticPageView title="Mentions Légales" onBack={() => {}} content={<div className="space-y-6"><p><strong>Éditeur du site :</strong> Laine et Déco</p><p><strong>Siège social :</strong> Douala, Cameroun</p><p><strong>Responsable de publication :</strong> L’équipe Laine et Déco.</p><p>Le site est édité dans le respect des lois applicables en matière de publication, de confidentialité et de commerce électronique.</p><p>Pour toute demande relative aux informations publiées sur le site, vous pouvez nous contacter via la page contact.</p></div>} />} />
-          <Route path="/terms" element={<StaticPageView title="CGV & CGU" onBack={() => {}} content={<div className="space-y-6"><p>Les présentes conditions générales de vente et d’utilisation régissent les achats et l’utilisation du site Laine et Déco.</p><p><strong>1. Utilisation du site</strong> : le visiteur s’engage à utiliser le site de manière responsable et conforme à la loi.</p><p><strong>2. Commandes</strong> : les produits sont proposés sous réserve de disponibilité. La validation de la commande implique acceptation du prix et des informations fournies.</p><p><strong>3. Paiement</strong> : les paiements sont traités de manière sécurisée conformément aux moyens mis à disposition sur le site.</p><p><strong>4. Livraison</strong> : les délais sont communiqués au moment de la commande et peuvent varier selon la destination.</p><p><strong>5. Droit de rétractation</strong> : les conditions de retour sont précisées dans la commande et selon la réglementation applicable.</p></div>} />} />
-          <Route path="/cgu" element={<StaticPageView title="CGU & CGV" onBack={() => {}} content={<div className="space-y-6"><p>Les présentes conditions générales d’utilisation et de vente définissent les règles d’usage du site et les obligations liées aux commandes.</p><p>Le visiteur s’engage à ne pas utiliser le site à des fins frauduleuses ou non conformes à l’objet du service.</p></div>} />} />
-          <Route path="/cgu-cgv" element={<StaticPageView title="CGU & CGV" onBack={() => {}} content={<div className="space-y-6"><p>Les présentes conditions générales d’utilisation et de vente définissent les règles d’usage du site et les obligations liées aux commandes.</p><p>Le visiteur s’engage à ne pas utiliser le site à des fins frauduleuses ou non conformes à l’objet du service.</p></div>} />} />
-          <Route path="/shipping" element={<StaticPageView title="Livraison" onBack={() => {}} content={<div className="space-y-6"><p>Nous livrons dans tout le Cameroun.</p></div>} />} />
-          <Route path="/returns" element={<StaticPageView title="Retours et Remboursements" onBack={() => {}} content={<div className="space-y-6"><p>Votre satisfaction est notre priorité.</p></div>} />} />
+          {/* Legal & Privacy Unified */}
+          <Route path="/privacy" element={<LegalView onNavigate={onNavigate} />} />
+          <Route path="/legal" element={<LegalView onNavigate={onNavigate} />} />
+          <Route path="/terms" element={<TermsView onNavigate={onNavigate} initialTab="cgv" />} />
+          <Route path="/cgv" element={<TermsView onNavigate={onNavigate} initialTab="cgv" />} />
+          <Route path="/cgu" element={<TermsView onNavigate={onNavigate} initialTab="cgu" />} />
+          <Route path="/cgu-cgv" element={<TermsView onNavigate={onNavigate} initialTab="cgv" />} />
+          <Route path="/shipping" element={<TermsView onNavigate={onNavigate} initialTab="shipping" />} />
+          <Route path="/returns" element={<TermsView onNavigate={onNavigate} initialTab="returns" />} />
           
           {/* Admin */}
           <Route path="/admin" element={<AdminDashboardPage />} />

@@ -281,7 +281,7 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
     return () => unsubscribe();
   }, [user?.uid]);
   const { data: CATEGORIES, updateEntity: updateCategory, addEntity: addCategory, deleteEntity: deleteCategory, setData: setLocalCategories, isLoading: isLoadingCategories } = useEntity<Category>('category', [], {
-    enabled: isActiveTab(['products', 'product-create', 'product-edit', 'inventory'])
+    enabled: isActiveTab(['categories', 'category-create', 'category-edit', 'products', 'product-create', 'product-edit', 'inventory'])
   });
   const { data: NAV_ITEMS, updateEntity: updateNavItem, addEntity: addNavItem, deleteEntity: deleteNavItem } = useEntity<NavItem>('nav_item', [], {
     enabled: isActiveTab(['nav-items', 'site', 'stats'])

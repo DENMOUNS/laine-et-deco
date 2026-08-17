@@ -5,6 +5,7 @@ import {
   getFreshCachedResponse,
   getFallbackCachedResponse,
   setCachedResponse,
+  clearEntityCache,
 } from '../utils/firestoreCache.js';
 
 const router = Router();
@@ -483,7 +484,7 @@ const isStockManager = (r: UserRole | null) => r === 'stock-manager';
 const isSupport = (r: UserRole | null) => r === 'support-client';
 
 const isAdminLevel = (r: UserRole | null) =>
-  isSuperAdmin(r) || isAdmin(r);
+  isSuperAdmin(r) || isAdmin(r) || isEditor(r);
 
 // ==========================
 // AUTH
@@ -656,6 +657,7 @@ router.post('/:entity', verifyToken, resolveRole, async (req: any, res) => {
           createdAt: new Date(),
           updatedAt: new Date(),
         });
+        await clearEntityCache(entity, docId);
         logEntity(req.requestId, 'create:success', { entity, docId });
         return res.status(201).json({ id: docId });
       }
@@ -690,6 +692,7 @@ router.post('/:entity', verifyToken, resolveRole, async (req: any, res) => {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
+      await clearEntityCache(entity, ref.id);
 
       logEntity(req.requestId, 'create:success', { entity, docId: ref.id });
       return res.status(201).json({ id: ref.id });
@@ -744,8 +747,15 @@ const updateEntityHandler = async (req: any, res: Response) => {
     const snap = await ref.get();
 
     if (!snap.exists) {
-      if (entity === 'site_logo') {
-        return res.status(404).json({ error: 'Introuvable' });
+      if (isAdminLevel(role)) {
+        await ref.set({
+          ...req.body,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+        await clearEntityCache(entity, id);
+        logEntity(req.requestId, 'update/upsert:success', { entity, id });
+        return res.json({ id, message: 'Mis à jour avec succès' });
       }
       return res.status(404).json({ error: 'Introuvable' });
     }
@@ -832,6 +842,7 @@ const updateEntityHandler = async (req: any, res: Response) => {
           read: false,
         });
 
+        await clearEntityCache(entity, id);
         return res.json({ message: 'Produit modifié' });
       }
 
@@ -839,6 +850,7 @@ const updateEntityHandler = async (req: any, res: Response) => {
         ...req.body,
         updatedAt: new Date(),
       });
+      await clearEntityCache(entity, id);
 
       return res.json({ message: 'Updated' });
     }
@@ -858,6 +870,7 @@ const updateEntityHandler = async (req: any, res: Response) => {
           ...req.body,
           updatedAt: new Date(),
         });
+        await clearEntityCache(entity, id);
 
         return res.json({ message: 'Produit modifié' });
       }
@@ -876,6 +889,7 @@ const updateEntityHandler = async (req: any, res: Response) => {
           status: req.body.status,
           updatedAt: new Date(),
         });
+        await clearEntityCache(entity, id);
 
         return res.json({ message: 'Status changé' });
       }
@@ -887,6 +901,7 @@ const updateEntityHandler = async (req: any, res: Response) => {
         ...req.body,
         updatedAt: new Date(),
       });
+      await clearEntityCache(entity, id);
 
       return res.json({ message: 'Updated' });
     }
@@ -931,6 +946,7 @@ router.delete('/:entity/:id', verifyToken, resolveRole, async (req: any, res) =>
 
     if (isAdminLevel(role)) {
       await ref.delete();
+      await clearEntityCache(entity, id);
       return res.json({ message: 'Deleted' });
     }
 

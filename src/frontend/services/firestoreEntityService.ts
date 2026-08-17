@@ -29,10 +29,37 @@ import { incrementFirestoreMetric } from '../utils/firestoreInstrumentation';
 import type { BaseEntity } from '../../domain/entities/BaseEntity';
 
 /** Invalide toutes les clés de cache IDB pour une entité et notifie les listeners React. */
-async function invalidateEntityCache(entityType: string): Promise<void> {
+export async function invalidateEntityCache(entityType: string): Promise<void> {
   await Promise.all(getEntityCacheKeys(entityType).map((key) => removeCache(key)));
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('staticEntity:invalidate', { detail: { entityType } }));
+    
+    const subsMap = (window as any).__entitySubscriptions as Map<string, any> | undefined;
+    if (subsMap && subsMap.size > 0) {
+      try {
+        const apiData = await fetchEntityDataFromApi(entityType);
+        if (apiData) {
+          if (CACHEABLE_COLLECTIONS.has(entityType)) {
+            await writeEntityCache(entityType, apiData, getTTLForEntity(entityType));
+            await writeCache(getEntityCacheKey(entityType), apiData, getTTLForEntity(entityType));
+          }
+          subsMap.forEach((entry, key) => {
+            if (key.startsWith(`${entityType}::`)) {
+              entry.lastData = apiData;
+              entry.callbacks.forEach((cb: any) => {
+                try {
+                  cb.onData(apiData);
+                } catch {
+                  // ignore
+                }
+              });
+            }
+          });
+        }
+      } catch {
+        // ignore background refresh failure
+      }
+    }
   }
 }
 

@@ -212,20 +212,27 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={() => user ? onNavigate('customer-dashboard') : onNavigate('auth')} 
                 className={`flex p-2 sm:p-2.5 transition-colors rounded-full glass-ios-pill hover:bg-white/90 ${currentView === 'customer-dashboard' ? 'text-accent' : 'text-primary'} items-center gap-2`}
               >
-                {user?.photoURL ? (
-                  <img
-                    src={user.photoURL}
-                    alt={user.displayName || 'Profil'}
-                    className="w-6 h-6 rounded-full border border-primary/10"
-                    width="24"
-                    height="24"
-                    loading="lazy"
-                    decoding="async"
-                    referrerPolicy="no-referrer"
-                    onError={(e) => {
-                      e.currentTarget.src = initialsAvatarDataUri(user?.displayName, 48);
-                    }}
-                  />
+                {user ? (
+                  <div className="relative flex items-center justify-center">
+                    <img
+                      src={user.photoURL || initialsAvatarDataUri(user.displayName, 48)}
+                      alt={user.displayName || 'Profil'}
+                      className="w-6 h-6 rounded-full border border-primary/10 object-cover"
+                      width="24"
+                      height="24"
+                      loading="lazy"
+                      decoding="async"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        e.currentTarget.src = initialsAvatarDataUri(user.displayName, 48);
+                      }}
+                    />
+                    {/* Pastille verte clignotante statut connecté */}
+                    <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 border border-white dark:border-[#181C18] shadow-sm" />
+                    </span>
+                  </div>
                 ) : (
                   <User size={19} />
                 )}
@@ -290,23 +297,31 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-3 bg-white/10 rounded-2xl shadow-sm border border-white/15 backdrop-blur-md">
-                  <div className="w-10 h-10 rounded-full bg-accent text-white flex items-center justify-center overflow-hidden shadow-md">
-                    {user?.photoURL ? (
-                      <img
-                        src={user.photoURL}
-                        alt={user.displayName || 'Profil'}
-                        className="w-full h-full object-cover"
-                        width="48"
-                        height="48"
-                        loading="lazy"
-                        decoding="async"
-                        referrerPolicy="no-referrer"
-                        onError={(e) => {
-                          e.currentTarget.src = initialsAvatarDataUri(user?.displayName, 96);
-                        }}
-                      />
-                    ) : (
-                      <User size={20} />
+                  <div className="relative">
+                    <div className="w-10 h-10 rounded-full bg-accent text-white flex items-center justify-center overflow-hidden shadow-md">
+                      {user ? (
+                        <img
+                          src={user.photoURL || initialsAvatarDataUri(user.displayName, 96)}
+                          alt={user.displayName || 'Profil'}
+                          className="w-full h-full object-cover"
+                          width="48"
+                          height="48"
+                          loading="lazy"
+                          decoding="async"
+                          referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            e.currentTarget.src = initialsAvatarDataUri(user?.displayName, 96);
+                          }}
+                        />
+                      ) : (
+                        <User size={20} />
+                      )}
+                    </div>
+                    {user && (
+                      <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-[#232d24] shadow-sm" />
+                      </span>
                     )}
                   </div>
                   <div>
@@ -508,11 +523,11 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, user }) => {
   };
 
   return (
-    <footer className="bg-[#3E4A3D] dark:bg-[#0d0f0d] text-white pt-10 sm:pt-16 pb-32 sm:pb-36 md:pb-12 border-t border-white/5">
+    <footer className="bg-gradient-to-b from-[#384A38] via-[#2C3B2C] to-[#222E22] dark:from-[#171C17] dark:via-[#121612] dark:to-[#0D100D] text-white pt-10 sm:pt-16 pb-36 sm:pb-40 md:pb-12 border-t-2 border-[#4A634A]/40 dark:border-white/10 shadow-[0_-8px_24px_rgba(30,45,30,0.15)] relative z-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Brand presentation */}
         <div className="flex flex-col items-center text-center md:items-start md:text-left mb-8 md:mb-12">
-          <div className="bg-white/10 p-3 sm:p-4 rounded-2xl inline-block group cursor-pointer" onClick={() => onNavigate('home')}>
+          <div className="bg-white/10 p-3 sm:p-4 rounded-2xl inline-block group cursor-pointer border border-white/15" onClick={() => onNavigate('home')}>
             <div className="flex items-center gap-3">
               <div className="flex items-center justify-center p-1.5 bg-gradient-to-br from-accent to-accent/90 text-white rounded-lg shadow-lg border border-white/20 transition-transform group-hover:scale-105">
                  <Scissors className="h-5 w-5 sm:h-6 sm:w-6 text-white stroke-[2]" />
@@ -522,7 +537,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, user }) => {
               </h2>
             </div>
           </div>
-          <p className="text-white/70 text-xs sm:text-sm leading-relaxed max-w-md mt-3">
+          <p className="text-white/80 text-xs sm:text-sm leading-relaxed max-w-md mt-3">
             Créer une atmosphère chaleureuse et authentique dans votre foyer avec nos laines sélectionnées et nos objets de décoration artisanaux.
           </p>
         </div>
@@ -530,7 +545,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, user }) => {
         {/* Mobile Accordion Style Footer (md:hidden) */}
         <div className="md:hidden space-y-3 mb-8">
           {/* Section Boutique */}
-          <div className="rounded-2xl bg-white/10 dark:bg-black/30 border border-white/20 dark:border-white/15 overflow-hidden backdrop-blur-2xl shadow-[0_8px_24px_rgba(0,0,0,0.12),inset_0_1px_1.5px_rgba(255,255,255,0.25)]">
+          <div className="rounded-2xl bg-white/10 dark:bg-white/5 border border-white/20 dark:border-white/10 overflow-hidden backdrop-blur-2xl shadow-[0_8px_24px_rgba(0,0,0,0.12),inset_0_1px_1.5px_rgba(255,255,255,0.25)]">
             <button
               onClick={() => toggleSection('shop')}
               className="w-full py-4 px-4 flex items-center justify-between font-bold text-xs uppercase tracking-wider text-white"
@@ -550,12 +565,12 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, user }) => {
                   transition={{ duration: 0.25 }}
                   className="overflow-hidden border-t border-white/10"
                 >
-                  <ul className="py-3 px-4 space-y-2.5 text-xs text-white/80 bg-white/5">
-                    <li><button onClick={() => onNavigate('shop')} className="hover:text-white py-1 block w-full text-left">Toutes les laines</button></li>
-                    <li><button onClick={() => onNavigate('shop')} className="hover:text-white py-1 block w-full text-left">Décoration</button></li>
-                    <li><button onClick={() => onNavigate('shop')} className="hover:text-white py-1 block w-full text-left">Nouveautés</button></li>
-                    <li><button onClick={() => onNavigate('shop')} className="hover:text-white py-1 block w-full text-left">Promotions</button></li>
-                    <li><button onClick={() => onNavigate('packs')} className="hover:text-white py-1 block w-full text-left font-medium text-accent">Packs & Bundles</button></li>
+                  <ul className="py-3 px-4 space-y-2.5 text-xs text-white/90 bg-white/5">
+                    <li><button onClick={() => onNavigate('shop')} className="hover:text-white py-1 block w-full text-left font-medium">Toutes les laines</button></li>
+                    <li><button onClick={() => onNavigate('shop')} className="hover:text-white py-1 block w-full text-left font-medium">Décoration</button></li>
+                    <li><button onClick={() => onNavigate('shop')} className="hover:text-white py-1 block w-full text-left font-medium">Nouveautés</button></li>
+                    <li><button onClick={() => onNavigate('shop')} className="hover:text-white py-1 block w-full text-left font-medium">Promotions</button></li>
+                    <li><button onClick={() => onNavigate('packs')} className="hover:text-white py-1 block w-full text-left font-bold text-amber-200">Packs & Bundles</button></li>
                   </ul>
                 </motion.div>
               )}
@@ -563,7 +578,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, user }) => {
           </div>
 
           {/* Section Applications */}
-          <div className="rounded-2xl bg-white/10 dark:bg-black/30 border border-white/20 dark:border-white/15 overflow-hidden backdrop-blur-2xl shadow-[0_8px_24px_rgba(0,0,0,0.12),inset_0_1px_1.5px_rgba(255,255,255,0.25)]">
+          <div className="rounded-2xl bg-white/10 dark:bg-white/5 border border-white/20 dark:border-white/10 overflow-hidden backdrop-blur-2xl shadow-[0_8px_24px_rgba(0,0,0,0.12),inset_0_1px_1.5px_rgba(255,255,255,0.25)]">
             <button
               onClick={() => toggleSection('apps')}
               className="w-full py-4 px-4 flex items-center justify-between font-bold text-xs uppercase tracking-wider text-white"
@@ -583,13 +598,13 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, user }) => {
                   transition={{ duration: 0.25 }}
                   className="overflow-hidden border-t border-white/10"
                 >
-                  <ul className="py-3 px-4 space-y-2.5 text-xs text-white/80 bg-white/5">
-                    {isFeatureEnabled(siteConfig, 'comparison') && <li><button onClick={() => onNavigate('comparison')} className="hover:text-white py-1 block w-full text-left">Comparateur</button></li>}
-                    {isFeatureEnabled(siteConfig, 'knittingCompanion') && <li><button onClick={() => onNavigate('knitting-companion')} className="hover:text-white py-1 block w-full text-left">Compagnon Tricot</button></li>}
-                    {isFeatureEnabled(siteConfig, 'lookbook') && <li><button onClick={() => onNavigate('lookbook')} className="hover:text-white py-1 block w-full text-left">Lookbook</button></li>}
-                    {isFeatureEnabled(siteConfig, 'customOrder') && <li><button onClick={() => onNavigate('custom-order')} className="hover:text-white py-1 block w-full text-left">Sur Mesure</button></li>}
-                    {isFeatureEnabled(siteConfig, 'patternGenerator') && <li><button onClick={() => onNavigate('pattern-generator')} className="hover:text-white py-1 block w-full text-left">Générateur IA</button></li>}
-                    <li><button onClick={() => onNavigate('configurator')} className="hover:text-white py-1 block w-full text-left">Configurateur</button></li>
+                  <ul className="py-3 px-4 space-y-2.5 text-xs text-white/90 bg-white/5">
+                    {isFeatureEnabled(siteConfig, 'comparison') && <li><button onClick={() => onNavigate('comparison')} className="hover:text-white py-1 block w-full text-left font-medium">Comparateur</button></li>}
+                    {isFeatureEnabled(siteConfig, 'knittingCompanion') && <li><button onClick={() => onNavigate('knitting-companion')} className="hover:text-white py-1 block w-full text-left font-medium">Compagnon Tricot</button></li>}
+                    {isFeatureEnabled(siteConfig, 'lookbook') && <li><button onClick={() => onNavigate('lookbook')} className="hover:text-white py-1 block w-full text-left font-medium">Lookbook</button></li>}
+                    {isFeatureEnabled(siteConfig, 'customOrder') && <li><button onClick={() => onNavigate('custom-order')} className="hover:text-white py-1 block w-full text-left font-medium">Sur Mesure</button></li>}
+                    {isFeatureEnabled(siteConfig, 'patternGenerator') && <li><button onClick={() => onNavigate('pattern-generator')} className="hover:text-white py-1 block w-full text-left font-medium">Générateur IA</button></li>}
+                    <li><button onClick={() => onNavigate('configurator')} className="hover:text-white py-1 block w-full text-left font-medium">Configurateur</button></li>
                   </ul>
                 </motion.div>
               )}
@@ -597,7 +612,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, user }) => {
           </div>
 
           {/* Section Aide & Outils */}
-          <div className="rounded-2xl bg-white/10 dark:bg-black/30 border border-white/20 dark:border-white/15 overflow-hidden backdrop-blur-2xl shadow-[0_8px_24px_rgba(0,0,0,0.12),inset_0_1px_1.5px_rgba(255,255,255,0.25)]">
+          <div className="rounded-2xl bg-white/10 dark:bg-white/5 border border-white/20 dark:border-white/10 overflow-hidden backdrop-blur-2xl shadow-[0_8px_24px_rgba(0,0,0,0.12),inset_0_1px_1.5px_rgba(255,255,255,0.25)]">
             <button
               onClick={() => toggleSection('tools')}
               className="w-full py-4 px-4 flex items-center justify-between font-bold text-xs uppercase tracking-wider text-white"
@@ -617,11 +632,11 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, user }) => {
                   transition={{ duration: 0.25 }}
                   className="overflow-hidden border-t border-white/10"
                 >
-                  <ul className="py-3 px-4 space-y-2.5 text-xs text-white/80 bg-white/5">
-                    {isFeatureEnabled(siteConfig, 'calculator') && <li><button onClick={() => onNavigate('calculator')} className="hover:text-white py-1 block w-full text-left">Calculateur de Laine</button></li>}
-                    {isFeatureEnabled(siteConfig, 'volumeCalculator') && <li><button onClick={() => onNavigate('volume-calculator')} className="hover:text-white py-1 block w-full text-left">Calculateur de Volume</button></li>}
-                    <li><button onClick={() => onNavigate('care-guide')} className="hover:text-white py-1 block w-full text-left">Guide d'Entretien</button></li>
-                    <li><button onClick={() => user ? onNavigate('customer-dashboard') : onNavigate('auth')} className="hover:text-white py-1 block w-full text-left">Mon Compte</button></li>
+                  <ul className="py-3 px-4 space-y-2.5 text-xs text-white/90 bg-white/5">
+                    {isFeatureEnabled(siteConfig, 'calculator') && <li><button onClick={() => onNavigate('calculator')} className="hover:text-white py-1 block w-full text-left font-medium">Calculateur de Laine</button></li>}
+                    {isFeatureEnabled(siteConfig, 'volumeCalculator') && <li><button onClick={() => onNavigate('volume-calculator')} className="hover:text-white py-1 block w-full text-left font-medium">Calculateur de Volume</button></li>}
+                    <li><button onClick={() => onNavigate('care-guide')} className="hover:text-white py-1 block w-full text-left font-medium">Guide d'Entretien</button></li>
+                    <li><button onClick={() => user ? onNavigate('customer-dashboard') : onNavigate('auth')} className="hover:text-white py-1 block w-full text-left font-medium">Mon Compte</button></li>
                   </ul>
                 </motion.div>
               )}
@@ -629,7 +644,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, user }) => {
           </div>
 
           {/* Section À propos & Légal */}
-          <div className="rounded-2xl bg-white/10 dark:bg-black/30 border border-white/20 dark:border-white/15 overflow-hidden backdrop-blur-2xl shadow-[0_8px_24px_rgba(0,0,0,0.12),inset_0_1px_1.5px_rgba(255,255,255,0.25)]">
+          <div className="rounded-2xl bg-white/10 dark:bg-white/5 border border-white/20 dark:border-white/10 overflow-hidden backdrop-blur-2xl shadow-[0_8px_24px_rgba(0,0,0,0.12),inset_0_1px_1.5px_rgba(255,255,255,0.25)]">
             <button
               onClick={() => toggleSection('about')}
               className="w-full py-4 px-4 flex items-center justify-between font-bold text-xs uppercase tracking-wider text-white"
@@ -649,14 +664,13 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, user }) => {
                   transition={{ duration: 0.25 }}
                   className="overflow-hidden border-t border-white/10"
                 >
-                  <ul className="py-3 px-4 space-y-2.5 text-xs text-white/80 bg-white/5">
-                    {isFeatureEnabled(siteConfig, 'about') && <li><button onClick={() => onNavigate('about')} className="hover:text-white py-1 block w-full text-left">À propos</button></li>}
-                    {isFeatureEnabled(siteConfig, 'team') && <li><button onClick={() => onNavigate('team')} className="hover:text-white py-1 block w-full text-left">Notre équipe</button></li>}
-                    {isFeatureEnabled(siteConfig, 'faq') && <li><button onClick={() => onNavigate('faq')} className="hover:text-white py-1 block w-full text-left">FAQ</button></li>}
-                    {isFeatureEnabled(siteConfig, 'contact') && <li><button onClick={() => onNavigate('contact')} className="hover:text-white py-1 block w-full text-left">Nous contacter</button></li>}
-                    <li><button onClick={() => onNavigate('legal')} className="hover:text-white py-1 block w-full text-left">Mentions légales</button></li>
-                    <li><button onClick={() => onNavigate('terms')} className="hover:text-white py-1 block w-full text-left">CGV</button></li>
-                    <li><button onClick={() => onNavigate('privacy')} className="hover:text-white py-1 block w-full text-left">Confidentialité</button></li>
+                  <ul className="py-3 px-4 space-y-2.5 text-xs text-white/90 bg-white/5">
+                    {isFeatureEnabled(siteConfig, 'about') && <li><button onClick={() => onNavigate('about')} className="hover:text-white py-1 block w-full text-left font-medium">À propos</button></li>}
+                    {isFeatureEnabled(siteConfig, 'team') && <li><button onClick={() => onNavigate('team')} className="hover:text-white py-1 block w-full text-left font-medium">Notre équipe</button></li>}
+                    {isFeatureEnabled(siteConfig, 'faq') && <li><button onClick={() => onNavigate('faq')} className="hover:text-white py-1 block w-full text-left font-medium">FAQ</button></li>}
+                    {isFeatureEnabled(siteConfig, 'contact') && <li><button onClick={() => onNavigate('contact')} className="hover:text-white py-1 block w-full text-left font-medium">Nous contacter</button></li>}
+                    <li><button onClick={() => onNavigate('legal')} className="hover:text-white py-1 block w-full text-left font-medium">Mentions légales</button></li>
+                    <li><button onClick={() => onNavigate('terms')} className="hover:text-white py-1 block w-full text-left font-medium">CGV</button></li>
                   </ul>
                 </motion.div>
               )}
@@ -717,7 +731,6 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, user }) => {
             <button onClick={() => onNavigate('about')} className="hover:text-white transition-colors">À propos</button>
             <button onClick={() => onNavigate('team')} className="hover:text-white transition-colors">Équipe</button>
             <button onClick={() => onNavigate('legal')} className="hover:text-white transition-colors">Mentions légales</button>
-            <button onClick={() => onNavigate('privacy')} className="hover:text-white transition-colors">Confidentialité</button>
             <button onClick={() => onNavigate('terms')} className="hover:text-white transition-colors">CGV</button>
           </div>
         </div>

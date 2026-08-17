@@ -4,6 +4,8 @@ import { X, ShoppingBag, Star, Heart } from 'lucide-react';
 import { Product } from '../../types';
 import { Button } from './ui/Button';
 import { cleanText } from '../utils/siteUtils';
+import { ProductImageGallery } from './ProductImageGallery';
+import { triggerHaptic } from '../utils/haptics';
 
 interface QuickViewModalProps {
   product: Product | null;
@@ -13,6 +15,18 @@ interface QuickViewModalProps {
 }
 
 export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose, onAddToCart, onAddToWishlist }) => {
+  const productImages = React.useMemo(() => {
+    if (!product) return [];
+    const list: string[] = [];
+    if (product.image) list.push(product.image);
+    if (product.images && Array.isArray(product.images)) {
+      product.images.forEach(img => {
+        if (img && !list.includes(img)) list.push(img);
+      });
+    }
+    return list.length > 0 ? list : [product.image];
+  }, [product]);
+
   return (
     <AnimatePresence>
       {product && (
@@ -37,24 +51,23 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
                 variant="ghost"
                 size="icon"
                 onClick={onClose}
-                className="absolute top-4 right-4 md:top-6 md:right-6 z-10 p-2 bg-white/80 backdrop-blur-md rounded-full text-primary hover:text-accent shadow-lg"
+                className="absolute top-4 right-4 md:top-6 md:right-6 z-20 p-2 bg-white/80 backdrop-blur-md rounded-full text-primary hover:text-accent shadow-lg"
               >
                 <X size={24} />
               </Button>
 
-              <div className="w-full md:w-1/2 aspect-square md:aspect-auto">
-                <img 
-                  src={product.image} 
-                  alt={product.name} 
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
+              <div className="w-full md:w-1/2 p-4 md:p-6 bg-secondary/10 flex flex-col justify-center">
+                <ProductImageGallery
+                  images={productImages}
+                  productName={product.name}
+                  isSale={product.isSale}
                 />
               </div>
 
-              <div className="w-full md:w-1/2 p-6 md:p-12 flex flex-col">
+              <div className="w-full md:w-1/2 p-6 md:p-10 flex flex-col">
                 <div className="mb-6">
                   <p className="text-xs font-bold uppercase tracking-[0.3em] text-accent mb-2">{product.category}</p>
-                  <h2 className="text-3xl font-serif text-primary mb-4">{product.name}</h2>
+                  <h2 className="text-2xl md:text-3xl font-serif text-primary mb-3">{product.name}</h2>
                   <div className="flex items-center gap-4">
                     <div className="flex items-center text-yellow-500">
                       {[1, 2, 3, 4, 5].map((i) => (
@@ -72,24 +85,32 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
                   </div>
                 </div>
 
-                <p className="text-2xl font-bold text-primary mb-6">{product.price.toLocaleString()} FCFA</p>
+                <p className="text-2xl font-bold text-primary mb-4">{product.price.toLocaleString()} FCFA</p>
                 
-                <p className="text-primary/70 leading-relaxed mb-8 line-clamp-4">
+                <p className="text-primary/70 leading-relaxed mb-6 line-clamp-3 text-sm">
                   {cleanText(product.description) || "Une pièce d'exception façonnée avec passion pour vos plus beaux projets."}
                 </p>
 
-                <div className="mt-8 space-y-4">
+                <div className="mt-auto space-y-3 pt-4">
                   <Button 
-                    onClick={() => { onAddToCart(product, 1); onClose(); }}
-                    className="w-full py-4 rounded-2xl font-bold gap-3 shadow-xl shadow-primary/20"
+                    onClick={() => { 
+                      triggerHaptic('success');
+                      onAddToCart(product, 1); 
+                      onClose(); 
+                    }}
+                    className="w-full py-3.5 rounded-2xl font-bold gap-3 shadow-xl shadow-primary/20"
                   >
                     <ShoppingBag size={20} />
                     Ajouter au panier
                   </Button>
                   <Button 
                     variant="outline"
-                    onClick={() => { onAddToWishlist(product); onClose(); }}
-                    className="w-full py-4 border border-primary/10 rounded-2xl font-bold hover:bg-secondary flex items-center justify-center gap-3"
+                    onClick={() => { 
+                      triggerHaptic('selection');
+                      onAddToWishlist(product); 
+                      onClose(); 
+                    }}
+                    className="w-full py-3.5 border border-primary/10 rounded-2xl font-bold hover:bg-secondary flex items-center justify-center gap-3"
                   >
                     <Heart size={20} />
                     Ajouter aux favoris

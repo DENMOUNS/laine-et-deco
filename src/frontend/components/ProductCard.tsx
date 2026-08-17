@@ -5,6 +5,7 @@ import { motion } from 'motion/react';
 import { getEffectivePrice, cleanText } from '../utils/siteUtils';
 import { generateSvgPlaceholder } from './ui/ImageWithFallback';
 import { optimizeImageUrl } from '../utils/imageUtils';
+import { triggerHaptic } from '../utils/haptics';
 import { toast } from 'sonner';
 
 interface ProductCardProps {
@@ -102,7 +103,11 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, on
             aria-label="Ajouter aux favoris"
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
-            onClick={(e) => { e.stopPropagation(); onAddToWishlist(product); }}
+            onClick={(e) => { 
+              e.stopPropagation(); 
+              triggerHaptic('selection');
+              onAddToWishlist(product); 
+            }}
             className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-white text-primary flex items-center justify-center hover:bg-accent hover:text-primary transition-colors shadow-xl"
           >
             <Heart size={15} className="sm:w-5 sm:h-5" />
@@ -111,7 +116,11 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, on
             aria-label="Ajouter au panier"
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
-            onClick={(e) => { e.stopPropagation(); onAddToCart(product); }}
+            onClick={(e) => { 
+              e.stopPropagation(); 
+              triggerHaptic('success');
+              onAddToCart(product); 
+            }}
             className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-white text-primary flex items-center justify-center hover:bg-accent hover:text-primary transition-colors shadow-xl"
           >
             <ShoppingCart size={15} className="sm:w-5 sm:h-5" />
@@ -120,7 +129,10 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, on
             aria-label="Partager"
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
-            onClick={handleShare}
+            onClick={(e) => {
+              triggerHaptic('light');
+              handleShare(e);
+            }}
             className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-white text-primary flex items-center justify-center hover:bg-accent hover:text-primary transition-colors shadow-xl"
           >
             <Share2 size={15} className="sm:w-5 sm:h-5" />
@@ -130,7 +142,11 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, on
               aria-label="Comparer"
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              onClick={(e) => { e.stopPropagation(); onAddToComparison(product); }}
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                triggerHaptic('light');
+                onAddToComparison(product); 
+              }}
               className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-white text-primary flex items-center justify-center hover:bg-accent hover:text-primary transition-colors shadow-xl"
               title="Comparer"
             >

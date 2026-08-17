@@ -363,6 +363,18 @@ export enum OrderType {
   B2B = 'b2b'
 }
 
+export type GiftOccasion = 'birthday' | 'love' | 'craft' | 'wedding' | 'gratitude' | 'holiday';
+
+export interface GiftWrapOption {
+  enabled: boolean;
+  message: string;
+  occasion?: GiftOccasion;
+  recipientName?: string;
+  senderName?: string;
+  ribbonColor?: 'satin-gold' | 'satin-burgundy' | 'satin-emerald' | 'satin-cream';
+  fee: number; // default 2000 FCFA
+}
+
 export interface Order {
   id: string;
   customer: string;
@@ -383,6 +395,8 @@ export interface Order {
   trackingNumber?: string;
   taxAmount?: number;
   shippingFee?: number;
+  giftWrap?: GiftWrapOption;
+  giftFee?: number;
   internalNotes?: (string | InternalNote)[];
   coordinates?: { lat: number; lng: number } | [number, number] | string;
   trackingSteps?: { status: string; description: string; date: string; completed: boolean }[];
@@ -574,6 +588,10 @@ export interface SiteConfig extends BaseEntity {
     description: string;
   }[];
   featureFlags?: Record<string, boolean>;
+  giftWrapConfig?: {
+    enabled: boolean;
+    fee: number;
+  };
   seo: {
     home: SEOMeta;
     shop: SEOMeta;

@@ -20,6 +20,7 @@ import { Button } from '../components/ui/Button';
 import { useEntity } from '../hooks/useEntity';
 import { useAuthStore } from '../../stores/authStore';
 import type { KnittingProject, Product } from '../../types';
+import { triggerHaptic } from '../utils/haptics';
 
 const LOCAL_STORAGE_KEY = 'knitting-companion-projects:v2';
 
@@ -144,6 +145,11 @@ export const KnittingCompanionView: React.FC = () => {
   const incrementRow = async (project: KnittingProject, amount = 1) => {
     const rowCount = Math.max(0, Math.min(project.targetRows, project.rowCount + amount));
     const status = rowCount >= project.targetRows ? 'completed' : 'in-progress';
+    if (status === 'completed') {
+      triggerHaptic('success');
+    } else {
+      triggerHaptic('medium');
+    }
     const savedProject = await persistUpdate(project, { rowCount, status });
     if (!savedProject) return;
     toast.success(status === 'completed' ? 'Bravo, votre projet est terminé !' : 'Rang enregistré.');
@@ -151,10 +157,12 @@ export const KnittingCompanionView: React.FC = () => {
 
   const resetRows = async (project: KnittingProject) => {
     if (!window.confirm(`Réinitialiser la progression de « ${project.name} » ?`)) return;
+    triggerHaptic('warning');
     if (await persistUpdate(project, { rowCount: 0, status: 'in-progress' })) toast.success('Progression réinitialisée.');
   };
 
   const toggleTimer = () => {
+    triggerHaptic('light');
     if (!activeProject) {
       toast.info('Créez d’abord un projet pour démarrer une session.');
       setIsCreateOpen(true);

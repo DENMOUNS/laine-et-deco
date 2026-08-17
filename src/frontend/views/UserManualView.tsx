@@ -253,3 +253,5 @@ export function UserManualView() {
     </div>
   );
 }
+
+export default UserManualView;

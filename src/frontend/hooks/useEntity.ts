@@ -177,17 +177,27 @@ export function useEntity<T extends BaseEntity = BaseEntity>(
     };
   }, [entityType, enabled, isAdmin, cacheOnly, ...deps]);
 
-  const addEntity = async (newItem: EntityPayload<T>) =>
-    createFirestoreEntity<T>(resolvedEntityType, newItem);
+  const addEntity = async (newItem: EntityPayload<T>) => {
+    const resId = await createFirestoreEntity<T>(resolvedEntityType, newItem);
+    const addedItem = { id: resId, ...newItem } as unknown as T;
+    setData((prev) => [...(prev || []).filter((i: any) => i.id !== resId), addedItem]);
+    return resId;
+  };
 
-  const updateEntity = async (id: string, updates: Partial<T>) =>
-    updateFirestoreEntity<T>(resolvedEntityType, id, updates);
+  const updateEntity = async (id: string, updates: Partial<T>) => {
+    await updateFirestoreEntity<T>(resolvedEntityType, id, updates);
+    setData((prev) => (prev || []).map((i: any) => (i.id === id ? { ...i, ...updates } : i)));
+  };
 
-  const setEntity = async (id: string, entityData: Partial<T>) =>
-    setFirestoreEntity(resolvedEntityType, id, entityData);
+  const setEntity = async (id: string, entityData: Partial<T>) => {
+    await setFirestoreEntity(resolvedEntityType, id, entityData);
+    setData((prev) => (prev || []).map((i: any) => (i.id === id ? { ...i, ...entityData } : i)));
+  };
 
-  const deleteEntity = async (id: string) =>
-    deleteFirestoreEntity(resolvedEntityType, id);
+  const deleteEntity = async (id: string) => {
+    await deleteFirestoreEntity(resolvedEntityType, id);
+    setData((prev) => (prev || []).filter((i: any) => i.id !== id));
+  };
 
   return {
     data,

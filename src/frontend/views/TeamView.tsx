@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Mail, Instagram, Linkedin, Sparkles, Heart, Loader2 } from 'lucide-react';
+import { Mail, Instagram, Linkedin, Sparkles, Heart, Loader2, Code2, Package2, User } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../backend/firebase';
@@ -18,7 +18,7 @@ const DEFAULT_MEMBERS: MemberPortfolio[] = [
     role: 'Co-fondateur & Responsable Technique',
     bio: 'Développeur passionné et garant de toute la partie digitale de Laine & Déco. Landry conçoit et optimise notre plateforme pour vous offrir une expérience d\'achat fluide, sécurisée et à la pointe de l\'innovation.',
     email: 'landry@laine-deco.com',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600',
+    avatar: '',
     linkedin: 'https://linkedin.com',
     externalPortfolioUrl: '#',
     expertise: [
@@ -39,9 +39,8 @@ const DEFAULT_MEMBERS: MemberPortfolio[] = [
     role: 'Co-fondatrice & Responsable Opérationnelle',
     bio: 'Le cœur logistique et artistique du projet. Dolères coordonne les arrivages, supervise le sourcing soigné de nos laines et objets de décoration, et veille à ce que chaque colis préparé soit un vrai cadeau.',
     email: 'doleres@laine-deco.com',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=600',
+    avatar: '',
     linkedin: 'https://linkedin.com',
-    externalPortfolioUrl: '#',
     expertise: [
       {
         category: 'Organisation',
@@ -87,7 +86,7 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate }) => {
   const renderAvatar = (member: MemberPortfolio) => {
     const photo = member.avatar || (member as any).photo || (member as any).image || (member as any).photoUrl || (member as any).avatarUrl || (member as any).imageUrl;
     
-    if (photo && photo.trim() !== '' && !photo.includes('placeholder')) {
+    if (photo && photo.trim() !== '' && !photo.includes('placeholder') && !photo.includes('unsplash.com')) {
       return (
         <img 
           src={photo} 
@@ -98,15 +97,36 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate }) => {
       );
     }
     
-    // Premium theme-safe neutral initials avatar
+    const isTech = member.profileType === 'developer' || member.name.toLowerCase().includes('landry');
+    const initial = member.name ? member.name.charAt(0).toUpperCase() : '?';
+
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-[#E2C29B]/20 via-[#F9F7F2] to-[#5C6B5A]/20 dark:from-[#1A1D1A] dark:to-[#111311] text-primary transition-colors">
-        <div className="w-24 h-24 rounded-full bg-[#3E4A3D]/10 dark:bg-[#E2C29B]/10 flex items-center justify-center border border-primary/5 shadow-inner">
-          <span className="text-4xl font-serif font-bold text-[#3E4A3D] dark:text-[#E2C29B]">
-            {member.name ? member.name.charAt(0).toUpperCase() : '?'}
-          </span>
+      <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-[#2D3E31]/10 via-[#FDFBF7] to-[#E2C29B]/25 dark:from-[#1E241E] dark:via-[#141814] dark:to-[#111311] text-primary p-6 relative overflow-hidden transition-colors">
+        {/* Subtle background ornamentation */}
+        <div className="absolute -top-12 -right-12 w-44 h-44 rounded-full bg-accent/15 blur-2xl pointer-events-none" />
+        <div className="absolute -bottom-12 -left-12 w-44 h-44 rounded-full bg-primary/10 dark:bg-white/5 blur-2xl pointer-events-none" />
+        
+        {/* Main Monogram Ring */}
+        <div className="relative z-10 w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-white dark:bg-[#1E241E] flex items-center justify-center border-2 border-accent/40 shadow-xl group-hover:scale-105 transition-transform duration-500">
+          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-[#2D3E31]/5 dark:bg-white/5 flex items-center justify-center">
+            <span className="text-4xl sm:text-5xl font-serif font-bold text-[#2D3E31] dark:text-[#E2C29B]">
+              {initial}
+            </span>
+          </div>
+          <div className="absolute -bottom-1 -right-1 p-2 rounded-full bg-accent text-white shadow-md">
+            {isTech ? <Code2 size={16} /> : <Package2 size={16} />}
+          </div>
         </div>
-        <p className="mt-4 text-[10px] uppercase tracking-widest font-bold text-primary/60">Laine & Déco</p>
+
+        {/* Role Subtext Badge */}
+        <div className="relative z-10 mt-6 text-center">
+          <span className="inline-block px-3.5 py-1 rounded-full bg-primary/10 dark:bg-white/10 text-primary dark:text-white/90 text-[11px] font-bold tracking-wider uppercase">
+            {isTech ? 'Tech & Innovation' : 'Sourcing & Opérations'}
+          </span>
+          <p className="mt-2 text-[10px] uppercase tracking-widest font-semibold text-primary/50 dark:text-white/40">
+            Laine & Déco
+          </p>
+        </div>
       </div>
     );
   };

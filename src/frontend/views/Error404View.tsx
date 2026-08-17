@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Home, ArrowLeft } from 'lucide-react';
+import { Search, Home } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface Error404ViewProps {
@@ -69,3 +69,5 @@ export const Error404View: React.FC<Error404ViewProps> = ({ onNavigate }) => {
     </div>
   );
 };
+
+export default Error404View;

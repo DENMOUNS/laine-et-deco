@@ -1,13 +1,25 @@
 import { create } from 'zustand';
 import { toast as sonnerToast } from 'sonner';
-import { Product, CartItem, Pack, ConfiguratorSelection } from '../types';
+import { Product, CartItem, Pack, ConfiguratorSelection, GiftWrapOption } from '../types';
 import { readCache, writeCache, removeCache } from '../frontend/utils/cacheStorage';
 import { getFulfillment, getProductAvailability } from '../frontend/utils/stockAvailability';
 
 const CART_CACHE_KEY = 'cart:v1';
+const GIFT_WRAP_CACHE_KEY = 'cart:giftwrap:v1';
+
+export const DEFAULT_GIFT_WRAP: GiftWrapOption = {
+  enabled: false,
+  message: '',
+  occasion: 'birthday',
+  recipientName: '',
+  senderName: '',
+  ribbonColor: 'satin-gold',
+  fee: 2000,
+};
 
 interface CartState {
   cart: CartItem[];
+  giftWrap: GiftWrapOption;
 
   // Actions
   addToCart: (product: Product, quantity?: number) => void;
@@ -17,6 +29,7 @@ interface CartState {
   addPackToCart: (pack: Pack, products: Product[], quantity?: number) => void;
   clearCart: () => void;
   setCart: (cart: CartItem[]) => void;
+  setGiftWrap: (giftWrap: Partial<GiftWrapOption>) => void;
 }
 
 const calculatePackPrice = (pack: Pack, products: Product[]) => {
@@ -29,6 +42,7 @@ const calculatePackPrice = (pack: Pack, products: Product[]) => {
 
 export const useCartStore = create<CartState>((set, get) => ({
   cart: [],
+  giftWrap: DEFAULT_GIFT_WRAP,
 
   addToCart: (product, quantity = 1) => {
     set((state) => {
@@ -168,19 +182,41 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   clearCart: () => {
     removeCache(CART_CACHE_KEY);
-    set({ cart: [] });
+    removeCache(GIFT_WRAP_CACHE_KEY);
+    set({ cart: [], giftWrap: DEFAULT_GIFT_WRAP });
   },
 
   setCart: (cart) => {
     persistCart(cart);
     set({ cart });
   },
+
+  setGiftWrap: (updatedGiftWrap) => {
+    set((state) => {
+      const newGiftWrap: GiftWrapOption = {
+        ...state.giftWrap,
+        ...updatedGiftWrap,
+        fee: updatedGiftWrap.fee !== undefined ? updatedGiftWrap.fee : (state.giftWrap.fee || 2000),
+      };
+      persistGiftWrap(newGiftWrap);
+      return { giftWrap: newGiftWrap };
+    });
+  },
 }));
 
-// Hydrate cart from IndexedDB after store creation (readCache is async)
+// Hydrate cart & giftWrap from IndexedDB after store creation (readCache is async)
 readCache<CartItem[]>(CART_CACHE_KEY).then((cached) => {
   if (cached && Array.isArray(cached) && cached.length > 0) {
     useCartStore.setState({ cart: cached });
+  }
+});
+
+readCache<GiftWrapOption>(GIFT_WRAP_CACHE_KEY).then((cachedGift) => {
+  if (cachedGift && typeof cachedGift === 'object' && 'enabled' in cachedGift) {
+    // Migrate legacy 1500 FCFA cached fee to 2000 FCFA
+    const updatedFee = (!cachedGift.fee || cachedGift.fee === 1500) ? 2000 : cachedGift.fee;
+    const migratedGift = { ...cachedGift, fee: updatedFee };
+    useCartStore.setState({ giftWrap: migratedGift });
   }
 });
 
@@ -189,5 +225,13 @@ function persistCart(cart: CartItem[]) {
     writeCache(CART_CACHE_KEY, cart);
   } else {
     removeCache(CART_CACHE_KEY);
+  }
+}
+
+function persistGiftWrap(giftWrap: GiftWrapOption) {
+  if (giftWrap.enabled || giftWrap.message || giftWrap.recipientName) {
+    writeCache(GIFT_WRAP_CACHE_KEY, giftWrap);
+  } else {
+    removeCache(GIFT_WRAP_CACHE_KEY);
   }
 }

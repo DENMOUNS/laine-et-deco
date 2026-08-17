@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { motion, useMotionValue, useTransform, useSpring } from 'framer-motion';
+import { motion, useMotionValue, useTransform, useSpring } from 'motion/react';
 import { MessageCircle, Home, Loader2, ArrowRight, Smartphone, Smile, Sparkles, Heart } from 'lucide-react';
 
 interface QRLandingViewProps {
@@ -286,3 +286,5 @@ export const QRLandingView: React.FC<QRLandingViewProps> = ({ onNavigate }) => {
     </div>
   );
 };
+
+export default QRLandingView;

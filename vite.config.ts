@@ -19,6 +19,7 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       host: '0.0.0.0',
+      port: 3000,
       hmr:
         process.env.DISABLE_HMR !== 'true'
           ? {
@@ -26,16 +27,6 @@ export default defineConfig(({ mode }) => {
               host: 'localhost',
             }
           : false,
-      proxy: {
-        '/api': {
-          target: 'http://localhost:3000',
-          changeOrigin: true,
-        },
-        '/invoices': {
-          target: 'http://localhost:3000',
-          changeOrigin: true,
-        },
-      },
     },
     build: {
       target: 'es2020',

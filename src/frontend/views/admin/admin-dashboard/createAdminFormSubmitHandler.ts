@@ -16,32 +16,44 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
     await new Promise(resolve => setTimeout(resolve, 1500));
 
     try {
-      if (modalType === 'category') {
-          const nameValue = formData.get('name') as string;
-          const slugValue = formData.get('slug') as string;
+      if (modalType === 'category' || activeTab === 'category-create' || activeTab === 'category-edit') {
+          const nameValue = (formData.get('name') as string)?.trim();
+          if (!nameValue) {
+              toast.error('Le nom de la catégorie est obligatoire.');
+              setIsSaving(false);
+              return;
+          }
+          const slugValue = (formData.get('slug') as string)?.trim();
           const finalSlug = slugValue || (nameValue ? nameValue.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') : '');
           
           const categoryPayload: any = {
               name: nameValue,
               slug: finalSlug,
               image: (formData.get('image') as string)?.trim() || editingItem?.image || 'https://picsum.photos/seed/cat/300/200',
-              count: editingItem ? editingItem.count : 0,
+              count: editingItem ? (editingItem.count ?? 0) : 0,
               status: (formData.get('status') as 'active' | 'inactive') || 'active'
           };
           const now = new Date().toISOString();
-          if (editingItem) {
+          if (editingItem && editingItem.id) {
               categoryPayload.updatedAt = now;
-              setLocalCategories((prev: any[]) => (prev || []).map(c => c.id === editingItem.id ? { ...c, ...categoryPayload } : c));
+              if (setLocalCategories) {
+                  setLocalCategories((prev: any[]) => (prev || []).map(c => c.id === editingItem.id ? { ...c, ...categoryPayload } : c));
+              }
               await updateCategory(editingItem.id, categoryPayload);
+              dispatchStaticEntityUpdate('category', { record: { id: editingItem.id, ...categoryPayload } });
           } else {
+              const catId = editingItem?.id || `cat-${Date.now()}`;
               const newCat = {
                 ...categoryPayload,
-                id: `cat-${Date.now()}`,
+                id: catId,
                 createdAt: now,
                 updatedAt: now
               };
-              setLocalCategories((prev: any[]) => [...(prev || []), newCat]);
+              if (setLocalCategories) {
+                  setLocalCategories((prev: any[]) => [...(prev || []).filter((c: any) => c.id !== catId), newCat]);
+              }
               await addCategory(newCat);
+              dispatchStaticEntityUpdate('category', { record: newCat });
           }
       } else if (modalType === 'badge') {
         const newBadge: any = {
