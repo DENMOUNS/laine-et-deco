@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { X, MapPin, RefreshCcw, Truck, Gift, Sparkles, Feather } from 'lucide-react';
+import { X, MapPin, RefreshCcw, Truck, Gift, Sparkles, Feather, AlertCircle, Upload, Camera, CheckCircle2 } from 'lucide-react';
 import { Order, Product } from '../../../types';
 import { generateInvoicePDF } from '../../utils/invoiceUtils';
 import { toast } from 'sonner';
@@ -13,7 +13,7 @@ interface OrderDetailsModalProps {
   onClose: () => void;
   onNavigate: (view: string, id?: string) => void;
   products: Product[];
-  onRequestReturn?: (orderId: string, reason: string) => void;
+  onRequestReturn?: (orderId: string, reason: string, productPhotoUrl?: string) => void;
   hasExistingRMA?: boolean;
 }
 
@@ -27,17 +27,103 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 }) => {
   const [showReturnForm, setShowReturnForm] = useState(false);
   const [returnReason, setReturnReason] = useState('');
+  const [productPhoto, setProductPhoto] = useState<string>('');
+  const [isSubmittingRMA, setIsSubmittingRMA] = useState(false);
 
-  const handleReturnSubmit = (e: React.FormEvent) => {
+  // Calculate days elapsed since order/delivery
+  const getDaysSinceDelivery = (): number => {
+    try {
+      let dateObj: Date | null = null;
+      if (selectedOrder.date && typeof selectedOrder.date === 'string' && selectedOrder.date.includes('/')) {
+        const parts = selectedOrder.date.split('/');
+        if (parts.length === 3) {
+          const day = parseInt(parts[0], 10);
+          const month = parseInt(parts[1], 10) - 1;
+          const year = parseInt(parts[2], 10);
+          dateObj = new Date(year, month, day);
+        }
+      }
+      if (!dateObj || isNaN(dateObj.getTime())) {
+        if (selectedOrder.createdAt) {
+          const raw = (selectedOrder.createdAt as any)?.seconds ? (selectedOrder.createdAt as any).seconds * 1000 : selectedOrder.createdAt;
+          dateObj = new Date(raw);
+        } else if (selectedOrder.date) {
+          dateObj = new Date(selectedOrder.date);
+        }
+      }
+      if (!dateObj || isNaN(dateObj.getTime())) return 0;
+      const diffMs = Date.now() - dateObj.getTime();
+      return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    } catch {
+      return 0;
+    }
+  };
+
+  const daysSinceDelivery = getDaysSinceDelivery();
+  const isReturnPeriodExpired = daysSinceDelivery > 7;
+
+  // Refund calculations (delivery fee is strictly non-refundable)
+  const shippingFee = selectedOrder.shippingFee || 0;
+  const refundableAmount = Math.max(0, (selectedOrder.total || 0) - shippingFee);
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("La taille de l'image ne doit pas dépasser 5 Mo");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setProductPhoto(reader.result as string);
+      toast.success('Photo du produit ajoutée avec succès');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleReturnSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isReturnPeriodExpired) {
+      toast.error('Le délai légal de retour de 7 jours est dépassé.');
+      return;
+    }
     if (!returnReason.trim()) {
       toast.error('Veuillez indiquer une raison pour le retour');
       return;
     }
-    if (onRequestReturn) {
-      onRequestReturn(selectedOrder.id, returnReason);
+    if (!productPhoto) {
+      toast.error("Une photo du produit est obligatoire pour vérifier qu'il n'a pas été abîmé.");
+      return;
+    }
+
+    setIsSubmittingRMA(true);
+    try {
+      if (onRequestReturn) {
+        await onRequestReturn(selectedOrder.id, returnReason, productPhoto);
+      } else {
+        const { addDoc, collection } = await import('firebase/firestore');
+        const { db } = await import('../../../backend/firebase');
+        await addDoc(collection(db, 'rma'), {
+          orderId: selectedOrder.id,
+          customer: selectedOrder.customer || selectedOrder.customerName || 'Client',
+          reason: returnReason,
+          status: 'pending',
+          date: new Date().toLocaleDateString('fr-FR'),
+          amount: refundableAmount,
+          productPhotoUrl: productPhoto,
+          createdAt: new Date().toISOString()
+        });
+      }
+      toast.success('Votre demande de retour a été soumise avec succès. La photo sera examinée.');
       setShowReturnForm(false);
       setReturnReason('');
+      setProductPhoto('');
+    } catch (err: any) {
+      toast.error(err?.message || 'Erreur lors de l\'envoi de la demande de retour');
+    } finally {
+      setIsSubmittingRMA(false);
     }
   };
 
@@ -81,34 +167,100 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                 <RefreshCcw size={24} />
                 <h4 className="text-lg font-serif font-bold">Demande de Retour</h4>
               </div>
-              <p className="text-sm text-primary/70">
-                Vous souhaitez retourner des articles de la commande <span className="font-bold">#{selectedOrder.id}</span>. 
-                Veuillez nous expliquer la raison de ce retour.
-              </p>
-              <form onSubmit={handleReturnSubmit} className="space-y-4">
+
+              {/* Alert on non-refundable delivery fees */}
+              <div className="bg-amber-50 p-5 rounded-2xl border border-amber-200 text-xs text-amber-900 space-y-2">
+                <div className="flex items-center gap-2 font-bold text-amber-950 text-sm">
+                  <AlertCircle size={18} className="text-amber-700 shrink-0" />
+                  Conditions de Remboursement
+                </div>
+                <p>
+                  Conformément à nos conditions de vente, <strong>les frais de livraison ne sont pas remboursables</strong>. Seul le montant des articles retournés est remboursé.
+                </p>
+                <div className="pt-2 border-t border-amber-200/60 space-y-1">
+                  <div className="flex justify-between font-medium">
+                    <span>Montant total de la commande :</span>
+                    <span>{(selectedOrder.total || 0).toLocaleString('fr-FR')} FCFA</span>
+                  </div>
+                  <div className="flex justify-between font-medium text-red-700">
+                    <span>Frais de livraison (non remboursés) :</span>
+                    <span>- {shippingFee.toLocaleString('fr-FR')} FCFA</span>
+                  </div>
+                  <div className="flex justify-between font-bold text-green-800 text-sm pt-1 border-t border-amber-200/60">
+                    <span>Montant estimé du remboursement :</span>
+                    <span>{refundableAmount.toLocaleString('fr-FR')} FCFA</span>
+                  </div>
+                </div>
+              </div>
+
+              <form onSubmit={handleReturnSubmit} className="space-y-5">
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-primary/70 mb-2">Raison du retour</label>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-primary/70 mb-2">
+                    Raison du retour <span className="text-red-500">*</span>
+                  </label>
                   <textarea 
                     value={returnReason}
                     onChange={(e) => setReturnReason(e.target.value)}
                     placeholder="Ex: Produit défectueux, Erreur de taille, Ne correspond pas à la description..."
-                    className="w-full bg-slate-50 border border-primary/5 rounded-2xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[120px]"
+                    className="w-full bg-slate-50 border border-primary/10 rounded-2xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[100px]"
+                    required
                   />
                 </div>
-                <div className="flex gap-4">
+
+                {/* Mandatory photo of the product */}
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-primary/70 mb-2">
+                    Photo du produit (Obligatoire pour vérifier qu'il n'est pas abîmé) <span className="text-red-500">*</span>
+                  </label>
+                  <p className="text-xs text-primary/60 mb-3">
+                    Veuillez prendre une photo nette du produit pour attester de son état d'origine.
+                  </p>
+
+                  {productPhoto ? (
+                    <div className="relative rounded-2xl overflow-hidden border border-primary/20 max-h-56 bg-slate-100 flex items-center justify-center p-2">
+                      <img src={productPhoto} alt="Aperçu produit retourné" className="max-h-52 object-contain rounded-xl" />
+                      <button
+                        type="button"
+                        onClick={() => setProductPhoto('')}
+                        className="absolute top-3 right-3 p-2 bg-red-600 text-white rounded-full shadow-lg hover:bg-red-700 transition-colors"
+                        title="Supprimer la photo"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="border-2 border-dashed border-primary/20 hover:border-primary rounded-2xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all bg-slate-50/50 hover:bg-slate-50">
+                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                        <Camera size={22} />
+                      </div>
+                      <span className="text-xs font-bold text-primary">Ajouter une photo du produit</span>
+                      <span className="text-[10px] text-primary/50">PNG, JPG ou WEBP jusqu'à 5 Mo</span>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={handlePhotoChange} 
+                        className="hidden" 
+                      />
+                    </label>
+                  )}
+                </div>
+
+                <div className="flex gap-4 pt-2">
                   <Button 
                     type="button"
                     variant="outline"
                     onClick={() => setShowReturnForm(false)}
                     className="flex-grow py-4 border border-primary/10 rounded-2xl font-bold hover:bg-slate-50 transition-colors h-auto"
+                    disabled={isSubmittingRMA}
                   >
                     Annuler
                   </Button>
                   <Button 
                     type="submit"
-                    className="flex-grow bg-primary text-white py-4 rounded-2xl font-bold hover:bg-accent transition-all shadow-lg h-auto"
+                    disabled={isSubmittingRMA || !returnReason.trim() || !productPhoto}
+                    className="flex-grow bg-primary text-white py-4 rounded-2xl font-bold hover:bg-accent transition-all shadow-lg h-auto disabled:opacity-50"
                   >
-                    Confirmer la demande
+                    {isSubmittingRMA ? 'Envoi en cours...' : 'Envoyer la demande de retour'}
                   </Button>
                 </div>
               </form>
@@ -340,26 +492,40 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
               </div>
 
               {selectedOrder.status === 'delivered' && !hasExistingRMA && (
-                <div className="bg-orange-50 p-6 rounded-2xl border border-orange-100 flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-orange-400 mb-1">Un problème ?</p>
-                    <p className="text-sm text-orange-700">Vous pouvez demander un retour produit.</p>
+                isReturnPeriodExpired ? (
+                  <div className="bg-slate-100 p-6 rounded-2xl border border-slate-200">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Délai de retour dépassé</p>
+                    <p className="text-sm text-slate-700">
+                      Cette commande a été effectuée il y a <strong>{daysSinceDelivery} jours</strong>. Conformément à nos conditions générales, le délai de retour garanti est fixé à 7 jours à compter de la commande/livraison. Les retours ne sont plus acceptés pour cette commande.
+                    </p>
                   </div>
-                  <Button 
-                    variant="ghost"
-                    onClick={() => setShowReturnForm(true)}
-                    className="flex items-center gap-2 bg-white text-orange-600 px-4 py-2 rounded-xl text-xs font-bold shadow-sm hover:bg-orange-600 hover:text-white transition-all h-auto"
-                  >
-                    <RefreshCcw size={14} />
-                    Retourner
-                  </Button>
-                </div>
+                ) : (
+                  <div className="bg-orange-50 p-6 rounded-2xl border border-orange-100 flex items-center justify-between flex-wrap gap-4">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-orange-600 mb-1">
+                        Délai de retour : 7 jours ({Math.max(0, 7 - daysSinceDelivery)} jour{7 - daysSinceDelivery > 1 ? 's' : ''} restant{7 - daysSinceDelivery > 1 ? 's' : ''})
+                      </p>
+                      <p className="text-sm text-orange-900 font-medium">Un problème avec votre produit ? Les frais de livraison ne sont pas remboursables et une photo du produit est requise.</p>
+                    </div>
+                    <Button 
+                      variant="ghost"
+                      onClick={() => setShowReturnForm(true)}
+                      className="flex items-center gap-2 bg-white text-orange-700 hover:text-white px-4 py-2 rounded-xl text-xs font-bold shadow-sm hover:bg-orange-600 transition-all h-auto"
+                    >
+                      <RefreshCcw size={14} />
+                      Demander un retour
+                    </Button>
+                  </div>
+                )
               )}
 
               {hasExistingRMA && (
-                <div className="bg-green-50 p-6 rounded-2xl border border-green-100">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-green-400 mb-1">Retour en cours</p>
-                  <p className="text-sm text-green-700">Une demande de retour a déjà été soumise pour cette commande.</p>
+                <div className="bg-green-50 p-6 rounded-2xl border border-green-100 flex items-center gap-3">
+                  <CheckCircle2 className="text-green-600 shrink-0" size={20} />
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-green-700 mb-0.5">Demande de retour enregistrée</p>
+                    <p className="text-sm text-green-900">Une demande de retour avec vérification photo est déjà en cours de traitement pour cette commande.</p>
+                  </div>
                 </div>
               )}
             </>

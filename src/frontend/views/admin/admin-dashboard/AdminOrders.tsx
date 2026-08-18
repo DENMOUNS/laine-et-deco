@@ -1,11 +1,13 @@
 import React from 'react';
 import { toast } from 'sonner';
+import { Download } from 'lucide-react';
 import { useAdminOrders } from './hooks/useAdminOrders';
 import { useAdminStore } from '../../../../stores/adminStore';
 import { DataTable } from '../../../components/DataTable';
 import { TabFilter } from '../../../components/TabFilter';
 import { getStatusStyles } from '../../../components/ui/StatusBadge';
 import { formatFirestoreDate as formatDate } from '../../../../services/adminService';
+import { generateInvoicePDF } from '../../../utils/invoiceUtils';
 import { cn } from '../../../utils/utils';
 import type { Order } from '../../../../types';
 
@@ -97,16 +99,30 @@ export function AdminOrders({ ctx }: { ctx: any }) {
           {
             header: 'Actions',
             accessor: (order: Order) => (
-              <button 
-                onClick={(e) => { 
-                  e.stopPropagation(); 
-                  setSelectedOrder(order); 
-                  setActiveTab('order-detail'); 
-                }}
-                className="text-primary font-bold text-sm hover:underline"
-              >
-                Détails
-              </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    setSelectedOrder(order); 
+                    setActiveTab('order-detail'); 
+                  }}
+                  className="text-primary font-bold text-sm hover:underline"
+                >
+                  Détails
+                </button>
+                {order.status === 'delivered' && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void generateInvoicePDF(order, true);
+                    }}
+                    className="p-1.5 rounded-lg bg-primary/5 text-primary hover:bg-primary hover:text-white transition-colors"
+                    title="Télécharger la facture PDF"
+                  >
+                    <Download size={14} />
+                  </button>
+                )}
+              </div>
             )
           },
           { 

@@ -210,15 +210,17 @@ export function AdminOrderDetail({ ctx }: { ctx: any }) {
                     </button>
                   </div>
                 )}
-                <button 
-                  onClick={async () => {
-                    const { generateInvoicePDF } = await import('../../../utils/invoiceUtils');
-                    void generateInvoicePDF(selectedOrder);
-                  }}
-                  className={`px-4 py-2 rounded-xl font-bold transition-all shadow-md text-sm flex items-center gap-2 bg-primary text-white hover:bg-accent`}
-                >
-                  <Download size={16} /> Facture
-                </button>
+                {selectedOrder.status === 'delivered' && (
+                  <button 
+                    onClick={async () => {
+                      const { generateInvoicePDF } = await import('../../../utils/invoiceUtils');
+                      void generateInvoicePDF(selectedOrder, true);
+                    }}
+                    className={`px-4 py-2 rounded-xl font-bold transition-all shadow-md text-sm flex items-center gap-2 bg-primary text-white hover:bg-accent`}
+                  >
+                    <Download size={16} /> Facture
+                  </button>
+                )}
               </div>
             </div>
 

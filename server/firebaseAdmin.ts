@@ -215,8 +215,13 @@ const initializeFirebase = async () => {
     }
 
     db = getFirestore(firebaseAdmin.app(), databaseId);
-    if (emulatorHost) {
-      db.settings({ host: emulatorHost, ssl: false });
+    try {
+      db.settings({
+        ignoreUndefinedProperties: true,
+        ...(emulatorHost ? { host: emulatorHost, ssl: false } : {}),
+      });
+    } catch (settingsErr) {
+      console.warn('[firebaseAdmin] db.settings warning:', settingsErr);
     }
     auth = firebaseAdmin.auth();
     initializationError = null;

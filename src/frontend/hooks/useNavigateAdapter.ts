@@ -33,6 +33,9 @@ export function useNavigateAdapter() {
       default: path = `/${view}`; break;
     }
     if (query) path += `?q=${encodeURIComponent(query)}`;
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('navigation:start'));
+    }
     navigate(path);
   }, [navigate]);
 }

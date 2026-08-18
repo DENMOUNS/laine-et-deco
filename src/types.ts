@@ -256,6 +256,8 @@ export interface RMA {
   status: 'pending' | 'approved' | 'received' | 'refunded' | 'rejected';
   date: string;
   amount: number;
+  productPhotoUrl?: string;
+  photos?: string[];
   internalNotes?: { id: string; date: string; note: string; author: string }[];
   createdAt?: string;
   updatedAt?: string;
@@ -395,6 +397,8 @@ export interface Order {
   trackingNumber?: string;
   taxAmount?: number;
   shippingFee?: number;
+  subtotal?: number;
+  discount?: number;
   giftWrap?: GiftWrapOption;
   giftFee?: number;
   internalNotes?: (string | InternalNote)[];

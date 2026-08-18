@@ -70,7 +70,7 @@ export const DashboardOrders: React.FC<DashboardOrdersProps> = ({
                     size="icon"
                     onClick={(e) => { e.stopPropagation(); void generateInvoicePDF(order, true); }}
                     className="h-8 w-8 rounded-lg bg-green-50 text-green-600 border-green-100 hover:bg-green-600 hover:text-white transition-all shadow-sm"
-                    title="Télécharger le reçu"
+                    title="Télécharger la facture"
                   >
                     <Download size={14} />
                   </Button>

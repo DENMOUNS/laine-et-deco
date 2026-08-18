@@ -3,7 +3,7 @@ import { initializeApp } from 'firebase/app';
 import type { Auth } from 'firebase/auth';
 import { getAuth, setPersistence, browserSessionPersistence } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
-import { initializeFirestore, memoryLocalCache } from 'firebase/firestore';
+import { initializeFirestore, memoryLocalCache, setLogLevel } from 'firebase/firestore';
 import config from '../../firebase-applet-config.json' with { type: 'json' };
 
 type FirebaseOptionsWithFirestoreDb = FirebaseOptions & { firestoreDatabaseId?: string };
@@ -82,6 +82,7 @@ function ensureFirebaseInitialized() {
   }
 
   try {
+    setLogLevel('error');
     app = initializeApp(firebaseConfig);
 
     const envDatabaseId = normalizeDatabaseId(import.meta.env.VITE_FIRESTORE_DATABASE_ID);

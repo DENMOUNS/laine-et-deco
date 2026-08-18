@@ -5,6 +5,28 @@ const router = Router();
 
 const asPositiveInt = (value: unknown) => Math.max(0, Math.floor(Number(value) || 0));
 
+function sanitizeForFirestore<T>(data: T): T {
+  if (data === null || data === undefined) {
+    return null as any;
+  }
+  if (data instanceof Date || (typeof data === 'object' && typeof (data as any).toMillis === 'function')) {
+    return data;
+  }
+  if (Array.isArray(data)) {
+    return data.map(sanitizeForFirestore) as any;
+  }
+  if (typeof data === 'object') {
+    const cleanObj: Record<string, any> = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (value !== undefined) {
+        cleanObj[key] = sanitizeForFirestore(value);
+      }
+    }
+    return cleanObj as T;
+  }
+  return data;
+}
+
 router.post('/', async (req: Request, res: Response) => {
   try {
     if (!auth || !db) return res.status(503).json({ error: 'Firebase backend unavailable' });
@@ -265,7 +287,7 @@ router.post('/', async (req: Request, res: Response) => {
 
       for (const order of orders) {
         const orderRef = db!.collection('order').doc(order.id);
-        transaction.set(orderRef, order);
+        transaction.set(orderRef, sanitizeForFirestore(order));
       }
 
       return { orderIds: orders.map((order) => order.id), immediateSubtotal, preorderSubtotal };

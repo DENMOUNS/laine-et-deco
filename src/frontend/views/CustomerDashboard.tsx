@@ -14,7 +14,7 @@ import {
   Activity,
   User as UserIcon
 } from 'lucide-react';
-import { Order, KnittingProject, LoginLog, UserProfile, User, Product, Coupon } from '../../types';
+import { Order, KnittingProject, LoginLog, UserProfile, User, Product, Coupon, RMA } from '../../types';
 import { useEntity } from '../hooks/useEntity';
 import type { EntityPayload } from '../services/firestoreEntityService';
 import { where } from 'firebase/firestore';
@@ -126,6 +126,28 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, onNa
     } catch (err) {
       toast.error("Erreur lors de l'échange");
     }
+  };
+
+  const { data: userRMAs, addEntity: addRMA } = useEntity<RMA>('rma');
+
+  const handleRequestReturn = async (orderId: string, reason: string, productPhotoUrl?: string) => {
+    const targetOrder = orders.find(o => o.id === orderId);
+    if (!targetOrder) return;
+
+    const refundAmount = Math.max(0, (targetOrder.total || 0) - (targetOrder.shippingFee || 0));
+
+    const newRMA: EntityPayload<RMA> = {
+      orderId,
+      customer: targetOrder.customer || userProfile.name || user?.displayName || 'Client',
+      reason,
+      status: 'pending',
+      date: new Date().toLocaleDateString('fr-FR'),
+      amount: refundAmount,
+      productPhotoUrl: productPhotoUrl || ''
+    };
+
+    await addRMA(newRMA);
+    toast.success('Demande de retour enregistrée. Notre équipe va examiner la photo du produit.');
   };
 
   const dashboardUser: User = {
@@ -319,6 +341,8 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, onNa
             onClose={() => setSelectedOrder(null)} 
             onNavigate={onNavigate}
             products={allProducts}
+            onRequestReturn={handleRequestReturn}
+            hasExistingRMA={userRMAs.some(r => r.orderId === selectedOrder.id)}
           />
         )}
       </AnimatePresence>

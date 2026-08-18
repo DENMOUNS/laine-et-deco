@@ -25,16 +25,44 @@ async function readApiResponse(response: Response, fallbackMessage: string) {
   }
 }
 
-// ─── Client-side PDF generation using stored invoiceData ──────────────────────
+// ─── Client-side PDF generation using stored invoiceData or order fallback ──
 
 /**
  * Generates an invoice PDF entirely on the client using jsPDF + jsPDF-AutoTable.
- * Relies on `order.invoiceData` which is snapshotted at order-creation time in
- * CheckoutView.buildOrderInvoiceData(), so no extra network round-trip is needed.
+ * Works for any order with or without snapshot invoiceData.
  */
 async function generateInvoiceClientSide(order: Order, isDuplicata: boolean): Promise<void> {
   const iv = order.invoiceData ?? {};
-  const cfg = iv.config ?? {};
+
+  // Fetch or fallback global config if not present in snapshot
+  let cfg = iv.config;
+  if (!cfg) {
+    try {
+      const res = await fetch('/api/dashboard/public/config/invoice_config/global');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && (data.phone || data.email || data.companyName || data.address)) {
+          cfg = data;
+        }
+      }
+    } catch {
+      // Ignore network fallback error
+    }
+  }
+
+  if (!cfg) {
+    cfg = {
+      companyName: 'Laine & Déco',
+      address: '34 Rue des Artisans, Paris',
+      phone: '+33 1 23 45 67 89',
+      email: 'contact@laineetdeco.com',
+      paymentName: 'Laine & Déco Mobile Money',
+      paymentPhone: '+237 6 00 00 00 00',
+      message1: 'Merci pour votre confiance et votre commande !',
+      message2: 'Pour toute réclamation, contactez notre service client.',
+      footerMessage: 'Laine & Déco - Merci pour votre confiance !',
+    };
+  }
 
   const [{ default: jsPDF }, autoTableModule] = await Promise.all([
     import('jspdf'),
@@ -50,6 +78,7 @@ async function generateInvoiceClientSide(order: Order, isDuplicata: boolean): Pr
   const primary = iv.primaryColor ?? '#2c3e35';
   const hexToRgb = (hex: string): [number, number, number] => {
     const h = hex.replace('#', '');
+    if (h.length < 6) return [44, 62, 53];
     return [
       parseInt(h.substring(0, 2), 16),
       parseInt(h.substring(2, 4), 16),
@@ -62,14 +91,14 @@ async function generateInvoiceClientSide(order: Order, isDuplicata: boolean): Pr
   doc.setFillColor(pr, pg, pb);
   doc.rect(0, 0, pageW, 38, 'F');
 
-  // Logo placeholder or company name
+  // Company Name
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(22);
   const companyName = cfg.companyName || 'Laine & Déco';
   doc.text(companyName, 14, 16);
 
-  // FACTURE / DUPLICATA label (right side)
+  // FACTURE / DUPLICATA label
   doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
   const label = isDuplicata ? 'DUPLICATA' : 'FACTURE';
@@ -82,8 +111,18 @@ async function generateInvoiceClientSide(order: Order, isDuplicata: boolean): Pr
   doc.text(`N° ${orderId}`, pageW - 14 - doc.getTextWidth(`N° ${orderId}`), 22);
 
   // Date
-  const orderDate = order.date ?? (order.createdAt ? new Date(order.createdAt?.seconds ? order.createdAt.seconds * 1000 : order.createdAt).toLocaleDateString('fr-FR') : '-');
-  doc.text(`Date : ${orderDate}`, pageW - 14 - doc.getTextWidth(`Date : ${orderDate}`), 28);
+  let formattedDate = '-';
+  if (order.date) {
+    formattedDate = order.date;
+  } else if (order.createdAt) {
+    try {
+      const raw = (order.createdAt as any)?.seconds ? (order.createdAt as any).seconds * 1000 : order.createdAt;
+      formattedDate = new Date(raw).toLocaleDateString('fr-FR');
+    } catch {
+      formattedDate = '-';
+    }
+  }
+  doc.text(`Date : ${formattedDate}`, pageW - 14 - doc.getTextWidth(`Date : ${formattedDate}`), 28);
 
   // ── Section below header ─────────────────────────────────────────────────
   let y = 48;
@@ -94,34 +133,42 @@ async function generateInvoiceClientSide(order: Order, isDuplicata: boolean): Pr
   doc.setFont('helvetica', 'bold');
   doc.text('DE', 14, y);
   doc.setFont('helvetica', 'normal');
-  if (cfg.address) { doc.text(cfg.address, 14, y + 5); }
-  if (cfg.phone) { doc.text(`Tél: ${cfg.phone}`, 14, y + 10); }
-  if (cfg.email) { doc.text(`Email: ${cfg.email}`, 14, y + 15); }
+  if (cfg.address) doc.text(cfg.address, 14, y + 5);
+  if (cfg.phone) doc.text(`Tél: ${cfg.phone}`, 14, y + 10);
+  if (cfg.email) doc.text(`Email: ${cfg.email}`, 14, y + 15);
 
   // Customer info (right column)
   const rightX = pageW / 2 + 10;
   doc.setFont('helvetica', 'bold');
   doc.text('FACTURÉ À', rightX, y);
   doc.setFont('helvetica', 'normal');
-  const customerName = iv.customerName ?? order.customer ?? '-';
+  const customerName = iv.customerName ?? order.customerName ?? order.customer ?? 'Client';
   doc.text(customerName, rightX, y + 5);
   const customerAddress = iv.address ?? order.address ?? '';
-  if (customerAddress) doc.text(customerAddress, rightX, y + 10);
+  if (customerAddress) doc.text(customerAddress.substring(0, 45), rightX, y + 10);
   const customerPhone = iv.phone ?? order.phone ?? '';
   if (customerPhone) doc.text(`Tél: ${customerPhone}`, rightX, y + 15);
 
   y += 28;
 
   // ── Items table ──────────────────────────────────────────────────────────
-  const items: any[] = iv.items ?? order.orderDetails ?? [];
-  const tableBody = items.map((item: any) => [
-    item.name ?? item.productName ?? '-',
+  let rawItems: any[] = iv.items ?? (Array.isArray(order.orderDetails) && order.orderDetails.length > 0 ? order.orderDetails : Array.isArray(order.items) ? order.items : []);
+  if (!Array.isArray(rawItems) || rawItems.length === 0) {
+    rawItems = [{
+      name: order.description || `Commande ${order.id || ''}`,
+      quantity: typeof order.items === 'number' ? order.items : 1,
+      price: order.total || 0,
+    }];
+  }
+
+  const tableBody = rawItems.map((item: any) => [
+    item.name ?? item.productName ?? 'Produit',
     String(item.quantity ?? 1),
     `${Number(item.price ?? 0).toLocaleString('fr-FR')} FCFA`,
     `${(Number(item.price ?? 0) * Number(item.quantity ?? 1)).toLocaleString('fr-FR')} FCFA`,
   ]);
 
-  autoTable(doc, {
+  const tableOptions = {
     startY: y,
     head: [['Désignation', 'Qté', 'Prix unitaire', 'Total']],
     body: tableBody,
@@ -135,26 +182,33 @@ async function generateInvoiceClientSide(order: Order, isDuplicata: boolean): Pr
       3: { cellWidth: 40, halign: 'right' },
     },
     margin: { left: 14, right: 14 },
-  });
+  };
 
-  y = (doc as any).lastAutoTable.finalY + 8;
+  if (typeof autoTable === 'function') {
+    autoTable(doc, tableOptions);
+  } else if (typeof (doc as any).autoTable === 'function') {
+    (doc as any).autoTable(tableOptions);
+  }
+
+  y = ((doc as any).lastAutoTable?.finalY ?? y + 40) + 8;
 
   // ── Totals summary ───────────────────────────────────────────────────────
-  const totalsX = pageW - 80;
-  const subtotal = iv.subtotal ?? 0;
+  const totalsX = pageW - 85;
+  const computedSubtotal = rawItems.reduce((acc, item) => acc + (Number(item.price) || 0) * (Number(item.quantity) || 1), 0);
+  const subtotal = iv.subtotal ?? order.subtotal ?? (computedSubtotal > 0 ? computedSubtotal : order.total ?? 0);
   const shippingFee = iv.shippingFee ?? order.shippingFee ?? 0;
   const giftFee = iv.giftFee ?? order.giftFee ?? (order.giftWrap?.enabled ? 2000 : 0);
-  const discount = iv.discount ?? 0;
-  const total = iv.total ?? order.total ?? 0;
+  const discount = iv.discount ?? order.discount ?? 0;
+  const total = iv.total ?? order.total ?? (subtotal + shippingFee + giftFee - discount);
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(80, 80, 80);
 
-  const drawRow = (label: string, value: string, bold = false, color?: [number, number, number]) => {
+  const drawRow = (rowLabel: string, value: string, bold = false, color?: [number, number, number]) => {
     if (bold) doc.setFont('helvetica', 'bold');
     if (color) doc.setTextColor(...color);
-    doc.text(label, totalsX, y);
+    doc.text(rowLabel, totalsX, y);
     doc.text(value, pageW - 14, y, { align: 'right' });
     if (bold || color) { doc.setFont('helvetica', 'normal'); doc.setTextColor(80, 80, 80); }
     y += 6;
@@ -229,65 +283,8 @@ async function generateInvoiceClientSide(order: Order, isDuplicata: boolean): Pr
   doc.setFont('helvetica', 'italic');
   doc.text(footerMsg, pageW / 2, pageH - 8, { align: 'center' });
 
-  // Save
+  // Save PDF document
   doc.save(`Facture_${isDuplicata ? 'Duplicata_' : ''}${orderId}.pdf`);
-}
-
-// ─── Server-side fallback (for orders without invoiceData) ────────────────────
-
-async function createInvoiceJob(orderId: string, isDuplicata: boolean = false): Promise<string> {
-  const token = await getAuthToken();
-
-  const response = await fetch('/api/dashboard/invoice/generate', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ orderId, isDuplicata }),
-  });
-
-  const data = await readApiResponse(response, 'Endpoint de facture introuvable');
-  if (!response.ok) {
-    throw new Error(data?.error || 'Impossible de créer la tâche de facture');
-  }
-
-  if (!data?.jobId) {
-    throw new Error("La tâche de facture n'a pas été créée correctement");
-  }
-
-  return data.jobId;
-}
-
-async function pollInvoiceJob(jobId: string, timeoutMs: number = 60000): Promise<string> {
-  const token = await getAuthToken();
-  const startTime = Date.now();
-  const pollIntervalMs = 1000;
-
-  while (Date.now() - startTime < timeoutMs) {
-    const response = await fetch(`/api/dashboard/invoice/job/${jobId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    const data = await readApiResponse(response, 'Endpoint de suivi facture introuvable');
-
-    if (!response.ok) {
-      throw new Error(data?.error || 'Impossible de vérifier la facture');
-    }
-
-    if (data.status === 'completed') {
-      if (!data.pdfUrl) throw new Error('Lien PDF manquant');
-      return data.pdfUrl;
-    }
-
-    if (data.status === 'failed') {
-      throw new Error(data?.error || 'Génération de facture échouée');
-    }
-
-    await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
-  }
-
-  throw new Error('Génération de facture trop longue, veuillez réessayer');
 }
 
 // ─── Main export ──────────────────────────────────────────────────────────────
@@ -298,29 +295,11 @@ export async function generateInvoicePDF(order: Order, isDuplicata: boolean = fa
   const loadingToast = toast.loading('Génération de la facture en cours...');
 
   try {
-    // Fast path: use the config snapshot stored in the order itself
-    if (order.invoiceData?.config) {
-      await generateInvoiceClientSide(order, isDuplicata);
-      toast.dismiss(loadingToast);
-      toast.success('Facture générée avec succès');
-      return;
-    }
-
-    // Fallback: old orders without invoiceData — go through server job
-    const jobId = await createInvoiceJob(order.id, isDuplicata);
-    const pdfUrl = await pollInvoiceJob(jobId, 60000);
-
+    await generateInvoiceClientSide(order, isDuplicata);
     toast.dismiss(loadingToast);
-
-    const link = document.createElement('a');
-    link.href = pdfUrl;
-    link.download = `Facture_Laine_Deco_${order.id || 'Order'}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
     toast.success('Facture générée avec succès');
   } catch (error: any) {
+    console.error('Erreur génération facture:', error);
     toast.dismiss(loadingToast);
     toast.error(error?.message || 'Erreur lors de la génération de la facture');
   }

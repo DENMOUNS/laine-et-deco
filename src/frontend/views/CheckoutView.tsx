@@ -42,6 +42,38 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
   const { data: shippingRules } = useStaticEntity<ShippingRule>('shipping_rule');
   const { data: allCoupons } = useEntity<any>('coupon');
   const { data: allCities } = useStaticEntity<City>('city');
+  const { data: userProfiles } = useEntity<any>('user', [], {
+    constraints: [where('uid', '==', user?.uid || user?.email || 'guest')],
+    deps: [user?.uid, user?.email]
+  });
+
+  useEffect(() => {
+    if (userProfiles && userProfiles.length > 0) {
+      const p = userProfiles[0];
+      const fullName = p.name || user?.displayName || '';
+      const nameParts = fullName.split(' ');
+      const firstName = p.firstName || nameParts[0] || '';
+      const lastName = p.lastName || nameParts.slice(1).join(' ') || '';
+
+      setFormData(prev => ({
+        ...prev,
+        firstName: prev.firstName || firstName,
+        lastName: prev.lastName || lastName,
+        address: prev.address || p.address || '',
+        city: prev.city || p.city || '',
+        phone: prev.phone || p.phone || p.whatsapp || '',
+      }));
+    } else if (user?.displayName || user?.email) {
+      const fullName = user.displayName || '';
+      const nameParts = fullName.split(' ');
+      setFormData(prev => ({
+        ...prev,
+        firstName: prev.firstName || nameParts[0] || '',
+        lastName: prev.lastName || nameParts.slice(1).join(' ') || '',
+        phone: prev.phone || user.phoneNumber || '',
+      }));
+    }
+  }, [userProfiles, user]);
 
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
 

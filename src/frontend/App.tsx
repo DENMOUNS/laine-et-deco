@@ -1,6 +1,7 @@
 import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { toast, Toaster } from 'sonner';
 import { RouteFallback } from './components/RouteFallback';
+import { NavigationProgress } from './components/NavigationProgress';
 import { useAuthStore } from '../stores/authStore';
 import { useConfigStore } from '../stores/configStore';
 import { SiteConfig, PromoEvent, NavItem } from '../types';
@@ -249,6 +250,7 @@ export function App() {
 
   return (
     <>
+      <NavigationProgress />
       <Toaster position="top-center" duration={5000} closeButton />
       <Suspense fallback={<RouteFallback />}>
         <AppRoutes />

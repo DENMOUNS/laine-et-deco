@@ -88,6 +88,27 @@ export function AdminRmaDetail({ ctx }: { ctx: any }) {
                             </div>
                         </div>
 
+                        {/* Verification Photo Section */}
+                        {editingItem.productPhotoUrl && (
+                          <div className="border-t border-primary/10 pt-6 mt-6">
+                            <h4 className="font-serif font-bold text-lg mb-2 flex items-center gap-2 text-primary">
+                              <ImageIcon size={20} className="text-primary" />
+                              Photo de Vérification de l'État du Produit
+                            </h4>
+                            <p className="text-xs text-primary/60 mb-4">
+                              Photo transmise par le client lors de la demande pour attester que l'article n'a pas été abîmé.
+                            </p>
+                            <div className="rounded-2xl overflow-hidden border border-primary/10 bg-slate-100 max-h-96 flex items-center justify-center p-2">
+                              <img 
+                                src={editingItem.productPhotoUrl} 
+                                alt="Photo de vérification du retour" 
+                                className="max-h-92 object-contain rounded-xl shadow-sm"
+                                referrerPolicy="no-referrer"
+                              />
+                            </div>
+                          </div>
+                        )}
+
                         {/* Order Items Preview */}
                         <div className="border-t border-primary/5 pt-6 mt-6">
                           <h4 className="font-serif font-bold text-lg mb-4">Articles de la commande</h4>
