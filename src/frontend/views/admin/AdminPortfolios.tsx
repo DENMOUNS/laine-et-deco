@@ -1,20 +1,24 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Plus, Edit, Trash2, ExternalLink, SwitchCamera } from 'lucide-react';
+import { Plus, Edit, Trash2, ExternalLink, SwitchCamera, Sparkles, Globe, Loader2 } from 'lucide-react';
 import { useEntity } from '../../hooks/useEntity';
 import { MemberPortfolio } from '../../../types';
 import { toast } from 'sonner';
 import { ImageUpload } from '../../components/ui/ImageUpload';
+import { translateContentWithAi } from '../../utils/aiTranslator';
 
 export const AdminPortfolios: React.FC = () => {
   const { data: portfolios, addEntity, updateEntity, deleteEntity } = useEntity<MemberPortfolio>('member_portfolio', []);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MemberPortfolio | null>(null);
+  const [isTranslating, setIsTranslating] = useState(false);
   
   const [formData, setFormData] = useState<Partial<MemberPortfolio>>({
     name: '',
     role: '',
+    role_en: '',
     bio: '',
+    bio_en: '',
     externalPortfolioUrl: '',
     email: '',
     expertise: [], projects: [], experience: [], education: [], certifications: []
@@ -26,9 +30,35 @@ export const AdminPortfolios: React.FC = () => {
       setFormData(item);
     } else {
       setEditingItem(null);
-      setFormData({ name: '', role: '', bio: '', externalPortfolioUrl: '', email: '', expertise: [], projects: [], experience: [], education: [], certifications: [] });
+      setFormData({ name: '', role: '', role_en: '', bio: '', bio_en: '', externalPortfolioUrl: '', email: '', expertise: [], projects: [], experience: [], education: [], certifications: [] });
     }
     setIsModalOpen(true);
+  };
+
+  const handleTranslate = async () => {
+    if (!formData.role && !formData.bio) {
+      toast.error('Veuillez renseigner le poste ou la bio en français.');
+      return;
+    }
+    setIsTranslating(true);
+    try {
+      const res = await translateContentWithAi({
+        role: formData.role || '',
+        bio: formData.bio || ''
+      }, 'en', 'fr');
+      if (res) {
+        setFormData(prev => ({
+          ...prev,
+          role_en: res.role || prev.role_en,
+          bio_en: res.bio || prev.bio_en
+        }));
+        toast.success('Traduction générée avec succès !');
+      }
+    } catch {
+      toast.error('Erreur lors de la traduction.');
+    } finally {
+      setIsTranslating(false);
+    }
   };
 
   const handleSave = async () => {
@@ -144,6 +174,23 @@ export const AdminPortfolios: React.FC = () => {
               </button>
             </div>
             <div className="p-6 overflow-y-auto flex-1 space-y-4">
+              {/* Translation bar */}
+              <div className="flex items-center justify-between bg-accent/5 p-3.5 rounded-2xl border border-accent/20">
+                <div className="flex items-center gap-2">
+                  <Globe size={16} className="text-accent" />
+                  <span className="text-xs font-bold text-primary">Traduction automatique</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleTranslate}
+                  disabled={isTranslating}
+                  className="px-3 py-1.5 bg-accent text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow hover:bg-accent/90 transition-all cursor-pointer"
+                >
+                  {isTranslating ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                  {isTranslating ? 'Traduction...' : 'Traduire en Anglais'}
+                </button>
+              </div>
+
               <div className="space-y-4">
                 <div>
                   <label className="text-xs font-bold uppercase tracking-widest text-primary/50 block mb-2">Nom Complet *</label>
@@ -155,15 +202,29 @@ export const AdminPortfolios: React.FC = () => {
                     placeholder="Ex: Jean Dupont"
                   />
                 </div>
-                <div>
-                  <label className="text-xs font-bold uppercase tracking-widest text-primary/50 block mb-2">Poste *</label>
-                  <input 
-                    type="text" 
-                    value={formData.role || ''} 
-                    onChange={e => setFormData({...formData, role: e.target.value})}
-                    className="input-field" 
-                    placeholder="Ex: Développeur Full-Stack"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold uppercase tracking-widest text-primary/50 block mb-2">Poste (FR) *</label>
+                    <input 
+                      type="text" 
+                      value={formData.role || ''} 
+                      onChange={e => setFormData({...formData, role: e.target.value})}
+                      className="input-field" 
+                      placeholder="Ex: Développeur Full-Stack"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold uppercase tracking-widest text-accent flex items-center gap-1 mb-2">
+                      <Globe size={12} /> Poste (EN)
+                    </label>
+                    <input 
+                      type="text" 
+                      value={formData.role_en || ''} 
+                      onChange={e => setFormData({...formData, role_en: e.target.value})}
+                      className="input-field border-accent/40 focus:border-accent" 
+                      placeholder="Ex: Full-Stack Developer"
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="text-xs font-bold uppercase tracking-widest text-primary/50 block mb-2">Email</label>
@@ -192,14 +253,27 @@ export const AdminPortfolios: React.FC = () => {
                     onChange={(dataUrl) => setFormData({ ...formData, avatar: dataUrl })}
                   />
                 </div>
-                <div>
-                  <label className="text-xs font-bold uppercase tracking-widest text-primary/50 block mb-2">Bio courte</label>
-                  <textarea 
-                    value={formData.bio || ''} 
-                    onChange={e => setFormData({...formData, bio: e.target.value})}
-                    className="input-field h-24" 
-                    placeholder="Description courte de la personne..."
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold uppercase tracking-widest text-primary/50 block mb-2">Bio courte (FR)</label>
+                    <textarea 
+                      value={formData.bio || ''} 
+                      onChange={e => setFormData({...formData, bio: e.target.value})}
+                      className="input-field h-24" 
+                      placeholder="Description courte de la personne..."
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold uppercase tracking-widest text-accent flex items-center gap-1 mb-2">
+                      <Globe size={12} /> Bio courte (EN)
+                    </label>
+                    <textarea 
+                      value={formData.bio_en || ''} 
+                      onChange={e => setFormData({...formData, bio_en: e.target.value})}
+                      className="input-field h-24 border-accent/40 focus:border-accent" 
+                      placeholder="Short biography in English..."
+                    />
+                  </div>
                 </div>
               </div>
             </div>

@@ -4,6 +4,7 @@ import { Camera, Heart, ShoppingBag, Sparkles } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useEntity } from '../hooks/useEntity';
 import { Lookbook, Product } from '../../types';
+import { useTranslation } from '../../i18n';
 
 interface LookbookViewProps {
   onNavigate: (view: string, id?: string) => void;
@@ -12,6 +13,7 @@ interface LookbookViewProps {
 
 export const LookbookView: React.FC<LookbookViewProps> = ({ onNavigate, products }) => {
   const { data: lookbooks } = useEntity<Lookbook>('lookbook', []);
+  const { t, l, isEn } = useTranslation();
   const activeLookbooks = lookbooks.filter(lb => lb.status === 'active');
 
   return (
@@ -23,64 +25,72 @@ export const LookbookView: React.FC<LookbookViewProps> = ({ onNavigate, products
           className="inline-flex items-center gap-2 px-4 py-2 bg-accent/10 text-accent rounded-full text-xs font-bold uppercase tracking-widest mb-6"
         >
           <Camera size={14} />
-          <span>Inspirations Créatives</span>
+          <span>{t('nav.lookbook')}</span>
         </motion.div>
-        <h1 className="text-5xl font-serif text-primary mb-6">Notre Lookbook</h1>
+        <h1 className="text-5xl font-serif text-primary mb-6">
+          {isEn ? 'Our Lookbook' : 'Notre Lookbook'}
+        </h1>
         <p className="text-primary/70 max-w-2xl mx-auto text-lg">
-          Découvrez comment nos produits créent des ambiances uniques.
+          {isEn 
+            ? 'Discover how our creations build unique, inspired spaces.' 
+            : 'Découvrez comment nos produits créent des ambiances uniques.'}
         </p>
       </div>
 
       <div className="columns-1 sm:columns-2 lg:columns-3 gap-8 space-y-8">
-        {activeLookbooks.map((post, index) => (
-          <motion.div
-            key={post.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="break-inside-avoid group relative bg-card rounded-[2.5rem] overflow-hidden border border-primary/5 shadow-sm hover:shadow-xl transition-all"
-          >
-            <div className="relative">
-              <img 
-                src={post.image} 
-                alt={post.title} 
-                className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-105"
-                referrerPolicy="no-referrer"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-6">
-                <p className="text-white font-serif text-lg mb-4">{post.title}</p>
-                <div className="flex flex-col gap-2">
-                  {post.products.map(productId => {
-                    const product = products.find(p => p.id === productId);
-                    if (!product) return null;
-                    return (
-                      <div key={productId} className="flex flex-row items-center justify-between bg-white/20 backdrop-blur-md p-2 rounded-xl group/item">
-                        <div className="flex items-center gap-2">
-                           <img src={product.image} className="w-8 h-8 rounded-lg object-cover" alt="" />
-                           <span className="text-white text-xs font-bold truncate max-w-[100px]">{product.name}</span>
+        {activeLookbooks.map((post, index) => {
+          const title = l(post, 'title') || (post as any).caption || '';
+          const desc = l(post, 'description') || l(post, 'caption');
+          return (
+            <motion.div
+              key={post.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              className="break-inside-avoid group relative bg-card rounded-[2.5rem] overflow-hidden border border-primary/5 shadow-sm hover:shadow-xl transition-all"
+            >
+              <div className="relative">
+                <img 
+                  src={post.image} 
+                  alt={title} 
+                  className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-105"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-6">
+                  <p className="text-white font-serif text-lg mb-4">{title}</p>
+                  <div className="flex flex-col gap-2">
+                    {(post.products || (post as any).tags || []).map((productId: string) => {
+                      const product = products.find(p => p.id === productId);
+                      if (!product) return null;
+                      return (
+                        <div key={productId} className="flex flex-row items-center justify-between bg-white/20 backdrop-blur-md p-2 rounded-xl group/item">
+                          <div className="flex items-center gap-2">
+                             <img src={product.image} className="w-8 h-8 rounded-lg object-cover" alt="" />
+                             <span className="text-white text-xs font-bold truncate max-w-[100px]">{l(product, 'name')}</span>
+                          </div>
+                          <Button 
+                            variant="secondary" 
+                            size="sm" 
+                            className="rounded-full px-3 py-1 text-xs scale-90"
+                            onClick={() => onNavigate('product-detail', product.id)}
+                          >
+                            <ShoppingBag size={12} className="mr-1" /> {t('common.buyNow')}
+                          </Button>
                         </div>
-                        <Button 
-                          variant="secondary" 
-                          size="sm" 
-                          className="rounded-full px-3 py-1 text-xs scale-90"
-                          onClick={() => onNavigate('product-detail', product.id)}
-                        >
-                          <ShoppingBag size={12} className="mr-1" /> Acheter
-                        </Button>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="p-6">
-              <h3 className="font-serif text-lg text-primary mb-2">{post.title}</h3>
-              <p className="text-primary/70 text-sm mb-4">{post.description}</p>
-            </div>
-          </motion.div>
-        ))}
+              <div className="p-6">
+                <h3 className="font-serif text-lg text-primary mb-2">{title}</h3>
+                {desc && <p className="text-primary/70 text-sm mb-4">{desc}</p>}
+              </div>
+            </motion.div>
+          );
+        })}
         {activeLookbooks.length === 0 && (
-           <p className="text-center text-primary/70 italic py-12 w-full col-span-3">Aucun lookbook trouvé.</p>
+           <p className="text-center text-primary/70 italic py-12 w-full col-span-3">{t('common.emptyList')}</p>
         )}
       </div>
 

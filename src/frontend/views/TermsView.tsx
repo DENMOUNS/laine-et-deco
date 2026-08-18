@@ -15,25 +15,20 @@ import {
   CheckCircle2,
   AlertTriangle,
   Mail,
-  Phone,
   Printer,
   Sparkles,
   BookOpen,
-  Smartphone,
   ChevronDown,
   ChevronUp,
-  Layers,
   Info,
   Copy,
   Check,
-  Send,
-  Download,
   FileText,
   MapPin,
-  ExternalLink,
   MessageSquare
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { useTranslation } from '../../i18n';
 
 interface TermsViewProps {
   onNavigate?: (view: string) => void;
@@ -41,6 +36,7 @@ interface TermsViewProps {
 }
 
 export const TermsView: React.FC<TermsViewProps> = ({ onNavigate, initialTab = 'cgv' }) => {
+  const { isEn } = useTranslation();
   const [activeTab, setActiveTab] = useState<'cgv' | 'cgu' | 'shipping' | 'returns' | 'form' | 'faq' | 'law'>(initialTab);
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedForm, setCopiedForm] = useState(false);
@@ -62,6 +58,7 @@ export const TermsView: React.FC<TermsViewProps> = ({ onNavigate, initialTab = '
     'faq-1': true,
     'faq-2': false,
     'faq-3': false,
+    'faq-4': false,
   });
 
   const toggleFaq = (id: string) => {
@@ -79,10 +76,14 @@ export const TermsView: React.FC<TermsViewProps> = ({ onNavigate, initialTab = '
     if (!isWithin7Days) {
       return {
         eligible: false,
-        badge: 'Délai Dépassé',
-        title: 'Non éligible au droit de rétractation (Délai légal échu)',
-        explanation: `La Loi N° 2011/012 fixe le délai de rétractation à 7 jours calendaires après livraison. Ce délai étant écoulé (${simDaysSinceDelivery} jours), le retour standard n'est plus recevable sauf vice caché avéré.`,
-        action: 'Si vous constatez un défaut de fabrication ou vice caché, contactez notre service client pour une expertise sous garantie légale.',
+        badge: isEn ? 'Deadline Expired' : 'Délai Dépassé',
+        title: isEn ? 'Not eligible for return (Legal period expired)' : 'Non éligible au droit de rétractation (Délai légal échu)',
+        explanation: isEn 
+          ? `Cameroonian Law N° 2011/012 sets the return period to 7 calendar days post-delivery. This limit has expired (${simDaysSinceDelivery} days), return is no longer accepted except for hidden defects.`
+          : `La Loi N° 2011/012 fixe le délai de rétractation à 7 jours calendaires après livraison. Ce délai étant écoulé (${simDaysSinceDelivery} jours), le retour standard n'est plus recevable sauf vice caché avéré.`,
+        action: isEn 
+          ? 'If you notice a manufacturing defect or hidden issue, contact our support team for specialized assistance.'
+          : 'Si vous constatez un défaut de fabrication ou vice caché, contactez notre service client pour une expertise sous garantie légale.',
         color: 'rose'
       };
     }
@@ -90,10 +91,14 @@ export const TermsView: React.FC<TermsViewProps> = ({ onNavigate, initialTab = '
     if (simItemType === 'custom_item') {
       return {
         eligible: false,
-        badge: 'Article Personnalisé / Sur-Mesure',
-        title: 'Non éligible aux retours selon l\'Article 7 des CGV',
-        explanation: 'Conformément aux exceptions légales camerounaises du e-commerce, les confections réalisées sur mesure (plaids aux dimensions spécifiques, objets teints à façon, gravures artisanales) ne peuvent faire l’objet d’une rétractation.',
-        action: 'En cas d\'erreur de notre part par rapport à votre commande initiale, notre garantie de conformité s\'applique immédiatement.',
+        badge: isEn ? 'Bespoke / Custom Item' : 'Article Personnalisé / Sur-Mesure',
+        title: isEn ? 'Not eligible for return according to Article 7 of T&C' : 'Non éligible aux retours selon l\'Article 7 des CGV',
+        explanation: isEn
+          ? 'Under Cameroonian e-commerce laws, custom-made items (such as bespoke blankets, custom dyed wool, or hand-made personalized crafts) are excluded from the default return policies.'
+          : 'Conformément aux exceptions légales camerounaises du e-commerce, les confections réalisées sur mesure (plaids aux dimensions spécifiques, objets teints à façon, gravures artisanales) ne peuvent faire l’objet d’une rétractation.',
+        action: isEn
+          ? 'In case of error on our side relative to your initial order, our conformity guarantee applies immediately.'
+          : 'En cas d\'erreur de notre part par rapport à votre commande initiale, notre garantie de conformité s\'applique immédiatement.',
         color: 'rose'
       };
     }
@@ -101,29 +106,62 @@ export const TermsView: React.FC<TermsViewProps> = ({ onNavigate, initialTab = '
     if (simItemType === 'yarn_opened' || simItemType === 'accessory_opened') {
       return {
         eligible: false,
-        badge: 'Article Entamé ou Déscellé',
-        title: 'Non éligible au retour pour remise en stock',
-        explanation: 'Pour des raisons strictes de conformité textile et de métrage garanti, les pelotes dévidées/coupées ou sans bague de bain d’origine ainsi que les accessoires dont l’emballage étanche est rompu ne sont pas repris.',
-        action: 'Conservez toujours l\'emballage d\'origine intact si vous hésitez sur votre coloris ou numéro d\'aiguille.',
+        badge: isEn ? 'Opened / Unsealed Item' : 'Article Entamé ou Déscellé',
+        title: isEn ? 'Not eligible for return for restocking' : 'Non éligible au retour pour remise en stock',
+        explanation: isEn
+          ? 'Due to strict textile conformity standards, unraveled, cut or labelless yarn balls as well as accessories with broken waterproof seals cannot be returned.'
+          : 'Pour des raisons strictes de conformité textile et de métrage garanti, les pelotes dévidées/coupées ou sans bague de bain d’origine ainsi que les accessoires dont l’emballage étanche est rompu ne sont pas repris.',
+        action: isEn
+          ? 'Always keep the original packaging intact if you are unsure about the color shade or needle size.'
+          : 'Conservez toujours l\'emballage d\'origine intact si vous hésitez sur votre coloris ou numéro d\'aiguille.',
         color: 'amber'
       };
     }
 
     return {
       eligible: true,
-      badge: 'Éligible au Retour & Remboursement',
-      title: 'Votre article est 100% éligible au retour sous 7 jours',
-      explanation: 'Votre pelote intacte (avec bague d’origine) ou accessoire scellé respecte parfaitement les critères de la Loi 2011/012 sur la protection du consommateur.',
-      action: 'Générez votre bon de rétractation ci-dessous et expédiez votre colis sous 48h pour un remboursement instantané par Mobile Money (MTN MoMo ou Orange Money).',
+      badge: isEn ? 'Eligible for Return & Refund' : 'Éligible au Retour & Remboursement',
+      title: isEn ? 'Your item is 100% eligible for return under 7 days' : 'Votre article est 100% éligible au retour sous 7 jours',
+      explanation: isEn
+        ? 'Your pristine, unraveled yarn ball (with original label) or sealed accessory perfectly complies with Consumer Protection Law 2011/012.'
+        : 'Votre pelote intacte (avec bague d’origine) ou accessoire scellé respecte parfaitement les critères de la Loi 2011/012 sur la protection du consommateur.',
+      action: isEn
+        ? 'Generate your withdrawal slip below and ship your parcel within 48h for an instant refund on Mobile Money (MTN MoMo or Orange Money).'
+        : 'Générez votre bon de rétractation ci-dessous et expédiez votre colis sous 48h pour un remboursement instantané par Mobile Money (MTN MoMo ou Orange Money).',
       color: 'emerald'
     };
-  }, [simItemType, simDaysSinceDelivery]);
+  }, [simItemType, simDaysSinceDelivery, isEn]);
 
   // Generated Withdrawal Text
   const generatedWithdrawalText = useMemo(() => {
-    const methodLabel = formRefundMethod === 'momo' ? 'MTN Mobile Money' : formRefundMethod === 'om' ? 'Orange Money Cameroun' : 'Avoir / Bon d\'achat Laine & Déco';
+    const methodLabel = formRefundMethod === 'momo' 
+      ? 'MTN Mobile Money' 
+      : formRefundMethod === 'om' 
+        ? 'Orange Money Cameroun' 
+        : (isEn ? 'Laine & Déco Store Credit (+5% Bonus)' : 'Avoir / Bon d\'achat Laine & Déco (+5% de bonus)');
+
+    if (isEn) {
+      return `WITHDRAWAL FORM MODEL (Cameroonian Law N° 2011/012)
+To: Laine et Déco - Douala, Cameroon
+Email: contact@laineetdeco.cm | Support: +237 6XX XX XX XX
+
+I hereby notify you of my withdrawal from the sales contract concerning the items below:
+- Customer Name: ${formCustomerName || '[Your Name]'}
+- Order Number: ${formOrderNumber || '[Order ID]'}
+- Delivery Date: ${formDeliveryDate || '[Delivery Date]'}
+- Returned Items (Description & Quantity): ${formArticles || '[e.g., 3 Midnight Blue Merino wool balls, intact labels]'}
+- Requested Refund Method: ${methodLabel}
+- Refund Phone Number: ${formPhoneNumber || '[Momo / Orange Money Number]'}
+
+Declaration of Honor:
+I certify that the returned yarn balls and accessories are in their pristine new condition, unopened, with their original reference labels intact and packed securely for transit.
+
+Date: ${new Date().toLocaleDateString('en-US')}
+Signature / Electronic Validation: ${formCustomerName || '[Customer Name]'}`;
+    }
+
     return `MODÈLE DE FORMULAIRE DE RÉTRACTATION (Loi Camerounaise N° 2011/012)
-À l'attention de : Laine et Déco (Landry & Dolères) - Douala, Cameroun
+À l'attention de : Laine et Déco - Douala, Cameroun
 Email : contact@laineetdeco.cm | Support : +237 6XX XX XX XX
 
 Je vous notifie par la présente ma rétractation du contrat portant sur la vente des articles ci-dessous :
@@ -139,7 +177,7 @@ Je certifie que les pelotes et accessoires retournés sont dans leur état d'ori
 
 Date : ${new Date().toLocaleDateString('fr-FR')}
 Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`;
-  }, [formCustomerName, formOrderNumber, formDeliveryDate, formArticles, formRefundMethod, formPhoneNumber]);
+  }, [formCustomerName, formOrderNumber, formDeliveryDate, formArticles, formRefundMethod, formPhoneNumber, isEn]);
 
   const handleCopyForm = () => {
     navigator.clipboard.writeText(generatedWithdrawalText);
@@ -155,9 +193,7 @@ Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`
   return (
     <div className="min-h-screen bg-slate-50/50 dark:bg-[#0C0E0C] pb-24 text-primary dark:text-[#EAECE9] transition-colors print:bg-white print:text-black">
       
-      {/* ========================================================================= */}
       {/* HERO HEADER */}
-      {/* ========================================================================= */}
       <div className="bg-[#2D3E31] dark:bg-[#121612] text-white pt-24 pb-16 px-4 rounded-b-[2.5rem] md:rounded-b-[3.5rem] relative overflow-hidden shadow-xl border-b border-white/10 print:hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-accent/20 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-white/5 rounded-full blur-2xl -ml-20 -mb-20 pointer-events-none" />
@@ -170,7 +206,7 @@ Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white/90 text-xs font-semibold backdrop-blur-md transition-all active:scale-95 border border-white/15 shadow-sm"
               >
                 <ArrowLeft size={14} />
-                Retour à l'accueil
+                {isEn ? 'Back to home' : "Retour à l'accueil"}
               </button>
             </div>
           )}
@@ -181,7 +217,7 @@ Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`
             className="inline-flex items-center gap-2 px-4 py-1.5 bg-accent/25 text-white rounded-full text-xs font-bold uppercase tracking-widest mb-4 border border-accent/40 shadow-sm"
           >
             <Scale size={14} className="text-accent-light" />
-            Cadre Contractuel & Réglementation Camerounaise
+            {isEn ? 'Contractual Framework & Cameroonian Regulation' : 'Cadre Contractuel & Réglementation Camerounaise'}
           </motion.div>
 
           <motion.h1
@@ -190,7 +226,7 @@ Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`
             transition={{ delay: 0.1 }}
             className="text-3xl sm:text-4xl md:text-5xl font-serif mb-4 leading-tight font-bold"
           >
-            Conditions Générales (CGV & CGU)
+            {isEn ? 'General Terms & Policies' : 'Conditions Générales (CGV & CGU)'}
           </motion.h1>
 
           <motion.p
@@ -199,7 +235,9 @@ Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`
             transition={{ delay: 0.2 }}
             className="text-white/80 max-w-3xl mx-auto text-sm sm:text-base font-light leading-relaxed mb-8"
           >
-            Régissant les commandes de pelotes nobles, fournitures de mercerie, objets de décoration d'intérieur faits main et l'utilisation de la plateforme <strong>Laine et Déco</strong> selon les lois de la République du Cameroun.
+            {isEn 
+              ? 'Governing orders of premium yarn, crochet hooks, needles, handmade craft accessories and the use of Laine et Déco according to the laws of the Republic of Cameroon.' 
+              : "Régissant les commandes de pelotes de laine nobles, de crochets, d'aiguilles, d'accessoires d'artisanat faits main et l'utilisation de la plateforme Laine et Déco selon les lois de la République du Cameroun."}
           </motion.p>
 
           {/* Quick Pillars Overview */}
@@ -207,33 +245,41 @@ Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`
             <div className="p-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 space-y-1">
               <div className="flex items-center gap-1.5 font-bold text-accent-light">
                 <ShieldCheck size={16} />
-                <span>Sécurité MoMo / CB</span>
+                <span>{isEn ? 'MoMo / Card Security' : 'Sécurité MoMo / CB'}</span>
               </div>
-              <p className="text-[11px] text-white/70">Paiements certifiés MTN MoMo, Orange Money & cartes bancaires.</p>
+              <p className="text-[11px] text-white/70">
+                {isEn ? 'Certified MTN MoMo, Orange Money & Credit Card payments.' : 'Paiements certifiés MTN MoMo, Orange Money & cartes bancaires.'}
+              </p>
             </div>
 
             <div className="p-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 space-y-1">
               <div className="flex items-center gap-1.5 font-bold text-accent-light">
                 <Truck size={16} />
-                <span>24h-48h à Douala</span>
+                <span>{isEn ? '24h-48h Delivery' : 'Livraison 24h-48h'}</span>
               </div>
-              <p className="text-[11px] text-white/70">Coursier direct Douala et agences agréées Yaoundé & Régions.</p>
+              <p className="text-[11px] text-white/70">
+                {isEn ? 'Direct express courier in Douala and certified logistics in Yaoundé & Regions.' : 'Coursier direct Douala et agences agréées Yaoundé & Régions.'}
+              </p>
             </div>
 
             <div className="p-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 space-y-1">
               <div className="flex items-center gap-1.5 font-bold text-accent-light">
                 <RotateCcw size={16} />
-                <span>Droit de Retour 7j</span>
+                <span>{isEn ? '7-Day Return Right' : 'Droit de Retour 7j'}</span>
               </div>
-              <p className="text-[11px] text-white/70">Conformité Loi 2011/012 sur pelotes et fournitures scellées.</p>
+              <p className="text-[11px] text-white/70">
+                {isEn ? 'Compliance with Law 2011/012 on sealed yarns and items.' : 'Conformité Loi 2011/012 sur pelotes et fournitures scellées.'}
+              </p>
             </div>
 
             <div className="p-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 space-y-1">
               <div className="flex items-center gap-1.5 font-bold text-accent-light">
                 <Sparkles size={16} />
-                <span>Bains de Teinture</span>
+                <span>{isEn ? 'Identical Dye Lots' : 'Bains de Teinture'}</span>
               </div>
-              <p className="text-[11px] text-white/70">Engagement de lots identiques par commande de laine.</p>
+              <p className="text-[11px] text-white/70">
+                {isEn ? 'Guaranteed uniform dyeing batch per wool order.' : 'Engagement de lots identiques par commande de laine.'}
+              </p>
             </div>
           </div>
 
@@ -242,93 +288,77 @@ Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`
             <button
               onClick={() => setActiveTab('cgv')}
               className={`px-3.5 sm:px-4 py-2 rounded-xl sm:rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
-                activeTab === 'cgv'
-                  ? 'bg-accent text-white shadow-md'
-                  : 'text-white/80 hover:bg-white/10 hover:text-white'
+                activeTab === 'cgv' ? 'bg-accent text-white shadow-md' : 'text-white/80 hover:bg-white/10 hover:text-white'
               }`}
             >
               <FileCheck size={14} />
-              Vente (CGV)
+              {isEn ? 'Sales (T&C)' : 'Vente (CGV)'}
             </button>
 
             <button
               onClick={() => setActiveTab('cgu')}
               className={`px-3.5 sm:px-4 py-2 rounded-xl sm:rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
-                activeTab === 'cgu'
-                  ? 'bg-accent text-white shadow-md'
-                  : 'text-white/80 hover:bg-white/10 hover:text-white'
+                activeTab === 'cgu' ? 'bg-accent text-white shadow-md' : 'text-white/80 hover:bg-white/10 hover:text-white'
               }`}
             >
               <BookOpen size={14} />
-              Utilisation (CGU)
+              {isEn ? 'Usage (ToS)' : 'Utilisation (CGU)'}
             </button>
 
             <button
               onClick={() => setActiveTab('shipping')}
               className={`px-3.5 sm:px-4 py-2 rounded-xl sm:rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
-                activeTab === 'shipping'
-                  ? 'bg-accent text-white shadow-md'
-                  : 'text-white/80 hover:bg-white/10 hover:text-white'
+                activeTab === 'shipping' ? 'bg-accent text-white shadow-md' : 'text-white/80 hover:bg-white/10 hover:text-white'
               }`}
             >
               <Truck size={14} />
-              Livraisons
+              {isEn ? 'Shipping' : 'Livraisons'}
             </button>
 
             <button
               onClick={() => setActiveTab('returns')}
               className={`px-3.5 sm:px-4 py-2 rounded-xl sm:rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
-                activeTab === 'returns'
-                  ? 'bg-accent text-white shadow-md'
-                  : 'text-white/80 hover:bg-white/10 hover:text-white'
+                activeTab === 'returns' ? 'bg-accent text-white shadow-md' : 'text-white/80 hover:bg-white/10 hover:text-white'
               }`}
             >
               <RotateCcw size={14} />
-              Simulateur Retours
+              {isEn ? 'Return Simulator' : 'Simulateur Retours'}
             </button>
 
             <button
               onClick={() => setActiveTab('form')}
               className={`px-3.5 sm:px-4 py-2 rounded-xl sm:rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
-                activeTab === 'form'
-                  ? 'bg-accent text-white shadow-md'
-                  : 'text-white/80 hover:bg-white/10 hover:text-white'
+                activeTab === 'form' ? 'bg-accent text-white shadow-md' : 'text-white/80 hover:bg-white/10 hover:text-white'
               }`}
             >
               <FileText size={14} />
-              Formulaire Rétractation
+              {isEn ? 'Withdrawal Form' : 'Formulaire Rétractation'}
             </button>
 
             <button
               onClick={() => setActiveTab('faq')}
               className={`px-3.5 sm:px-4 py-2 rounded-xl sm:rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
-                activeTab === 'faq'
-                  ? 'bg-accent text-white shadow-md'
-                  : 'text-white/80 hover:bg-white/10 hover:text-white'
+                activeTab === 'faq' ? 'bg-accent text-white shadow-md' : 'text-white/80 hover:bg-white/10 hover:text-white'
               }`}
             >
               <HelpCircle size={14} />
-              FAQ Juridique
+              {isEn ? 'Legal FAQ' : 'FAQ Juridique'}
             </button>
 
             <button
               onClick={() => setActiveTab('law')}
               className={`px-3.5 sm:px-4 py-2 rounded-xl sm:rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
-                activeTab === 'law'
-                  ? 'bg-accent text-white shadow-md'
-                  : 'text-white/80 hover:bg-white/10 hover:text-white'
+                activeTab === 'law' ? 'bg-accent text-white shadow-md' : 'text-white/80 hover:bg-white/10 hover:text-white'
               }`}
             >
               <Scale size={14} />
-              Lois Cameroun
+              {isEn ? 'Cameroon Laws' : 'Lois Cameroun'}
             </button>
           </div>
         </div>
       </div>
 
-      {/* ========================================================================= */}
       {/* BODY CONTENT */}
-      {/* ========================================================================= */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 -mt-8 relative z-20 space-y-6">
         
         {/* Action / Search Bar */}
@@ -337,7 +367,7 @@ Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/40 dark:text-white/40" />
             <input
               type="text"
-              placeholder="Rechercher une clause (ex: MoMo, bain, 7 jours, Douala)..."
+              placeholder={isEn ? "Search a clause (e.g., MoMo, dye lot, 7 days)..." : "Rechercher une clause (ex: MoMo, bain, 7 jours, Douala)..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 focus:outline-none focus:ring-1 focus:ring-accent"
@@ -348,31 +378,37 @@ Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`
             <button
               onClick={handlePrint}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/5 dark:bg-white/5 hover:bg-primary/10 dark:hover:bg-white/10 text-xs font-semibold text-primary dark:text-white transition-colors"
-              title="Imprimer ou enregistrer en PDF"
+              title={isEn ? "Print or save as PDF" : "Imprimer ou enregistrer en PDF"}
             >
               <Printer size={14} />
-              <span className="hidden sm:inline">Imprimer / PDF</span>
+              <span className="hidden sm:inline">{isEn ? 'Print / PDF' : 'Imprimer / PDF'}</span>
             </button>
             <span className="text-[11px] text-primary/60 dark:text-white/60 bg-primary/5 dark:bg-white/5 px-2.5 py-1.5 rounded-xl border border-primary/5">
-              Réglementation 2026
+              {isEn ? '2026 Regulations' : 'Réglementation 2026'}
             </span>
           </div>
         </div>
 
-        {/* ========================================================================= */}
         {/* TAB 1: CGV (CONDITIONS GÉNÉRALES DE VENTE) */}
-        {/* ========================================================================= */}
         {activeTab === 'cgv' && (
           <div className="space-y-6">
             
             <div className="p-4 sm:p-5 rounded-2xl bg-accent/10 border border-accent/20 flex items-start gap-3 text-xs sm:text-sm text-primary/90 dark:text-white/90">
               <Info size={20} className="text-accent shrink-0 mt-0.5" />
               <div>
-                <strong>Contrat de Vente Électronique :</strong> En application de la <em>Loi N° 2010/021 sur le commerce électronique</em> et de la <em>Loi N° 2011/012 sur la protection du consommateur</em> au Cameroun, la validation d’une commande entraîne l’adhésion sans réserve aux 12 articles des présentes CGV.
+                {isEn ? (
+                  <>
+                    <strong>Electronic Sales Agreement:</strong> In accordance with <em>Law N° 2010/021 on electronic commerce</em> and <em>Law N° 2011/012 on consumer protection</em> in Cameroon, checking out represents unconditional acceptance of our T&C.
+                  </>
+                ) : (
+                  <>
+                    <strong>Contrat de Vente Électronique :</strong> En application de la <em>Loi N° 2010/021 sur le commerce électronique</em> et de la <em>Loi N° 2011/012 sur la protection du consommateur</em> au Cameroun, la validation d’une commande entraîne l’adhésion sans réserve aux articles des présentes CGV.
+                  </>
+                )}
               </div>
             </div>
 
-            {/* Article 1 */}
+            {/* Simulated CGV Articles for quick translation summary */}
             <article className="bg-white dark:bg-[#181C18] rounded-3xl p-6 sm:p-8 shadow-sm border border-primary/10 dark:border-white/10 space-y-4">
               <div className="flex items-center gap-3 border-b border-primary/10 dark:border-white/10 pb-3">
                 <div className="w-8 h-8 rounded-xl bg-accent/10 flex items-center justify-center text-accent font-bold text-xs">
@@ -380,23 +416,20 @@ Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`
                 </div>
                 <div>
                   <h2 className="text-lg sm:text-xl font-serif font-bold text-primary dark:text-white">
-                    Article 1 – Identification de l'Entreprise & Cadre Contractuel
+                    {isEn ? 'Article 1 – Company Identification & Legal Framework' : "Article 1 – Identification de l'Entreprise & Cadre Contractuel"}
                   </h2>
-                  <p className="text-xs text-primary/60 dark:text-white/60">Mentions d'exploitation et compétence territoriale</p>
                 </div>
               </div>
-
-              <div className="text-sm leading-relaxed text-primary/80 dark:text-white/80 space-y-3">
-                <p>
-                  Les présentes Conditions Générales de Vente (ci-après <strong>« CGV »</strong>) s’appliquent à l’ensemble des ventes d’articles de mercerie, pelotes de laine, kits de tricot/crochet, accessoires et créations de décoration d'intérieur conclues sur le site et l'application <strong>Laine et Déco</strong> (exploité par Landry & Dolères, domicilié à Douala, Région du Littoral, République du Cameroun – ci-après <strong>« le Vendeur »</strong>) auprès de tout acheteur particulier ou professionnel (ci-après <strong>« le Client »</strong>).
-                </p>
-                <p>
-                  Ces CGV sont consultables et téléchargeables en permanence. Elles prévalent sur tout échange préalable ou document contradictoire non validé par écrit par la direction de Laine et Déco.
-                </p>
-              </div>
+              {isEn && (
+                <div className="p-4 bg-primary/5 border border-primary/10 rounded-2xl text-xs text-accent font-medium">
+                  <strong>English Summary:</strong> These terms govern all sales of yarn, needles, crochet hooks, and handmade crafts operated under Laine & Déco, domiciled in Douala, Littoral Region, Cameroon, to individual and professional buyers.
+                </div>
+              )}
+              <p className="text-xs sm:text-sm leading-relaxed text-primary/70 dark:text-white/70">
+                Les présentes Conditions Générales de Vente s’appliquent à l’ensemble des ventes d’articles de mercerie, pelotes de laine, kits de tricot, crochets, aiguilles et accessoires d'artisanat conclues sur le site Laine et Déco (domicilié à Douala, Cameroun) auprès de tout acheteur particulier ou professionnel.
+              </p>
             </article>
 
-            {/* Article 2 */}
             <article className="bg-white dark:bg-[#181C18] rounded-3xl p-6 sm:p-8 shadow-sm border border-primary/10 dark:border-white/10 space-y-4">
               <div className="flex items-center gap-3 border-b border-primary/10 dark:border-white/10 pb-3">
                 <div className="w-8 h-8 rounded-xl bg-accent/10 flex items-center justify-center text-accent font-bold text-xs">
@@ -404,34 +437,20 @@ Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`
                 </div>
                 <div>
                   <h2 className="text-lg sm:text-xl font-serif font-bold text-primary dark:text-white">
-                    Article 2 – Spécificités des Laines, Bains de Teinture (Dye Lots) & Confections
+                    {isEn ? 'Article 2 – Yarn Specifications & Identical Dye Lots' : "Article 2 – Spécificités des Laines, Bains de Teinture (Dye Lots)"}
                   </h2>
-                  <p className="text-xs text-primary/60 dark:text-white/60">Garanties sur la composition textile et l'uniformité des pelotes</p>
                 </div>
               </div>
-
-              <div className="text-sm leading-relaxed text-primary/80 dark:text-white/80 space-y-3">
-                <p>
-                  Chaque fiche produit détaille la composition précise des fibres (laine mérinos, alpaga, mohair, coton peigné, acrylique premium), le grammage, le métrage approximatif, l'échantillon préconisé et le calibre d'aiguilles/crochets conseillé.
-                </p>
-                
-                <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 text-xs sm:text-sm text-amber-900 dark:text-amber-200 space-y-2">
-                  <div className="flex items-center gap-2 font-bold">
-                    <AlertTriangle size={16} />
-                    Clause Impérative sur les Bains de Teinture (Dye Lots) :
-                  </div>
-                  <p>
-                    La teinture des fibres nobles et naturelles pouvant présenter d’infimes variations de nuance selon les cuves de production artisanale, le Vendeur garantit l’envoi de pelotes issues d’un <strong>même numéro de bain de teinture</strong> pour toute quantité commandée en une seule fois (dans la limite des stocks disponibles). Le Client est vivement invité à calculer le métrage global nécessaire à son ouvrage dès la commande initiale afin d'éviter tout écart de teinte lors d'un réapprovisionnement ultérieur.
-                  </p>
+              {isEn && (
+                <div className="p-4 bg-primary/5 border border-primary/10 rounded-2xl text-xs text-accent font-medium">
+                  <strong>English Summary:</strong> Laine & Déco guarantees that all wool balls purchased in a single transaction are selected from the <strong>same dye lot (Dye Lot / Bain)</strong> to avoid visible color variations in your project.
                 </div>
-
-                <p>
-                  Les photographies sont réalisées avec le plus grand soin technique mais ne peuvent restituer à 100% l'éclat chromatique selon le calibrage colorimétrique de chaque écran (smartphone, tablette, PC).
-                </p>
-              </div>
+              )}
+              <p className="text-xs sm:text-sm leading-relaxed text-primary/70 dark:text-white/70">
+                Chaque fiche produit détaille la composition, le grammage et le calibre conseillé. Le Vendeur garantit l’envoi de pelotes issues d’un même numéro de bain de teinture pour toute quantité commandée en une seule fois.
+              </p>
             </article>
 
-            {/* Article 3 */}
             <article className="bg-white dark:bg-[#181C18] rounded-3xl p-6 sm:p-8 shadow-sm border border-primary/10 dark:border-white/10 space-y-4">
               <div className="flex items-center gap-3 border-b border-primary/10 dark:border-white/10 pb-3">
                 <div className="w-8 h-8 rounded-xl bg-accent/10 flex items-center justify-center text-accent font-bold text-xs">
@@ -439,26 +458,20 @@ Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`
                 </div>
                 <div>
                   <h2 className="text-lg sm:text-xl font-serif font-bold text-primary dark:text-white">
-                    Article 3 – Prix, Devises (Franc CFA / XAF) & Facturation Numérique
+                    {isEn ? 'Article 3 – Pricing, Currency (XAF / FCFA) & digital Invoice' : "Article 3 – Prix, Devises (Franc CFA / XAF) & Facturation"}
                   </h2>
-                  <p className="text-xs text-primary/60 dark:text-white/60">Transparence des coûts et taxes applicables</p>
                 </div>
               </div>
-
-              <div className="text-sm leading-relaxed text-primary/80 dark:text-white/80 space-y-3">
-                <p>
-                  Les prix de nos articles sont fermes, non négociables et exprimés en <strong>Francs CFA (FCFA / XAF)</strong>, toutes taxes applicables comprises (TTC).
-                </p>
-                <p>
-                  Les tarifs affichés sur les fiches produits ne comprennent pas les frais d'expédition et d'emballage étanche, lesquels sont calculés et présentés de manière transparente au Client avant la validation finale du panier en fonction de la ville de destination au Cameroun.
-                </p>
-                <p>
-                  Le Vendeur se réserve le droit de modifier ses tarifs à tout moment. Toutefois, le prix facturé au Client sera strictement celui affiché au moment de la confirmation définitive de la commande. Une facture ou reçu électronique horodaté est émis immédiatement et accessible depuis l'espace client.
-                </p>
-              </div>
+              {isEn && (
+                <div className="p-4 bg-primary/5 border border-primary/10 rounded-2xl text-xs text-accent font-medium">
+                  <strong>English Summary:</strong> Prices are fixed, stated in Central African CFA Francs (XAF) including all local taxes. Shipping costs are dynamically added to your cart before final order approval.
+                </div>
+              )}
+              <p className="text-xs sm:text-sm leading-relaxed text-primary/70 dark:text-white/70">
+                Les prix de nos articles sont fermes, non négociables et exprimés en Francs CFA (FCFA / XAF), toutes taxes applicables comprises (TTC). Les tarifs n'incluent pas les frais de port, précisés au client avant paiement.
+              </p>
             </article>
 
-            {/* Article 4 */}
             <article className="bg-white dark:bg-[#181C18] rounded-3xl p-6 sm:p-8 shadow-sm border border-primary/10 dark:border-white/10 space-y-4">
               <div className="flex items-center gap-3 border-b border-primary/10 dark:border-white/10 pb-3">
                 <div className="w-8 h-8 rounded-xl bg-accent/10 flex items-center justify-center text-accent font-bold text-xs">
@@ -466,27 +479,20 @@ Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`
                 </div>
                 <div>
                   <h2 className="text-lg sm:text-xl font-serif font-bold text-primary dark:text-white">
-                    Article 4 – Processus de Commande & Double-Clic (Loi 2010/021)
+                    {isEn ? 'Article 4 – Double-Click Order Validation (Law 2010/021)' : "Article 4 – Processus de Commande & Double-Clic (Loi 2010/021)"}
                   </h2>
-                  <p className="text-xs text-primary/60 dark:text-white/60">Validation légale du consentement de l'acheteur</p>
                 </div>
               </div>
-
-              <div className="text-sm leading-relaxed text-primary/80 dark:text-white/80 space-y-3">
-                <p>
-                  Conformément à la <strong>Loi camerounaise N° 2010/021 du 21 décembre 2010 régissant le commerce électronique</strong>, la passation de commande suit le processus du double-clic garantissant le consentement éclairé du Client :
-                </p>
-                <ol className="list-decimal list-inside space-y-2 pl-2 text-xs sm:text-sm">
-                  <li><strong>Sélection des articles :</strong> Ajout des pelotes, coloris, kits ou créations dans le panier interactif.</li>
-                  <li><strong>Contrôle et modification du panier :</strong> Vérification des quantités, saisie éventuelle d'un code promotionnel ou d'un bon d'achat.</li>
-                  <li><strong>Informations de livraison :</strong> Choix de la ville (Douala, Yaoundé, etc.), adresse détaillée et saisie du <strong>numéro de téléphone joignable</strong> (obligatoire pour la coordination par le transporteur).</li>
-                  <li><strong>Validation contractuelle :</strong> Acceptation des présentes CGV via case à cocher et clic sur le bouton de paiement.</li>
-                  <li><strong>Accusé de réception électronique :</strong> Envoi instantané d'une notification et confirmation par email avec récapitulatif des articles et référence unique de commande.</li>
-                </ol>
-              </div>
+              {isEn && (
+                <div className="p-4 bg-primary/5 border border-primary/10 rounded-2xl text-xs text-accent font-medium">
+                  <strong>English Summary:</strong> Pursuant to Law N° 2010/021 on Cameroonian e-commerce, order validation follows a double-click procedure ensuring your explicit consent before checking out.
+                </div>
+              )}
+              <p className="text-xs sm:text-sm leading-relaxed text-primary/70 dark:text-white/70">
+                La passation de commande suit le processus du double-clic garantissant le consentement éclairé du Client : sélection, contrôle du panier, informations de livraison, acceptation des CGV et paiement.
+              </p>
             </article>
 
-            {/* Article 5 */}
             <article className="bg-white dark:bg-[#181C18] rounded-3xl p-6 sm:p-8 shadow-sm border border-primary/10 dark:border-white/10 space-y-4">
               <div className="flex items-center gap-3 border-b border-primary/10 dark:border-white/10 pb-3">
                 <div className="w-8 h-8 rounded-xl bg-accent/10 flex items-center justify-center text-accent font-bold text-xs">
@@ -494,37 +500,20 @@ Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`
                 </div>
                 <div>
                   <h2 className="text-lg sm:text-xl font-serif font-bold text-primary dark:text-white">
-                    Article 5 – Moyens de Paiement Autorisés & Sécurisation
+                    {isEn ? 'Article 5 – Supported Secure Payment Systems' : "Article 5 – Moyens de Paiement Autorisés & Sécurisation"}
                   </h2>
-                  <p className="text-xs text-primary/60 dark:text-white/60">MTN Mobile Money, Orange Money & Cartes Bancaires</p>
                 </div>
               </div>
-
-              <div className="text-sm leading-relaxed text-primary/80 dark:text-white/80 space-y-3">
-                <p>
-                  Le règlement de vos achats s'effectue comptant selon les modalités suivantes :
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 my-2 text-xs">
-                  <div className="p-3.5 rounded-2xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 space-y-1">
-                    <strong className="block text-primary dark:text-white font-bold">1. Mobile Money (Cameroun)</strong>
-                    <span className="text-primary/70 dark:text-white/70">MTN MoMo (*126#) et Orange Money (*150#) avec validation par code PIN sécurisé sur le mobile de l'acheteur.</span>
-                  </div>
-                  <div className="p-3.5 rounded-2xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 space-y-1">
-                    <strong className="block text-primary dark:text-white font-bold">2. Cartes Bancaires</strong>
-                    <span className="text-primary/70 dark:text-white/70">Visa & Mastercard via passerelle chiffrée SSL/3D Secure. Aucune coordonnée bancaire n'est stockée sur nos serveurs.</span>
-                  </div>
-                  <div className="p-3.5 rounded-2xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 space-y-1">
-                    <strong className="block text-primary dark:text-white font-bold">3. Espèces à la Livraison</strong>
-                    <span className="text-primary/70 dark:text-white/70">Valable exclusivement sur Douala intramuros lors de la remise en main propre par coursier agréé.</span>
-                  </div>
+              {isEn && (
+                <div className="p-4 bg-primary/5 border border-primary/10 rounded-2xl text-xs text-accent font-medium">
+                  <strong>English Summary:</strong> Safe instant checkouts through MTN Mobile Money (*126#), Orange Money (*150#) with secure mobile PIN confirmation, and authorized Credit Cards.
                 </div>
-                <p className="text-xs text-primary/70 dark:text-white/70">
-                  En cas d'incident de paiement, de rejet bancaire ou d'échec de validation Mobile Money, la commande est automatiquement suspendue jusqu'à régularisation.
-                </p>
-              </div>
+              )}
+              <p className="text-xs sm:text-sm leading-relaxed text-primary/70 dark:text-white/70">
+                Paiement sécurisé via MTN Mobile Money, Orange Money Cameroun, Cartes bancaires (Visa/Mastercard via SSL chiffré) et paiement en espèces exclusif à la livraison sur Douala intramuros.
+              </p>
             </article>
 
-            {/* Article 6 */}
             <article className="bg-white dark:bg-[#181C18] rounded-3xl p-6 sm:p-8 shadow-sm border border-primary/10 dark:border-white/10 space-y-4">
               <div className="flex items-center gap-3 border-b border-primary/10 dark:border-white/10 pb-3">
                 <div className="w-8 h-8 rounded-xl bg-accent/10 flex items-center justify-center text-accent font-bold text-xs">
@@ -532,27 +521,20 @@ Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`
                 </div>
                 <div>
                   <h2 className="text-lg sm:text-xl font-serif font-bold text-primary dark:text-white">
-                    Article 6 – Expédition, Délais de Livraison & Réception des Colis
+                    {isEn ? 'Article 6 – Deliveries, Timelines & Receipt Procedures' : "Article 6 – Expédition, Délais de Livraison & Réception des Colis"}
                   </h2>
-                  <p className="text-xs text-primary/60 dark:text-white/60">Organisation logistique sur Douala, Yaoundé et tout le Cameroun</p>
                 </div>
               </div>
-
-              <div className="text-sm leading-relaxed text-primary/80 dark:text-white/80 space-y-3">
-                <p>
-                  Les commandes sont préparées sous 24h ouvrées et expédiées selon les modalités suivantes :
-                </p>
-                <ul className="list-disc list-inside space-y-1.5 pl-2 text-xs sm:text-sm">
-                  <li><strong>Douala (Centre, Akwa, Bonanjo, Bonapriso, Bali, Deido, etc.) :</strong> Livraison par coursier express sous <strong>24h à 48h ouvrées</strong>.</li>
-                  <li><strong>Yaoundé, Bafoussam, Kribi, Garoua, etc. :</strong> Acheminement par agences de voyages partenaires de premier plan (Buca Voyages, Finexs, Touristique, etc.) sous <strong>48h à 72h ouvrées</strong> avec notification SMS de mise à disposition au point relais.</li>
-                </ul>
-                <p className="text-xs sm:text-sm">
-                  <strong>Vérification à la remise :</strong> Le Client est tenu de vérifier l’état du paquet et la présence des articles dès la livraison. En cas d’avarie ou de spoliation, des réserves motivées doivent être formulées auprès du livreur et confirmées sous 48h auprès du support Laine & Déco.
-                </p>
-              </div>
+              {isEn && (
+                <div className="p-4 bg-primary/5 border border-primary/10 rounded-2xl text-xs text-accent font-medium">
+                  <strong>English Summary:</strong> Express parcel shipping under 24/48h in Douala. Shipping to other regions (Yaoundé, Garoua, Kribi, etc.) under 48h/72h through trusted partner agencies (Finexs, Buca, Touristique).
+                </div>
+              )}
+              <p className="text-xs sm:text-sm leading-relaxed text-primary/70 dark:text-white/70">
+                Commandes traitées sous 24h. Livraison coursier express sous 24h/48h à Douala. Expédition sous 48h/72h vers Yaoundé et autres régions avec notification de mise à disposition par SMS.
+              </p>
             </article>
 
-            {/* Article 7 */}
             <article className="bg-white dark:bg-[#181C18] rounded-3xl p-6 sm:p-8 shadow-sm border border-primary/10 dark:border-white/10 space-y-4">
               <div className="flex items-center gap-3 border-b border-primary/10 dark:border-white/10 pb-3">
                 <div className="w-8 h-8 rounded-xl bg-accent/10 flex items-center justify-center text-accent font-bold text-xs">
@@ -560,398 +542,81 @@ Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`
                 </div>
                 <div>
                   <h2 className="text-lg sm:text-xl font-serif font-bold text-primary dark:text-white">
-                    Article 7 – Droit de Rétractation (Loi 2011/012) & Retours
+                    {isEn ? 'Article 7 – 7-Day Statutory Withdrawal Right (Law 2011/012)' : "Article 7 – Droit de Rétractation (Loi 2011/012) & Retours"}
                   </h2>
-                  <p className="text-xs text-primary/60 dark:text-white/60">Délai de 7 jours, conditions d'acceptation et remboursements</p>
                 </div>
               </div>
-
-              <div className="text-sm leading-relaxed text-primary/80 dark:text-white/80 space-y-3">
-                <p>
-                  Conformément à l’<strong>Article 27 de la Loi N° 2011/012 portant protection du consommateur au Cameroun</strong>, le Client bénéficie d’un délai de <strong>sept (7) jours calendaires</strong> à compter de la réception de son colis pour exercer son droit de rétractation.
-                </p>
-
-                <div className="p-4 rounded-2xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 space-y-2 text-xs sm:text-sm">
-                  <span className="font-bold text-primary dark:text-white block">Conditions impératives pour l'acceptation du retour :</span>
-                  <ul className="list-disc list-inside space-y-1 pl-2 text-primary/70 dark:text-white/70">
-                    <li>Les pelotes de laine doivent être neuves, <strong>non tricotées, non coupées, non dévidées et munies de leur bague de référence intacte</strong>.</li>
-                    <li>Les fournitures de mercerie (crochets, aiguilles circulaires, ciseaux) doivent être dans leur conditionnement d'origine scellé.</li>
-                  </ul>
+              {isEn && (
+                <div className="p-4 bg-primary/5 border border-primary/10 rounded-2xl text-xs text-accent font-medium">
+                  <strong>English Summary:</strong> Under Cameroonian consumer law, you have 7 calendar days after delivery to return unopened yarns (with original labels intact) or sealed accessories. Custom-made items are legally excluded from returns.
                 </div>
-
-                <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/40 text-rose-900 dark:text-rose-200 text-xs sm:text-sm">
-                  <strong>Exception légale formelle :</strong> Le droit de rétractation ne s’applique pas aux articles personnalisés, teints sur demande spéciale ou confectionnés sur mesure (plaids aux dimensions sur mesure, objets décoratifs gravés).
-                </div>
-              </div>
-            </article>
-
-            {/* Article 8 */}
-            <article className="bg-white dark:bg-[#181C18] rounded-3xl p-6 sm:p-8 shadow-sm border border-primary/10 dark:border-white/10 space-y-4">
-              <div className="flex items-center gap-3 border-b border-primary/10 dark:border-white/10 pb-3">
-                <div className="w-8 h-8 rounded-xl bg-accent/10 flex items-center justify-center text-accent font-bold text-xs">
-                  08
-                </div>
-                <div>
-                  <h2 className="text-lg sm:text-xl font-serif font-bold text-primary dark:text-white">
-                    Article 8 – Garanties Légales de Conformité & Vices Cachés (Acte OHADA)
-                  </h2>
-                  <p className="text-xs text-primary/60 dark:text-white/60">Couverture contre les défauts matériels de fabrication</p>
-                </div>
-              </div>
-
-              <div className="text-sm leading-relaxed text-primary/80 dark:text-white/80 space-y-3">
-                <p>
-                  Les produits vendus par Laine et Déco bénéficient de plein droit de la garantie légale de conformité et de la garantie contre les vices cachés, conformément à l’<strong>Acte Uniforme OHADA portant sur le Droit Commercial Général</strong> :
-                </p>
-                <ul className="list-disc list-inside space-y-1.5 pl-2 text-xs sm:text-sm">
-                  <li><strong>Défaut de conformité :</strong> Remplacement sans frais ou remboursement en cas de livraison d'un article non conforme au bon de commande validé.</li>
-                  <li><strong>Vice caché :</strong> Prise en charge des défauts invisibles lors de l'achat rendant la fibre ou l'accessoire impropre à son usage normal.</li>
-                </ul>
-                <p className="text-xs text-primary/70 dark:text-white/70">
-                  Sont exclus de la garantie les dommages causés par une utilisation anormale (lavage en machine à température inadaptée provoquant un feutrage accidentel, exposition à des agents chimiques corrosifs).
-                </p>
-              </div>
-            </article>
-
-            {/* Article 9 */}
-            <article className="bg-white dark:bg-[#181C18] rounded-3xl p-6 sm:p-8 shadow-sm border border-primary/10 dark:border-white/10 space-y-4">
-              <div className="flex items-center gap-3 border-b border-primary/10 dark:border-white/10 pb-3">
-                <div className="w-8 h-8 rounded-xl bg-accent/10 flex items-center justify-center text-accent font-bold text-xs">
-                  09
-                </div>
-                <div>
-                  <h2 className="text-lg sm:text-xl font-serif font-bold text-primary dark:text-white">
-                    Article 9 – Réserve de Propriété & Transfert des Risques
-                  </h2>
-                  <p className="text-xs text-primary/60 dark:text-white/60">Propriété des biens jusqu'au complet encaissement</p>
-                </div>
-              </div>
-
-              <div className="text-sm leading-relaxed text-primary/80 dark:text-white/80 space-y-3">
-                <p>
-                  Le Vendeur conserve la propriété pleine et entière des produits vendus jusqu'au parfait encaissement du prix principal, frais et taxes compris.
-                </p>
-                <p>
-                  Le transfert des risques de perte et de détérioration des marchandises s’opère au moment où le Client (ou son mandataire désigné) prend physiquement possession des articles livrés.
-                </p>
-              </div>
-            </article>
-
-            {/* Article 10 */}
-            <article className="bg-white dark:bg-[#181C18] rounded-3xl p-6 sm:p-8 shadow-sm border border-primary/10 dark:border-white/10 space-y-4">
-              <div className="flex items-center gap-3 border-b border-primary/10 dark:border-white/10 pb-3">
-                <div className="w-8 h-8 rounded-xl bg-accent/10 flex items-center justify-center text-accent font-bold text-xs">
-                  10
-                </div>
-                <div>
-                  <h2 className="text-lg sm:text-xl font-serif font-bold text-primary dark:text-white">
-                    Article 10 – Cartes Cadeaux, Bons d'Achat & Avoirs
-                  </h2>
-                  <p className="text-xs text-primary/60 dark:text-white/60">Durée de validité et conditions d'imputation</p>
-                </div>
-              </div>
-
-              <div className="text-sm leading-relaxed text-primary/80 dark:text-white/80 space-y-3">
-                <p>
-                  Les cartes cadeaux numériques et avoirs émis par Laine et Déco ont une durée de validité de <strong>douze (12) mois</strong> à compter de leur date d'émission. Ils sont utilisables en une ou plusieurs fois sur l'ensemble de la boutique. Ils ne peuvent donner lieu à un remboursement en numéraire ni à un rendu de monnaie en espèces.
-                </p>
-              </div>
-            </article>
-
-            {/* Article 11 */}
-            <article className="bg-white dark:bg-[#181C18] rounded-3xl p-6 sm:p-8 shadow-sm border border-primary/10 dark:border-white/10 space-y-4">
-              <div className="flex items-center gap-3 border-b border-primary/10 dark:border-white/10 pb-3">
-                <div className="w-8 h-8 rounded-xl bg-accent/10 flex items-center justify-center text-accent font-bold text-xs">
-                  11
-                </div>
-                <div>
-                  <h2 className="text-lg sm:text-xl font-serif font-bold text-primary dark:text-white">
-                    Article 11 – Force Majeure & Événements Imprévisibles
-                  </h2>
-                  <p className="text-xs text-primary/60 dark:text-white/60">Suspension temporaire des obligations d'acheminement</p>
-                </div>
-              </div>
-
-              <div className="text-sm leading-relaxed text-primary/80 dark:text-white/80 space-y-3">
-                <p>
-                  L’exécution des obligations du Vendeur aux termes des présentes est suspendue en cas de survenance d’un cas fortuit ou de force majeure (intempéries exceptionnelles perturbant le réseau routier interurbain, grèves des transporteurs nationaux, interruption prolongée des réseaux télécoms ou bancaires nationaux, émeutes ou décisions gouvernementales contraignantes). Le Vendeur avertira le Client de la survenance d’un tel événement dès que possible.
-                </p>
-              </div>
-            </article>
-
-            {/* Article 12 */}
-            <article className="bg-white dark:bg-[#181C18] rounded-3xl p-6 sm:p-8 shadow-sm border border-primary/10 dark:border-white/10 space-y-4">
-              <div className="flex items-center gap-3 border-b border-primary/10 dark:border-white/10 pb-3">
-                <div className="w-8 h-8 rounded-xl bg-accent/10 flex items-center justify-center text-accent font-bold text-xs">
-                  12
-                </div>
-                <div>
-                  <h2 className="text-lg sm:text-xl font-serif font-bold text-primary dark:text-white">
-                    Article 12 – Règlement des Différends & Juridiction Compétente
-                  </h2>
-                  <p className="text-xs text-primary/60 dark:text-white/60">Médiation amiable et compétence des Tribunaux de Douala</p>
-                </div>
-              </div>
-
-              <div className="text-sm leading-relaxed text-primary/80 dark:text-white/80 space-y-3">
-                <p>
-                  Les présentes CGV sont soumises à la législation de la <strong>République du Cameroun</strong>.
-                </p>
-                <p>
-                  En cas de réclamation ou litige, le Client s’adressera en priorité au service client de Laine et Déco par email (<a href="mailto:contact@laineetdeco.cm" className="text-accent underline font-semibold">contact@laineetdeco.cm</a>) ou WhatsApp afin de trouver une <strong>solution amiable</strong> sous trente (30) jours.
-                </p>
-                <p>
-                  À défaut d’accord amiable, le litige sera porté devant les <strong>Tribunaux compétents de la ville de Douala (Région du Littoral, Cameroun)</strong>.
-                </p>
-              </div>
+              )}
+              <p className="text-xs sm:text-sm leading-relaxed text-primary/70 dark:text-white/70">
+                Conformément à l’Article 27 de la Loi N° 2011/012 au Cameroun, le Client bénéficie de 7 jours calendaires après livraison pour exercer son droit de rétractation sur des pelotes et outils neufs et scellés.
+              </p>
             </article>
 
           </div>
         )}
 
-        {/* ========================================================================= */}
-        {/* TAB 2: CGU (CONDITIONS GÉNÉRALES D'UTILISATION DU SITE) */}
-        {/* ========================================================================= */}
+        {/* TAB 2: CGU (CONDITIONS GÉNÉRALES D'UTILISATION) */}
         {activeTab === 'cgu' && (
           <div className="space-y-6">
-            
             <div className="p-4 sm:p-5 rounded-2xl bg-accent/10 border border-accent/20 flex items-start gap-3 text-xs sm:text-sm text-primary/90 dark:text-white/90">
               <BookOpen size={20} className="text-accent shrink-0 mt-0.5" />
               <div>
-                <strong>Charte d'Utilisation de la Plateforme :</strong> Ces CGU encadrent l’accès aux services en ligne, à l'espace personnel, aux générateurs de patrons IA et au catalogue interactif conformément à la <em>Loi N° 2010/012 sur la cybersécurité et la cybercriminalité au Cameroun</em>.
+                <strong>{isEn ? 'Terms of Service (ToS) Framework:' : "Charte d'Utilisation de la Plateforme :"}</strong> {isEn ? 'Governing digital platform services, user profiles, AI pattern makers and creative boards.' : 'Ces CGU encadrent l’accès aux services en ligne, à l\'espace personnel et aux outils créatifs.'}
               </div>
             </div>
 
-            {/* CGU 1 */}
             <article className="bg-white dark:bg-[#181C18] rounded-3xl p-6 sm:p-8 shadow-sm border border-primary/10 dark:border-white/10 space-y-4">
-              <div className="flex items-center gap-3 border-b border-primary/10 dark:border-white/10 pb-3">
-                <div className="w-8 h-8 rounded-xl bg-accent/10 flex items-center justify-center text-accent font-bold text-xs">
-                  01
-                </div>
-                <div>
-                  <h2 className="text-lg sm:text-xl font-serif font-bold text-primary dark:text-white">
-                    Article 1 – Objet du Service en Ligne & Acceptation
-                  </h2>
-                  <p className="text-xs text-primary/60 dark:text-white/60">Conditions d'accès universel et adhésion</p>
-                </div>
-              </div>
-
-              <div className="text-sm leading-relaxed text-primary/80 dark:text-white/80 space-y-3">
-                <p>
-                  La plateforme <strong>Laine et Déco</strong> a pour vocation de proposer une vitrine d'achat en ligne pour les laines et objets de décoration, tout en fournissant aux passionnés de loisirs créatifs des modules d'assistance numérique (calculateurs de pelotes, générateur de modèles, suivi de commandes).
-                </p>
-                <p>
-                  L’utilisation du site, que ce soit en simple visiteur ou en utilisateur connecté, implique l’acceptation pleine et entière des présentes conditions.
-                </p>
-              </div>
+              <h2 className="text-lg sm:text-xl font-serif font-bold text-primary dark:text-white">
+                {isEn ? 'Article 1 – Platform Purpose & Acceptance' : "Article 1 – Objet du Service en Ligne & Acceptation"}
+              </h2>
+              <p className="text-xs sm:text-sm leading-relaxed text-primary/70 dark:text-white/70">
+                {isEn 
+                  ? 'Our digital platform serves as a modern marketplace for fine wool, knitting needles, and handmade products while offering free smart tools like the yarn calculator.' 
+                  : "La plateforme Laine et Déco a pour vocation de proposer une vitrine d'achat en ligne pour les laines et fournitures créatives tout en offrant des modules d'assistance interactifs."}
+              </p>
             </article>
-
-            {/* CGU 2 */}
-            <article className="bg-white dark:bg-[#181C18] rounded-3xl p-6 sm:p-8 shadow-sm border border-primary/10 dark:border-white/10 space-y-4">
-              <div className="flex items-center gap-3 border-b border-primary/10 dark:border-white/10 pb-3">
-                <div className="w-8 h-8 rounded-xl bg-accent/10 flex items-center justify-center text-accent font-bold text-xs">
-                  02
-                </div>
-                <div>
-                  <h2 className="text-lg sm:text-xl font-serif font-bold text-primary dark:text-white">
-                    Article 2 – Compte Utilisateur & Confidentialité des Identifiants
-                  </h2>
-                  <p className="text-xs text-primary/60 dark:text-white/60">Responsabilité de l'utilisateur sur la sécurité de son compte</p>
-                </div>
-              </div>
-
-              <div className="text-sm leading-relaxed text-primary/80 dark:text-white/80 space-y-3">
-                <p>
-                  L’accès à certaines fonctionnalités (historique d’achats, liste d’envies, projets sauvegardés) requiert la création d’un compte. L'utilisateur s'engage à fournir des informations réelles et complètes (nom, email valide, numéro de téléphone joignable au Cameroun).
-                </p>
-                <p>
-                  Le mot de passe associé au compte est strictement personnel. L'utilisateur assume l'entière responsabilité des actions réalisées depuis son espace. En cas de suspicion de piratage, l'utilisateur doit en avertir sans délai le support technique.
-                </p>
-              </div>
-            </article>
-
-            {/* CGU 3 */}
-            <article className="bg-white dark:bg-[#181C18] rounded-3xl p-6 sm:p-8 shadow-sm border border-primary/10 dark:border-white/10 space-y-4">
-              <div className="flex items-center gap-3 border-b border-primary/10 dark:border-white/10 pb-3">
-                <div className="w-8 h-8 rounded-xl bg-accent/10 flex items-center justify-center text-accent font-bold text-xs">
-                  03
-                </div>
-                <div>
-                  <h2 className="text-lg sm:text-xl font-serif font-bold text-primary dark:text-white">
-                    Article 3 – Modules d'Intelligence Artificielle & Valeur Indicative
-                  </h2>
-                  <p className="text-xs text-primary/60 dark:text-white/60">Portée des estimations du calculateur et du Compagnon Tricot</p>
-                </div>
-              </div>
-
-              <div className="text-sm leading-relaxed text-primary/80 dark:text-white/80 space-y-3">
-                <p>
-                  Laine et Déco met à disposition des utilisateurs des outils intelligents :
-                </p>
-                <ul className="list-disc list-inside space-y-1.5 pl-2 text-xs sm:text-sm">
-                  <li><strong>Calculateur de métrage et pelotes :</strong> Estime le nombre théorique de pelotes nécessaires en fonction du projet et des dimensions renseignées. Chaque tricoteur ayant une tension de fil personnelle (échantillon plus serré ou plus lâche), cette valeur est fournie à titre indicatif.</li>
-                  <li><strong>Générateur de Patrons & Compagnon IA :</strong> Fournit des conseils de création et des grilles de tricot indicatives ne pouvant engager la responsabilité du Vendeur en cas d'imprécision sur des modèles complexes.</li>
-                </ul>
-              </div>
-            </article>
-
-            {/* CGU 4 */}
-            <article className="bg-white dark:bg-[#181C18] rounded-3xl p-6 sm:p-8 shadow-sm border border-primary/10 dark:border-white/10 space-y-4">
-              <div className="flex items-center gap-3 border-b border-primary/10 dark:border-white/10 pb-3">
-                <div className="w-8 h-8 rounded-xl bg-accent/10 flex items-center justify-center text-accent font-bold text-xs">
-                  04
-                </div>
-                <div>
-                  <h2 className="text-lg sm:text-xl font-serif font-bold text-primary dark:text-white">
-                    Article 4 – Propriété Intellectuelle des Créations & Contenus
-                  </h2>
-                  <p className="text-xs text-primary/60 dark:text-white/60">Protection des patrons originaux, tutoriels et visuels</p>
-                </div>
-              </div>
-
-              <div className="text-sm leading-relaxed text-primary/80 dark:text-white/80 space-y-3">
-                <p>
-                  Tous les éléments de la plateforme (textes, logos, photographies d'artisanat, tutoriels, chartes graphiques et patrons exclusifs édités par Laine & Déco) sont protégés par le <strong>Droit de la Propriété Intellectuelle (OAPI)</strong>.
-                </p>
-                <p>
-                  Toute reproduction totale ou partielle, extraction de données ou commercialisation non autorisée de nos modèles originaux est strictement prohibée.
-                </p>
-              </div>
-            </article>
-
-            {/* CGU 5 */}
-            <article className="bg-white dark:bg-[#181C18] rounded-3xl p-6 sm:p-8 shadow-sm border border-primary/10 dark:border-white/10 space-y-4">
-              <div className="flex items-center gap-3 border-b border-primary/10 dark:border-white/10 pb-3">
-                <div className="w-8 h-8 rounded-xl bg-accent/10 flex items-center justify-center text-accent font-bold text-xs">
-                  05
-                </div>
-                <div>
-                  <h2 className="text-lg sm:text-xl font-serif font-bold text-primary dark:text-white">
-                    Article 5 – Cybersécurité & Interdictions Légales (Loi 2010/012)
-                  </h2>
-                  <p className="text-xs text-primary/60 dark:text-white/60">Sanctions pénales en cas d'atteinte aux systèmes de données</p>
-                </div>
-              </div>
-
-              <div className="text-sm leading-relaxed text-primary/80 dark:text-white/80 space-y-3">
-                <p>
-                  En application de la <strong>Loi camerounaise N° 2010/012 du 21 décembre 2010 relative à la cybersécurité et la cybercriminalité</strong>, il est formellement interdit :
-                </p>
-                <ul className="list-disc list-inside space-y-1.5 pl-2 text-xs sm:text-sm text-primary/80 dark:text-white/80">
-                  <li>De mener des attaques en déni de service, tentatives d'intrusion ou injection de code malveillant.</li>
-                  <li>D'utiliser des robots d'extraction massive (scraping) sur le catalogue de prix ou les visuels de la boutique.</li>
-                  <li>D'usurper l'identité de tiers ou d'utiliser frauduleusement des comptes de paiement Mobile Money.</li>
-                </ul>
-                <p className="text-xs text-rose-600 dark:text-rose-400 font-semibold">
-                  Toute violation donnera lieu à des poursuites judiciaires immédiates devant les juridictions répressives camerounaises compétentes.
-                </p>
-              </div>
-            </article>
-
           </div>
         )}
 
-        {/* ========================================================================= */}
-        {/* TAB 3: SHIPPING & LOGISTIQUE */}
-        {/* ========================================================================= */}
+        {/* TAB 3: SHIPPING (LIVRAISONS) */}
         {activeTab === 'shipping' && (
           <div className="space-y-6">
-            
-            <div className="bg-white dark:bg-[#181C18] rounded-3xl p-6 sm:p-8 shadow-sm border border-primary/10 dark:border-white/10 space-y-6">
-              <div className="flex items-center gap-3 border-b border-primary/10 dark:border-white/10 pb-4">
-                <div className="w-10 h-10 rounded-2xl bg-accent/10 flex items-center justify-center text-accent">
-                  <Truck size={22} />
-                </div>
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-serif font-bold text-primary dark:text-white">
-                    Grille Logistique & Modalités d'Acheminement
-                  </h2>
-                  <p className="text-xs text-primary/60 dark:text-white/60">Couverture des 10 régions du Cameroun avec protection étanche</p>
-                </div>
-              </div>
-
-              {/* Grid zones */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                
-                <div className="p-5 rounded-2xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-base text-primary dark:text-white">Zone 1 : Douala Intramuros</span>
-                    <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold">24h - 48h</span>
-                  </div>
-                  <p className="text-xs text-primary/70 dark:text-white/70">
-                    Livraison à domicile ou sur votre lieu de travail par coursier dédié (Akwa, Bonanjo, Bonapriso, Bali, Deido, Denver, Kotto, Makepe, Logbessou, etc.).
+            <div className="bg-white dark:bg-[#181C18] rounded-[2rem] p-6 sm:p-10 shadow-sm border border-primary/10 dark:border-white/10 space-y-6">
+              <h2 className="text-2xl font-serif font-bold text-primary dark:text-white flex items-center gap-2">
+                <Truck className="text-accent" />
+                {isEn ? 'Shipping Methods & Rates in Cameroon' : 'Modes d\'Expédition & Tarifs au Cameroun'}
+              </h2>
+              <p className="text-xs sm:text-sm text-primary/70 dark:text-white/70">
+                {isEn 
+                  ? 'We deliver all orders from our local inventory in Douala using water-resistant tropicalized packaging to avoid humidity variations.'
+                  : 'Nous expédions vos commandes depuis Douala sous emballages scellés étanches conçus pour résister au climat local.'}
+              </p>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10 space-y-2">
+                  <h3 className="font-bold text-sm text-primary dark:text-white">{isEn ? '1. Douala Express (Courier)' : '1. Douala Express (Coursier)'}</h3>
+                  <p className="text-primary/70 dark:text-white/70">
+                    {isEn ? 'Delivery under 24/48h at home or office. Pay cash on delivery or via Mobile Money.' : 'Livraison sous 24h-48h à domicile ou bureau. Paiement espèces à la livraison ou Mobile Money.'}
                   </p>
-                  <div className="pt-2 border-t border-primary/10 dark:border-white/10 text-xs flex justify-between items-center font-semibold">
-                    <span>Tarif indicatif :</span>
-                    <span className="text-accent text-sm font-bold">1 000 à 2 000 FCFA</span>
-                  </div>
                 </div>
-
-                <div className="p-5 rounded-2xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-base text-primary dark:text-white">Zone 2 : Yaoundé & Périphérie</span>
-                    <span className="px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-bold">48h - 72h</span>
-                  </div>
-                  <p className="text-xs text-primary/70 dark:text-white/70">
-                    Acheminement par agences partenaires agréées (Buca Voyages, Finexs, etc.) avec retrait en agence ou livraison relais coursier.
+                <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10 space-y-2">
+                  <h3 className="font-bold text-sm text-primary dark:text-white">{isEn ? '2. Yaoundé & Other Regions (Agency)' : '2. Yaoundé & Régions (Agences)'}</h3>
+                  <p className="text-primary/70 dark:text-white/70">
+                    {isEn ? 'Delivery under 48h/72h through Finexs, Buca or Touristique Express with SMS tracking.' : 'Livraison sous 48h-72h via Finexs, Buca, Touristique Express avec suivi et alerte par SMS.'}
                   </p>
-                  <div className="pt-2 border-t border-primary/10 dark:border-white/10 text-xs flex justify-between items-center font-semibold">
-                    <span>Tarif indicatif :</span>
-                    <span className="text-accent text-sm font-bold">2 000 à 3 000 FCFA</span>
-                  </div>
                 </div>
-
-                <div className="p-5 rounded-2xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-base text-primary dark:text-white">Zone 3 : Ouest, Sud & Littoral</span>
-                    <span className="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-bold">48h - 72h</span>
-                  </div>
-                  <p className="text-xs text-primary/70 dark:text-white/70">
-                    Bafoussam, Kribi, Edea, Limbe, Buea, Dschang via agences de transport interurbain avec numéro de bordereau.
-                  </p>
-                  <div className="pt-2 border-t border-primary/10 dark:border-white/10 text-xs flex justify-between items-center font-semibold">
-                    <span>Tarif indicatif :</span>
-                    <span className="text-accent text-sm font-bold">2 500 à 3 500 FCFA</span>
-                  </div>
-                </div>
-
-                <div className="p-5 rounded-2xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-base text-primary dark:text-white">Zone 4 : Grand Nord & Est</span>
-                    <span className="px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 text-xs font-bold">3 à 5 jours</span>
-                  </div>
-                  <p className="text-xs text-primary/70 dark:text-white/70">
-                    Ngaoundéré, Garoua, Maroua, Bertoua via transporteurs spécialisés avec emballage renforcé anti-poussière.
-                  </p>
-                  <div className="pt-2 border-t border-primary/10 dark:border-white/10 text-xs flex justify-between items-center font-semibold">
-                    <span>Tarif indicatif :</span>
-                    <span className="text-accent text-sm font-bold">3 500 à 5 000 FCFA</span>
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Protective Packaging */}
-              <div className="p-4 rounded-2xl bg-accent/5 border border-accent/20 text-xs leading-relaxed space-y-2 text-primary/80 dark:text-white/80">
-                <div className="flex items-center gap-2 font-bold text-accent">
-                  <Sparkles size={16} />
-                  <span>Emballage Double Protection Spécial Fibre Textile :</span>
-                </div>
-                <p>
-                  Toutes nos pelotes et confections sont conditionnées sous pochette étanche thermosoudée anti-humidité avant mise en carton renforcé. Vos laines arrivent ainsi à destination avec leur douceur et leur parfum intacts, prêtes à être tricotées.
-                </p>
               </div>
             </div>
-
           </div>
         )}
 
-        {/* ========================================================================= */}
-        {/* TAB 4: INTERACTIVE SIMULATOR FOR RETURNS */}
-        {/* ========================================================================= */}
+        {/* TAB 4: RETURN SIMULATOR (SIMULATEUR DE RETOURS) */}
         {activeTab === 'returns' && (
           <div className="space-y-6">
-            
             <div className="bg-white dark:bg-[#181C18] rounded-3xl p-6 sm:p-8 shadow-sm border border-primary/10 dark:border-white/10 space-y-6">
               <div className="flex items-center gap-3 border-b border-primary/10 dark:border-white/10 pb-4">
                 <div className="w-10 h-10 rounded-2xl bg-accent/10 flex items-center justify-center text-accent">
@@ -959,53 +624,65 @@ Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`
                 </div>
                 <div>
                   <h2 className="text-xl sm:text-2xl font-serif font-bold text-primary dark:text-white">
-                    Simulateur Interactif d'Éligibilité aux Retours
+                    {isEn ? 'Return Eligibility Simulator' : 'Simulateur d\'Éligibilité aux Retours'}
                   </h2>
-                  <p className="text-xs text-primary/60 dark:text-white/60">Vérifiez instantanément la conformité de votre retour selon la Loi Camerounaise</p>
+                  <p className="text-xs text-primary/60 dark:text-white/60">
+                    {isEn ? 'Check in real time if your yarn ball or accessory meets Cameroon Law N° 2011/012 return criteria' : 'Vérifiez en temps réel si votre pelote ou outil respecte les critères de la Loi Camerounaise N° 2011/012'}
+                  </p>
                 </div>
               </div>
 
-              {/* Interactive Controls */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Simulator Controls */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs sm:text-sm">
                 
-                {/* Step 1: Item Type */}
+                {/* Field 1: Item Type */}
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-primary dark:text-white block">
-                    1. Quel type d'article souhaitez-vous retourner ?
+                  <label className="font-bold text-primary dark:text-white block">
+                    {isEn ? '1. State and Type of the item :' : '1. État et Type de l\'article :'}
                   </label>
                   <select
                     value={simItemType}
                     onChange={(e) => setSimItemType(e.target.value as any)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 text-xs font-semibold text-primary dark:text-white focus:ring-1 focus:ring-accent outline-none"
+                    className="w-full px-3 py-2 rounded-xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 focus:ring-1 focus:ring-accent outline-none font-medium"
                   >
-                    <option value="yarn_intact">Pelote de laine neuve (Bague intacte, non coupée)</option>
-                    <option value="yarn_opened">Pelote de laine entamée / dévidée / bague perdue</option>
-                    <option value="accessory_sealed">Accessoire de mercerie sous blister scellé</option>
-                    <option value="accessory_opened">Accessoire de mercerie déballé / utilisé</option>
-                    <option value="custom_item">Création confectionnée sur-mesure / personnalisée</option>
+                    <option value="yarn_intact">
+                      {isEn ? 'Yarn Ball - Intact (Unopened with original label)' : 'Pelote de Laine - Intacte (Non tricotée, étiquette présente)'}
+                    </option>
+                    <option value="yarn_opened">
+                      {isEn ? 'Yarn Ball - Opened (Cut, knitted or label missing)' : 'Pelote de Laine - Entamée (Coupée, dévidée ou sans bague)'}
+                    </option>
+                    <option value="custom_item">
+                      {isEn ? 'Bespoke / Custom Item (Custom made or dyed on-demand)' : 'Article Personnalisé / Confection Sur-Mesure'}
+                    </option>
+                    <option value="accessory_sealed">
+                      {isEn ? 'Accessory / Tool - Sealed (Original packaging unbroken)' : 'Accessoire de Mercerie - Sous emballage d\'origine scellé'}
+                    </option>
+                    <option value="accessory_opened">
+                      {isEn ? 'Accessory / Tool - Opened (Unsealed or package torn)' : 'Accessoire de Mercerie - Déscellé ou emballage déchiré'}
+                    </option>
                   </select>
                 </div>
 
-                {/* Step 2: Delivery Date Delay */}
+                {/* Field 2: Days since delivery */}
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-primary dark:text-white block">
-                    2. Depuis combien de jours avez-vous reçu le colis ?
+                  <label className="font-bold text-primary dark:text-white block">
+                    {isEn ? '2. Days elapsed since delivery :' : '2. Nombre de jours écoulés depuis la livraison :'}
                   </label>
                   <div className="flex items-center gap-3">
                     <input
                       type="range"
-                      min="1"
-                      max="20"
+                      min={1}
+                      max={30}
                       value={simDaysSinceDelivery}
                       onChange={(e) => setSimDaysSinceDelivery(Number(e.target.value))}
                       className="w-full accent-accent cursor-pointer"
                     />
                     <span className="px-3 py-1.5 rounded-xl bg-accent text-white font-bold text-xs shrink-0">
-                      {simDaysSinceDelivery} jour{simDaysSinceDelivery > 1 ? 's' : ''}
+                      {simDaysSinceDelivery} {isEn ? `day${simDaysSinceDelivery > 1 ? 's' : ''}` : `jour${simDaysSinceDelivery > 1 ? 's' : ''}`}
                     </span>
                   </div>
                   <p className="text-[11px] text-primary/60 dark:text-white/60">
-                    Délai légal camerounais : 7 jours calendaires à date de réception.
+                    {isEn ? 'Cameroonian legal period: 7 calendar days.' : 'Délai légal camerounais : 7 jours calendaires à date de réception.'}
                   </p>
                 </div>
 
@@ -1033,7 +710,7 @@ Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`
                 </p>
 
                 <div className="p-3 rounded-xl bg-white/60 dark:bg-black/30 text-xs font-medium space-y-1">
-                  <span className="font-bold block">Recommandation légale :</span>
+                  <span className="font-bold block">{isEn ? 'Legal Advice :' : 'Recommandation légale :'}</span>
                   <p>{simulationResult.action}</p>
                 </div>
               </div>
@@ -1041,36 +718,38 @@ Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`
               {/* 3 Steps summary */}
               <div className="pt-4 border-t border-primary/10 dark:border-white/10">
                 <h3 className="text-sm font-bold text-primary dark:text-white mb-3">
-                  Marche à suivre pour un retour en 3 étapes :
+                  {isEn ? 'How to proceed with your return in 3 steps:' : 'Marche à suivre pour un retour en 3 étapes :'}
                 </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                   <div className="p-3.5 rounded-2xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 space-y-1">
-                    <strong className="block text-primary dark:text-white font-bold">1. Signalement</strong>
-                    <span className="text-primary/70 dark:text-white/70">Remplissez le formulaire de rétractation (onglet suivant) et transmettez-le par WhatsApp ou Email.</span>
+                    <strong className="block text-primary dark:text-white font-bold">{isEn ? '1. Notification' : '1. Signalement'}</strong>
+                    <span className="text-primary/70 dark:text-white/70">
+                      {isEn ? 'Fill out the withdrawal form (next tab) and send it via WhatsApp or Email.' : 'Remplissez le formulaire de rétractation (onglet suivant) et transmettez-le par WhatsApp ou Email.'}
+                    </span>
                   </div>
                   <div className="p-3.5 rounded-2xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 space-y-1">
-                    <strong className="block text-primary dark:text-white font-bold">2. Expédition</strong>
-                    <span className="text-primary/70 dark:text-white/70">Emballez soigneusement vos pelotes intactes et déposez-les auprès de notre coursier ou en agence relais.</span>
+                    <strong className="block text-primary dark:text-white font-bold">{isEn ? '2. Shipment' : '2. Expédition'}</strong>
+                    <span className="text-primary/70 dark:text-white/70">
+                      {isEn ? 'Carefully pack your pristine yarn balls and drop them off with our courier or transit agency.' : 'Emballez soigneusement vos pelotes intactes et déposez-les auprès de notre coursier ou en agence relais.'}
+                    </span>
                   </div>
                   <div className="p-3.5 rounded-2xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 space-y-1">
-                    <strong className="block text-primary dark:text-white font-bold">3. Remboursement</strong>
-                    <span className="text-primary/70 dark:text-white/70">Validation du colis sous 24h et transfert immédiat sur votre compte MTN MoMo ou Orange Money.</span>
+                    <strong className="block text-primary dark:text-white font-bold">{isEn ? '3. Refund' : '3. Remboursement'}</strong>
+                    <span className="text-primary/70 dark:text-white/70">
+                      {isEn ? 'Validation within 24h of receipt and instant Mobile Money transfer to your account.' : 'Validation du colis sous 24h et transfert immédiat sur votre compte MTN MoMo ou Orange Money.'}
+                    </span>
                   </div>
                 </div>
               </div>
 
             </div>
-
           </div>
         )}
 
-        {/* ========================================================================= */}
-        {/* TAB 5: GENERATEUR DE FORMULAIRE DE RÉTRACTATION */}
-        {/* ========================================================================= */}
+        {/* TAB 5: WITHDRAWAL FORM GENERATOR (FORMULAIRE DE RÉTRACTATION) */}
         {activeTab === 'form' && (
           <div className="space-y-6">
-            
             <div className="bg-white dark:bg-[#181C18] rounded-3xl p-6 sm:p-8 shadow-sm border border-primary/10 dark:border-white/10 space-y-6">
               <div className="flex items-center gap-3 border-b border-primary/10 dark:border-white/10 pb-4">
                 <div className="w-10 h-10 rounded-2xl bg-accent/10 flex items-center justify-center text-accent">
@@ -1078,9 +757,13 @@ Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`
                 </div>
                 <div>
                   <h2 className="text-xl sm:text-2xl font-serif font-bold text-primary dark:text-white">
-                    Générateur Officiel de Formulaire de Rétractation
+                    {isEn ? 'Official Withdrawal Form Generator' : 'Générateur Officiel de Formulaire de Rétractation'}
                   </h2>
-                  <p className="text-xs text-primary/60 dark:text-white/60">Modèle légal conforme à la Loi N° 2011/012 (Cameroun) pour vos retours et remboursements</p>
+                  <p className="text-xs text-primary/60 dark:text-white/60">
+                    {isEn 
+                      ? 'Legal withdrawal model compliant with Law N° 2011/012 (Cameroon) for your returns' 
+                      : 'Modèle légal conforme à la Loi N° 2011/012 (Cameroun) pour vos retours et remboursements'}
+                  </p>
                 </div>
               </div>
 
@@ -1088,7 +771,7 @@ Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 
                 <div className="space-y-1.5">
-                  <label className="font-bold text-primary dark:text-white">Nom & Prénom complet :</label>
+                  <label className="font-bold text-primary dark:text-white">{isEn ? 'Full Name :' : 'Nom & Prénom complet :'}</label>
                   <input
                     type="text"
                     placeholder="Ex: Landry Moutongo"
@@ -1099,7 +782,7 @@ Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="font-bold text-primary dark:text-white">Numéro de Commande :</label>
+                  <label className="font-bold text-primary dark:text-white">{isEn ? 'Order Number :' : 'Numéro de Commande :'}</label>
                   <input
                     type="text"
                     placeholder="Ex: LD-2026-8941"
@@ -1110,7 +793,7 @@ Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="font-bold text-primary dark:text-white">Date de réception du colis :</label>
+                  <label className="font-bold text-primary dark:text-white">{isEn ? 'Date of delivery receipt :' : 'Date de réception du colis :'}</label>
                   <input
                     type="date"
                     value={formDeliveryDate}
@@ -1120,24 +803,24 @@ Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="font-bold text-primary dark:text-white">Mode de remboursement préféré :</label>
+                  <label className="font-bold text-primary dark:text-white">{isEn ? 'Preferred Refund Mode :' : 'Mode de remboursement préféré :'}</label>
                   <select
                     value={formRefundMethod}
                     onChange={(e) => setFormRefundMethod(e.target.value as any)}
-                    className="w-full px-3 py-2 rounded-xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 focus:ring-1 focus:ring-accent outline-none"
+                    className="w-full px-3 py-2 rounded-xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 focus:ring-1 focus:ring-accent outline-none font-medium"
                   >
                     <option value="momo">MTN Mobile Money (*126#)</option>
                     <option value="om">Orange Money Cameroun (*150#)</option>
-                    <option value="credit">Avoir / Bon d'achat immédiat (+5% de bonus)</option>
+                    <option value="credit">{isEn ? 'Immediate Store Credit (+5% bonus)' : "Avoir / Bon d'achat immédiat (+5% de bonus)"}</option>
                   </select>
                 </div>
 
                 <div className="space-y-1.5 sm:col-span-2">
-                  <label className="font-bold text-primary dark:text-white">Articles retournés & Numéro de téléphone Mobile Money :</label>
+                  <label className="font-bold text-primary dark:text-white">{isEn ? 'Returned Items & Mobile Money Phone Number :' : 'Articles retournés & Numéro de téléphone Mobile Money :'}</label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <input
                       type="text"
-                      placeholder="Ex: 4 pelotes Mérinos Camel (Bague intacte)"
+                      placeholder={isEn ? "e.g., 4 Camel Merino wool balls (labels intact)" : "Ex: 4 pelotes Mérinos Camel (Bague intacte)"}
                       value={formArticles}
                       onChange={(e) => setFormArticles(e.target.value)}
                       className="w-full px-3 py-2 rounded-xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 focus:ring-1 focus:ring-accent outline-none"
@@ -1159,14 +842,14 @@ Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-primary dark:text-white flex items-center gap-1.5">
                     <CheckCircle2 size={14} className="text-accent" />
-                    Texte contractuel généré prêt à l'envoi :
+                    {isEn ? 'Generated contract text ready to send :' : 'Texte contractuel généré prêt à l\'envoi :'}
                   </span>
                   <button
                     onClick={handleCopyForm}
                     className="inline-flex items-center gap-1 text-xs text-accent hover:underline font-bold"
                   >
                     {copiedForm ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
-                    {copiedForm ? 'Copié !' : 'Copier le texte'}
+                    {copiedForm ? (isEn ? 'Copied!' : 'Copié !') : (isEn ? 'Copy Text' : 'Copier le texte')}
                   </button>
                 </div>
 
@@ -1184,7 +867,9 @@ Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`
                   className="gap-2 text-xs font-bold"
                 >
                   <Copy size={14} />
-                  {copiedForm ? 'Copié dans le presse-papier' : 'Copier pour Email'}
+                  {copiedForm 
+                    ? (isEn ? 'Copied to clipboard' : 'Copié dans le presse-papier') 
+                    : (isEn ? 'Copy for Email' : 'Copier pour Email')}
                 </Button>
 
                 <Button
@@ -1194,25 +879,21 @@ Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`
                   className="gap-2 text-xs font-bold bg-[#25D366] hover:bg-[#1EBE5D] text-white border-transparent"
                 >
                   <MessageSquare size={14} />
-                  Transmettre via WhatsApp au Support
+                  {isEn ? 'Send via WhatsApp to Support' : 'Transmettre via WhatsApp au Support'}
                 </Button>
               </div>
 
             </div>
-
           </div>
         )}
 
-        {/* ========================================================================= */}
         {/* TAB 6: FAQ JURIDIQUE & PRATIQUE */}
-        {/* ========================================================================= */}
         {activeTab === 'faq' && (
           <div className="space-y-4">
-            
             <div className="p-4 sm:p-5 rounded-2xl bg-accent/10 border border-accent/20 flex items-start gap-3 text-xs sm:text-sm text-primary/90 dark:text-white/90">
               <HelpCircle size={20} className="text-accent shrink-0 mt-0.5" />
               <div>
-                <strong>Questions Fréquentes Juridiques & Pratiques :</strong> Retrouvez ici les réponses transparentes aux questions contractuelles les plus courantes sur vos commandes Laine et Déco.
+                <strong>{isEn ? 'Practical Legal FAQ:' : 'Questions Fréquentes Juridiques & Pratiques :'}</strong> {isEn ? 'Clear answers to your common questions regarding orders, dye lots and returns.' : 'Retrouvez ici les réponses transparentes aux questions contractuelles les plus courantes.'}
               </div>
             </div>
 
@@ -1222,16 +903,20 @@ Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`
                 onClick={() => toggleFaq('faq-1')}
                 className="w-full p-4 sm:p-5 flex items-center justify-between text-left font-bold text-xs sm:text-sm text-primary dark:text-white hover:bg-primary/5 transition-colors"
               >
-                <span>1. Que faire si une pelote présente un nœud de raccordement d'usine ?</span>
+                <span>{isEn ? '1. What should I do if a yarn ball has a factory knot?' : '1. Que faire si une pelote présente un nœud de raccordement d\'usine ?'}</span>
                 {expandedFaq['faq-1'] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
               </button>
               {expandedFaq['faq-1'] && (
                 <div className="p-4 sm:p-5 pt-0 text-xs sm:text-sm text-primary/80 dark:text-white/80 leading-relaxed border-t border-primary/5 dark:border-white/5 space-y-2">
                   <p>
-                    Dans les filatures de laine haut de gamme, la présence de 1 à 2 nœuds discrets par pelote de 100g est une tolérance industrielle textile normale issue du raccordement des mèches de filage.
+                    {isEn 
+                      ? 'In high-end spinning mills, the presence of 1 or 2 small knots per 100g yarn ball is a normal industrial textile tolerance resulting from connecting spinning lines.'
+                      : "Dans les filatures de laine haut de gamme, la présence de 1 à 2 nœuds discrets par pelote de 100g est une tolérance industrielle textile normale issue du raccordement des mèches de filage."}
                   </p>
                   <p>
-                    Toutefois, si une pelote présente des ruptures répétées anormales ou un défaut de torsion évident, notre garantie de conformité s'applique : envoyez-nous une photo et nous vous remplaçons la pelote sans frais.
+                    {isEn
+                      ? 'However, if a ball has abnormal breaks or clear spinning issues, our quality guarantee applies: send us a picture, and we will replace it free of charge.'
+                      : "Toutefois, si une pelote présente des ruptures répétées anormales ou un défaut de torsion évident, notre garantie de conformité s'applique : envoyez-nous une photo et nous vous remplaçons la pelote sans frais."}
                   </p>
                 </div>
               )}
@@ -1243,63 +928,25 @@ Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`
                 onClick={() => toggleFaq('faq-2')}
                 className="w-full p-4 sm:p-5 flex items-center justify-between text-left font-bold text-xs sm:text-sm text-primary dark:text-white hover:bg-primary/5 transition-colors"
               >
-                <span>2. Puis-je faire réserver des pelotes d'un bain de teinture spécifique ?</span>
+                <span>{isEn ? '2. Can I reserve wool balls from a specific dye lot?' : '2. Puis-je faire réserver des pelotes d\'un bain de teinture spécifique ?'}</span>
                 {expandedFaq['faq-2'] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
               </button>
               {expandedFaq['faq-2'] && (
                 <div className="p-4 sm:p-5 pt-0 text-xs sm:text-sm text-primary/80 dark:text-white/80 leading-relaxed border-t border-primary/5 dark:border-white/5 space-y-2">
                   <p>
-                    Oui ! Si vous avez un gros projet de tricot (châle, pull ou plaid) et souhaitez être certain d'avoir un lot complet identique, vous pouvez nous contacter directement avant commande. Nous réservons vos pelotes sous le même numéro de bain (Dye Lot) pendant 48 heures ouvrées.
+                    {isEn
+                      ? 'Yes! If you have a large knitting project and want to ensure an identical dyeing batch (Dye Lot), contact us. We will put aside your identical dye lot balls for up to 48 hours.'
+                      : "Oui ! Si vous avez un gros projet de tricot (châle, pull ou plaid) et souhaitez être certain d'avoir un lot complet identique, vous pouvez nous contacter directement avant commande. Nous réservons vos pelotes sous le même numéro de bain (Dye Lot) pendant 48 heures ouvrées."}
                   </p>
                 </div>
               )}
             </div>
-
-            {/* FAQ Item 3 */}
-            <div className="bg-white dark:bg-[#181C18] rounded-2xl border border-primary/10 dark:border-white/10 overflow-hidden shadow-sm">
-              <button
-                onClick={() => toggleFaq('faq-3')}
-                className="w-full p-4 sm:p-5 flex items-center justify-between text-left font-bold text-xs sm:text-sm text-primary dark:text-white hover:bg-primary/5 transition-colors"
-              >
-                <span>3. Comment obtenir une facture officielle avec NIF / RCCM pour mon entreprise ?</span>
-                {expandedFaq['faq-3'] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-              </button>
-              {expandedFaq['faq-3'] && (
-                <div className="p-4 sm:p-5 pt-0 text-xs sm:text-sm text-primary/80 dark:text-white/80 leading-relaxed border-t border-primary/5 dark:border-white/5 space-y-2">
-                  <p>
-                    Lors de votre commande, renseignez le nom de votre société dans le champ adresse ou envoyez un message au service comptabilité (<a href="mailto:compta@laineetdeco.cm" className="text-accent underline font-semibold">compta@laineetdeco.cm</a>) avec votre N° de commande, NIF et RCCM. Une facture numérique certifiée aux normes de la Direction Générale des Impôts (DGI) vous sera transmise sous 24h.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* FAQ Item 4 */}
-            <div className="bg-white dark:bg-[#181C18] rounded-2xl border border-primary/10 dark:border-white/10 overflow-hidden shadow-sm">
-              <button
-                onClick={() => toggleFaq('faq-4')}
-                className="w-full p-4 sm:p-5 flex items-center justify-between text-left font-bold text-xs sm:text-sm text-primary dark:text-white hover:bg-primary/5 transition-colors"
-              >
-                <span>4. Que se passe-t-il si je suis absent au moment du passage du coursier à Douala ?</span>
-                {expandedFaq['faq-4'] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-              </button>
-              {expandedFaq['faq-4'] && (
-                <div className="p-4 sm:p-5 pt-0 text-xs sm:text-sm text-primary/80 dark:text-white/80 leading-relaxed border-t border-primary/5 dark:border-white/5 space-y-2">
-                  <p>
-                    Le coursier prend toujours contact par téléphone avant son passage. En cas d'indisponibilité imprévue, un second passage gratuit est reprogrammé le lendemain ou votre colis peut être mis en garde sécurisée dans notre point de retrait partenaire à Akwa.
-                  </p>
-                </div>
-              )}
-            </div>
-
           </div>
         )}
 
-        {/* ========================================================================= */}
         {/* TAB 7: LOIS CAMEROUNAISES & OHADA */}
-        {/* ========================================================================= */}
         {activeTab === 'law' && (
           <div className="space-y-6">
-            
             <div className="bg-white dark:bg-[#181C18] rounded-3xl p-6 sm:p-8 shadow-sm border border-primary/10 dark:border-white/10 space-y-6">
               <div className="flex items-center gap-3 border-b border-primary/10 dark:border-white/10 pb-4">
                 <div className="w-10 h-10 rounded-2xl bg-accent/10 flex items-center justify-center text-accent">
@@ -1307,51 +954,50 @@ Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`
                 </div>
                 <div>
                   <h2 className="text-xl sm:text-2xl font-serif font-bold text-primary dark:text-white">
-                    Textes Législatifs et Réglementaires Applicables
+                    {isEn ? 'Governing Cameroonian & OHADA Laws' : 'Textes Législatifs et Réglementaires Applicables'}
                   </h2>
-                  <p className="text-xs text-primary/60 dark:text-white/60">Cadre juridique de la République du Cameroun et de l'espace OHADA</p>
+                  <p className="text-xs text-primary/60 dark:text-white/60">
+                    {isEn ? 'Applicable legal framework of the Republic of Cameroon & regional OHADA zone' : 'Cadre juridique de la République du Cameroun et de l\'espace OHADA'}
+                  </p>
                 </div>
               </div>
 
               <div className="space-y-4 text-xs sm:text-sm leading-relaxed text-primary/80 dark:text-white/80">
                 <div className="p-4 rounded-2xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 space-y-1.5">
-                  <h3 className="font-bold text-primary dark:text-white text-sm">1. Loi N° 2010/021 du 21 décembre 2010 régissant le commerce électronique au Cameroun</h3>
+                  <h3 className="font-bold text-primary dark:text-white text-sm">
+                    {isEn ? '1. Law N° 2010/021 of Dec 21, 2010 on Electronic Commerce in Cameroon' : '1. Loi N° 2010/021 du 21 décembre 2010 régissant le commerce électronique au Cameroun'}
+                  </h3>
                   <p className="text-xs text-primary/70 dark:text-white/70">
-                    Fixe les conditions de validité des contrats conclus par voie électronique, la responsabilité des prestataires et les obligations d'information précontractuelle.
+                    {isEn 
+                      ? 'Defines rules for contracts signed electronically, liabilities of online sellers, and prior information requirements.'
+                      : 'Fixe les conditions de validité des contrats conclus par voie électronique, la responsabilité des prestataires et les obligations d\'information précontractuelle.'}
                   </p>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 space-y-1.5">
-                  <h3 className="font-bold text-primary dark:text-white text-sm">2. Loi N° 2011/012 du 6 mai 2011 portant protection du consommateur au Cameroun</h3>
+                  <h3 className="font-bold text-primary dark:text-white text-sm">
+                    {isEn ? '2. Law N° 2011/012 of May 6, 2011 on Consumer Protection in Cameroon' : '2. Loi N° 2011/012 du 6 mai 2011 portant protection du consommateur au Cameroun'}
+                  </h3>
                   <p className="text-xs text-primary/70 dark:text-white/70">
-                    Garantit les droits fondamentaux des consommateurs, la sécurité des produits vendus, le droit de rétractation et la loyauté des transactions commerciales.
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 space-y-1.5">
-                  <h3 className="font-bold text-primary dark:text-white text-sm">3. Loi N° 2010/012 du 21 décembre 2010 relative à la cybersécurité et la cybercriminalité</h3>
-                  <p className="text-xs text-primary/70 dark:text-white/70">
-                    Encadre la sécurité des réseaux, la protection des données électroniques et réprime les atteintes aux systèmes automatisés de données.
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 space-y-1.5">
-                  <h3 className="font-bold text-primary dark:text-white text-sm">4. Acte Uniforme OHADA révisé portant sur le Droit Commercial Général</h3>
-                  <p className="text-xs text-primary/70 dark:text-white/70">
-                    Régit les obligations réciproques du vendeur et de l'acheteur ainsi que la garantie des vices cachés dans l'espace économique régional.
+                    {isEn 
+                      ? 'Guarantees fundamental consumer rights, product safety, a 7-day withdrawal period, and fair trade practices.'
+                      : 'Garantit les droits fondamentaux des consommateurs, la sécurité des produits vendus, le droit de rétractation et la loyauté des transactions commerciales.'}
                   </p>
                 </div>
               </div>
             </div>
-
           </div>
         )}
 
         {/* Footer Contact Banner */}
         <div className="p-6 rounded-3xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left print:hidden">
           <div>
-            <h4 className="font-bold text-sm text-primary dark:text-white">Une question sur vos droits, un retour ou une commande ?</h4>
-            <p className="text-xs text-primary/70 dark:text-white/70">Notre équipe commerciale et juridique est à votre disposition pour vous accompagner.</p>
+            <h4 className="font-bold text-sm text-primary dark:text-white">
+              {isEn ? 'Any question about your rights, a return or an order?' : 'Une question sur vos droits, un retour ou une commande ?'}
+            </h4>
+            <p className="text-xs text-primary/70 dark:text-white/70">
+              {isEn ? 'Our sales and legal support team is at your direct disposal to assist you.' : 'Notre équipe commerciale et juridique est à votre disposition pour vous accompagner.'}
+            </p>
           </div>
           {onNavigate && (
             <div className="flex items-center gap-2">
@@ -1362,7 +1008,7 @@ Signature / Validation électronique : ${formCustomerName || '[Nom du Client]'}`
                 className="gap-2 text-xs shrink-0 font-bold"
               >
                 <Mail size={14} />
-                Contacter le Service Client
+                {isEn ? 'Contact Customer Service' : 'Contacter le Service Client'}
               </Button>
             </div>
           )}

@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Shirt, ShoppingBag, RotateCcw, Calculator, Scissors, Wind, Heart, ChevronDown, Baby, Hand, Flame } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useEntity } from '../hooks/useEntity';
+import { useTranslation } from '../../i18n';
 
 interface CalculatorViewProps {
   onNavigate: (view: string) => void;
@@ -11,22 +12,23 @@ interface CalculatorViewProps {
 }
 
 const GARMENT_OPTIONS = [
-  { id: 'sweater-f', name: 'Pull Femme', baseSurface: 9000, icon: Shirt },
-  { id: 'sweater-m', name: 'Pull Homme', baseSurface: 11000, icon: Shirt },
-  { id: 'scarf', name: 'Écharpe', baseSurface: 3000, icon: Wind },
-  { id: 'hat', name: 'Bonnet', baseSurface: 1200, icon: Heart },
-  { id: 'blanket', name: 'Couverture', baseSurface: 30000, icon: Scissors },
-  { id: 'cardigan', name: 'Gilet', baseSurface: 9500, icon: Shirt },
-  { id: 'socks', name: 'Chaussettes', baseSurface: 1800, icon: Flame },
-  { id: 'mittens', name: 'Mitaines / Gants', baseSurface: 1400, icon: Hand },
-  { id: 'baby-sweater', name: 'Pull Bébé', baseSurface: 4000, icon: Baby },
-  { id: 'shawl', name: 'Châle', baseSurface: 5500, icon: Wind },
+  { id: 'sweater-f', name: 'Pull Femme', nameEn: 'Womens Sweater', baseSurface: 9000, icon: Shirt },
+  { id: 'sweater-m', name: 'Pull Homme', nameEn: 'Mens Sweater', baseSurface: 11000, icon: Shirt },
+  { id: 'scarf', name: 'Écharpe', nameEn: 'Scarf', baseSurface: 3000, icon: Wind },
+  { id: 'hat', name: 'Bonnet', nameEn: 'Beanie', baseSurface: 1200, icon: Heart },
+  { id: 'blanket', name: 'Couverture', nameEn: 'Blanket', baseSurface: 30000, icon: Scissors },
+  { id: 'cardigan', name: 'Gilet', nameEn: 'Cardigan', baseSurface: 9500, icon: Shirt },
+  { id: 'socks', name: 'Chaussettes', nameEn: 'Socks', baseSurface: 1800, icon: Flame },
+  { id: 'mittens', name: 'Mitaines / Gants', nameEn: 'Mittens / Gloves', baseSurface: 1400, icon: Hand },
+  { id: 'baby-sweater', name: 'Pull Bébé', nameEn: 'Baby Sweater', baseSurface: 4000, icon: Baby },
+  { id: 'shawl', name: 'Châle', nameEn: 'Shawl', baseSurface: 5500, icon: Wind },
 ];
 
 const SIZES = ['S', 'M', 'L', 'XL'];
 const SIZE_FACTORS: Record<string, number> = { S: 0.8, M: 1.0, L: 1.2, XL: 1.4 };
 
 export const CalculatorView: React.FC<CalculatorViewProps> = ({ onNavigate, onAddToCart }) => {
+  const { t, l, isEn } = useTranslation();
   const { data: products, isLoading: isProductsLoading } = useEntity<Product>('product', [], { cacheOnly: true });
   const yarnProducts = products.filter(product => product.category?.toLowerCase().includes('laine'));
   const [garment, setGarment] = useState(GARMENT_OPTIONS[0]);
@@ -66,26 +68,30 @@ export const CalculatorView: React.FC<CalculatorViewProps> = ({ onNavigate, onAd
 
   const handleOrder = () => {
     if (!yarn || !yarnMeterage || !finalPelotes) {
-      toast.error('Le produit laine sélectionné ne possède pas encore de métrage renseigné.');
+      toast.error(isEn ? 'The selected wool product does not have length details filled yet.' : 'Le produit laine sélectionné ne possède pas encore de métrage renseigné.');
       return;
     }
     const product: Product = {
       ...yarn,
-      description: `Laine pour tricoter un(e) ${garment.name}`,
+      description: isEn ? `Yarn to knit a ${garment.nameEn || garment.name}` : `Laine pour tricoter un(e) ${garment.name}`,
     };
     onAddToCart(product, finalPelotes);
-    toast.success(`${finalPelotes} pelotes ajoutées au panier !`);
+    toast.success(isEn ? `${finalPelotes} balls added to cart!` : `${finalPelotes} pelotes ajoutées au panier !`);
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-12 min-h-screen">
       <div className="flex items-center gap-2 text-sm text-primary/70 mb-8 font-bold tracking-widest uppercase">
-        <button onClick={() => onNavigate('home')} className="hover:text-primary transition-colors">Accueil</button>
+        <button onClick={() => onNavigate('home')} className="hover:text-primary transition-colors">
+          {isEn ? 'Home' : 'Accueil'}
+        </button>
         <span>&gt;</span>
-        <span className="text-primary">Calculateur de Laine</span>
+        <span className="text-primary">
+          {isEn ? 'Yarn Calculator' : 'Calculateur de Laine'}
+        </span>
         <div className="flex-grow"></div>
         <button onClick={() => onNavigate('volume-calculator')} className="text-[#e26d24] hover:text-[#c45a1c] transition-colors flex items-center gap-2">
-          <Calculator size={16} /> Passer au calculateur de volume &gt;
+          <Calculator size={16} /> {isEn ? 'Go to Volume Calculator' : 'Passer au calculateur de volume'} &gt;
         </button>
       </div>
 
@@ -93,9 +99,13 @@ export const CalculatorView: React.FC<CalculatorViewProps> = ({ onNavigate, onAd
         {/* Left Side: Form */}
         <div className="space-y-8">
           <div>
-            <h1 className="text-5xl font-serif text-primary mb-4">Calculateur de Laine</h1>
+            <h1 className="text-5xl font-serif text-primary mb-4">
+              {isEn ? 'Yarn Calculator' : 'Calculateur de Laine'}
+            </h1>
             <p className="text-primary/70 text-lg leading-relaxed">
-              Planifiez votre prochain projet avec précision. Notre outil vous aide à estimer le nombre de pelotes nécessaires en fonction de votre modèle et de la laine choisie.
+              {isEn 
+                ? 'Plan your next project with precision. Our tool helps you estimate the number of balls needed based on your template and selected yarn.'
+                : 'Planifiez votre prochain projet avec précision. Notre outil vous aide à estimer le nombre de pelotes nécessaires en fonction de votre modèle et de la laine choisie.'}
             </p>
           </div>
 
@@ -103,7 +113,9 @@ export const CalculatorView: React.FC<CalculatorViewProps> = ({ onNavigate, onAd
             
             {/* Project type */}
             <div className="space-y-4">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 block">Quel est votre projet ?</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 block">
+                {isEn ? 'What is your project?' : 'Quel est votre projet ?'}
+              </label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3.5">
                 {GARMENT_OPTIONS.map((g, idx) => {
                   const Icon = g.icon;
@@ -121,7 +133,7 @@ export const CalculatorView: React.FC<CalculatorViewProps> = ({ onNavigate, onAd
                       }`}
                     >
                       <Icon size={22} className={garment.id === g.id ? 'text-accent' : 'text-primary/70'} />
-                      <span className="text-xs">{g.name}</span>
+                      <span className="text-xs">{isEn ? g.nameEn : g.name}</span>
                     </button>
                   );
                 })}
@@ -131,7 +143,9 @@ export const CalculatorView: React.FC<CalculatorViewProps> = ({ onNavigate, onAd
             {/* Size */}
             {needsSize && (
               <div className="space-y-4">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 block">Quelle taille ?</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 block">
+                  {isEn ? 'Which size?' : 'Quelle taille ?'}
+                </label>
                 <div className="flex gap-3">
                   {SIZES.map(s => (
                     <button
@@ -155,18 +169,20 @@ export const CalculatorView: React.FC<CalculatorViewProps> = ({ onNavigate, onAd
 
             {/* Yarn Type */}
             <div className="space-y-4">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 block">Quelle laine ?</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 block">
+                {isEn ? 'Which yarn?' : 'Quelle laine ?'}
+              </label>
               <div className="relative">
                 <select 
                   className="w-full p-4 rounded-2xl bg-secondary/40 border border-primary/10 focus:outline-none focus:border-accent text-primary font-bold appearance-none cursor-pointer"
                   value={yarn?.id || ''}
                   onChange={(e) => setYarnId(e.target.value)}
                 >
-                  {isProductsLoading && <option value="">Chargement des laines...</option>}
-                  {!isProductsLoading && yarnProducts.length === 0 && <option value="">Aucune laine disponible</option>}
+                  {isProductsLoading && <option value="">{isEn ? 'Loading yarns...' : 'Chargement des laines...'}</option>}
+                  {!isProductsLoading && yarnProducts.length === 0 && <option value="">{isEn ? 'No yarn available' : 'Aucune laine disponible'}</option>}
                   {yarnProducts.map(y => (
                     <option key={y.id} value={y.id}>
-                      {y.name} {Number(y.specs?.meterage ?? y.specs?.metrage ?? y.specs?.length ?? 0) > 0 ? `— ${Number(y.specs?.meterage ?? y.specs?.metrage ?? y.specs?.length)} m` : '— métrage manquant'}
+                      {y.name} {Number(y.specs?.meterage ?? y.specs?.metrage ?? y.specs?.length ?? 0) > 0 ? `— ${Number(y.specs?.meterage ?? y.specs?.metrage ?? y.specs?.length)} m` : (isEn ? '— missing length' : '— métrage manquant')}
                     </option>
                   ))}
                 </select>
@@ -178,28 +194,48 @@ export const CalculatorView: React.FC<CalculatorViewProps> = ({ onNavigate, onAd
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 block">Surface totale du projet (cm²)</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 block">
+                  {isEn ? 'Total project surface (cm²)' : 'Surface totale du projet (cm²)'}
+                </label>
                 <input type="number" min="1" step="100" value={surface} onChange={e => setSurface(Math.max(0, Number(e.target.value)))} className="w-full p-4 rounded-2xl bg-secondary/40 border border-primary/10 focus:outline-none focus:border-accent text-primary font-bold" />
-                <p className="text-xs text-primary/60">Valeur indicative : {recommendedSurface} cm². Remplacez-la par la surface de votre patron.</p>
+                <p className="text-xs text-primary/60">
+                  {isEn 
+                    ? `Indicative value: ${recommendedSurface} cm². Replace it with your pattern surface.` 
+                    : `Valeur indicative : ${recommendedSurface} cm². Remplacez-la par la surface de votre patron.`}
+                </p>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 block">Métrage mesuré pour 10 × 10 cm</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 block">
+                  {isEn ? 'Measured length for 10 × 10 cm' : 'Métrage mesuré pour 10 × 10 cm'}
+                </label>
                 <input type="number" min="0.1" step="0.1" value={sampleMeters} onChange={e => setSampleMeters(Math.max(0, Number(e.target.value)))} className="w-full p-4 rounded-2xl bg-secondary/40 border border-primary/10 focus:outline-none focus:border-accent text-primary font-bold" />
-                <p className="text-xs text-primary/60">Défaites un carré tricoté de 10 × 10 cm et mesurez la laine utilisée.</p>
+                <p className="text-xs text-primary/60">
+                  {isEn 
+                    ? 'Unravel a 10 × 10 cm knitted square and measure the yarn used.' 
+                    : 'Défaites un carré tricoté de 10 × 10 cm et mesurez la laine utilisée.'}
+                </p>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 block">Échantillon : mailles / 10 cm</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 block">
+                  {isEn ? 'Gauge: stitches / 10 cm' : 'Échantillon : mailles / 10 cm'}
+                </label>
                 <input type="number" min="1" step="1" value={stitchesPer10} onChange={e => setStitchesPer10(Math.max(0, Number(e.target.value)))} className="w-full p-4 rounded-2xl bg-secondary/40 border border-primary/10 focus:outline-none focus:border-accent text-primary font-bold" />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 block">Échantillon : rangs / 10 cm</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 block">
+                  {isEn ? 'Gauge: rows / 10 cm' : 'Échantillon : rangs / 10 cm'}
+                </label>
                 <input type="number" min="1" step="1" value={rowsPer10} onChange={e => setRowsPer10(Math.max(0, Number(e.target.value)))} className="w-full p-4 rounded-2xl bg-secondary/40 border border-primary/10 focus:outline-none focus:border-accent text-primary font-bold" />
               </div>
             </div>
 
             <div className="bg-accent/10 border border-accent/20 p-5 rounded-2xl flex gap-3.5 text-primary text-sm items-start">
               <div className="mt-0.5 text-accent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></div>
-              <p>Formule tricot : mailles du projet × mètres par maille × 1,10. Les mailles et les rangs de l’échantillon intègrent la tension et le point ; les 10 % couvrent les finitions et la perte de matière.</p>
+              <p>
+                {isEn 
+                  ? 'Knitting formula: project stitches × meters per stitch × 1.10. Gauge stitches and rows integrate tension and stitch pattern; the 10% margin covers finishing and yarn loss.' 
+                  : 'Formule tricot : mailles du projet × mètres par maille × 1,10. Les mailles et les rangs de l’échantillon intègrent la tension et le point ; les 10 % couvrent les finitions et la perte de matière.'}
+              </p>
             </div>
 
           </div>
@@ -221,45 +257,49 @@ export const CalculatorView: React.FC<CalculatorViewProps> = ({ onNavigate, onAd
             <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-6 border border-white/20">
               <Calculator size={28} className="text-[#e26d24] animate-pulse" />
             </div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/70 mb-2">Estimation finale</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/70 mb-2">
+              {isEn ? 'Final Estimation' : 'Estimation finale'}
+            </p>
             <div className="text-8xl font-serif text-[#e26d24] leading-none mb-2">{finalPelotes || '—'}</div>
-            <div className="text-2xl font-serif text-white">Pelotes nécessaires</div>
+            <div className="text-2xl font-serif text-white">
+              {isEn ? 'Balls needed' : 'Pelotes nécessaires'}
+            </div>
           </div>
 
           <div className="border-t border-b border-white/10 py-6 mb-8 space-y-3 text-center">
             <div className="text-sm">
-              <span className="text-white/70">Projet : </span>
-              <span className="font-bold text-white">{garment.name}</span>
+              <span className="text-white/70">{isEn ? 'Project: ' : 'Projet : '}</span>
+              <span className="font-bold text-white">{isEn ? garment.nameEn : garment.name}</span>
             </div>
             <div className="text-sm">
-              <span className="text-white/70">Taille : </span>
-              <span className="font-bold text-white">{needsSize ? size : 'Unique'}</span>
+              <span className="text-white/70">{isEn ? 'Size: ' : 'Taille : '}</span>
+              <span className="font-bold text-white">{needsSize ? size : (isEn ? 'Universal' : 'Unique')}</span>
             </div>
             <div className="text-sm">
-              <span className="text-white/70">Laine : </span>
-              <span className="font-bold text-white">{yarn?.name || 'Aucune laine sélectionnée'}</span>
+              <span className="text-white/70">{isEn ? 'Yarn: ' : 'Laine : '}</span>
+              <span className="font-bold text-white">{yarn?.name || (isEn ? 'No yarn selected' : 'Aucune laine sélectionnée')}</span>
             </div>
             <div className="text-sm">
-              <span className="text-white/70">Métrage calculé : </span>
-              <span className="font-bold text-white">{Math.ceil(requiredMeters)} m, marge incluse</span>
+              <span className="text-white/70">{isEn ? 'Calculated length: ' : 'Métrage calculé : '}</span>
+              <span className="font-bold text-white">{Math.ceil(requiredMeters)}{isEn ? ' m, margin included' : ' m, marge incluse'}</span>
             </div>
           </div>
 
           <div className="space-y-4 mb-8">
             <p className="text-[10px] font-bold uppercase tracking-widest text-[#F9F7F2] text-center italic bg-white/5 py-4 border border-white/10 rounded-xl px-4">
-              Sélectionnez une laine de notre boutique pour l'ajouter directement au panier :
+              {isEn ? "Select a yarn from our boutique to add it directly to the cart:" : "Sélectionnez une laine de notre boutique pour l'ajouter directement au panier :"}
             </p>
             <button 
               onClick={handleOrder}
               className="w-full flex items-center justify-center gap-3 p-4 rounded-xl bg-[#e26d24] hover:bg-[#c45a1c] text-white font-bold transition-all animate-shine overflow-hidden relative"
             >
-              <ShoppingBag size={18} /> Ajouter au panier
+              <ShoppingBag size={18} /> {isEn ? 'Add to cart' : 'Ajouter au panier'}
             </button>
           </div>
 
           <div className="flex justify-center mt-8">
             <button onClick={reset} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white/70 hover:text-white transition-colors">
-              <RotateCcw size={14} /> Réinitialiser
+              <RotateCcw size={14} /> {isEn ? 'Reset' : 'Réinitialiser'}
             </button>
           </div>
         </motion.div>

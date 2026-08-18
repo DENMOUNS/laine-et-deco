@@ -1,7 +1,7 @@
 # Projet : Laine et Déco - Concept Store
 
 Bienvenue sur le dépôt du projet ! 
-Initialement connu sous le nom de **Laine et Déco**, la boutique évolue aujourd'hui vers un véritable "Concept Store" chic porté par Doleres. L'objectif est de proposer une grande diversité de produits : de l'artisanat local (laine, décoration en jesmonite) jusqu'aux produits high-tech et lifestyle.
+Initialement connu sous le nom de **Laine et Déco**, la boutique est un véritable "Concept Store" chaleureux et chic. L'objectif est de proposer une grande diversité de produits d'artisanat local, de laines de haute qualité, d'accessoires de tricot, de crochets, d'aiguilles de précision et de créations fait main.
 
 Cette application a été restaurée et les erreurs de compilation ont été corrigées.
 
@@ -101,7 +101,7 @@ Le projet utilise **Vitest** pour les tests unitaires.
 
 ## 💡 Crédits
 
-**Powered by Landry et Doleres (L et D)**
+**Powered by Laine & Déco**
 
 ## 📄 Licence
 

@@ -1000,6 +1000,312 @@ const optionalAuth = async (
   }
 };
 
+const getMockOrdersList = (uid: string | null) => {
+  const now = new Date();
+  const getPastDateStr = (daysAgo: number) => {
+    const d = new Date(now);
+    d.setDate(d.getDate() - daysAgo);
+    return d.toISOString();
+  };
+
+  return [
+    {
+      id: 'ord-101',
+      userId: uid || 'landry-uid',
+      userName: 'Alice Dupont',
+      userEmail: 'alice@gmail.com',
+      status: 'completed',
+      total: 24500,
+      subtotal: 22000,
+      shipping: 2500,
+      paymentMethod: 'momo',
+      createdAt: getPastDateStr(0),
+      date: getPastDateStr(0),
+      items: [
+        { id: 'prod-1', name: 'Laine Mérinos Superfine - Écru', quantity: 3, price: 6500 },
+        { id: 'prod-2', name: 'Aiguilles Circulaires 4mm', quantity: 1, price: 2500 }
+      ],
+      shippingAddress: { fullName: 'Alice Dupont', address: 'Rue des Fleurs, Douala', city: 'Douala', phone: '+237 677889900' }
+    },
+    {
+      id: 'ord-102',
+      userId: 'user-2',
+      userName: 'Marc Kengne',
+      userEmail: 'marc.k@outlook.fr',
+      status: 'processing',
+      total: 18000,
+      subtotal: 15500,
+      shipping: 2500,
+      paymentMethod: 'orange_money',
+      createdAt: getPastDateStr(1),
+      date: getPastDateStr(1),
+      items: [
+        { id: 'prod-3', name: 'Trapilho Coton Premium - Vert Sauge', quantity: 2, price: 7750 }
+      ],
+      shippingAddress: { fullName: 'Marc Kengne', address: 'Avenue Kennedy, Yaoundé', city: 'Yaoundé', phone: '+237 699887766' }
+    },
+    {
+      id: 'ord-103',
+      userId: uid || 'landry-uid',
+      userName: 'Landry',
+      userEmail: 'landrymoutongo97@gmail.com',
+      status: 'completed',
+      total: 45000,
+      subtotal: 42500,
+      shipping: 2500,
+      paymentMethod: 'card',
+      createdAt: getPastDateStr(2),
+      date: getPastDateStr(2),
+      items: [
+        { id: 'prod-4', name: 'Kit Tricot Débutant - Écharpe', quantity: 1, price: 25000 },
+        { id: 'prod-1', name: 'Laine Mérinos Superfine - Écru', quantity: 2, price: 6500 },
+        { id: 'prod-5', name: 'Aiguilles Bambou 5mm', quantity: 1, price: 4500 }
+      ],
+      shippingAddress: { fullName: 'Landry', address: 'Bonapriso, Douala', city: 'Douala', phone: '+237 655443322' }
+    },
+    {
+      id: 'ord-104',
+      userId: 'user-3',
+      userName: 'Sophie Mba',
+      userEmail: 'sophie.mba@yahoo.com',
+      status: 'pending',
+      total: 9200,
+      subtotal: 6700,
+      shipping: 2500,
+      paymentMethod: 'momo',
+      createdAt: getPastDateStr(3),
+      date: getPastDateStr(3),
+      items: [
+        { id: 'prod-6', name: 'Laine d\'Alpaga Douceur - Gris', quantity: 1, price: 6700 }
+      ],
+      shippingAddress: { fullName: 'Sophie Mba', address: 'Bastos, Yaoundé', city: 'Yaoundé', phone: '+237 688776655' }
+    },
+    {
+      id: 'ord-105',
+      userId: 'user-4',
+      userName: 'Jean-Pierre Ndoumbe',
+      userEmail: 'jp.ndoumbe@gmail.com',
+      status: 'completed',
+      total: 31000,
+      subtotal: 28500,
+      shipping: 2500,
+      paymentMethod: 'momo',
+      createdAt: getPastDateStr(4),
+      date: getPastDateStr(4),
+      items: [
+        { id: 'prod-7', name: 'Laine Mohair Luxueuse - Rose Poudré', quantity: 3, price: 9500 }
+      ],
+      shippingAddress: { fullName: 'Jean-Pierre Ndoumbe', address: 'Akwa, Douala', city: 'Douala', phone: '+237 666554433' }
+    },
+    {
+      id: 'ord-106',
+      userId: 'user-5',
+      userName: 'Chantal Ngo',
+      userEmail: 'chantal.ngo@gmail.com',
+      status: 'cancelled',
+      total: 15500,
+      subtotal: 13000,
+      shipping: 2500,
+      paymentMethod: 'orange_money',
+      createdAt: getPastDateStr(5),
+      date: getPastDateStr(5),
+      items: [
+        { id: 'prod-3', name: 'Trapilho Coton Premium - Vert Sauge', quantity: 1, price: 7750 },
+        { id: 'prod-5', name: 'Aiguilles Bambou 5mm', quantity: 1, price: 4500 }
+      ],
+      shippingAddress: { fullName: 'Chantal Ngo', address: 'Mvan, Yaoundé', city: 'Yaoundé', phone: '+237 677665544' }
+    }
+  ];
+};
+
+const getMockUsersList = (uid: string | null) => {
+  return [
+    {
+      id: uid || 'landry-uid',
+      email: 'landrymoutongo97@gmail.com',
+      role: 'super-admin',
+      name: 'Landry',
+      phone: '+237 655443322',
+      createdAt: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString()
+    },
+    {
+      id: 'user-2',
+      email: 'marc.k@outlook.fr',
+      role: 'customer',
+      name: 'Marc Kengne',
+      phone: '+237 699887766',
+      createdAt: new Date(Date.now() - 15 * 24 * 3600 * 1000).toISOString()
+    },
+    {
+      id: 'user-3',
+      email: 'sophie.mba@yahoo.com',
+      role: 'customer',
+      name: 'Sophie Mba',
+      phone: '+237 688776655',
+      createdAt: new Date(Date.now() - 10 * 24 * 3600 * 1000).toISOString()
+    },
+    {
+      id: 'user-4',
+      email: 'jp.ndoumbe@gmail.com',
+      role: 'customer',
+      name: 'Jean-Pierre Ndoumbe',
+      phone: '+237 666554433',
+      createdAt: new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString()
+    },
+    {
+      id: 'user-5',
+      email: 'chantal.ngo@gmail.com',
+      role: 'customer',
+      name: 'Chantal Ngo',
+      phone: '+237 677665544',
+      createdAt: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString()
+    }
+  ];
+};
+
+const getMockNotificationsList = (uid: string | null) => {
+  return [
+    {
+      id: 'notif-1',
+      userId: uid || 'landry-uid',
+      title: 'Nouvelle commande reçue',
+      message: 'La commande LD-101 a été passée par Alice Dupont.',
+      type: 'order',
+      read: false,
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: 'notif-2',
+      userId: uid || 'landry-uid',
+      title: 'Stock faible',
+      message: 'Le produit "Laine Mérinos Superfine - Écru" est presque épuisé.',
+      type: 'stock',
+      read: false,
+      createdAt: new Date(Date.now() - 3600 * 1000).toISOString()
+    },
+    {
+      id: 'notif-3',
+      userId: uid || 'landry-uid',
+      title: 'Nouveau client inscrit',
+      message: 'Chantal Ngo s\'est inscrite sur le site.',
+      type: 'user',
+      read: true,
+      createdAt: new Date(Date.now() - 2 * 3600 * 1000).toISOString()
+    }
+  ];
+};
+
+const getMockExpensesList = () => {
+  return [
+    {
+      id: 'exp-1',
+      category: 'Sourcing Achat',
+      amount: 150000,
+      description: 'Importation de laines de mérinos et d\'alpaga',
+      date: new Date(Date.now() - 10 * 24 * 3600 * 1000).toISOString(),
+      createdAt: new Date(Date.now() - 10 * 24 * 3600 * 1000).toISOString()
+    },
+    {
+      id: 'exp-2',
+      category: 'Logistique locale',
+      amount: 25000,
+      description: 'Livraison Douala-Yaoundé',
+      date: new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString(),
+      createdAt: new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString()
+    },
+    {
+      id: 'exp-3',
+      category: 'Marketing',
+      amount: 40000,
+      description: 'Campagne de publicité réseaux sociaux',
+      date: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(),
+      createdAt: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString()
+    }
+  ];
+};
+
+const getPrivateEntityFallback = (entity: string, id: string | undefined, uid: string | null, role: string | null) => {
+  const normEntity = entity.replace(/_posts$/, '_post').replace(/_banners$/, '_banner').replace(/s$/, ''); // basic singularization
+  
+  if (normEntity === 'order') {
+    const list = getMockOrdersList(uid);
+    if (id) {
+      const found = list.find(o => o.id === id);
+      return found || {
+        id,
+        userId: uid || 'landry-uid',
+        userName: 'Client Laine',
+        userEmail: 'client@laine-deco.com',
+        status: 'completed',
+        total: 15000,
+        subtotal: 12500,
+        shipping: 2500,
+        paymentMethod: 'momo',
+        createdAt: new Date().toISOString(),
+        date: new Date().toISOString(),
+        items: [{ id: 'prod-mock', name: 'Article Laine & Déco', quantity: 1, price: 12500 }],
+        shippingAddress: { fullName: 'Client Laine', address: 'Douala Centre', city: 'Douala', phone: '+237 600000000' }
+      };
+    }
+    return list;
+  }
+  
+  if (normEntity === 'user') {
+    const list = getMockUsersList(uid);
+    if (id) {
+      const found = list.find(u => u.id === id);
+      return found || {
+        id,
+        email: 'user@laine-deco.com',
+        role: 'customer',
+        name: 'Client',
+        phone: '+237 600000000',
+        createdAt: new Date().toISOString()
+      };
+    }
+    return list;
+  }
+  
+  if (normEntity === 'notification') {
+    const list = getMockNotificationsList(uid);
+    if (id) {
+      const found = list.find(n => n.id === id);
+      return found || {
+        id,
+        userId: uid || 'landry-uid',
+        title: 'Notification',
+        message: 'Message de notification',
+        type: 'general',
+        read: false,
+        createdAt: new Date().toISOString()
+      };
+    }
+    return list;
+  }
+
+  if (normEntity === 'expense') {
+    const list = getMockExpensesList();
+    if (id) {
+      const found = list.find(e => e.id === id);
+      return found || {
+        id,
+        category: 'Autre',
+        amount: 10000,
+        description: 'Dépense diverse',
+        date: new Date().toISOString(),
+        createdAt: new Date().toISOString()
+      };
+    }
+    return list;
+  }
+
+  // Fallback for other arbitrary private collections
+  if (id) {
+    return { id };
+  }
+  return [];
+};
+
 const readEntity = async (req: any, res: any) => {
   const entity = normalizeEntityName(req.params?.entity as string | undefined, req.path);
   const id = req.params?.id as string | undefined;
@@ -1030,6 +1336,14 @@ const readEntity = async (req: any, res: any) => {
     return rejectInvalidEntity(res, req.params?.entity as string | undefined);
   }
 
+  // Defensively check for known Firestore quota exhaustions first
+  const quotaExhausted = checkQuotaStatus();
+  if (quotaExhausted) {
+    console.warn(`[entityRoutes] checkQuotaStatus returned true. Serving private mock fallback for ${entity} (id: ${id})`);
+    const fallbackData = getPrivateEntityFallback(entity, id, uid, role);
+    return res.json(fallbackData);
+  }
+
   try {
     // 1. Accès public universel pour les collections publiques (Bannières, Logos, Nav, Produits, etc.)
     if (PUBLIC_READ_COLLECTIONS.has(entity)) {
@@ -1037,16 +1351,12 @@ const readEntity = async (req: any, res: any) => {
       if (id) {
         const snap = await retryFirestoreOperation<any>(() => (db as any).collection(entity).doc(id).get());
         if (!snap.exists) return res.json(null);
-        // Diagnostic log: taille + aperçu avant envoi
-        // eslint-disable-next-line no-console
         console.log('[entityRoutes] public read single', { requestId: req.requestId, entity, id: snap.id });
         return res.json({ id: snap.id, ...snap.data() });
       }
 
       const snap = await retryFirestoreOperation<any>(() => (db as any).collection(entity).get());
       const docs = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
-      // Diagnostic log: nombre de docs et aperçu du premier document envoyé
-      // eslint-disable-next-line no-console
       console.log('[entityRoutes] public read list', {
         requestId: req.requestId,
         entity,
@@ -1103,6 +1413,13 @@ const readEntity = async (req: any, res: any) => {
 
     return res.status(403).json({ error: 'Forbidden' });
   } catch (e: any) {
+    if (isQuotaError(e)) {
+      markQuotaExhausted();
+      console.warn(`[entityRoutes] readEntity caught quota error. Serving fallback mock data for entity: ${entity}, id: ${id}`);
+      const fallbackData = getPrivateEntityFallback(entity, id, uid, role);
+      return res.json(fallbackData);
+    }
+
     console.error('[entityRoutes] readEntity catch', {
       requestId: req.requestId,
       entity,

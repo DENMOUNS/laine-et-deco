@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { FAQ } from '../../../types';
-import { X, Save, AlertCircle } from 'lucide-react';
+import { X, Save, AlertCircle, Globe, Sparkles } from 'lucide-react';
+import { toast } from 'sonner';
+import { translateContentWithAi } from '../../utils/aiTranslator';
 
 interface FAQEditorProps {
   faq: FAQ | null;
@@ -11,17 +13,46 @@ interface FAQEditorProps {
 export const FAQEditor: React.FC<FAQEditorProps> = ({ faq, onSave, onClose }) => {
   const [formData, setFormData] = useState<Partial<FAQ>>({
     question: '',
+    question_en: '',
     answer: '',
+    answer_en: '',
     category: 'Livraison',
     order: 0,
     status: 'active'
   });
+  const [isTranslating, setIsTranslating] = useState(false);
 
   useEffect(() => {
     if (faq) {
       setFormData(faq);
     }
   }, [faq]);
+
+  const handleTranslate = async () => {
+    if (!formData.question && !formData.answer) {
+      toast.error('Veuillez renseigner la question et la réponse en français.');
+      return;
+    }
+    setIsTranslating(true);
+    try {
+      const res = await translateContentWithAi({
+        question: formData.question || '',
+        answer: formData.answer || '',
+      }, 'en', 'fr');
+      if (res) {
+        setFormData(prev => ({
+          ...prev,
+          question_en: res.question || prev.question_en,
+          answer_en: res.answer || prev.answer_en,
+        }));
+        toast.success('Traduction FAQ générée par l\'IA !');
+      }
+    } catch {
+      toast.error('Erreur lors de la traduction.');
+    } finally {
+      setIsTranslating(false);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,9 +75,26 @@ export const FAQEditor: React.FC<FAQEditorProps> = ({ faq, onSave, onClose }) =>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-6">
+          {/* AI Translate Banner */}
+          <div className="flex items-center justify-between bg-accent/5 p-4 rounded-2xl border border-accent/20">
+            <div className="flex items-center gap-2">
+              <Globe size={18} className="text-accent" />
+              <span className="text-sm font-bold text-primary">Traduction automatique</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleTranslate}
+              disabled={isTranslating}
+              className="px-3.5 py-1.5 bg-accent text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow hover:bg-accent/90 transition-all cursor-pointer"
+            >
+              <Sparkles size={13} className={isTranslating ? 'animate-spin' : ''} />
+              {isTranslating ? 'Traduction...' : 'Traduire en Anglais'}
+            </button>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="md:col-span-2">
-              <label className="block text-xs font-bold uppercase tracking-widest text-primary/70 mb-2">Question</label>
+            <div className="md:col-span-2 space-y-2">
+              <label className="block text-xs font-bold uppercase tracking-widest text-primary/70">Question (Français) *</label>
               <input
                 type="text"
                 required
@@ -57,15 +105,41 @@ export const FAQEditor: React.FC<FAQEditorProps> = ({ faq, onSave, onClose }) =>
               />
             </div>
 
-            <div className="md:col-span-2">
-              <label className="block text-xs font-bold uppercase tracking-widest text-primary/70 mb-2">Réponse</label>
+            <div className="md:col-span-2 space-y-2">
+              <label className="block text-xs font-bold uppercase tracking-widest text-accent flex items-center gap-1">
+                <Globe size={13} /> Question (Anglais)
+              </label>
+              <input
+                type="text"
+                value={formData.question_en || ''}
+                onChange={(e) => setFormData({ ...formData, question_en: e.target.value })}
+                className="w-full px-4 py-3 rounded-xl border border-accent/40 focus:border-accent outline-none"
+                placeholder="Ex: What are the shipping times?"
+              />
+            </div>
+
+            <div className="md:col-span-2 space-y-2">
+              <label className="block text-xs font-bold uppercase tracking-widest text-primary/70">Réponse (Français) *</label>
               <textarea
                 required
-                rows={4}
+                rows={3}
                 value={formData.answer}
                 onChange={(e) => setFormData({ ...formData, answer: e.target.value })}
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-accent outline-none font-sans"
                 placeholder="Détaillez la réponse ici..."
+              />
+            </div>
+
+            <div className="md:col-span-2 space-y-2">
+              <label className="block text-xs font-bold uppercase tracking-widest text-accent flex items-center gap-1">
+                <Globe size={13} /> Réponse (Anglais)
+              </label>
+              <textarea
+                rows={3}
+                value={formData.answer_en || ''}
+                onChange={(e) => setFormData({ ...formData, answer_en: e.target.value })}
+                className="w-full px-4 py-3 rounded-xl border border-accent/40 focus:border-accent outline-none font-sans"
+                placeholder="Detail the answer in English..."
               />
             </div>
 

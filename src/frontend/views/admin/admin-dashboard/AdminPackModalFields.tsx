@@ -1,6 +1,8 @@
 import React from 'react';
-import { Plus, X, Image as ImageIcon } from 'lucide-react';
+import { Plus, X, Image as ImageIcon, Globe, Sparkles } from 'lucide-react';
+import { toast } from 'sonner';
 import { ImageUpload } from '../../../components/ui/ImageUpload';
+import { translateContentWithAi } from '../../../utils/aiTranslator';
 
 export function AdminPackModalFields({ ctx }: { ctx: any }) {
   const {
@@ -15,18 +17,95 @@ export function AdminPackModalFields({ ctx }: { ctx: any }) {
 
   const MAX_PRODUCTS = 20;
 
+  const [nameEn, setNameEn] = React.useState(editingItem?.name_en || '');
+  const [descriptionEn, setDescriptionEn] = React.useState(editingItem?.description_en || '');
+  const [isTranslating, setIsTranslating] = React.useState(false);
+
+  const handleTranslate = async (e: React.MouseEvent) => {
+    const parent = (e.currentTarget.closest('.grid') as HTMLElement);
+    const nameFr = (parent?.querySelector('input[name="name"]') as HTMLInputElement)?.value || editingItem?.name;
+    const descFr = (parent?.querySelector('textarea[name="description"]') as HTMLTextAreaElement)?.value || editingItem?.description;
+
+    if (!nameFr && !descFr) {
+      toast.error('Veuillez renseigner les champs en français d\'abord.');
+      return;
+    }
+    setIsTranslating(true);
+    try {
+      const res = await translateContentWithAi({
+        name: nameFr,
+        description: descFr,
+      }, 'en', 'fr');
+      if (res) {
+        if (res.name) setNameEn(res.name);
+        if (res.description) setDescriptionEn(res.description);
+        toast.success('Traduction du pack générée par l\'IA !');
+      }
+    } catch {
+      toast.error('Erreur lors de la traduction.');
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 gap-6">
+      {/* AI Translate Banner */}
+      <div className="flex items-center justify-between bg-accent/5 p-4 rounded-2xl border border-accent/20">
+        <div className="flex items-center gap-2">
+          <Globe size={18} className="text-accent" />
+          <span className="text-sm font-bold">Traduction multilingue automatique</span>
+        </div>
+        <button
+          type="button"
+          onClick={handleTranslate}
+          disabled={isTranslating}
+          className="px-4 py-2 bg-accent text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md hover:bg-accent/90 transition-all cursor-pointer"
+        >
+          <Sparkles size={14} className={isTranslating ? 'animate-spin' : ''} />
+          {isTranslating ? 'Traduction en cours...' : 'Traduire en Anglais'}
+        </button>
+      </div>
+
       {/* Nom */}
-      <div className="space-y-2">
-        <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Nom du pack</label>
-        <input name="name" type="text" className="input-field" defaultValue={editingItem?.name} required />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Nom du pack (Français) *</label>
+          <input name="name" type="text" className="input-field" defaultValue={editingItem?.name} required />
+        </div>
+        <div className="space-y-2">
+          <label className="text-xs font-bold uppercase tracking-widest text-accent flex items-center gap-1">
+            <Globe size={13} /> Nom du pack (Anglais)
+          </label>
+          <input 
+            name="name_en" 
+            type="text" 
+            className="input-field border-accent/40 focus:border-accent" 
+            value={nameEn} 
+            onChange={(e) => setNameEn(e.target.value)} 
+            placeholder="Knitwear Bundle..."
+          />
+        </div>
       </div>
 
       {/* Description */}
-      <div className="space-y-2">
-        <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Description</label>
-        <textarea name="description" className="input-field" defaultValue={editingItem?.description} required />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Description (Français) *</label>
+          <textarea name="description" className="input-field" defaultValue={editingItem?.description} required />
+        </div>
+        <div className="space-y-2">
+          <label className="text-xs font-bold uppercase tracking-widest text-accent flex items-center gap-1">
+            <Globe size={13} /> Description (Anglais)
+          </label>
+          <textarea 
+            name="description_en" 
+            className="input-field border-accent/40 focus:border-accent" 
+            value={descriptionEn}
+            onChange={(e) => setDescriptionEn(e.target.value)} 
+            placeholder="Special handmade collection..."
+          />
+        </div>
       </div>
 
       {/* Image de couverture */}

@@ -79,7 +79,7 @@ export const OrderMap: React.FC<OrderMapProps> = ({ customerLocation, customerNa
         className="w-full h-full absolute inset-0"
       >
         <TileLayer
-          attribution='Landry | Doleres Contributors'
+          attribution='Laine & Déco Contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         

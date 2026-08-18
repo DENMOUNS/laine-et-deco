@@ -2,12 +2,15 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { CheckCircle, Package, ArrowRight, Home } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { useTranslation } from '../../i18n';
 
 interface OrderSuccessViewProps {
   onNavigate: (view: string, id?: string) => void;
 }
 
 export const OrderSuccessView: React.FC<OrderSuccessViewProps> = ({ onNavigate }) => {
+  const { isEn } = useTranslation();
+
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-20">
       <motion.div 
@@ -43,11 +46,13 @@ export const OrderSuccessView: React.FC<OrderSuccessViewProps> = ({ onNavigate }
         </div>
 
         <h1 className="text-5xl font-serif font-bold text-primary mb-4">
-          Félicitations !
+          {isEn ? 'Congratulations!' : 'Félicitations !'}
         </h1>
         
         <p className="text-xl text-primary/70 mb-12 font-serif italic">
-          Votre commande a été validée avec succès. Merci de votre confiance !
+          {isEn 
+            ? 'Your order has been successfully validated. Thank you for your trust!' 
+            : 'Votre commande a été validée avec succès. Merci de votre confiance !'}
         </p>
 
         <div className="bg-white p-8 rounded-[3rem] border border-primary/5 shadow-sm mb-12 space-y-4">
@@ -56,8 +61,14 @@ export const OrderSuccessView: React.FC<OrderSuccessViewProps> = ({ onNavigate }
               <Package size={24} />
             </div>
             <div>
-              <h3 className="font-bold text-primary">Préparation en cours</h3>
-              <p className="text-sm text-primary/70">Notre équipe s'occupe déjà de votre colis. Vous recevrez un email dès qu'il sera expédié.</p>
+              <h3 className="font-bold text-primary">
+                {isEn ? 'Preparation in progress' : 'Préparation en cours'}
+              </h3>
+              <p className="text-sm text-primary/70">
+                {isEn 
+                  ? 'Our team is already handling your package. You will receive an email as soon as it is shipped.' 
+                  : "Notre équipe s'occupe déjà de votre colis. Vous recevrez un email dès qu'il sera expédié."}
+              </p>
             </div>
           </div>
         </div>
@@ -68,7 +79,7 @@ export const OrderSuccessView: React.FC<OrderSuccessViewProps> = ({ onNavigate }
             className="px-10 py-6 rounded-2xl text-lg flex items-center gap-3 group"
             onClick={() => onNavigate('customer-dashboard', 'orders')}
           >
-            Consulter la commande
+            {isEn ? 'View Order' : 'Consulter la commande'}
             <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
           </Button>
           
@@ -78,12 +89,14 @@ export const OrderSuccessView: React.FC<OrderSuccessViewProps> = ({ onNavigate }
             onClick={() => onNavigate('home')}
           >
             <Home size={20} />
-            Retour à l'accueil
+            {isEn ? 'Return to Home' : "Retour à l'accueil"}
           </Button>
         </div>
 
         <p className="mt-12 text-xs text-primary/70 uppercase tracking-[0.2em] font-bold italic">
-          Laine et Déco — Artisanat, Déco & Tech
+          {isEn 
+            ? 'Laine et Déco — Yarn, Hooks, Needles, Accessories & Tech' 
+            : 'Laine et Déco — Laine, Crochets, Aiguilles, Accessoires & Tech'}
         </p>
       </motion.div>
     </div>

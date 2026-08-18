@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingBag, Search, User, Heart, Menu, X, ChevronRight, ChevronDown, ArrowRight, Moon, Sun, Home, Shield, ArrowRightLeft, QrCode, Scissors } from 'lucide-react';
+import { ShoppingBag, Search, User, Heart, Menu, X, ChevronRight, ChevronDown, ArrowRight, Moon, Sun, Home, Shield, ArrowRightLeft, QrCode, Scissors, Phone, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { where } from 'firebase/firestore';
 
@@ -10,6 +10,8 @@ import { Product, NavItem } from '../../types';
 import { DEFAULT_NAV_ITEMS } from '../../siteDefaults';
 import { useConfigStore } from '../../stores/configStore';
 import { useThemeStore } from '../../stores/themeStore';
+import { useLanguageStore } from '../../stores/languageStore';
+import { useTranslation, getLocalized } from '../../i18n';
 import { isFeatureEnabled } from '../utils/featureFlags';
 import type { User as FirebaseUser } from 'firebase/auth';
 
@@ -74,6 +76,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isInfoMenuOpen, setIsInfoMenuOpen] = useState(false);
   const siteConfig = useConfigStore((state) => state.siteConfig);
   const { theme, toggleTheme } = useThemeStore();
+  const { language, toggleLanguage, t, l } = useTranslation();
   const { data: CATEGORIES } = useStaticEntity<any>('category', [], { enabled: isMenuOpen, cacheOnly: true });
 
   // Lecture directe Firestore — chargé après le marquee
@@ -83,16 +86,16 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   // Default robust navigation items if Firestore is empty
   const defaultNavs: NavItem[] = [
-    { id: 'n-shop', name: 'Boutique', view: 'shop', order: 1, status: 'active' },
-    { id: 'n-lookbook', name: 'Lookbook', view: 'lookbook', order: 1, status: 'active' },
-    { id: 'n-companion', name: 'Compagnon Tricot', view: 'knitting-companion', order: 2, status: 'active' },
-    { id: 'n-generator', name: 'Générateur IA', view: 'pattern-generator', order: 2, status: 'active' },
-    { id: 'n-configurator', name: 'Configurateur', view: 'configurator', order: 2, status: 'active' },
-    { id: 'n-custom', name: 'Sur Mesure', view: 'custom-order', order: 2, status: 'active' },
-    { id: 'n-blog', name: 'Blog Inspirations', view: 'blog', order: 2, status: 'active' },
-    { id: 'n-calculator', name: 'Calculateur de Laine', view: 'calculator', order: 2, status: 'active' },
-    { id: 'n-volcalc', name: 'Calculateur de Volume', view: 'volume-calculator', order: 2, status: 'active' },
-    { id: 'n-qr', name: 'Aperçu QR Landing', view: 'qr-landing', order: 2, status: 'active' },
+    { id: 'n-shop', name: 'Boutique', name_en: 'Shop', view: 'shop', order: 1, status: 'active' },
+    { id: 'n-lookbook', name: 'Lookbook', name_en: 'Lookbook', view: 'lookbook', order: 1, status: 'active' },
+    { id: 'n-companion', name: 'Compagnon Tricot', name_en: 'Knitting Companion', view: 'knitting-companion', order: 2, status: 'active' },
+    { id: 'n-generator', name: 'Générateur IA', name_en: 'AI Generator', view: 'pattern-generator', order: 2, status: 'active' },
+    { id: 'n-configurator', name: 'Configurateur', name_en: '3D Configurator', view: 'configurator', order: 2, status: 'active' },
+    { id: 'n-custom', name: 'Sur Mesure', name_en: 'Custom Order', view: 'custom-order', order: 2, status: 'active' },
+    { id: 'n-blog', name: 'Blog Inspirations', name_en: 'Blog', view: 'blog', order: 2, status: 'active' },
+    { id: 'n-calculator', name: 'Calculateur de Laine', name_en: 'Yarn Calculator', view: 'calculator', order: 2, status: 'active' },
+    { id: 'n-volcalc', name: 'Calculateur de Volume', name_en: 'Volume Calculator', view: 'volume-calculator', order: 2, status: 'active' },
+    { id: 'n-qr', name: 'Aperçu QR Landing', name_en: 'QR Landing', view: 'qr-landing', order: 2, status: 'active' },
   ];
 
   const resolvedNavItems: NavItem[] = (firestoreNavItems && firestoreNavItems.length > 0)
@@ -107,22 +110,27 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const dynamicSidebarLinks = featureAwareNavItems
     .filter(item => item.status === 'active' && item.order > 1 && item.view !== 'loyalty' && item.name !== 'Points VIP')
-    .map(item => ({ id: item.id, name: item.name, view: item.view, icon: <ChevronRight size={18} /> }));
+    .map(item => ({ 
+      id: item.id, 
+      name: l(item, 'name', item.name), 
+      view: item.view, 
+      icon: <ChevronRight size={18} /> 
+    }));
 
   const aboutSectionViews = ['about', 'team', 'contact', 'faq', 'legal', 'privacy', 'terms'];
   const isAboutSectionActive = aboutSectionViews.includes(currentView);
 
   const sidebarLinks = dynamicSidebarLinks.length > 0 ? dynamicSidebarLinks : [
-    { id: 'sb-companion', name: 'Compagnon Tricot', view: 'knitting-companion', icon: <ChevronRight size={18} /> },
-    { id: 'sb-generator', name: 'Générateur IA', view: 'pattern-generator', icon: <ChevronRight size={18} /> },
-    { id: 'sb-configurator', name: 'Configurateur', view: 'configurator', icon: <ChevronRight size={18} /> },
-    { id: 'sb-custom', name: 'Sur Mesure', view: 'custom-order', icon: <ChevronRight size={18} /> },
-    { id: 'sb-lookbook', name: 'Lookbook', view: 'lookbook', icon: <ChevronRight size={18} /> },
-    { id: 'sb-blog', name: 'Blog Inspirations', view: 'blog', icon: <ChevronRight size={18} /> },
-    { id: 'sb-contact', name: 'Contactez-nous', view: 'contact', icon: <ChevronRight size={18} /> },
-    { id: 'sb-calculator', name: 'Calculateur de Laine', view: 'calculator', icon: <ChevronRight size={18} /> },
-    { id: 'sb-volcalc', name: 'Calculateur de Volume', view: 'volume-calculator', icon: <ChevronRight size={18} /> },
-    { id: 'sb-qr', name: 'Aperçu QR Landing', view: 'qr-landing', icon: <ChevronRight size={18} /> },
+    { id: 'sb-companion', name: t('nav.companion'), view: 'knitting-companion', icon: <ChevronRight size={18} /> },
+    { id: 'sb-generator', name: t('nav.patternGenerator'), view: 'pattern-generator', icon: <ChevronRight size={18} /> },
+    { id: 'sb-configurator', name: t('nav.configurator'), view: 'configurator', icon: <ChevronRight size={18} /> },
+    { id: 'sb-custom', name: t('nav.customOrder'), view: 'custom-order', icon: <ChevronRight size={18} /> },
+    { id: 'sb-lookbook', name: t('nav.lookbook'), view: 'lookbook', icon: <ChevronRight size={18} /> },
+    { id: 'sb-blog', name: t('nav.blog'), view: 'blog', icon: <ChevronRight size={18} /> },
+    { id: 'sb-contact', name: t('nav.contact'), view: 'contact', icon: <ChevronRight size={18} /> },
+    { id: 'sb-calculator', name: t('nav.calculator'), view: 'calculator', icon: <ChevronRight size={18} /> },
+    { id: 'sb-volcalc', name: t('nav.volumeCalculator'), view: 'volume-calculator', icon: <ChevronRight size={18} /> },
+    { id: 'sb-qr', name: 'QR Landing', view: 'qr-landing', icon: <ChevronRight size={18} /> },
   ];
 
   const navLinks = [
@@ -151,7 +159,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   currentView === link.view ? 'text-accent' : 'text-primary'
                 }`}
               >
-                {link.name}
+                {l(link, 'name', link.name)}
                 {currentView === link.view && (
                   <motion.div 
                     layoutId="nav-underline"
@@ -165,15 +173,36 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="flex items-center space-x-1 md:space-x-2 z-20">
             {/* Icons visible on all screens */}
             <div className="flex items-center space-x-1 sm:space-x-1.5 flex-nowrap z-20">
-              <button 
-                aria-label="Rechercher"
-                onClick={() => onNavigate('shop')} 
-                className="p-2.5 text-primary hover:text-accent transition-colors rounded-full glass-ios-pill hover:bg-white/90"
-                title="Rechercher"
+              {/* Bouton de bascule de langue FR/EN */}
+              <button
+                type="button"
+                aria-label={language === 'fr' ? "Switch to English" : "Passer en Français"}
+                onClick={toggleLanguage}
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-black text-primary hover:text-accent transition-all rounded-full glass-ios-pill hover:bg-white/90 cursor-pointer uppercase tracking-wider border border-primary/10"
+                title={language === 'fr' ? "Changer de langue (Passer en Anglais)" : "Switch to French (Passer en Français)"}
               >
-                <Search size={19} />
+                <Globe size={14} className="text-accent" />
+                <span>{language === 'fr' ? 'EN' : 'FR'}</span>
               </button>
-              <button aria-label="Favoris" onClick={() => onNavigate('wishlist')} className="flex p-2.5 text-primary hover:text-accent transition-colors relative rounded-full glass-ios-pill hover:bg-white/90">
+
+              {/* Bouton d'appel direct vocal gratuit */}
+              <button
+                type="button"
+                aria-label={language === 'en' ? "Free voice call with an advisor" : "Appel gratuit avec un conseiller"}
+                onClick={() => window.dispatchEvent(new CustomEvent('app:start-call'))}
+                className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-accent hover:bg-accent-dark text-white rounded-full text-xs font-bold shadow-sm transition-all hover:scale-105 active:scale-95 ring-2 ring-accent/20 cursor-pointer"
+                title={language === 'en' ? "Free voice call with an advisor" : "Appel direct vocal gratuit avec un conseiller"}
+              >
+                <Phone size={14} className="animate-pulse fill-current" />
+                <span className="hidden xl:inline">{language === 'en' ? "Free Call" : "Appel Gratuit"}</span>
+              </button>
+
+              <button 
+                aria-label={language === 'en' ? "My wishlist" : "Mes favoris"} 
+                onClick={() => onNavigate('wishlist')} 
+                className="flex p-2.5 text-primary hover:text-accent transition-colors relative rounded-full glass-ios-pill hover:bg-white/90 cursor-pointer"
+                title={language === 'en' ? "Wishlist (saved items)" : "Mes favoris (articles sauvegardés)"}
+              >
                 <Heart size={19} />
                 {wishlistCount > 0 && (
                   <span className="absolute top-0.5 right-0.5 bg-accent text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm">
@@ -181,7 +210,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </span>
                 )}
               </button>
-              <button aria-label="Panier" onClick={() => onNavigate('cart')} className="p-2.5 text-primary hover:text-accent transition-colors relative rounded-full glass-ios-pill hover:bg-white/90">
+              <button 
+                aria-label={language === 'en' ? "Shopping cart" : "Mon panier"} 
+                onClick={() => onNavigate('cart')} 
+                className="p-2.5 text-primary hover:text-accent transition-colors relative rounded-full glass-ios-pill hover:bg-white/90 cursor-pointer"
+                title={language === 'en' ? "Shopping cart" : "Mon panier d'achats"}
+              >
                 <ShoppingBag size={19} />
                 {cartCount > 0 && (
                   <span className="absolute top-0.5 right-0.5 bg-primary text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm">
@@ -189,7 +223,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </span>
                 )}
               </button>
-              <button aria-label="Comparateur" onClick={() => onNavigate('comparison')} className="hidden sm:flex lg:flex p-2.5 text-primary hover:text-accent transition-colors relative rounded-full glass-ios-pill hover:bg-white/90">
+              <button 
+                aria-label={language === 'en' ? "Product comparison" : "Comparateur de produits"} 
+                onClick={() => onNavigate('comparison')} 
+                className="hidden sm:flex lg:flex p-2.5 text-primary hover:text-accent transition-colors relative rounded-full glass-ios-pill hover:bg-white/90 cursor-pointer"
+                title={language === 'en' ? "Product comparison" : "Comparateur de produits"}
+              >
                 <ArrowRightLeft size={19} />
                 {comparisonList?.length > 0 && (
                   <span className="absolute top-0.5 right-0.5 bg-accent text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm">
@@ -199,18 +238,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
               {hasBackofficeAccess && (
                 <button 
-                  aria-label="Tableau de bord Admin"
+                  aria-label={language === 'en' ? "Admin dashboard" : "Panneau d'administration"}
                   onClick={() => onNavigate('admin-dashboard')} 
-                  className={`hidden md:flex p-2.5 transition-colors rounded-full glass-ios-pill hover:bg-white/90 ${currentView === 'admin-dashboard' ? 'text-accent' : 'text-primary'}`}
-                  title="Tableau de bord Admin"
+                  className={`hidden md:flex p-2.5 transition-colors rounded-full glass-ios-pill hover:bg-white/90 cursor-pointer ${currentView === 'admin-dashboard' ? 'text-accent' : 'text-primary'}`}
+                  title={language === 'en' ? "Admin dashboard" : "Administration & gestion"}
                 >
                   <Shield size={19} />
                 </button>
               )}
               <button 
-                aria-label="Compte utilisateur"
+                aria-label={user ? `${language === 'en' ? 'My Account' : 'Mon compte'} - ${user.displayName || 'Profil'}` : (language === 'en' ? "Sign In / Register" : "Connexion / Inscription")}
                 onClick={() => user ? onNavigate('customer-dashboard') : onNavigate('auth')} 
-                className={`flex p-2 sm:p-2.5 transition-colors rounded-full glass-ios-pill hover:bg-white/90 ${currentView === 'customer-dashboard' ? 'text-accent' : 'text-primary'} items-center gap-2`}
+                className={`flex p-2 sm:p-2.5 transition-colors rounded-full glass-ios-pill hover:bg-white/90 cursor-pointer ${currentView === 'customer-dashboard' ? 'text-accent' : 'text-primary'} items-center gap-2`}
+                title={user ? (language === 'en' ? `My Account (${user.displayName || 'Profile'})` : `Mon compte client (${user.displayName || 'Profil'})`) : (language === 'en' ? "Sign In / Register" : "Se connecter / Créer un compte")}
               >
                 {user ? (
                   <div className="relative flex items-center justify-center">
@@ -236,21 +276,22 @@ export const Navbar: React.FC<NavbarProps> = ({
                 ) : (
                   <User size={19} />
                 )}
-                {user && <span className="hidden xl:block text-xs font-bold">{user.displayName || 'Compte'}</span>}
+                {user && <span className="hidden xl:block text-xs font-bold">{user.displayName || (language === 'en' ? "Account" : "Compte")}</span>}
               </button>
               {/* Bouton de mode sombre sur ordinateur */}
               <button 
-                aria-label={theme === 'dark' ? "Activer le mode clair" : "Activer le mode sombre"}
+                aria-label={theme === 'dark' ? (language === 'en' ? "Switch to light mode" : "Activer le mode clair") : (language === 'en' ? "Switch to dark mode" : "Activer le mode sombre")}
                 onClick={toggleTheme}
-                className="p-2.5 text-primary hover:text-accent transition-colors rounded-full glass-ios-pill hover:bg-white/90 ml-0.5"
-                title={theme === 'dark' ? "Passer au thème clair" : "Passer au thème sombre"}
+                className="p-2.5 text-primary hover:text-accent transition-colors rounded-full glass-ios-pill hover:bg-white/90 ml-0.5 cursor-pointer"
+                title={theme === 'dark' ? (language === 'en' ? "Switch to light mode" : "Activer le mode clair") : (language === 'en' ? "Switch to dark mode" : "Activer le mode sombre")}
               >
                 {theme === 'dark' ? <Sun size={19} className="text-amber-500" /> : <Moon size={19} />}
               </button>
               <button 
-                aria-label="Menu principal"
+                aria-label={language === 'en' ? "Main menu" : "Menu principal"}
                 onClick={() => setIsMenuOpen(true)}
-                className="p-2.5 text-primary hover:text-accent transition-colors rounded-full glass-ios-pill hover:bg-white/90 ml-0.5"
+                className="p-2.5 text-primary hover:text-accent transition-colors rounded-full glass-ios-pill hover:bg-white/90 ml-0.5 cursor-pointer"
+                title={language === 'en' ? "Main menu & categories" : "Menu principal & navigation"}
               >
                 <Menu size={19} />
               </button>
@@ -280,8 +321,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <div className="p-6 border-b border-white/10 bg-white/5 backdrop-blur-xl sticky top-0 z-10">
                 <div className="flex justify-between items-center mb-6">
-                  <h1 className="text-xl font-serif font-bold text-white">Menu & Services</h1>
+                  <h1 className="text-xl font-serif font-bold text-white">{t('common.menu')}</h1>
                   <div className="flex items-center gap-2">
+                    {/* Bouton de langue dans le menu latéral */}
+                    <button 
+                      aria-label={language === 'fr' ? "Switch to English" : "Passer en Français"}
+                      onClick={toggleLanguage}
+                      className="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 rounded-full shadow-sm text-white hover:text-accent transition-colors border border-white/15 flex items-center gap-1 text-xs font-black uppercase tracking-wider"
+                      title={language === 'fr' ? "English" : "Français"}
+                    >
+                      <Globe size={14} className="text-accent" />
+                      <span>{language === 'fr' ? 'EN' : 'FR'}</span>
+                    </button>
                     {/* Bouton de mode sombre dans le menu latéral */}
                     <button 
                       aria-label={theme === 'dark' ? "Activer le mode clair" : "Activer le mode sombre"}
@@ -380,7 +431,30 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </form>
                 </div>
 
-                <hr className="border-white/10 my-6" />
+                {/* Bannière d'appel direct dans le menu */}
+                <div className="bg-gradient-to-r from-accent/30 via-accent/20 to-amber-500/20 border border-accent/40 rounded-2xl p-4 my-3 text-white shadow-lg">
+                  <div className="flex items-center gap-3 mb-2.5">
+                    <div className="w-9 h-9 rounded-full bg-accent text-white flex items-center justify-center shrink-0 shadow-md">
+                      <Phone size={17} className="animate-pulse" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold leading-tight">Besoin d'un conseil immédiat ?</p>
+                      <p className="text-[11px] text-white/80 leading-tight">Appel vocal gratuit sans quitter le site</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      window.dispatchEvent(new CustomEvent('app:start-call'));
+                    }}
+                    className="w-full bg-accent hover:bg-accent-dark text-white text-xs font-bold py-2.5 px-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer active:scale-95"
+                  >
+                    <Phone size={13} /> Lancer l'appel gratuit
+                  </button>
+                </div>
+
+                <hr className="border-white/10 my-4" />
 
                 <p className="text-[10px] font-bold uppercase tracking-widest text-white mb-2 px-2">Outils & Services</p>
                 <div className="grid grid-cols-1 gap-2">
@@ -538,7 +612,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, user }) => {
             </div>
           </div>
           <p className="text-white/80 text-xs sm:text-sm leading-relaxed max-w-md mt-3">
-            Créer une atmosphère chaleureuse et authentique dans votre foyer avec nos laines sélectionnées et nos objets de décoration artisanaux.
+            Trouvez l'inspiration créative avec nos laines de qualité supérieure, aiguilles, crochets et accessoires d'artisanat sélectionnés avec soin.
           </p>
         </div>
 

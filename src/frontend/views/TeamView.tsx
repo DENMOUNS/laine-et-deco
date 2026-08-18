@@ -5,6 +5,7 @@ import { Button } from '../components/ui/Button';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../backend/firebase';
 import { MemberPortfolio } from '../../types';
+import { useTranslation } from '../../i18n';
 
 interface TeamViewProps {
   onNavigate?: (view: string) => void;
@@ -33,18 +34,18 @@ const DEFAULT_MEMBERS: MemberPortfolio[] = [
     certifications: []
   },
   {
-    id: 'doleres',
+    id: 'sourcing',
     profileType: 'manager',
-    name: 'Dolères',
-    role: 'Co-fondatrice & Responsable Opérationnelle',
-    bio: 'Le cœur logistique et artistique du projet. Dolères coordonne les arrivages, supervise le sourcing soigné de nos laines et objets de décoration, et veille à ce que chaque colis préparé soit un vrai cadeau.',
-    email: 'doleres@laine-deco.com',
+    name: 'L\'équipe Laine & Déco',
+    role: 'Sourcing, Logistique & Service Client',
+    bio: 'Le cœur opérationnel de notre projet. Nous coordonnons les arrivages, supervisons le sourcing soigné de nos laines nobles, de nos crochets, aiguilles et accessoires de mercerie, et veillons à ce que chaque colis préparé à Douala soit une expérience chaleureuse.',
+    email: 'contact@laine-deco.com',
     avatar: '',
     linkedin: 'https://linkedin.com',
     expertise: [
       {
         category: 'Organisation',
-        skills: [{ name: 'Logistique', iconUrl: '' }, { name: 'Sourcing', iconUrl: '' }]
+        skills: [{ name: 'Sourcing', iconUrl: '' }, { name: 'Contrôle Qualité', iconUrl: '' }, { name: 'Logistique', iconUrl: '' }]
       }
     ],
     projects: [],
@@ -55,6 +56,7 @@ const DEFAULT_MEMBERS: MemberPortfolio[] = [
 ];
 
 export const TeamView: React.FC<TeamViewProps> = ({ onNavigate }) => {
+  const { t, l, isEn } = useTranslation();
   const [teamMembers, setTeamMembers] = useState<MemberPortfolio[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -148,64 +150,81 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate }) => {
           className="inline-flex items-center gap-2 px-4 py-2 bg-accent/10 text-accent rounded-full text-xs font-bold uppercase tracking-widest mb-6"
         >
           <Heart size={14} />
-          <span>Notre Duo Fondateur</span>
+          <span>{isEn ? 'Our Founding Duo' : 'Notre Duo Fondateur'}</span>
         </motion.div>
-        <h1 className="text-5xl font-serif text-primary mb-6">Derrière chaque création</h1>
+        <h1 className="text-5xl font-serif text-primary mb-6">
+          {isEn ? 'Behind every creation' : 'Derrière chaque création'}
+        </h1>
         <p className="text-primary/70 max-w-2xl mx-auto text-lg">
-          Nous sommes un duo complémentaire, alliant technologie et gestion pour vous offrir la meilleure expérience artisanale.
+          {isEn 
+            ? 'We are a complementary duo, combining technology and management to provide you with the best craft experience.'
+            : 'Nous sommes un duo complémentaire, alliant technologie et gestion pour vous offrir la meilleure expérience artisanale.'}
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-16 max-w-4xl mx-auto">
-        {teamMembers.map((member, index) => (
-          <motion.div
-            key={member.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="group"
-          >
-            <div className="relative mb-8 aspect-[4/5] overflow-hidden rounded-[3rem] shadow-lg bg-card border border-primary/5">
-              {renderAvatar(member)}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-8">
-                <div className="flex gap-4">
-                  <a href={`mailto:${member.email}`} className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-accent transition-colors">
-                    <Mail size={18} />
-                  </a>
-                  {member.linkedin && (
-                      <a href={member.linkedin} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-accent transition-colors">
-                        <Linkedin size={18} />
-                      </a>
-                  )}
+        {teamMembers.map((member, index) => {
+          const role = isEn 
+            ? (member.id === 'landry' ? 'Co-founder & Technical Lead' : member.id === 'sourcing' ? 'Sourcing, Logistics & Customer Care' : l(member, 'role') || member.role)
+            : (l(member, 'role') || member.role);
+          const bio = isEn
+            ? (member.id === 'landry' ? "Passionate developer ensuring Laine & Déco's digital presence. Landry designs and optimizes our platform for a seamless, secure, and modern shopping experience." : member.id === 'sourcing' ? 'The operational heart of our venture. We coordinate arrivals, supervise noble wool sourcing, needles and accessories, ensuring every parcel prepared in Douala feels warm.' : l(member, 'bio') || member.bio)
+            : (l(member, 'bio') || member.bio);
+
+          return (
+            <motion.div
+              key={member.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              className="group"
+            >
+              <div className="relative mb-8 aspect-[4/5] overflow-hidden rounded-[3rem] shadow-lg bg-card border border-primary/5">
+                {renderAvatar(member)}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-8">
+                  <div className="flex gap-4">
+                    <a href={`mailto:${member.email}`} className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-accent transition-colors">
+                      <Mail size={18} />
+                    </a>
+                    {member.linkedin && (
+                        <a href={member.linkedin} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-accent transition-colors">
+                          <Linkedin size={18} />
+                        </a>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="text-center">
-              <h3 className="text-3xl font-serif text-primary mb-1">{member.name}</h3>
-              <p className="text-accent font-bold uppercase tracking-widest text-[10px] mb-6">{member.role}</p>
-              <p className="text-primary/70 text-sm leading-relaxed px-4 mb-8">
-                {member.bio}
-              </p>
-              {member.externalPortfolioUrl && member.externalPortfolioUrl !== '#' && (
-                <Button 
-                  variant="outline"
-                  onClick={() => window.open(member.externalPortfolioUrl, '_blank')}
-                  className="rounded-full px-8 hover:bg-primary hover:text-white transition-all group-hover:border-primary"
-                >
-                  Voir le portfolio
-                </Button>
-              )}
-            </div>
-          </motion.div>
-        ))}
+              <div className="text-center">
+                <h3 className="text-3xl font-serif text-primary mb-1">{member.name}</h3>
+                <p className="text-accent font-bold uppercase tracking-widest text-[10px] mb-6">{role}</p>
+                <p className="text-primary/70 text-sm leading-relaxed px-4 mb-8">
+                  {bio}
+                </p>
+                {member.externalPortfolioUrl && member.externalPortfolioUrl !== '#' && (
+                  <Button 
+                    variant="outline"
+                    onClick={() => window.open(member.externalPortfolioUrl, '_blank')}
+                    className="rounded-full px-8 hover:bg-primary hover:text-white transition-all group-hover:border-primary"
+                  >
+                    {isEn ? 'View portfolio' : 'Voir le portfolio'}
+                  </Button>
+                )}
+              </div>
+            </motion.div>
+          );
+        })}
       </div>
 
 
       <div className="mt-32 bg-secondary/30 p-12 md:p-20 rounded-[4rem] border border-primary/5 text-center">
         <Sparkles className="mx-auto text-accent mb-8" size={48} />
-        <h2 className="text-4xl font-serif text-primary mb-6">Rejoignez l'aventure</h2>
+        <h2 className="text-4xl font-serif text-primary mb-6">
+          {isEn ? 'Join the Adventure' : "Rejoignez l'aventure"}
+        </h2>
         <p className="text-primary/70 text-lg mb-10 max-w-2xl mx-auto">
-          Nous sommes toujours à la recherche de nouveaux talents et de collaborations créatives. Vous êtes passionné par l'artisanat ?
+          {isEn 
+            ? 'We are always looking for new talents and creative collaborations. Passionate about crafts?'
+            : "Nous sommes toujours à la recherche de nouveaux talents et de collaborations créatives. Vous êtes passionné par l'artisanat ?"}
         </p>
         <Button 
           variant="primary" 
@@ -213,7 +232,7 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate }) => {
           className="rounded-full px-10 py-6 text-lg font-bold"
           onClick={() => onNavigate && onNavigate('contact')}
         >
-          Contactez-nous
+          {isEn ? 'Contact Us' : 'Contactez-nous'}
         </Button>
       </div>
     </div>

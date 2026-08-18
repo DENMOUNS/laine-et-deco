@@ -3,6 +3,7 @@ import { Package, Sparkles, Heart, Star, Truck, ShieldCheck, Tag, Gift, Award } 
 import { useMarqueeService } from '../hooks/useMarqueeService';
 import { setMarqueeReady } from '../hooks/useLoadingSequence';
 import { MarqueeItem, SiteConfig } from '../../types';
+import { useTranslation } from '../../i18n';
 
 interface TopMarqueeProps {
   siteConfig?: SiteConfig;
@@ -22,6 +23,7 @@ const iconMap: Record<string, typeof Package> = {
 
 export const TopMarquee: React.FC<TopMarqueeProps> = () => {
   const { data: marqueeData, isLoading } = useMarqueeService();
+  const { l } = useTranslation();
 
   useEffect(() => {
     if (!isLoading) {
@@ -52,7 +54,7 @@ export const TopMarquee: React.FC<TopMarqueeProps> = () => {
               return (
                 <div key={`${setIndex}-${index}-${item.id || index}`} className="flex items-center gap-3">
                   <Icon size={14} className="text-secondary/70" />
-                  <span className="text-xs font-bold uppercase tracking-widest">{item.text}</span>
+                  <span className="text-xs font-bold uppercase tracking-widest">{l(item, 'text', item.text)}</span>
                 </div>
               );
             })}

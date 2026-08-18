@@ -125,7 +125,6 @@ export function getTTLForEntity(entityType: string): number {
     case 'site_logo':
     case 'site_color':
     case 'nav_item':
-    case 'hero_banner':
     case 'announcement_banner':
     case 'scrolling_banner':
       return DAY_MS;

@@ -105,10 +105,16 @@ export function AdminProductForm({ ctx }: { ctx: any }) {
                   return;
                 }
 
+                const nameEnValue = (formData.get('name_en') as string || '').trim();
+                const descriptionEnValue = (formData.get('description_en') as string || '').trim();
+                const seoTitleEnValue = (formData.get('seoTitle_en') as string || '').trim();
+                const seoDescriptionEnValue = (formData.get('seoDescription_en') as string || '').trim();
+
                 const newProduct: any = {
                   // Do not generate a client-side id for creations — let the server assign the document id.
                   id: (activeTab === 'product-edit' && editingItem?.id) ? editingItem.id : undefined,
                   name: nameValue,
+                  name_en: nameEnValue || editingItem?.name_en || '',
                   slug: finalSlug,
                   price: Number(formData.get('price')),
                   purchasePrice: Number(formData.get('purchasePrice')),
@@ -126,10 +132,13 @@ export function AdminProductForm({ ctx }: { ctx: any }) {
                   allowPreorder: formData.get('allowPreorder') === 'on',
                   incomingStock,
                   description: formData.get('description') as string,
+                  description_en: descriptionEnValue || editingItem?.description_en || '',
                   colors: editingItem?.colors || ['#FFFFFF'],
                   seo: {
                       title: formData.get('seoTitle') as string,
-                      description: formData.get('seoDescription') as string
+                      description: formData.get('seoDescription') as string,
+                      title_en: seoTitleEnValue || editingItem?.seo?.title_en || '',
+                      description_en: seoDescriptionEnValue || editingItem?.seo?.description_en || ''
                   },
                   isAvailable: editingItem?.isAvailable ?? false,
                   rating: editingItem?.rating || 5,

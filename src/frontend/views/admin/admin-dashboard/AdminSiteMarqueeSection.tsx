@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
-import { Type as TypeIcon, Plus, Trash2, Save, Loader2 } from 'lucide-react';
+import { Type as TypeIcon, Plus, Trash2, Save, Loader2, Sparkles, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 import { collection, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../../../../backend/firebase';
 import { useStaticEntity, dispatchStaticEntityUpdate } from '../../../hooks/useStaticEntity';
 import { MarqueeItem } from '../../../../types';
+import { translateContentWithAi } from '../../../utils/aiTranslator';
 
 const ICON_OPTIONS = ['Package', 'Sparkles', 'Heart', 'Star', 'Truck', 'ShieldCheck', 'Tag', 'Gift', 'Award'];
 
 export function AdminSiteMarqueeSection() {
   const { data: marqueeItems, isLoading } = useStaticEntity<MarqueeItem>('marquee_item');
   const [saving, setSaving] = useState<string | null>(null);
+  const [translatingId, setTranslatingId] = useState<string | null>(null);
   const [localItems, setLocalItems] = useState<MarqueeItem[] | null>(null);
 
   // Use local state if modified, otherwise use DB data
@@ -18,12 +20,33 @@ export function AdminSiteMarqueeSection() {
     .slice()
     .sort((a, b) => (a.order || 0) - (b.order || 0));
 
+  const handleTranslate = async (item: MarqueeItem) => {
+    if (!item.text?.trim()) {
+      toast.error('Veuillez d\'abord saisir le texte en français.');
+      return;
+    }
+    setTranslatingId(item.id);
+    try {
+      const res = await translateContentWithAi({ text: item.text }, 'en', 'fr');
+      if (res?.text) {
+        const next = items.map((i) => (i.id === item.id ? { ...i, text_en: res.text } : i));
+        setLocalItems(next);
+        toast.success('Traduction générée par l\'IA ! Pensez à enregistrer.');
+      }
+    } catch {
+      toast.error('Erreur lors de la traduction.');
+    } finally {
+      setTranslatingId(null);
+    }
+  };
+
   const handleAdd = async () => {
     try {
       setSaving('add');
       const newOrder = items.length > 0 ? Math.max(...items.map((i) => i.order || 0)) + 1 : 1;
       const newItem = {
         text: 'NOUVEAU MESSAGE',
+        text_en: 'NEW MESSAGE',
         iconName: 'Star',
         order: newOrder,
         status: 'active' as const,
@@ -92,15 +115,14 @@ export function AdminSiteMarqueeSection() {
           <div>
             <h3 className="text-xl font-serif text-primary">Barre Défilante (Haut de page)</h3>
             <p className="text-xs text-primary/60">
-              Gérez les messages qui défilent tout en haut de votre site — collection{' '}
-              <code className="bg-primary/5 px-1 rounded text-primary font-mono">marquee_item</code>
+              Gérez les messages qui défilent tout en haut de votre site (Français & Anglais)
             </p>
           </div>
         </div>
         <button
           onClick={handleAdd}
           disabled={saving === 'add'}
-          className="flex items-center gap-2 px-6 py-3 bg-primary text-secondary rounded-full font-bold uppercase tracking-widest text-xs hover:bg-accent transition-colors disabled:opacity-60"
+          className="flex items-center gap-2 px-6 py-3 bg-primary text-secondary rounded-full font-bold uppercase tracking-widest text-xs hover:bg-accent transition-colors disabled:opacity-60 cursor-pointer"
         >
           {saving === 'add' ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
           Ajouter un message
@@ -120,76 +142,103 @@ export function AdminSiteMarqueeSection() {
           {items.map((item) => (
             <div
               key={item.id}
-              className="flex gap-4 items-end bg-secondary/30 p-4 rounded-2xl border border-primary/10"
+              className="bg-secondary/30 p-5 rounded-2xl border border-primary/10 space-y-3"
             >
-              {/* Ordre */}
-              <div className="w-20 space-y-2 flex-shrink-0">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-primary/60">Ordre</label>
-                <input
-                  type="number"
-                  min={1}
-                  className="w-full px-3 py-2 bg-white border border-primary/10 rounded-xl focus:outline-none focus:border-primary text-sm"
-                  value={item.order || 0}
-                  onChange={(e) => handleChange(item.id, 'order', Number(e.target.value))}
-                />
-              </div>
+              <div className="flex flex-wrap gap-4 items-end">
+                {/* Ordre */}
+                <div className="w-16 space-y-1.5 flex-shrink-0">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-primary/60">Ordre</label>
+                  <input
+                    type="number"
+                    min={1}
+                    className="w-full px-3 py-2 bg-white border border-primary/10 rounded-xl focus:outline-none focus:border-primary text-sm font-semibold"
+                    value={item.order || 0}
+                    onChange={(e) => handleChange(item.id, 'order', Number(e.target.value))}
+                  />
+                </div>
 
-              {/* Texte */}
-              <div className="flex-1 space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-primary/60">Texte</label>
-                <input
-                  type="text"
-                  className="w-full px-4 py-2 bg-white border border-primary/10 rounded-xl focus:outline-none focus:border-primary text-sm"
-                  value={item.text}
-                  onChange={(e) => handleChange(item.id, 'text', e.target.value)}
-                />
-              </div>
+                {/* Texte FR */}
+                <div className="flex-1 min-w-[200px] space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-primary/60">Texte (FR)</label>
+                  <input
+                    type="text"
+                    className="w-full px-4 py-2 bg-white border border-primary/10 rounded-xl focus:outline-none focus:border-primary text-sm font-medium"
+                    value={item.text}
+                    onChange={(e) => handleChange(item.id, 'text', e.target.value)}
+                  />
+                </div>
 
-              {/* Icône */}
-              <div className="w-44 space-y-2 flex-shrink-0">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-primary/60">Icône</label>
-                <select
-                  className="w-full px-3 py-2 bg-white border border-primary/10 rounded-xl focus:outline-none focus:border-primary text-sm"
-                  value={item.iconName}
-                  onChange={(e) => handleChange(item.id, 'iconName', e.target.value)}
-                >
-                  {ICON_OPTIONS.map((icon) => (
-                    <option key={icon} value={icon}>{icon}</option>
-                  ))}
-                </select>
-              </div>
+                {/* Texte EN */}
+                <div className="flex-1 min-w-[200px] space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-accent flex items-center gap-1">
+                      <Globe size={11} /> Texte (EN)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => handleTranslate(item)}
+                      disabled={translatingId === item.id}
+                      className="text-[10px] font-bold text-accent hover:underline flex items-center gap-0.5 cursor-pointer"
+                    >
+                      {translatingId === item.id ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
+                      Traduire IA
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    className="w-full px-4 py-2 bg-white border border-accent/30 rounded-xl focus:outline-none focus:border-accent text-sm font-medium"
+                    value={item.text_en || ''}
+                    placeholder="English text..."
+                    onChange={(e) => handleChange(item.id, 'text_en', e.target.value)}
+                  />
+                </div>
 
-              {/* Statut */}
-              <div className="w-32 space-y-2 flex-shrink-0">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-primary/60">Statut</label>
-                <select
-                  className="w-full px-3 py-2 bg-white border border-primary/10 rounded-xl focus:outline-none focus:border-primary text-sm"
-                  value={item.status}
-                  onChange={(e) => handleChange(item.id, 'status', e.target.value as 'active' | 'inactive')}
-                >
-                  <option value="active">Actif</option>
-                  <option value="inactive">Inactif</option>
-                </select>
-              </div>
+                {/* Icône */}
+                <div className="w-36 space-y-1.5 flex-shrink-0">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-primary/60">Icône</label>
+                  <select
+                    className="w-full px-3 py-2 bg-white border border-primary/10 rounded-xl focus:outline-none focus:border-primary text-sm font-medium"
+                    value={item.iconName}
+                    onChange={(e) => handleChange(item.id, 'iconName', e.target.value)}
+                  >
+                    {ICON_OPTIONS.map((icon) => (
+                      <option key={icon} value={icon}>{icon}</option>
+                    ))}
+                  </select>
+                </div>
 
-              {/* Actions */}
-              <div className="flex gap-2 flex-shrink-0">
-                <button
-                  onClick={() => handleUpdate(item)}
-                  disabled={saving === item.id}
-                  className="p-2 text-primary bg-primary/10 hover:bg-primary/20 rounded-xl transition-colors disabled:opacity-60"
-                  title="Sauvegarder"
-                >
-                  {saving === item.id ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                </button>
-                <button
-                  onClick={() => handleDelete(item.id)}
-                  disabled={saving === item.id}
-                  className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors disabled:opacity-60"
-                  title="Supprimer"
-                >
-                  <Trash2 size={18} />
-                </button>
+                {/* Statut */}
+                <div className="w-28 space-y-1.5 flex-shrink-0">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-primary/60">Statut</label>
+                  <select
+                    className="w-full px-3 py-2 bg-white border border-primary/10 rounded-xl focus:outline-none focus:border-primary text-sm font-medium"
+                    value={item.status}
+                    onChange={(e) => handleChange(item.id, 'status', e.target.value as 'active' | 'inactive')}
+                  >
+                    <option value="active">Actif</option>
+                    <option value="inactive">Inactif</option>
+                  </select>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => handleUpdate(item)}
+                    disabled={saving === item.id}
+                    className="p-2.5 text-primary bg-primary/10 hover:bg-primary/20 rounded-xl transition-colors disabled:opacity-60 cursor-pointer"
+                    title="Sauvegarder"
+                  >
+                    {saving === item.id ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                  </button>
+                  <button
+                    onClick={() => handleDelete(item.id)}
+                    disabled={saving === item.id}
+                    className="p-2.5 text-red-500 hover:bg-red-50 rounded-xl transition-colors disabled:opacity-60 cursor-pointer"
+                    title="Supprimer"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
               </div>
             </div>
           ))}

@@ -4,29 +4,33 @@ import { Search, ChevronDown, MessageCircle, Truck, CreditCard, Package, Setting
 import { cn } from '../utils/utils';
 import { useStaticEntity } from '../hooks/useStaticEntity';
 import { FAQ } from '../../types';
-
-const CATEGORIES = [
-  { id: 'all', name: 'Toutes', icon: <HelpCircle size={20} /> },
-  { id: 'Livraison', name: 'Livraison', icon: <Truck size={20} /> },
-  { id: 'Commandes', name: 'Commandes', icon: <Package size={20} /> },
-  { id: 'Paiements', name: 'Paiements', icon: <CreditCard size={20} /> },
-  { id: 'Produits', name: 'Produits', icon: <Info size={20} /> },
-  { id: 'Sur Mesure', name: 'Sur Mesure', icon: <Settings size={20} /> },
-];
+import { useTranslation } from '../../i18n';
 
 export const FAQView: React.FC<{ onNavigate: (view: string) => void }> = ({ onNavigate }) => {
+  const { t, l, isEn } = useTranslation();
   const { data: FAQ_DATA, isLoading } = useStaticEntity<FAQ>('faq');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [openIndex, setOpenIndex] = useState<number | null>(0);
+
+  const categories = [
+    { id: 'all', name: isEn ? 'All' : 'Toutes', icon: <HelpCircle size={20} /> },
+    { id: 'Livraison', name: isEn ? 'Shipping' : 'Livraison', icon: <Truck size={20} /> },
+    { id: 'Commandes', name: isEn ? 'Orders' : 'Commandes', icon: <Package size={20} /> },
+    { id: 'Paiements', name: isEn ? 'Payments' : 'Paiements', icon: <CreditCard size={20} /> },
+    { id: 'Produits', name: isEn ? 'Products' : 'Produits', icon: <Info size={20} /> },
+    { id: 'Sur Mesure', name: isEn ? 'Bespoke' : 'Sur Mesure', icon: <Settings size={20} /> },
+  ];
 
   const normalize = (str: string) => 
     (str || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
   const allFilteredBySearch = (FAQ_DATA || []).filter(faq => {
     const searchLower = normalize(searchQuery);
-    const matchesSearch = normalize(faq.question).includes(searchLower) || 
-                         normalize(faq.answer).includes(searchLower);
+    const questionText = l(faq, 'question');
+    const answerText = l(faq, 'answer');
+    const matchesSearch = normalize(questionText).includes(searchLower) || 
+                          normalize(answerText).includes(searchLower);
     const isActive = faq.status !== 'inactive';
     return matchesSearch && isActive;
   });
@@ -50,14 +54,14 @@ export const FAQView: React.FC<{ onNavigate: (view: string) => void }> = ({ onNa
             animate={{ opacity: 1, y: 0 }}
             className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 leading-tight"
           >
-            Comment pouvons-nous vous aider ?
+            {isEn ? 'How can we help you?' : 'Comment pouvons-nous vous aider ?'}
           </motion.h1>
           
           <div className="relative max-w-2xl mx-auto px-2">
             <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-primary/70" size={20} />
             <input 
               type="text"
-              placeholder="Rechercher une question..."
+              placeholder={isEn ? 'Search a question...' : 'Rechercher une question...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-12 pr-6 py-4 md:py-5 rounded-3xl bg-white text-primary placeholder:text-primary/70 shadow-2xl shadow-primary/20 outline-none focus:ring-4 focus:ring-accent/20 transition-all text-base md:text-lg"
@@ -71,11 +75,13 @@ export const FAQView: React.FC<{ onNavigate: (view: string) => void }> = ({ onNa
           {/* Categories Sidebar */}
           <div className="w-full lg:w-1/4">
             <div className="lg:sticky lg:top-24 space-y-4">
-              <h2 className="text-sm font-bold uppercase tracking-widest text-primary/70 px-1 lg:px-4 mb-1 lg:mb-4">Catégories</h2>
+              <h2 className="text-sm font-bold uppercase tracking-widest text-primary/70 px-1 lg:px-4 mb-1 lg:mb-4">
+                {isEn ? 'Categories' : 'Catégories'}
+              </h2>
               
               {/* Horizontal scroll list on mobile/tablet, vertical stack on desktop */}
               <div className="flex overflow-x-auto lg:flex-col gap-2 pb-4 lg:pb-0 -mx-4 px-4 lg:mx-0 lg:px-0 flex-nowrap scrollbar-none">
-                {CATEGORIES.map((cat) => (
+                {categories.map((cat) => (
                   <button
                     key={cat.id}
                     onClick={() => setActiveCategory(cat.id)}
@@ -99,13 +105,17 @@ export const FAQView: React.FC<{ onNavigate: (view: string) => void }> = ({ onNa
 
               <div className="hidden lg:block mt-12 p-6 bg-accent/5 rounded-3xl border border-accent/10">
                 <MessageCircle className="text-accent mb-4" size={32} />
-                <h3 className="font-bold text-primary mb-2">Pas de réponse ?</h3>
-                <p className="text-xs text-primary/70 mb-4 leading-relaxed">Notre équipe est là pour vous répondre 24h/24 sur WhatsApp.</p>
+                <h3 className="font-bold text-primary mb-2">{isEn ? 'No Answer?' : 'Pas de réponse ?'}</h3>
+                <p className="text-xs text-primary/70 mb-4 leading-relaxed">
+                  {isEn 
+                    ? 'Our team is here to answer your questions 24/7 on WhatsApp.' 
+                    : 'Notre équipe est là pour vous répondre 24h/24 sur WhatsApp.'}
+                </p>
                 <button 
                   onClick={() => onNavigate('contact')}
                   className="w-full bg-accent text-white py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:shadow-lg transition-all"
                 >
-                  Contactez-nous
+                  {isEn ? 'Contact Us' : 'Contactez-nous'}
                 </button>
               </div>
             </div>
@@ -126,8 +136,12 @@ export const FAQView: React.FC<{ onNavigate: (view: string) => void }> = ({ onNa
                       className="w-full flex items-center justify-between p-5 md:p-8 text-left hover:bg-slate-50 transition-colors"
                     >
                       <div className="pr-4">
-                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent mb-1 md:mb-2 block">{faq.category}</span>
-                        <h3 className="text-base sm:text-lg md:text-xl font-serif text-primary leading-tight">{faq.question}</h3>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent mb-1 md:mb-2 block">
+                          {isEn 
+                            ? (faq.category === 'Livraison' ? 'Shipping' : faq.category === 'Commandes' ? 'Orders' : faq.category === 'Paiements' ? 'Payments' : faq.category === 'Produits' ? 'Products' : faq.category === 'Sur Mesure' ? 'Bespoke' : faq.category)
+                            : faq.category}
+                        </span>
+                        <h3 className="text-base sm:text-lg md:text-xl font-serif text-primary leading-tight">{l(faq, 'question')}</h3>
                       </div>
                       <div className={cn(
                         "w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all shrink-0",
@@ -146,7 +160,7 @@ export const FAQView: React.FC<{ onNavigate: (view: string) => void }> = ({ onNa
                           transition={{ duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] }}
                         >
                           <div className="px-5 pb-5 pt-4 md:px-8 md:pb-8 md:pt-6 text-primary/80 leading-relaxed border-t border-primary/5 text-sm sm:text-base md:text-lg">
-                            {faq.answer}
+                            {l(faq, 'answer')}
                           </div>
                         </motion.div>
                       )}
@@ -158,15 +172,19 @@ export const FAQView: React.FC<{ onNavigate: (view: string) => void }> = ({ onNa
                   <div className="bg-accent/5 w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center mx-auto mb-6">
                     <Info className="text-accent" size={28} />
                   </div>
-                  <h3 className="text-xl md:text-2xl font-serif text-primary">Résultats trouvés ailleurs</h3>
+                  <h3 className="text-xl md:text-2xl font-serif text-primary">
+                    {isEn ? 'Results found elsewhere' : 'Résultats trouvés ailleurs'}
+                  </h3>
                   <p className="text-primary/70 mt-2 max-w-sm mx-auto text-sm md:text-base">
-                    Nous avons trouvé {allFilteredBySearch.length} résultat(s) pour "{searchQuery}" mais dans d'autres catégories.
+                    {isEn 
+                      ? `We found ${allFilteredBySearch.length} result(s) for "${searchQuery}" in other categories.`
+                      : `Nous avons trouvé ${allFilteredBySearch.length} résultat(s) pour "${searchQuery}" mais dans d'autres catégories.`}
                   </p>
                   <button 
                     onClick={() => setActiveCategory('all')}
                     className="mt-6 md:mt-8 bg-primary text-white px-6 md:px-8 py-3 rounded-2xl font-bold hover:shadow-lg transition-all text-sm md:text-base"
                   >
-                    Voir tous les résultats
+                    {isEn ? 'View all results' : 'Voir tous les résultats'}
                   </button>
                 </div>
               ) : (
@@ -174,13 +192,19 @@ export const FAQView: React.FC<{ onNavigate: (view: string) => void }> = ({ onNa
                   <div className="bg-primary/5 w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center mx-auto mb-6">
                     <Search className="text-primary/70" size={28} />
                   </div>
-                  <h3 className="text-xl md:text-2xl font-serif text-primary/70">Aucun résultat trouvé</h3>
-                  <p className="text-primary/70 mt-2 text-sm md:text-base">Essayez avec d'autres mots-clés ou une autre catégorie.</p>
+                  <h3 className="text-xl md:text-2xl font-serif text-primary/70">
+                    {isEn ? 'No results found' : 'Aucun résultat trouvé'}
+                  </h3>
+                  <p className="text-primary/70 mt-2 text-sm md:text-base">
+                    {isEn 
+                      ? 'Try different keywords or another category.' 
+                      : "Essayez avec d'autres mots-clés ou une autre catégorie."}
+                  </p>
                   <button 
                     onClick={() => { setSearchQuery(''); setActiveCategory('all'); }}
                     className="mt-6 md:mt-8 text-accent font-bold underline text-sm md:text-base"
                   >
-                    Réinitialiser les filtres
+                    {isEn ? 'Reset filters' : 'Réinitialiser les filtres'}
                   </button>
                 </div>
               )}
@@ -189,14 +213,20 @@ export const FAQView: React.FC<{ onNavigate: (view: string) => void }> = ({ onNa
             {/* Bottom CTA */}
             <div className="mt-12 md:mt-16 bg-[#3E4A3D] dark:bg-[#1A1D1A] border border-white/5 rounded-[2rem] md:rounded-[3rem] p-6 sm:p-8 md:p-12 text-white relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl">
               <div className="relative z-10 text-center md:text-left">
-                <h2 className="text-xl sm:text-2xl md:text-3xl font-serif mb-4">Besoin d'un accompagnement personnalisé ?</h2>
-                <p className="text-white/80 mb-6 md:mb-8 max-w-lg text-sm sm:text-base">Nos experts sont disponibles pour vous guider dans vos projets sur mesure ou vos choix de décoration.</p>
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-serif mb-4">
+                  {isEn ? 'Need personalized assistance?' : "Besoin d'un accompagnement personnalisé ?"}
+                </h2>
+                <p className="text-white/80 mb-6 md:mb-8 max-w-lg text-sm sm:text-base">
+                  {isEn 
+                    ? 'Our experts are available to guide you through bespoke projects, choice of yarns, needles, crochets or models.'
+                    : "Nos experts sont disponibles pour vous guider dans vos projets sur mesure, vos choix de laines, d'aiguilles, de crochets ou de modèles."}
+                </p>
                 <div className="flex flex-wrap gap-4 justify-center md:justify-start">
                   <button onClick={() => onNavigate('contact')} className="bg-[#E2C29B] text-[#111311] hover:bg-white hover:text-[#111311] px-6 sm:px-8 py-3 sm:py-4 rounded-2xl font-bold hover:shadow-xl transition-all flex items-center gap-2 text-sm sm:text-base">
-                    Nous écrire <ChevronRight size={18} />
+                    {isEn ? 'Message Us' : 'Nous écrire'} <ChevronRight size={18} />
                   </button>
                   <button onClick={() => onNavigate('shop')} className="bg-white/10 hover:bg-white/20 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-2xl font-bold transition-all text-sm sm:text-base">
-                    Voir la boutique
+                    {isEn ? 'Explore Shop' : 'Voir la boutique'}
                   </button>
                 </div>
               </div>

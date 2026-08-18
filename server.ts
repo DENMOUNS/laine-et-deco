@@ -233,6 +233,53 @@ async function startServer() {
     }
   });
 
+  const translateSchema = z.object({
+    texts: z.record(z.string(), z.string().max(20000)),
+    targetLang: z.enum(['en', 'fr']).default('en'),
+    context: z.string().max(500).optional(),
+  });
+
+  app.post("/api/translate", async (req, res) => {
+    try {
+      if (!ai) return res.status(500).json({ error: "Gemini API key is missing on the server." });
+
+      const parsedData = translateSchema.parse(req.body);
+      const targetLanguageName = parsedData.targetLang === 'en' ? 'English (fluent and natural for e-commerce)' : 'Français';
+      
+      const prompt = `You are a professional luxury translator specializing in knitting, yarns, crochet, haberdashery, and artisan home decor for "Laine & Déco".
+Translate the given JSON key-value map from ${parsedData.targetLang === 'en' ? 'French' : 'English'} into ${targetLanguageName}.
+Context: ${parsedData.context || 'E-commerce products, categories, blog posts, craft descriptions, and user interface'}.
+
+Rules:
+1. Return ONLY a valid JSON object with the exact same keys as the input.
+2. Maintain brand names ("Laine & Déco", "Katia", "DMC", etc.) and numeric units (e.g. 50g, 100m, 4mm, FCFA).
+3. Translate accurately with idiomatic, elegant tone suitable for luxury knitting & decoration.
+
+Input JSON:
+${JSON.stringify(parsedData.texts, null, 2)}`;
+
+      const { response } = await generateWithModelFallback(prompt, {
+        responseMimeType: "application/json",
+      });
+
+      let parsedTranslations = {};
+      try {
+        parsedTranslations = JSON.parse(response.text || '{}');
+      } catch {
+        // Fallback cleanup if response has markdown fences
+        const cleanJson = (response.text || '{}').replace(/```json|```/g, '').trim();
+        parsedTranslations = JSON.parse(cleanJson);
+      }
+
+      res.json({ translations: parsedTranslations });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input data", details: error.issues });
+      }
+      res.status(500).json({ error: error.message || 'Translation failed' });
+    }
+  });
+
   // --- Vite Middleware (Development) or Static Serve (Production) ---
   if (useViteDevServer) {
     const vite = await createViteServer({

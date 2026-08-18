@@ -21,6 +21,7 @@ import { where } from 'firebase/firestore';
 import { User as FirebaseUser, signOut } from 'firebase/auth';
 import { auth } from '../../backend/firebase';
 import { toast } from 'sonner';
+import { useTranslation } from '../../i18n';
 
 import { DashboardSidebar } from '../components/dashboard/DashboardSidebar';
 import { DashboardOverview } from '../components/dashboard/DashboardOverview';
@@ -41,6 +42,7 @@ interface CustomerDashboardProps {
 }
 
 export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, onNavigate, initialTab = 'overview' }) => {
+  const { t, l, isEn } = useTranslation();
   const [activeTab, setActiveTab] = useState(initialTab);
   const [orderFilter, setOrderFilter] = useState('all');
   const [projectFilter, setProjectFilter] = useState('all');
@@ -84,7 +86,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, onNa
 
   const handleRedeemPoints = async (cost: number, rewardId: string) => {
     if (userProfile.points < cost) {
-      toast.error('Points insuffisants');
+      toast.error(isEn ? 'Insufficient points' : 'Points insuffisants');
       return;
     }
 
@@ -105,7 +107,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, onNa
       } else if (rewardId === 'mega-reward') {
         reward = { type: 'fixed', discount: 15000, freeShipping: true };
       } else {
-        toast.error('Récompense inconnue');
+        toast.error(isEn ? 'Unknown reward' : 'Récompense inconnue');
         return;
       }
 
@@ -122,9 +124,9 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, onNa
       };
 
       await addCoupon(newCoupon);
-      toast.success(`Récompense échangée ! Votre code : ${code}. Il est disponible uniquement pour votre compte.`);
+      toast.success(isEn ? `Reward redeemed! Your code: ${code}. It is only available for your account.` : `Récompense échangée ! Votre code : ${code}. Il est disponible uniquement pour votre compte.`);
     } catch (err) {
-      toast.error("Erreur lors de l'échange");
+      toast.error(isEn ? 'Error during redemption' : "Erreur lors de l'échange");
     }
   };
 
@@ -147,7 +149,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, onNa
     };
 
     await addRMA(newRMA);
-    toast.success('Demande de retour enregistrée. Notre équipe va examiner la photo du produit.');
+    toast.success(isEn ? 'Return request submitted. Our team will review the product photo.' : 'Demande de retour enregistrée. Notre équipe va examiner la photo du produit.');
   };
 
   const dashboardUser: User = {
@@ -164,9 +166,9 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, onNa
     try {
       await signOut(auth);
       onNavigate('home');
-      toast.success('Déconnexion réussie');
+      toast.success(isEn ? 'Logged out successfully' : 'Déconnexion réussie');
     } catch (err) {
-      toast.error('Erreur lors de la déconnexion');
+      toast.error(isEn ? 'Error logging out' : 'Erreur lors de la déconnexion');
     }
   };
 
@@ -174,7 +176,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, onNa
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <Loader text="Vérification de l'authentification..." />
+          <Loader text={isEn ? 'Verifying authentication...' : "Vérification de l'authentification..."} />
         </div>
       </div>
     );
@@ -183,7 +185,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, onNa
   const isDataLoading = isOrdersLoading || isProjectsLoading || isLogsLoading || isProfileLoading;
 
   const renderContent = () => {
-    if (isDataLoading) return <Loader fullScreen text="Chargement de vos données..." />;
+    if (isDataLoading) return <Loader fullScreen text={isEn ? 'Loading your data...' : "Chargement de vos données..."} />;
 
     switch (activeTab) {
       case 'overview':
@@ -223,9 +225,9 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, onNa
             onUpdateUser={async (data) => {
               try {
                 await updateProfile(userProfile.id, data);
-                toast.success('Profil mis à jour');
+                toast.success(isEn ? 'Profile updated' : 'Profil mis à jour');
               } catch {
-                toast.error('Impossible de mettre à jour le profil');
+                toast.error(isEn ? 'Unable to update profile' : 'Impossible de mettre à jour le profil');
               }
             }}
           />
@@ -286,11 +288,11 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, onNa
 
             <nav className="bg-card p-4 rounded-[3rem] shadow-sm border border-primary/5 space-y-1">
               {[
-                { id: 'overview', label: 'Tableau de bord', icon: <TrendingUp size={20} /> },
-                { id: 'orders', label: 'Mes Commandes', icon: <Package size={20} /> },
-                { id: 'projects', label: 'Compagnon Tricot', icon: <Scissors size={20} /> },
-                { id: 'profile', label: 'Profil & Sécurité', icon: <Settings size={20} /> },
-                { id: 'tools', label: 'Outils Créatifs', icon: <MessageSquare size={20} /> },
+                { id: 'overview', label: isEn ? 'Dashboard' : 'Tableau de bord', icon: <TrendingUp size={20} /> },
+                { id: 'orders', label: isEn ? 'My Orders' : 'Mes Commandes', icon: <Package size={20} /> },
+                { id: 'projects', label: isEn ? 'Knitting Companion' : 'Compagnon Tricot', icon: <Scissors size={20} /> },
+                { id: 'profile', label: isEn ? 'Profile & Security' : 'Profil & Sécurité', icon: <Settings size={20} /> },
+                { id: 'tools', label: isEn ? 'Creative Tools' : 'Outils Créatifs', icon: <MessageSquare size={20} /> },
               ].map((item) => (
                 <button
                   key={item.id}
@@ -311,7 +313,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, onNa
                   className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-sm font-bold text-red-500 hover:bg-red-50 transition-all"
                 >
                   <LogOut size={20} />
-                  Déconnexion
+                  {isEn ? 'Log Out' : 'Déconnexion'}
                 </button>
               </div>
             </nav>

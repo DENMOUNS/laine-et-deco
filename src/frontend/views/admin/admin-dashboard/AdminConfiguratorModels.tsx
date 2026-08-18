@@ -1,9 +1,24 @@
 import React, { useRef, useState } from 'react';
-import { ImagePlus, Trash2, Settings2 } from 'lucide-react';
+import { ImagePlus, Trash2, Settings2, Sparkles, Globe, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEntity } from '../../../hooks/useEntity';
+import { translateContentWithAi } from '../../../utils/aiTranslator';
+import { BaseEntity } from '../../../../domain/entities/BaseEntity';
 
-interface ConfiguratorModel { id: string; name: string; type: string; image: string; svg?: string; characteristics?: string[]; active?: boolean; createdAt?: string; updatedAt?: string; }
+interface ConfiguratorModel extends BaseEntity { 
+  id: string; 
+  name: string; 
+  name_en?: string;
+  type: string; 
+  image: string; 
+  svg?: string; 
+  characteristics?: string[]; 
+  characteristics_en?: string[];
+  active?: boolean; 
+  createdAt?: string; 
+  updatedAt?: string; 
+}
+
 const readFile = (file: File) => new Promise<string>((resolve, reject) => {
   const reader = new FileReader();
   reader.onload = () => {
@@ -16,11 +31,173 @@ const readFile = (file: File) => new Promise<string>((resolve, reject) => {
 
 export const AdminConfiguratorModels: React.FC = () => {
   const { data: models, addEntity, deleteEntity } = useEntity<ConfiguratorModel>('configurator_model');
-  const imageRef = useRef<HTMLInputElement>(null); const svgRef = useRef<HTMLInputElement>(null);
-  const [name, setName] = useState(''); const [type, setType] = useState('Pull / Chandail'); const [characteristics, setCharacteristics] = useState(''); const [saving, setSaving] = useState(false);
-  const addModel = async (event: React.FormEvent) => { event.preventDefault(); const image = imageRef.current?.files?.[0]; const svg = svgRef.current?.files?.[0]; if (!name.trim() || !image) { toast.error('Le nom et l’image sont obligatoires.'); return; } setSaving(true); try { await addEntity({ name: name.trim(), type, image: await readFile(image), svg: svg ? await readFile(svg) : undefined, characteristics: characteristics.split('\n').map((item) => item.trim()).filter(Boolean), active: true }); setName(''); setCharacteristics(''); if (imageRef.current) imageRef.current.value = ''; if (svgRef.current) svgRef.current.value = ''; toast.success('Modèle de configurateur enregistré.'); } catch (error) { toast.error(error instanceof Error ? error.message : 'Enregistrement impossible.'); } finally { setSaving(false); } };
-  return <div className="space-y-8"><header><div className="flex items-center gap-3"><Settings2 className="text-accent" /><h1 className="text-3xl font-serif font-bold text-primary">Modèles du configurateur</h1></div><p className="mt-2 text-primary/60">Chaque modèle possède son ouvrage, son image, une représentation SVG et ses caractéristiques. Le client choisira ensuite une laine et une couleur du catalogue.</p></header>
-    <form onSubmit={addModel} className="grid gap-4 rounded-3xl border border-primary/10 bg-white p-6 md:grid-cols-2"><label className="text-xs font-bold uppercase tracking-widest text-primary/60">Nom<input value={name} onChange={(event) => setName(event.target.value)} className="mt-2 w-full rounded-xl border border-primary/10 px-4 py-3" placeholder="Ex. Gilet torsadé" /></label><label className="text-xs font-bold uppercase tracking-widest text-primary/60">Type<select value={type} onChange={(event) => setType(event.target.value)} className="mt-2 w-full rounded-xl border border-primary/10 px-4 py-3"><option>Pull / Chandail</option><option>Gilet (Cardigan)</option><option>Écharpe</option><option>Bonnet</option><option>Robe</option><option>Couverture</option><option>Autre</option></select></label><label className="text-xs font-bold uppercase tracking-widest text-primary/60">Image de l’ouvrage<input ref={imageRef} type="file" accept="image/*" className="mt-2 block w-full rounded-xl border border-primary/10 px-4 py-2.5" /></label><label className="text-xs font-bold uppercase tracking-widest text-primary/60">Fichier SVG optionnel<input ref={svgRef} type="file" accept=".svg,image/svg+xml" className="mt-2 block w-full rounded-xl border border-primary/10 px-4 py-2.5" /></label><label className="text-xs font-bold uppercase tracking-widest text-primary/60 md:col-span-2">Caractéristiques, une par ligne<textarea value={characteristics} onChange={(event) => setCharacteristics(event.target.value)} rows={4} className="mt-2 w-full rounded-xl border border-primary/10 px-4 py-3" placeholder="Niveau intermédiaire\nManches longues\nConstruction en pièces" /></label><button type="submit" disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 font-bold text-white disabled:opacity-50 md:col-span-2"><ImagePlus size={17} />{saving ? 'Enregistrement…' : 'Ajouter le modèle'}</button></form>
-    <div className="grid gap-6 md:grid-cols-2">{models.map((model) => <article key={model.id} className="overflow-hidden rounded-3xl border border-primary/10 bg-white shadow-sm"><img src={model.image} alt={model.name} className="h-64 w-full bg-[#F9F7F2] object-contain" /><div className="p-5"><div className="flex items-start justify-between gap-4"><div><h2 className="text-xl font-serif text-primary">{model.name}</h2><p className="mt-1 text-xs uppercase tracking-widest text-primary/50">{model.type} · {model.svg ? 'SVG inclus' : 'Sans SVG'}</p></div><button type="button" onClick={() => void deleteEntity(model.id)} className="rounded-full p-2 text-red-500 hover:bg-red-50" aria-label={`Supprimer ${model.name}`}><Trash2 size={17} /></button></div><ul className="mt-4 space-y-1 text-sm text-primary/70">{(model.characteristics || []).map((item, index) => <li key={`${item}-${index}`}>• {item}</li>)}</ul></div></article>)}</div>
-  </div>;
+  const imageRef = useRef<HTMLInputElement>(null); 
+  const svgRef = useRef<HTMLInputElement>(null);
+  const [name, setName] = useState(''); 
+  const [nameEn, setNameEn] = useState('');
+  const [type, setType] = useState('Pull / Chandail'); 
+  const [characteristics, setCharacteristics] = useState(''); 
+  const [characteristicsEn, setCharacteristicsEn] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [translating, setTranslating] = useState(false);
+
+  const handleTranslate = async () => {
+    if (!name.trim() && !characteristics.trim()) {
+      toast.error('Indiquez au moins le nom ou les caractéristiques en français.');
+      return;
+    }
+    setTranslating(true);
+    try {
+      const res = await translateContentWithAi({
+        name: name.trim(),
+        characteristics: characteristics.trim()
+      }, 'en', 'fr');
+      if (res?.name) setNameEn(res.name);
+      if (res?.characteristics) setCharacteristicsEn(res.characteristics);
+      toast.success('Traduction générée par l\'IA !');
+    } catch {
+      toast.error('Erreur lors de la traduction.');
+    } finally {
+      setTranslating(false);
+    }
+  };
+
+  const addModel = async (event: React.FormEvent) => { 
+    event.preventDefault(); 
+    const image = imageRef.current?.files?.[0]; 
+    const svg = svgRef.current?.files?.[0]; 
+    if (!name.trim() || !image) { 
+      toast.error('Le nom et l’image sont obligatoires.'); 
+      return; 
+    } 
+    setSaving(true); 
+    try { 
+      const now = new Date().toISOString();
+      await addEntity({ 
+        name: name.trim(), 
+        name_en: nameEn.trim() || undefined,
+        type, 
+        image: await readFile(image), 
+        svg: svg ? await readFile(svg) : undefined, 
+        characteristics: characteristics.split('\n').map((item) => item.trim()).filter(Boolean), 
+        characteristics_en: characteristicsEn.split('\n').map((item) => item.trim()).filter(Boolean),
+        active: true
+      }); 
+      setName(''); 
+      setNameEn('');
+      setCharacteristics(''); 
+      setCharacteristicsEn('');
+      if (imageRef.current) imageRef.current.value = ''; 
+      if (svgRef.current) svgRef.current.value = ''; 
+      toast.success('Modèle de configurateur enregistré.'); 
+    } catch (error) { 
+      toast.error(error instanceof Error ? error.message : 'Enregistrement impossible.'); 
+    } finally { 
+      setSaving(false); 
+    } 
+  };
+
+  return (
+    <div className="space-y-8">
+      <header>
+        <div className="flex items-center gap-3">
+          <Settings2 className="text-accent" />
+          <h1 className="text-3xl font-serif font-bold text-primary">Modèles du configurateur</h1>
+        </div>
+        <p className="mt-2 text-primary/60">Chaque modèle possède son ouvrage, son image, une représentation SVG et ses caractéristiques. Le client choisira ensuite une laine et une couleur du catalogue.</p>
+      </header>
+
+      <form onSubmit={addModel} className="grid gap-6 rounded-3xl border border-primary/10 bg-white p-6 md:grid-cols-2">
+        <div className="md:col-span-2 flex items-center justify-between bg-accent/5 p-4 rounded-2xl border border-accent/20">
+          <div className="flex items-center gap-2">
+            <Globe size={18} className="text-accent" />
+            <span className="text-sm font-bold">Traduction multilingue automatique (FR &rarr; EN)</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleTranslate}
+            disabled={translating}
+            className="px-4 py-2 bg-accent text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md hover:bg-accent/90 transition-all cursor-pointer"
+          >
+            {translating ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+            {translating ? 'Traduction en cours...' : 'Traduire en Anglais'}
+          </button>
+        </div>
+
+        <label className="text-xs font-bold uppercase tracking-widest text-primary/60">
+          Nom (Français) *
+          <input value={name} onChange={(event) => setName(event.target.value)} className="mt-2 w-full rounded-xl border border-primary/10 px-4 py-3 font-medium" placeholder="Ex. Gilet torsadé" required />
+        </label>
+
+        <label className="text-xs font-bold uppercase tracking-widest text-accent">
+          Nom (Anglais)
+          <input value={nameEn} onChange={(event) => setNameEn(event.target.value)} className="mt-2 w-full rounded-xl border border-accent/30 px-4 py-3 font-medium focus:outline-none focus:border-accent" placeholder="Ex. Cable-Knit Cardigan" />
+        </label>
+
+        <label className="text-xs font-bold uppercase tracking-widest text-primary/60">
+          Type
+          <select value={type} onChange={(event) => setType(event.target.value)} className="mt-2 w-full rounded-xl border border-primary/10 px-4 py-3">
+            <option>Pull / Chandail</option>
+            <option>Gilet (Cardigan)</option>
+            <option>Écharpe</option>
+            <option>Bonnet</option>
+            <option>Robe</option>
+            <option>Couverture</option>
+            <option>Autre</option>
+          </select>
+        </label>
+
+        <div className="grid grid-cols-2 gap-4">
+          <label className="text-xs font-bold uppercase tracking-widest text-primary/60">
+            Image de l’ouvrage *
+            <input ref={imageRef} type="file" accept="image/*" className="mt-2 block w-full rounded-xl border border-primary/10 px-4 py-2 text-xs" required />
+          </label>
+          <label className="text-xs font-bold uppercase tracking-widest text-primary/60">
+            Fichier SVG optionnel
+            <input ref={svgRef} type="file" accept=".svg,image/svg+xml" className="mt-2 block w-full rounded-xl border border-primary/10 px-4 py-2 text-xs" />
+          </label>
+        </div>
+
+        <label className="text-xs font-bold uppercase tracking-widest text-primary/60">
+          Caractéristiques (Français, une par ligne)
+          <textarea value={characteristics} onChange={(event) => setCharacteristics(event.target.value)} rows={4} className="mt-2 w-full rounded-xl border border-primary/10 px-4 py-3 font-medium text-sm" placeholder="Niveau intermédiaire&#10;Manches longues&#10;Construction en pièces" />
+        </label>
+
+        <label className="text-xs font-bold uppercase tracking-widest text-accent">
+          Caractéristiques (Anglais, une par ligne)
+          <textarea value={characteristicsEn} onChange={(event) => setCharacteristicsEn(event.target.value)} rows={4} className="mt-2 w-full rounded-xl border border-accent/30 px-4 py-3 font-medium text-sm focus:outline-none focus:border-accent" placeholder="Intermediate level&#10;Long sleeves&#10;Piece construction" />
+        </label>
+
+        <button type="submit" disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 font-bold text-white disabled:opacity-50 md:col-span-2 cursor-pointer">
+          <ImagePlus size={17} />
+          {saving ? 'Enregistrement…' : 'Ajouter le modèle'}
+        </button>
+      </form>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        {models.map((model) => (
+          <article key={model.id} className="overflow-hidden rounded-3xl border border-primary/10 bg-white shadow-sm">
+            <img src={model.image} alt={model.name} className="h-64 w-full bg-[#F9F7F2] object-contain" />
+            <div className="p-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-serif text-primary">{model.name}</h2>
+                  {model.name_en && <p className="text-xs text-accent font-medium mt-0.5">EN: {model.name_en}</p>}
+                  <p className="mt-1 text-xs uppercase tracking-widest text-primary/50">{model.type} · {model.svg ? 'SVG inclus' : 'Sans SVG'}</p>
+                </div>
+                <button type="button" onClick={() => void deleteEntity(model.id)} className="rounded-full p-2 text-red-500 hover:bg-red-50 cursor-pointer" aria-label={`Supprimer ${model.name}`}>
+                  <Trash2 size={17} />
+                </button>
+              </div>
+              <ul className="mt-4 space-y-1 text-sm text-primary/70">
+                {(model.characteristics || []).map((item, index) => (
+                  <li key={`${item}-${index}`}>• {item}</li>
+                ))}
+              </ul>
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
 };

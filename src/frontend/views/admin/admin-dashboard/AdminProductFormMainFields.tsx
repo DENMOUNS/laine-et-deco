@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, Legend } from 'recharts';
-import { LayoutDashboard, Package, ShoppingBag, Users, BarChart3, Settings, LogOut, TrendingUp, ArrowUpRight, ArrowDownRight, Search, Bell, Plus, Menu, X, History, Coins, Globe, Shield, Activity, Smartphone, Monitor, Star, CheckCircle2, AlertCircle, MessageSquare, Palette, Award, Download, FileText, Send, Table as TableIcon, Ticket, Lock, Eye, MousePointer2, Calendar as CalendarIcon, Image as ImageIcon, Type as TypeIcon, MonitorOff, Info, User, Edit, Trash2, ShoppingCart, RefreshCcw, Tag, Mail, Percent, Truck, ChevronLeft, MapPin, Route, QrCode, Save, HelpCircle, Phone } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, Users, BarChart3, Settings, LogOut, TrendingUp, ArrowUpRight, ArrowDownRight, Search, Bell, Plus, Menu, X, History, Coins, Globe, Shield, Activity, Smartphone, Monitor, Star, CheckCircle2, AlertCircle, MessageSquare, Palette, Award, Download, FileText, Send, Table as TableIcon, Ticket, Lock, Eye, MousePointer2, Calendar as CalendarIcon, Image as ImageIcon, Type as TypeIcon, MonitorOff, Info, User, Edit, Trash2, ShoppingCart, RefreshCcw, Tag, Mail, Percent, Truck, ChevronLeft, MapPin, Route, QrCode, Save, HelpCircle, Phone, Sparkles } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
 import { doc, updateDoc, increment, query, where, getDoc, writeBatch, addDoc } from 'firebase/firestore';
@@ -18,6 +18,7 @@ import { FAQEditor } from '../../../components/dashboard/FAQEditor';
 import { PromoEventEditor } from '../../../components/dashboard/PromoEventEditor';
 import { CatalogPriceRuleEditor } from '../../../components/dashboard/CatalogPriceRuleEditor';
 import { cn } from '../../../utils/utils';
+import { translateContentWithAi } from '../../../utils/aiTranslator';
 
 import { AdminFlashSales } from '../AdminFlashSales';
 import { AdminLookbooks } from '../AdminLookbooks';
@@ -28,25 +29,85 @@ export function AdminProductFormMainFields({ ctx }: { ctx: any }) {
   const [showBulkSpecsModal, setShowBulkSpecsModal] = React.useState(false);
   const [bulkSpecsText, setBulkSpecsText] = React.useState('');
   const [arrivalDraftId] = React.useState(() => `arrival-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+  
+  // Translation state
+  const [isTranslating, setIsTranslating] = React.useState(false);
+  const [nameFr, setNameFr] = React.useState(editingItem?.name || '');
+  const [nameEn, setNameEn] = React.useState(editingItem?.name_en || '');
+  const [descEn, setDescEn] = React.useState(editingItem?.description_en || '');
+  const [seoTitleEn, setSeoTitleEn] = React.useState(editingItem?.seo?.title_en || '');
+  const [seoDescEn, setSeoDescEn] = React.useState(editingItem?.seo?.description_en || '');
+
+  const handleAiTranslate = async () => {
+    // Get current form values
+    const form = document.getElementById('product-form') as HTMLFormElement | null;
+    const currentName = (form?.elements.namedItem('name') as HTMLInputElement)?.value || nameFr || editingItem?.name;
+    const currentDesc = (form?.elements.namedItem('description') as HTMLInputElement)?.value || editingItem?.description;
+    const currentSeoTitle = (form?.elements.namedItem('seoTitle') as HTMLInputElement)?.value || editingItem?.seo?.title;
+    const currentSeoDesc = (form?.elements.namedItem('seoDescription') as HTMLTextAreaElement)?.value || editingItem?.seo?.description;
+
+    if (!currentName && !currentDesc) {
+      toast.error('Veuillez renseigner au moins le nom ou la description en français pour traduire.');
+      return;
+    }
+
+    setIsTranslating(true);
+    try {
+      const payloadToTranslate: Record<string, string> = {};
+      if (currentName) payloadToTranslate.name = currentName;
+      if (currentDesc) payloadToTranslate.description = currentDesc;
+      if (currentSeoTitle) payloadToTranslate.seoTitle = currentSeoTitle;
+      if (currentSeoDesc) payloadToTranslate.seoDesc = currentSeoDesc;
+
+      const result = await translateContentWithAi(payloadToTranslate, 'en', 'fr');
+      if (result) {
+        if (result.name) setNameEn(result.name);
+        if (result.description) setDescEn(result.description);
+        if (result.seoTitle) setSeoTitleEn(result.seoTitle);
+        if (result.seoDesc) setSeoDescEn(result.seoDesc);
+        toast.success('Traduction en anglais générée avec succès par l\'IA ! Vous pouvez l\'ajuster.');
+      } else {
+        toast.error('Impossible de générer la traduction.');
+      }
+    } catch (err: any) {
+      toast.error('Erreur lors de la traduction automatique.');
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
   return (
     <>
               {/* Main Content */}
               <div className="lg:col-span-2 space-y-8">
                 <div className="bg-card p-8 rounded-3xl shadow-sm border border-primary/10 space-y-6">
-                  <h4 className="text-lg font-bold text-primary border-b border-primary/5 pb-4">Informations Générales</h4>
+                  <div className="flex items-center justify-between border-b border-primary/5 pb-4">
+                    <h4 className="text-lg font-bold text-primary">Informations Générales (Français & Anglais)</h4>
+                    <button
+                      type="button"
+                      disabled={isTranslating}
+                      onClick={handleAiTranslate}
+                      className="flex items-center gap-1.5 px-3.5 py-1.5 bg-accent/10 hover:bg-accent/20 text-accent font-bold rounded-xl text-xs transition-all border border-accent/20 cursor-pointer shadow-xs disabled:opacity-50"
+                      title="Traduire automatiquement tous les champs français vers l'anglais avec l'IA"
+                    >
+                      <Sparkles size={14} className={isTranslating ? 'animate-spin' : ''} />
+                      <span>{isTranslating ? 'Traduction IA en cours...' : 'Traduire en Anglais avec l\'IA'}</span>
+                    </button>
+                  </div>
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Nom du produit</label>
+                        <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Nom du produit (Français) *</label>
                         <input 
                           name="name"
                           type="text" 
                           required
-                          className="w-full px-6 py-4 bg-secondary/50 border border-primary/10 rounded-2xl focus:outline-none focus:border-primary focus:bg-card text-primary transition-all" 
+                          className="w-full px-6 py-4 bg-secondary/50 border border-primary/10 rounded-2xl focus:outline-none focus:border-primary focus:bg-card text-primary transition-all font-medium" 
                           placeholder="Ex: Laine Mérinos Douceur" 
                           defaultValue={editingItem?.name}
                           onChange={(e) => {
                             const val = e.target.value;
+                            setNameFr(val);
                             const slug = val.toLowerCase()
                               .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // retirer les accents
                               .replace(/[^a-z0-9]+/g, '-')
@@ -56,22 +117,45 @@ export function AdminProductFormMainFields({ ctx }: { ctx: any }) {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Slug (URL)</label>
+                        <label className="text-xs font-bold uppercase tracking-widest text-accent flex items-center gap-1">
+                          <Globe size={13} /> Nom du produit (Anglais)
+                        </label>
                         <input 
-                          name="slug"
+                          name="name_en"
                           type="text" 
-                          className="w-full px-6 py-4 bg-secondary/10 border border-primary/10 rounded-2xl focus:outline-none focus:border-primary text-primary/60 italic" 
-                          placeholder="genere-automatiquement" 
-                          value={currentSlug}
-                          onChange={(e) => setCurrentSlug(e.target.value)}
+                          className="w-full px-6 py-4 bg-secondary/50 border border-primary/10 rounded-2xl focus:outline-none focus:border-accent focus:bg-card text-primary transition-all font-medium" 
+                          placeholder="Ex: Soft Merino Wool" 
+                          value={nameEn}
+                          onChange={(e) => setNameEn(e.target.value)}
                         />
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Description détaillée</label>
+                      <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Slug (URL)</label>
+                      <input 
+                        name="slug"
+                        type="text" 
+                        className="w-full px-6 py-4 bg-secondary/10 border border-primary/10 rounded-2xl focus:outline-none focus:border-primary text-primary/60 italic" 
+                        placeholder="genere-automatiquement" 
+                        value={currentSlug}
+                        onChange={(e) => setCurrentSlug(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Description détaillée (Français)</label>
                       <RichTextEditor 
                         name="description"
                         defaultValue={editingItem?.description || ''}
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="space-y-2 pt-2">
+                      <label className="text-xs font-bold uppercase tracking-widest text-accent flex items-center gap-1">
+                        <Globe size={13} /> Description détaillée (Anglais)
+                      </label>
+                      <RichTextEditor 
+                        name="description_en"
+                        defaultValue={descEn || editingItem?.description_en || ''}
                         className="w-full"
                       />
                     </div>
@@ -367,26 +451,56 @@ export function AdminProductFormMainFields({ ctx }: { ctx: any }) {
                 )}
 
                 <div className="bg-card p-8 rounded-3xl shadow-sm border border-primary/10 space-y-6">
-                  <h4 className="text-lg font-bold text-primary border-b border-primary/5 pb-4">Optimisation SEO</h4>
+                  <h4 className="text-lg font-bold text-primary border-b border-primary/5 pb-4">Optimisation SEO (Français & Anglais)</h4>
                   <div className="space-y-6">
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Titre SEO (Meta Title)</label>
-                      <input 
-                        name="seoTitle"
-                        type="text" 
-                        className="w-full px-6 py-4 bg-secondary/50 border border-primary/10 rounded-2xl focus:outline-none focus:border-primary focus:bg-card text-primary transition-all" 
-                        placeholder="Titre optimisé pour les moteurs de recherche" 
-                        defaultValue={editingItem?.seo?.title}
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Titre SEO (Français)</label>
+                        <input 
+                          name="seoTitle"
+                          type="text" 
+                          className="w-full px-6 py-4 bg-secondary/50 border border-primary/10 rounded-2xl focus:outline-none focus:border-primary focus:bg-card text-primary transition-all" 
+                          placeholder="Titre optimisé pour les moteurs de recherche" 
+                          defaultValue={editingItem?.seo?.title}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold uppercase tracking-widest text-accent flex items-center gap-1">
+                          <Globe size={13} /> Titre SEO (Anglais)
+                        </label>
+                        <input 
+                          name="seoTitle_en"
+                          type="text" 
+                          className="w-full px-6 py-4 bg-secondary/50 border border-primary/10 rounded-2xl focus:outline-none focus:border-accent focus:bg-card text-primary transition-all" 
+                          placeholder="SEO Title in English" 
+                          value={seoTitleEn}
+                          onChange={(e) => setSeoTitleEn(e.target.value)}
+                        />
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Description SEO (Meta Description)</label>
-                      <textarea 
-                        name="seoDescription"
-                        className="w-full px-6 py-4 bg-secondary/50 border border-primary/10 rounded-2xl focus:outline-none focus:border-primary focus:bg-card text-primary transition-all h-24 resize-none" 
-                        placeholder="Bref résumé pour les résultats Google..."
-                        defaultValue={editingItem?.seo?.description}
-                      ></textarea>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold uppercase tracking-widest text-primary/60">Description SEO (Français)</label>
+                        <textarea 
+                          name="seoDescription"
+                          className="w-full px-6 py-4 bg-secondary/50 border border-primary/10 rounded-2xl focus:outline-none focus:border-primary focus:bg-card text-primary transition-all h-24 resize-none" 
+                          placeholder="Bref résumé pour les résultats Google..."
+                          defaultValue={editingItem?.seo?.description}
+                        ></textarea>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold uppercase tracking-widest text-accent flex items-center gap-1">
+                          <Globe size={13} /> Description SEO (Anglais)
+                        </label>
+                        <textarea 
+                          name="seoDescription_en"
+                          className="w-full px-6 py-4 bg-secondary/50 border border-primary/10 rounded-2xl focus:outline-none focus:border-accent focus:bg-card text-primary transition-all h-24 resize-none" 
+                          placeholder="SEO Description in English..."
+                          value={seoDescEn}
+                          onChange={(e) => setSeoDescEn(e.target.value)}
+                        ></textarea>
+                      </div>
                     </div>
                   </div>
                 </div>

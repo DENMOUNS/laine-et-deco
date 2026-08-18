@@ -4,6 +4,7 @@ import { Product } from '../../types';
 import { toast } from 'sonner';
 import { Box, Package, Calculator, Droplets, RotateCcw, ShoppingBag, ChevronDown } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useTranslation } from '../../i18n';
 
 interface VolumeCalculatorViewProps {
   onNavigate: (view: string) => void;
@@ -11,17 +12,18 @@ interface VolumeCalculatorViewProps {
 }
 
 const MOLD_OPTIONS = [
-  { id: 'plateau', name: 'Moule Plateau Ovale', volume: 180, image: 'https://picsum.photos/seed/plateau/100' },
-  { id: 'vase', name: 'Moule Vase Coquillage', volume: 450, image: 'https://picsum.photos/seed/vase/100' },
-  { id: 'dessous', name: 'Moule Dessous de verre', volume: 80, image: 'https://picsum.photos/seed/dessous/100' },
+  { id: 'plateau', name: 'Moule Plateau Ovale', nameEn: 'Oval Tray Mold', volume: 180, image: 'https://picsum.photos/seed/plateau/100' },
+  { id: 'vase', name: 'Moule Vase Coquillage', nameEn: 'Seashell Vase Mold', volume: 450, image: 'https://picsum.photos/seed/vase/100' },
+  { id: 'dessous', name: 'Moule Dessous de verre', nameEn: 'Coaster Mold', volume: 80, image: 'https://picsum.photos/seed/dessous/100' },
 ];
 
 const MATERIAL_OPTIONS = [
-  { id: 'gypsum', name: 'Gypsum', subtitle: 'SYSTÈME POUDRE/EAU (3.5:1)', ratioPart1: 3.5, ratioPart2: 1, density: 1.3, fillFactor: 0.95, wasteFactor: 1.08, part1Name: 'Poudre (G)', part2Name: 'Eau (ML)' },
-  { id: 'resin', name: 'Résine', subtitle: 'SYSTÈME ÉPOXY (2:1)', ratioPart1: 2, ratioPart2: 1, density: 1.1, fillFactor: 0.92, wasteFactor: 1.05, part1Name: 'Résine A (G)', part2Name: 'Durcisseur B (G)' },
+  { id: 'gypsum', name: 'Gypsum', subtitle: 'SYSTÈME POUDRE/EAU (3.5:1)', subtitleEn: 'POWDER/WATER SYSTEM (3.5:1)', ratioPart1: 3.5, ratioPart2: 1, density: 1.3, fillFactor: 0.95, wasteFactor: 1.08, part1Name: 'Poudre (G)', part1NameEn: 'Powder (G)', part2Name: 'Eau (ML)', part2NameEn: 'Water (ML)' },
+  { id: 'resin', name: 'Résine', nameEn: 'Resin', subtitle: 'SYSTÈME ÉPOXY (2:1)', subtitleEn: 'EPOXY SYSTEM (2:1)', ratioPart1: 2, ratioPart2: 1, density: 1.1, fillFactor: 0.92, wasteFactor: 1.05, part1Name: 'Résine A (G)', part1NameEn: 'Resin A (G)', part2Name: 'Durcisseur B (G)', part2NameEn: 'Hardener B (G)' },
 ];
 
 export const VolumeCalculatorView: React.FC<VolumeCalculatorViewProps> = ({ onNavigate, onAddToCart }) => {
+  const { t, l, isEn } = useTranslation();
   const [material, setMaterial] = useState(MATERIAL_OPTIONS[0]);
   const [volume, setVolume] = useState(100);
   const [selectedMold, setSelectedMold] = useState<string | null>(null);
@@ -82,28 +84,32 @@ export const VolumeCalculatorView: React.FC<VolumeCalculatorViewProps> = ({ onNa
   const handleOrder = () => {
     const product: Product = {
       id: `material-${material.id}`,
-      name: `${material.name} - Kit Standard`,
+      name: isEn ? `${material.nameEn || material.name} - Standard Kit` : `${material.name} - Kit Standard`,
       price: 25000,
-      description: `Matière ${material.name}`,
+      description: isEn ? `${material.nameEn || material.name} material kit` : `Matière ${material.name}`,
       image: 'https://picsum.photos/seed/jesmonite/100', // Placeholder
-      category: 'Matière',
+      category: isEn ? 'Material' : 'Matière',
       stock: 100,
       isAvailable: true,
       rating: 5,
     };
     onAddToCart(product, 1);
-    toast.success(`Produit recommandé ajouté au panier !`);
+    toast.success(isEn ? 'Recommended product added to cart!' : 'Produit recommandé ajouté au panier !');
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-12 min-h-screen">
       <div className="flex items-center gap-2 text-sm text-primary/70 mb-8 font-bold tracking-widest uppercase">
-        <button onClick={() => onNavigate('home')} className="hover:text-primary transition-colors">Accueil</button>
+        <button onClick={() => onNavigate('home')} className="hover:text-primary transition-colors">
+          {isEn ? 'Home' : 'Accueil'}
+        </button>
         <span>&gt;</span>
-        <span className="text-primary">Calculateur de Volume</span>
+        <span className="text-primary">
+          {isEn ? 'Volume Calculator' : 'Calculateur de Volume'}
+        </span>
         <div className="flex-grow"></div>
         <button onClick={() => onNavigate('calculator')} className="text-[#e26d24] hover:text-[#c45a1c] transition-colors flex items-center gap-2">
-          <Package size={16} /> Passer au calculateur de laine &gt;
+          <Package size={16} /> {isEn ? 'Go to Yarn Calculator' : 'Passer au calculateur de laine'} &gt;
         </button>
       </div>
 
@@ -111,15 +117,21 @@ export const VolumeCalculatorView: React.FC<VolumeCalculatorViewProps> = ({ onNa
         {/* Left Side: Form */}
         <div className="space-y-8">
           <div>
-            <h1 className="text-5xl font-serif text-primary mb-4">Calculateur de Volume</h1>
+            <h1 className="text-5xl font-serif text-primary mb-4">
+              {isEn ? 'Volume Calculator' : 'Calculateur de Volume'}
+            </h1>
             <p className="text-primary/70 text-lg leading-relaxed">
-              Dosez vos poudres créatives avec précision. Que vous utilisiez de la Jesmonite ou du plâtre, cet outil vous donne les proportions exactes pour remplir vos moules sans gaspillage.
+              {isEn 
+                ? 'Dose your creative powders with precision. Whether you use Jesmonite or plaster, this tool gives you the exact proportions to fill your molds without waste.'
+                : 'Dosez vos poudres créatives avec précision. Que vous utilisiez de la Jesmonite ou du plâtre, cet outil vous donne les proportions exactes pour remplir vos moules sans gaspillage.'}
             </p>
           </div>
 
           <div className="bg-white p-8 rounded-[2.5rem] border border-primary/10 shadow-xl shadow-primary/5 space-y-10">
             <div className="space-y-4">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 block">Type de matière</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 block">
+                {isEn ? 'Material Type' : 'Type de matière'}
+              </label>
               <div className="grid grid-cols-2 gap-4">
                 {MATERIAL_OPTIONS.map(m => (
                   <button
@@ -132,8 +144,10 @@ export const VolumeCalculatorView: React.FC<VolumeCalculatorViewProps> = ({ onNa
                     }`}
                   >
                     {m.id === 'resin' ? <Droplets size={24} /> : <Box size={24} />}
-                    <span className="font-bold text-sm">{m.name}</span>
-                    <span className="text-[9px] uppercase tracking-wider opacity-70">{m.subtitle}</span>
+                    <span className="font-bold text-sm">{isEn ? (m.nameEn || m.name) : m.name}</span>
+                    <span className="text-[9px] uppercase tracking-wider opacity-70">
+                      {isEn ? m.subtitleEn : m.subtitle}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -146,20 +160,22 @@ export const VolumeCalculatorView: React.FC<VolumeCalculatorViewProps> = ({ onNa
                   onClick={() => setCalcMode('slider')} 
                   className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest rounded-lg transition-all ${calcMode === 'slider' ? 'bg-white shadow text-[#e26d24]' : 'text-primary/70 hover:text-primary'}`}
                 >
-                  Saisie manuelle
+                  {isEn ? 'Manual Entry' : 'Saisie manuelle'}
                 </button>
                 <button 
                   onClick={() => setCalcMode('dimensions')} 
                   className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest rounded-lg transition-all ${calcMode === 'dimensions' ? 'bg-white shadow text-[#e26d24]' : 'text-primary/70 hover:text-primary'}`}
                 >
-                  Par dimensions
+                  {isEn ? 'By Dimensions' : 'Par dimensions'}
                 </button>
               </div>
 
               {calcMode === 'slider' ? (
                 <>
                   <div className="flex justify-between items-center">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70">Volume du moule (ML)</label>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70">
+                      {isEn ? 'Mold Volume (ML)' : 'Volume du moule (ML)'}
+                    </label>
                     <span className="text-[#e26d24] font-bold bg-[#e26d24]/10 px-3 py-1 rounded-full text-sm">{volume} ml</span>
                   </div>
                   <div className="relative pt-2">
@@ -187,8 +203,8 @@ export const VolumeCalculatorView: React.FC<VolumeCalculatorViewProps> = ({ onNa
                       onChange={(e) => setGeoShape(e.target.value as any)} 
                       className="w-full p-4 rounded-2xl bg-[#F9F7F2] border border-primary/10 focus:outline-none focus:border-[#e26d24] text-primary text-sm font-bold appearance-none cursor-pointer"
                     >
-                      <option value="rectangle">Moule Rectangulaire / Carré</option>
-                      <option value="cylinder">Moule Cylindrique (Rond)</option>
+                      <option value="rectangle">{isEn ? 'Rectangular / Square Mold' : 'Moule Rectangulaire / Carré'}</option>
+                      <option value="cylinder">{isEn ? 'Cylindrical Mold (Round)' : 'Moule Cylindrique (Rond)'}</option>
                     </select>
                     <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
                       <ChevronDown className="text-primary/70" size={20} />
@@ -198,32 +214,42 @@ export const VolumeCalculatorView: React.FC<VolumeCalculatorViewProps> = ({ onNa
                   {geoShape === 'rectangle' ? (
                     <div className="grid grid-cols-3 gap-3">
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 ml-1">Long (cm)</label>
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 ml-1">
+                          {isEn ? 'Length (cm)' : 'Long (cm)'}
+                        </label>
                         <input type="number" min="1" value={dim.length} onChange={e => setDim({...dim, length: Number(e.target.value)})} className="w-full p-3 bg-primary/5 rounded-xl border-none focus:ring-1 focus:ring-[#e26d24] text-center font-bold" />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 ml-1">Larg (cm)</label>
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 ml-1">
+                          {isEn ? 'Width (cm)' : 'Larg (cm)'}
+                        </label>
                         <input type="number" min="1" value={dim.width} onChange={e => setDim({...dim, width: Number(e.target.value)})} className="w-full p-3 bg-primary/5 rounded-xl border-none focus:ring-1 focus:ring-[#e26d24] text-center font-bold" />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 ml-1">Haut (cm)</label>
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 ml-1">
+                          {isEn ? 'Height (cm)' : 'Haut (cm)'}
+                        </label>
                         <input type="number" min="0.1" step="0.1" value={dim.height} onChange={e => setDim({...dim, height: Number(e.target.value)})} className="w-full p-3 bg-primary/5 rounded-xl border-none focus:ring-1 focus:ring-[#e26d24] text-center font-bold" />
                       </div>
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 ml-1">Rayon (cm)</label>
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 ml-1">
+                          {isEn ? 'Radius (cm)' : 'Rayon (cm)'}
+                        </label>
                         <input type="number" min="1" value={dim.radius} onChange={e => setDim({...dim, radius: Number(e.target.value)})} className="w-full p-3 bg-primary/5 rounded-xl border-none focus:ring-1 focus:ring-[#e26d24] text-center font-bold" />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 ml-1">Haut (cm)</label>
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 ml-1">
+                          {isEn ? 'Height (cm)' : 'Haut (cm)'}
+                        </label>
                         <input type="number" min="0.1" step="0.1" value={dim.height} onChange={e => setDim({...dim, height: Number(e.target.value)})} className="w-full p-3 bg-primary/5 rounded-xl border-none focus:ring-1 focus:ring-[#e26d24] text-center font-bold" />
                       </div>
                     </div>
                   )}
                   <div className="bg-[#e26d24]/10 text-[#e26d24] p-3 rounded-xl text-center font-bold text-sm">
-                    Volume estimé : {volume} ml
+                    {isEn ? `Estimated volume: ${volume} ml` : `Volume estimé : ${volume} ml`}
                   </div>
                 </div>
               )}
@@ -231,7 +257,9 @@ export const VolumeCalculatorView: React.FC<VolumeCalculatorViewProps> = ({ onNa
 
             {/* Mod Sélection */}
             <div className="space-y-4">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 block">Ou sélectionnez un de nos moules</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70 block">
+                {isEn ? 'Or select one of our molds' : 'Ou sélectionnez un de nos moules'}
+              </label>
               <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
                 {MOLD_OPTIONS.map(m => (
                   <button
@@ -241,9 +269,9 @@ export const VolumeCalculatorView: React.FC<VolumeCalculatorViewProps> = ({ onNa
                       selectedMold === m.id ? 'border-[#e26d24] bg-[#e26d24]/5' : 'border-primary/5 hover:border-primary/20'
                     }`}
                   >
-                    <img src={m.image} alt={m.name} className="w-12 h-12 rounded-xl object-cover" />
+                    <img src={m.image} alt={isEn ? m.nameEn : m.name} className="w-12 h-12 rounded-xl object-cover" />
                     <div className="text-left pr-4">
-                      <div className="font-bold text-sm text-primary">{m.name}</div>
+                      <div className="font-bold text-sm text-primary">{isEn ? m.nameEn : m.name}</div>
                       <div className="text-[#e26d24] font-bold text-xs">{m.volume} ml</div>
                     </div>
                   </button>
@@ -254,26 +282,42 @@ export const VolumeCalculatorView: React.FC<VolumeCalculatorViewProps> = ({ onNa
             <div className="space-y-4">
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70">Remplissage réel du moule</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70">
+                    {isEn ? 'Actual Mold Filling' : 'Remplissage réel du moule'}
+                  </label>
                   <span className="text-sm font-bold text-[#e26d24]">{(fillFactor * 100).toFixed(0)}%</span>
                 </div>
                 <input type="range" min="0.7" max="1" step="0.01" value={fillFactor} onChange={(e) => setFillFactor(Number(e.target.value))} className="w-full h-2 bg-primary/10 rounded-lg appearance-none cursor-pointer accent-[#e26d24]" />
-                <p className="text-xs text-primary/60">Pour un objet décoratif, on ne remplit jamais à 100 % si le moule a des zones creuses ou si l’objet n’est pas complètement plein.</p>
+                <p className="text-xs text-primary/60">
+                  {isEn 
+                    ? 'For a decorative object, you never fill 100% if the mold has hollow areas or if the object is not completely full.' 
+                    : 'Pour un objet décoratif, on ne remplit jamais à 100 % si le moule a des zones creuses ou si l’objet n’est pas complètement plein.'}
+                </p>
               </div>
 
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70">Marge de sécurité</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-primary/70">
+                    {isEn ? 'Safety Margin' : 'Marge de sécurité'}
+                  </label>
                   <span className="text-sm font-bold text-[#e26d24]">{(safetyMargin * 100).toFixed(0)}%</span>
                 </div>
                 <input type="range" min="1" max="1.15" step="0.01" value={safetyMargin} onChange={(e) => setSafetyMargin(Number(e.target.value))} className="w-full h-2 bg-primary/10 rounded-lg appearance-none cursor-pointer accent-[#e26d24]" />
-                <p className="text-xs text-primary/60">Ajoute une marge pour les pertes, les bulles, les finitions et les petites variations de mélange.</p>
+                <p className="text-xs text-primary/60">
+                  {isEn 
+                    ? 'Adds a margin for losses, bubbles, finishing and small mixing variations.' 
+                    : 'Ajoute une marge pour les pertes, les bulles, les finitions et les petites variations de mélange.'}
+                </p>
               </div>
             </div>
 
             <div className="bg-[#eff3fd] border border-blue-100 p-4 rounded-xl flex gap-3 text-[#2d5db0] text-sm items-start">
               <div className="mt-0.5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></div>
-              <p>Le calcul combine le volume réel du moule, le remplissage utile du moule, la densité du matériau et une marge de sécurité. C’est plus adapté au moulage de pièces décoratives qu’un simple ratio brut.</p>
+              <p>
+                {isEn 
+                  ? 'The calculation combines the actual volume of the mold, the useful mold filling, the material density, and a safety margin. This is more suitable for molding decorative pieces than a simple raw ratio.' 
+                  : 'Le calcul combine le volume réel du moule, le remplissage utile du moule, la densité du matériau et une marge de sécurité. C’est plus adapté au moulage de pièces décoratives qu’un simple ratio brut.'}
+              </p>
             </div>
           </div>
         </div>
@@ -294,45 +338,63 @@ export const VolumeCalculatorView: React.FC<VolumeCalculatorViewProps> = ({ onNa
             <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-6 border border-white/20">
               <Calculator size={28} className="text-[#e26d24] animate-pulse" />
             </div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/70 mb-2">Dosage Recommandé</p>
-            <h2 className="text-4xl font-serif text-white">Proportions Idéales</h2>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/70 mb-2">
+              {isEn ? 'Recommended Dosage' : 'Dosage Recommandé'}
+            </p>
+            <h2 className="text-4xl font-serif text-white">
+              {isEn ? 'Ideal Proportions' : 'Proportions Idéales'}
+            </h2>
           </div>
 
           <div className="grid grid-cols-2 gap-4 mb-10">
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col items-center justify-center text-center">
               {material.id === 'resin' ? <Droplets size={24} className="text-[#e26d24] mb-4" /> : <Box size={24} className="text-[#e26d24] mb-4" />}
               <div className="text-4xl font-serif text-white mb-2">{part1Weight}</div>
-              <div className="text-[10px] font-bold uppercase tracking-widest text-white/70">{material.part1Name}</div>
+              <div className="text-[10px] font-bold uppercase tracking-widest text-white/70">
+                {isEn ? material.part1NameEn : material.part1Name}
+              </div>
             </div>
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col items-center justify-center text-center">
               {material.id === 'resin' ? <Droplets size={24} className="text-[#e26d24] mb-4" /> : <Droplets size={24} className="text-[#e26d24] mb-4" />}
               <div className="text-4xl font-serif text-white mb-2">{part2Weight}</div>
-              <div className="text-[10px] font-bold uppercase tracking-widest text-white/70">{material.part2Name}</div>
+              <div className="text-[10px] font-bold uppercase tracking-widest text-white/70">
+                {isEn ? material.part2NameEn : material.part2Name}
+              </div>
             </div>
           </div>
 
           <div className="border-t border-white/10 pt-6 pb-10 space-y-4">
             <div className="flex justify-between items-center text-sm">
-              <span className="text-white/70">Volume utile du moule</span>
+              <span className="text-white/70">
+                {isEn ? 'Useful mold volume' : 'Volume utile du moule'}
+              </span>
               <span className="font-bold text-white">{volume} ml</span>
             </div>
             <div className="flex justify-between items-center text-sm">
-              <span className="text-white/70">Volume à préparer</span>
+              <span className="text-white/70">
+                {isEn ? 'Volume to prepare' : 'Volume à préparer'}
+              </span>
               <span className="font-bold text-white">{effectiveVolumeMl} ml</span>
             </div>
             <div className="flex justify-between items-center text-sm">
-              <span className="text-white/70">Poids Total Est.</span>
+              <span className="text-white/70">
+                {isEn ? 'Est. Total Weight' : 'Poids Total Est.'}
+              </span>
               <span className="font-bold text-white">{totalWeight} g</span>
             </div>
           </div>
 
           <div className="space-y-4 mb-8">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/70 text-center">Produits Recommandés</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/70 text-center">
+              {isEn ? 'Recommended Products' : 'Produits Recommandés'}
+            </p>
             <div className="bg-white/10 border border-white/20 rounded-2xl p-4 flex items-center justify-between cursor-pointer hover:bg-white/20 transition-colors" onClick={handleOrder}>
                <div className="flex items-center gap-4">
                  <img src="https://picsum.photos/seed/jesmonite/100" alt="Matière" className="w-10 h-10 rounded-lg object-cover" />
                  <div>
-                   <div className="font-bold text-sm text-white">{material.name} - Kit Standard</div>
+                   <div className="font-bold text-sm text-white">
+                     {isEn ? `${material.nameEn || material.name} - Standard Kit` : `${material.name} - Kit Standard`}
+                   </div>
                    <div className="text-white/70 text-xs">25 000 FCFA</div>
                  </div>
                </div>
@@ -342,7 +404,7 @@ export const VolumeCalculatorView: React.FC<VolumeCalculatorViewProps> = ({ onNa
 
           <div className="flex justify-center">
             <button onClick={reset} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white/70 hover:text-white transition-colors">
-              <RotateCcw size={14} /> Réinitialiser
+              <RotateCcw size={14} /> {isEn ? 'Reset' : 'Réinitialiser'}
             </button>
           </div>
         </motion.div>

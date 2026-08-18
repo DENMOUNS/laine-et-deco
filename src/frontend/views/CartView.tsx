@@ -44,7 +44,7 @@ export const CartView: React.FC<CartViewProps> = ({
         </motion.div>
         <h1 className="text-4xl font-serif text-primary mb-4 text-center">Votre panier est vide</h1>
         <p className="text-primary/70 text-center max-w-md mb-8">
-          Découvrez nos collections de laines et d'objets de décoration artisanaux pour trouver votre bonheur.
+          Découvrez nos collections de laines, de crochets, d'aiguilles et d'accessoires d'artisanat pour trouver votre bonheur.
         </p>
         <button 
           onClick={() => onNavigate('shop')}

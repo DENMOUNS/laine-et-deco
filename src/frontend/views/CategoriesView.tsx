@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { useStaticEntity } from '../hooks/useStaticEntity';
 import { ChevronRight, ShoppingBag } from 'lucide-react';
 import { ImageWithFallback } from '../components/ui/ImageWithFallback';
+import { useTranslation } from '../../i18n';
 
 interface CategoriesViewProps {
   onNavigate: (view: string, id?: string, query?: string) => void;
@@ -10,6 +11,7 @@ interface CategoriesViewProps {
 
 export const CategoriesView: React.FC<CategoriesViewProps> = ({ onNavigate }) => {
   const { data: CATEGORIES } = useStaticEntity<any>('category', [], { cacheOnly: true });
+  const { l, isEn } = useTranslation();
 
   return (
     <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -20,7 +22,7 @@ export const CategoriesView: React.FC<CategoriesViewProps> = ({ onNavigate }) =>
             animate={{ opacity: 1, y: 0 }}
             className="text-4xl md:text-5xl font-serif font-bold text-primary mb-4"
           >
-            Nos Catégories
+            {isEn ? 'Our Categories' : 'Nos Catégories'}
           </motion.h1>
           <motion.p 
             initial={{ opacity: 0, y: -10 }}
@@ -28,7 +30,9 @@ export const CategoriesView: React.FC<CategoriesViewProps> = ({ onNavigate }) =>
             transition={{ delay: 0.1 }}
             className="text-primary/70 max-w-2xl mx-auto italic"
           >
-            Explorez notre univers à travers nos différentes sélections de laines, matériel et objets de décoration.
+            {isEn 
+              ? 'Explore our universe through our selection of high-quality yarns, crochets, needles, accessories and hand-made crafts.' 
+              : "Explorez notre univers à travers nos sélections de laines de qualité, de crochets, d'aiguilles, d'accessoires et d'artisanat fait main."}
           </motion.p>
         </div>
 
@@ -45,7 +49,7 @@ export const CategoriesView: React.FC<CategoriesViewProps> = ({ onNavigate }) =>
               <div className="aspect-[4/5] overflow-hidden">
                 <ImageWithFallback 
                   src={category.image} 
-                  alt={category.name} 
+                  alt={l(category, 'name')} 
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
@@ -54,9 +58,15 @@ export const CategoriesView: React.FC<CategoriesViewProps> = ({ onNavigate }) =>
               <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
                 <div className="flex justify-between items-end">
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent mb-2">Découvrir</p>
-                    <h2 className="text-2xl font-serif font-bold mb-1">{category.name}</h2>
-                    <p className="text-sm text-white/70">{category.count || 0} produits disponibles</p>
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent mb-2">
+                      {isEn ? 'Discover' : 'Découvrir'}
+                    </p>
+                    <h2 className="text-2xl font-serif font-bold mb-1">{l(category, 'name')}</h2>
+                    <p className="text-sm text-white/70">
+                      {isEn 
+                        ? `${category.count || 0} products available` 
+                        : `${category.count || 0} produits disponibles`}
+                    </p>
                   </div>
                   <div className="bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/20 group-hover:bg-accent group-hover:border-accent transition-all duration-300">
                     <ChevronRight size={20} />
@@ -68,7 +78,7 @@ export const CategoriesView: React.FC<CategoriesViewProps> = ({ onNavigate }) =>
               <div className="absolute top-6 right-6 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white">
                   <ShoppingBag size={14} />
-                  Boutique
+                  {isEn ? 'Shop' : 'Boutique'}
                 </div>
               </div>
             </motion.div>
@@ -86,22 +96,26 @@ export const CategoriesView: React.FC<CategoriesViewProps> = ({ onNavigate }) =>
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-primary/5 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl" />
           
           <div className="relative z-10">
-            <h2 className="text-3xl font-serif font-bold mb-6">Vous ne trouvez pas votre bonheur ?</h2>
+            <h2 className="text-3xl font-serif font-bold mb-6">
+              {isEn ? "Can't find what you are looking for?" : 'Vous ne trouvez pas votre bonheur ?'}
+            </h2>
             <p className="text-white/70 max-w-xl mx-auto mb-8">
-              Notre catalogue s'enrichit chaque semaine. N'hésitez pas à nous contacter pour des demandes spécifiques ou des commandes sur mesure.
+              {isEn 
+                ? 'Our catalog is expanded every week. Do not hesitate to contact us for specific inquiries or bespoke/custom orders.' 
+                : "Notre catalogue s'enrichit chaque semaine. N'hésitez pas à nous contacter pour des demandes spécifiques ou des commandes sur mesure."}
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <button 
                 onClick={() => onNavigate('shop')}
                 className="bg-white text-slate-900 px-8 py-4 rounded-full font-bold hover:bg-accent hover:text-white transition-all shadow-xl"
               >
-                Voir toute la boutique
+                {isEn ? 'Browse full shop' : 'Voir toute la boutique'}
               </button>
               <button 
                 onClick={() => onNavigate('contact')}
                 className="bg-white/10 backdrop-blur-md border border-white/20 text-white px-8 py-4 rounded-full font-bold hover:bg-white/20 transition-all"
               >
-                Nous contacter
+                {isEn ? 'Contact Us' : 'Nous contacter'}
               </button>
             </div>
           </div>

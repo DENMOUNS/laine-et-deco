@@ -28,6 +28,7 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
           
           const categoryPayload: any = {
               name: nameValue,
+              name_en: (formData.get('name_en') as string)?.trim() || editingItem?.name_en || '',
               slug: finalSlug,
               image: (formData.get('image') as string)?.trim() || editingItem?.image || 'https://picsum.photos/seed/cat/300/200',
               count: editingItem ? (editingItem.count ?? 0) : 0,
@@ -94,7 +95,9 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
           const newPack: any = {
               id: editingItem ? editingItem.id : `pack-${Date.now()}`,
               name: formData.get('name') as string,
+              name_en: (formData.get('name_en') as string)?.trim() || editingItem?.name_en || '',
               description: formData.get('description') as string,
+              description_en: (formData.get('description_en') as string)?.trim() || editingItem?.description_en || '',
               products: selectedPackProducts,
               discountPercentage: Number(formData.get('discountPercentage')),
               promoCode: formData.get('promoCode') as string || `PACK${Date.now().toString().slice(-4)}`,
@@ -319,6 +322,7 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
               id: editingItem ? editingItem.id : Date.now(),
               image: (formData.get('image') as string)?.trim() || editingItem?.image || 'https://picsum.photos/seed/look/800/1000',
               caption: formData.get('caption') as string,
+              caption_en: (formData.get('caption_en') as string)?.trim() || editingItem?.caption_en || '',
               tags: (formData.get('tags') as string).split(',').map(t => t.trim()).filter(t => t),
               initialLikes: editingItem ? editingItem.initialLikes : 0,
               initialComments: editingItem ? editingItem.initialComments : 0,
@@ -341,11 +345,14 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
           const newBlog: any = {
               id: editingItem ? editingItem.id : `b${Date.now()}`,
               title: formData.get('title') as string,
+              title_en: (formData.get('title_en') as string)?.trim() || editingItem?.title_en || '',
               category: formData.get('category') as string,
               date: editingItem?.date || new Date().toLocaleDateString(),
               image: (formData.get('image') as string)?.trim() || editingItem?.image || 'https://picsum.photos/seed/blog/800/600',
               excerpt: formData.get('excerpt') as string,
+              excerpt_en: (formData.get('excerpt_en') as string)?.trim() || editingItem?.excerpt_en || '',
               content: formData.get('content') as string,
+              content_en: (formData.get('content_en') as string)?.trim() || editingItem?.content_en || '',
               status: editingItem?.status || 'published'
           };
           const now = new Date().toISOString();
@@ -366,6 +373,7 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
       } else if (modalType === 'blog-category') {
           const newCategory: any = {
               name: formData.get('name') as string,
+              name_en: (formData.get('name_en') as string)?.trim() || editingItem?.name_en || '',
               status: (formData.get('status') as string) || 'active'
           };
           const now = new Date().toISOString();
@@ -457,6 +465,7 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
           const newNavItem: any = {
               id: editingItem ? editingItem.id : `nav-${Date.now()}`,
               name: formData.get('name') as string,
+              name_en: (formData.get('name_en') as string)?.trim() || editingItem?.name_en || '',
               view: formData.get('view') as string,
               order: Number(formData.get('order')),
               status: formData.get('status') as 'active' | 'inactive' || 'active',

@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { Plus, Edit, Trash2, X, ChevronLeft, Search } from 'lucide-react';
+import { Plus, Edit, Trash2, X, ChevronLeft, Search, Sparkles, Globe, Loader2 } from 'lucide-react';
 import { FlashSale, Product } from '../../../types';
 import { DataTable } from '../../components/DataTable';
 import { useEntity } from '../../hooks/useEntity';
+import { toast } from 'sonner';
+import { translateContentWithAi } from '../../utils/aiTranslator';
 
 interface AdminFlashSalesProps {
   products: Product[];
@@ -12,6 +14,26 @@ export const AdminFlashSales: React.FC<AdminFlashSalesProps> = ({ products }) =>
   const { data: flashSales, setData: setFlashSales, addEntity, updateEntity, deleteEntity } = useEntity<FlashSale>('flash_sale', []);
   const [activeTab, setActiveTab] = useState<'list' | 'create' | 'edit'>('list');
   const [editingItem, setEditingItem] = useState<Partial<FlashSale> | null>(null);
+  const [isTranslating, setIsTranslating] = useState(false);
+
+  const handleTranslate = async () => {
+    if (!editingItem?.name?.trim()) {
+      toast.error('Veuillez d\'abord saisir le nom de la vente flash en français.');
+      return;
+    }
+    setIsTranslating(true);
+    try {
+      const res = await translateContentWithAi({ name: editingItem.name }, 'en', 'fr');
+      if (res?.name) {
+        setEditingItem(prev => ({ ...prev, name_en: res.name }));
+        toast.success('Traduction générée avec succès !');
+      }
+    } catch {
+      toast.error('Erreur lors de la traduction.');
+    } finally {
+      setIsTranslating(false);
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,16 +110,45 @@ export const AdminFlashSales: React.FC<AdminFlashSalesProps> = ({ products }) =>
         </div>
 
         <div className="bg-card p-8 rounded-[2rem] border border-primary/10 shadow-sm max-w-4xl mx-auto">
+          {/* Translation Bar */}
+          <div className="flex items-center justify-between bg-accent/5 p-4 rounded-2xl border border-accent/20 mb-6">
+            <div className="flex items-center gap-2">
+              <Globe size={18} className="text-accent" />
+              <span className="text-sm font-bold text-primary">Traduction automatique</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleTranslate}
+              disabled={isTranslating}
+              className="px-3.5 py-1.5 bg-accent text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow hover:bg-accent/90 transition-all cursor-pointer"
+            >
+              {isTranslating ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+              {isTranslating ? 'Traduction...' : 'Traduire en Anglais'}
+            </button>
+          </div>
+
           <form onSubmit={handleSave} className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="text-xs font-bold uppercase tracking-widest text-primary/70 mb-2 block">Nom de la vente flash</label>
+                <label className="text-xs font-bold uppercase tracking-widest text-primary/70 mb-2 block">Nom de la vente flash (FR) *</label>
                 <input 
                   type="text" 
                   className="input-field"
                   value={editingItem?.name || ''}
                   onChange={e => setEditingItem(prev => ({ ...prev, name: e.target.value }))}
                   required
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase tracking-widest text-accent flex items-center gap-1 mb-2">
+                  <Globe size={12} /> Nom en anglais (EN)
+                </label>
+                <input 
+                  type="text" 
+                  className="input-field border-accent/40 focus:border-accent"
+                  value={editingItem?.name_en || ''}
+                  placeholder="Flash Sale Name in English..."
+                  onChange={e => setEditingItem(prev => ({ ...prev, name_en: e.target.value }))}
                 />
               </div>
               <div>

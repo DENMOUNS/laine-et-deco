@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { MapPin, Mail, Phone, Clock, Send, ArrowRight } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { useTranslation } from '../../i18n';
 
 interface ContactViewProps {
   onNavigate: (view: string) => void;
 }
 
 export const ContactView: React.FC<ContactViewProps> = ({ onNavigate }) => {
+  const { t, l, isEn } = useTranslation();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -38,12 +40,16 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate }) => {
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           className="text-center mb-20"
         >
-          <span className="inline-block text-accent uppercase tracking-[0.2em] font-bold text-xs mb-6 border border-accent/20 px-4 py-2 rounded-full bg-accent/5">Contactez-nous</span>
+          <span className="inline-block text-accent uppercase tracking-[0.2em] font-bold text-xs mb-6 border border-accent/20 px-4 py-2 rounded-full bg-accent/5">
+            {isEn ? 'Contact Us' : 'Contactez-nous'}
+          </span>
           <h1 className="text-5xl lg:text-7xl font-serif text-primary mb-6">
-            Laissez-nous un <span className="italic text-primary/70">message</span>
+            {isEn ? <>Leave us a <span className="italic text-primary/70">message</span></> : <>Laissez-nous un <span className="italic text-primary/70">message</span></>}
           </h1>
           <p className="text-lg text-primary/70 max-w-2xl mx-auto leading-relaxed">
-            Une question sur un produit, un projet de décoration ou simplement envie de nous dire bonjour ? Notre équipe est à votre écoute pour vous répondre dans les plus brefs délais.
+            {isEn 
+              ? "Have a question about a product, a knitting pattern, a choice of needles or crochet, or just want to say hello? Our team is listening to answer you as soon as possible." 
+              : "Une question sur un produit, un modèle de tricot, un choix d'aiguilles ou de crochets, ou simplement envie de nous dire bonjour ? Notre équipe est à votre écoute pour vous répondre dans les plus brefs délais."}
           </p>
         </motion.div>
 
@@ -59,20 +65,35 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate }) => {
                 <div className="w-12 h-12 bg-accent/10 rounded-2xl flex items-center justify-center mb-6">
                   <MapPin className="text-accent" size={24} />
                 </div>
-                <h3 className="text-xl font-serif text-primary mb-3">Notre Boutique</h3>
+                <h3 className="text-xl font-serif text-primary mb-3">
+                  {isEn ? 'Our Boutique' : 'Notre Boutique'}
+                </h3>
                 <p className="text-primary/70 leading-relaxed">
-                  Quartier Akwa, Rue des Écoles<br />
+                  {isEn ? 'Akwa District, Rue des Écoles' : 'Quartier Akwa, Rue des Écoles'}<br />
                   Douala, Cameroun
                 </p>
               </div>
 
-              <div className="bg-white p-8 rounded-3xl border border-primary/5 shadow-sm hover:shadow-md transition-shadow">
-                <div className="w-12 h-12 bg-accent/10 rounded-2xl flex items-center justify-center mb-6">
-                  <Phone className="text-accent" size={24} />
+              <div className="bg-white p-8 rounded-3xl border border-primary/5 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
+                <div>
+                  <div className="w-12 h-12 bg-accent/10 rounded-2xl flex items-center justify-center mb-6">
+                    <Phone className="text-accent" size={24} />
+                  </div>
+                  <h3 className="text-xl font-serif text-primary mb-3">
+                    {isEn ? 'Phone' : 'Téléphone'}
+                  </h3>
+                  <p className="text-primary/70 leading-relaxed mb-1">+237 600 000 000</p>
+                  <p className="text-primary/70 text-sm mb-4">
+                    {isEn ? 'Mon-Fri, 9am to 6pm' : 'Lun-Ven, 9h à 18h'}
+                  </p>
                 </div>
-                <h3 className="text-xl font-serif text-primary mb-3">Téléphone</h3>
-                <p className="text-primary/70 leading-relaxed mb-1">+237 600 000 000</p>
-                <p className="text-primary/70 text-sm">Lun-Ven, 9h à 18h</p>
+                <Button 
+                  type="button"
+                  onClick={() => window.dispatchEvent(new CustomEvent('app:start-call'))}
+                  className="bg-accent/10 text-accent hover:bg-accent hover:text-white transition-all text-xs font-semibold py-2 px-4 rounded-xl self-start flex items-center gap-1.5"
+                >
+                  <Phone size={13} className="animate-pulse" /> {isEn ? 'Call online (Free)' : 'Appeler en ligne (Gratuit)'}
+                </Button>
               </div>
 
               <div className="bg-white p-8 rounded-3xl border border-primary/5 shadow-sm hover:shadow-md transition-shadow">
@@ -81,17 +102,21 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate }) => {
                 </div>
                 <h3 className="text-xl font-serif text-primary mb-3">Email</h3>
                 <p className="text-primary/70 leading-relaxed mb-1">contact@laine-deco.com</p>
-                <p className="text-primary/70 text-sm">Nous répondons sous 24h</p>
+                <p className="text-primary/70 text-sm">
+                  {isEn ? 'We reply within 24h' : 'Nous répondons sous 24h'}
+                </p>
               </div>
 
               <div className="bg-white p-8 rounded-3xl border border-primary/5 shadow-sm hover:shadow-md transition-shadow">
                 <div className="w-12 h-12 bg-accent/10 rounded-2xl flex items-center justify-center mb-6">
                   <Clock className="text-accent" size={24} />
                 </div>
-                <h3 className="text-xl font-serif text-primary mb-3">Horaires</h3>
+                <h3 className="text-xl font-serif text-primary mb-3">
+                  {isEn ? 'Hours' : 'Horaires'}
+                </h3>
                 <p className="text-primary/70 leading-relaxed">
-                  Lun - Ven : 09h - 19h<br />
-                  Samedi : 10h - 17h
+                  {isEn ? 'Mon - Fri: 09am - 07pm' : 'Lun - Ven : 09h - 19h'}<br />
+                  {isEn ? 'Saturday: 10am - 05pm' : 'Samedi : 10h - 17h'}
                 </p>
               </div>
             </div>
@@ -99,15 +124,19 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate }) => {
             <div className="bg-[#3E4A3D] dark:bg-[#1A1D1A] text-white p-10 rounded-[2.5rem] relative overflow-hidden border border-white/5">
               <div className="absolute top-0 right-0 w-64 h-64 bg-accent/20 rounded-bl-[100%] opacity-20 pointer-events-none" />
               <div className="relative z-10">
-                <h3 className="text-2xl font-serif mb-4">Commandes sur mesure</h3>
+                <h3 className="text-2xl font-serif mb-4">
+                  {isEn ? 'Bespoke Custom Orders' : 'Commandes sur mesure'}
+                </h3>
                 <p className="text-white/70 mb-8 leading-relaxed max-w-sm">
-                  Vous avez une idée précise de création ? Discutons-en pour donner vie à votre projet.
+                  {isEn 
+                    ? "Have a specific creation idea? Let's discuss it to bring your project to life." 
+                    : 'Vous avez une idée précise de création ? Discutons-en pour donner vie à votre projet.'}
                 </p>
                 <Button 
                   className="bg-white text-primary hover:bg-accent hover:text-white transition-colors gap-2 rounded-xl"
                   onClick={() => onNavigate('custom-order')}
                 >
-                  Demander un devis <ArrowRight size={18} />
+                  {isEn ? 'Request a quote' : 'Demander un devis'} <ArrowRight size={18} />
                 </Button>
               </div>
             </div>
@@ -124,26 +153,36 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate }) => {
                 <div className="w-20 h-20 bg-green-50 text-green-500 rounded-full flex items-center justify-center mb-6">
                   <Send size={32} className="ml-1" />
                 </div>
-                <h3 className="text-3xl font-serif text-primary mb-4">Message envoyé !</h3>
-                <p className="text-primary/70 mb-8 text-lg">Nous avons bien reçu votre message et vous répondrons dans les plus brefs délais.</p>
+                <h3 className="text-3xl font-serif text-primary mb-4">
+                  {isEn ? 'Message sent!' : 'Message envoyé !'}
+                </h3>
+                <p className="text-primary/70 mb-8 text-lg">
+                  {isEn 
+                    ? 'We have received your message and will get back to you as soon as possible.' 
+                    : 'Nous avons bien reçu votre message et vous répondrons dans les plus brefs délais.'}
+                </p>
                 <Button 
                   onClick={() => setSubmitted(false)}
                   className="bg-primary text-white rounded-xl hover:bg-accent"
                 >
-                  Envoyer un autre message
+                  {isEn ? 'Send another message' : 'Envoyer un autre message'}
                 </Button>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
-                <h2 className="text-3xl font-serif text-primary mb-8">Écrivez-nous</h2>
+                <h2 className="text-3xl font-serif text-primary mb-8">
+                  {isEn ? 'Write to Us' : 'Écrivez-nous'}
+                </h2>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-primary/70 ml-2">Nom complet</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-primary/70 ml-2">
+                      {isEn ? 'Full Name' : 'Nom complet'}
+                    </label>
                     <input
                       type="text"
                       required
-                      placeholder="Jean Dupont"
+                      placeholder={isEn ? 'John Doe' : 'Jean Dupont'}
                       className="w-full px-5 py-4 bg-secondary border border-transparent rounded-2xl focus:border-accent/30 focus:bg-card focus:ring-4 focus:ring-accent/10 transition-all text-primary"
                       value={formData.name}
                       onChange={e => setFormData({...formData, name: e.target.value})}
@@ -163,11 +202,13 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate }) => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-primary/70 ml-2">Sujet</label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-primary/70 ml-2">
+                    {isEn ? 'Subject' : 'Sujet'}
+                  </label>
                   <input
                     type="text"
                     required
-                    placeholder="De quoi souhaitez-vous parler ?"
+                    placeholder={isEn ? 'What is this about?' : 'De quoi souhaitez-vous parler ?'}
                     className="w-full px-5 py-4 bg-secondary border border-transparent rounded-2xl focus:border-accent/30 focus:bg-card focus:ring-4 focus:ring-accent/10 transition-all text-primary"
                     value={formData.subject}
                     onChange={e => setFormData({...formData, subject: e.target.value})}
@@ -175,11 +216,13 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate }) => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-primary/70 ml-2">Votre message</label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-primary/70 ml-2">
+                    {isEn ? 'Your Message' : 'Votre message'}
+                  </label>
                   <textarea
                     required
                     rows={6}
-                    placeholder="Détaillez votre demande ici..."
+                    placeholder={isEn ? 'Detail your request here...' : 'Détaillez votre demande ici...'}
                     className="w-full px-5 py-4 bg-secondary border border-transparent rounded-2xl focus:border-accent/30 focus:bg-card focus:ring-4 focus:ring-accent/10 transition-all text-primary resize-none"
                     value={formData.message}
                     onChange={e => setFormData({...formData, message: e.target.value})}
@@ -194,10 +237,10 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate }) => {
                   {isSubmitting ? (
                     <span className="flex items-center gap-2">
                       <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Envoi en cours...
+                      {isEn ? 'Sending...' : 'Envoi en cours...'}
                     </span>
                   ) : (
-                    <>Envoyer le message <Send size={20} /></>
+                    <>{isEn ? 'Send Message' : 'Envoyer le message'} <Send size={20} /></>
                   )}
                 </Button>
               </form>

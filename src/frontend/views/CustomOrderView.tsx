@@ -7,8 +7,10 @@ import { collection, addDoc, serverTimestamp, where } from 'firebase/firestore';
 import { db, auth } from '../../backend/firebase';
 import { useEntity } from '../hooks/useEntity';
 import { User } from '../../types';
+import { useTranslation } from '../../i18n';
 
 export const CustomOrderView: React.FC = () => {
+  const { isEn } = useTranslation();
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userId, setUserId] = useState('');
@@ -86,12 +88,12 @@ export const CustomOrderView: React.FC = () => {
       }
       
       setSubmitted(true);
-      toast.success('Demande de commande personnalisée envoyée !');
+      toast.success(isEn ? 'Your custom order request has been sent!' : 'Demande de commande personnalisée envoyée !');
       setIdea('');
       setMaterials('');
       setDimensions('');
     } catch (error) {
-      toast.error('Une erreur est survenue lors de l\'envoi. Veuillez réessayer.');
+      toast.error(isEn ? 'An error occurred. Please try again.' : 'Une erreur est survenue lors de l\'envoi. Veuillez réessayer.');
     } finally {
       setIsSubmitting(false);
     }
@@ -107,12 +109,16 @@ export const CustomOrderView: React.FC = () => {
         >
           <CheckCircle2 size={48} />
         </motion.div>
-        <h1 className="text-4xl font-serif text-primary mb-4">Merci, {name || 'pour votre demande'} !</h1>
+        <h1 className="text-4xl font-serif text-primary mb-4">
+          {isEn ? `Thank you, ${name || 'for your request'}!` : `Merci, ${name || 'pour votre demande'} !`}
+        </h1>
         <p className="text-primary/70 text-lg mb-10 max-w-xl">
-          Nous avons bien reçu votre projet de création personnalisée. Nos artisans vont l'étudier avec la plus grande attention et vous recontacteront sous 48h.
+          {isEn 
+            ? 'We have received your custom order request. Our artisans will review your project and contact you within 48 hours.'
+            : 'Nous avons bien reçu votre projet de création personnalisée. Nos artisans vont l\'étudier avec la plus grande attention et vous recontacteront sous 48h.'}
         </p>
         <Button variant="primary" className="rounded-full px-8 animate-shine" onClick={() => setSubmitted(false)}>
-          Nouveau projet
+          {isEn ? 'New project' : 'Nouveau projet'}
         </Button>
       </div>
     );
@@ -129,13 +135,17 @@ export const CustomOrderView: React.FC = () => {
         {/* Left Content */}
         <div className="space-y-10">
           <div>
-            <span className="inline-block text-accent uppercase tracking-[0.2em] font-bold text-xs mb-6 border border-accent/20 px-3 py-1 rounded-full bg-accent/5">Le Sur-Mesure</span>
+            <span className="inline-block text-accent uppercase tracking-[0.2em] font-bold text-xs mb-6 border border-accent/20 px-3 py-1 rounded-full bg-accent/5">
+              {isEn ? 'Bespoke Studio' : 'Le Sur-Mesure'}
+            </span>
             <h1 className="text-5xl lg:text-7xl font-serif text-primary leading-[1.1] mb-6">
-              Donnez vie à <br />
-              <span className="italic text-primary/70">votre vision.</span>
+              {isEn ? 'Bring your' : 'Donnez vie à'} <br />
+              <span className="italic text-primary/70">{isEn ? 'vision to life.' : 'votre vision.'}</span>
             </h1>
             <p className="text-lg text-primary/70 leading-relaxed max-w-md">
-              Que ce soit pour une occasion spéciale, un cadeau inoubliable ou une création unique, nos maîtres artisans sont à votre écoute pour concevoir la pièce parfaite.
+              {isEn 
+                ? 'Whether for a special occasion, an unforgettable gift or a unique creation, our master artisans design your perfect piece.'
+                : 'Que ce soit pour une occasion spéciale, un cadeau inoubliable ou une création unique, nos maîtres artisans sont à votre écoute pour concevoir la pièce parfaite.'}
             </p>
           </div>
 
@@ -145,8 +155,10 @@ export const CustomOrderView: React.FC = () => {
                 <PenTool className="text-accent" size={22} />
               </div>
               <div>
-                <h3 className="font-bold text-primary mb-1 text-lg">1. L'Esquisse</h3>
-                <p className="text-sm text-primary/70 leading-relaxed">Nous donnons forme à vos idées et validons avec vous le croquis et le choix des matériaux.</p>
+                <h3 className="font-bold text-primary mb-1 text-lg">{isEn ? '1. The Sketch' : '1. L\'Esquisse'}</h3>
+                <p className="text-sm text-primary/70 leading-relaxed">
+                  {isEn ? 'We give shape to your ideas and validate sketches and natural fiber choices with you.' : 'Nous donnons forme à vos idées et validons avec vous le croquis et le choix des matériaux.'}
+                </p>
               </div>
             </div>
             
@@ -155,8 +167,10 @@ export const CustomOrderView: React.FC = () => {
                 <Scissors className="text-accent" size={22} />
               </div>
               <div>
-                <h3 className="font-bold text-primary mb-1 text-lg">2. La Confection</h3>
-                <p className="text-sm text-primary/70 leading-relaxed">Votre pièce prend vie dans nos ateliers avec le plus grand soin et un savoir-faire authentique.</p>
+                <h3 className="font-bold text-primary mb-1 text-lg">{isEn ? '2. Crafting' : '2. La Confection'}</h3>
+                <p className="text-sm text-primary/70 leading-relaxed">
+                  {isEn ? 'Your piece comes alive in our atelier with utmost care and authentic craftsmanship.' : 'Votre pièce prend vie dans nos ateliers avec le plus grand soin et un savoir-faire authentique.'}
+                </p>
               </div>
             </div>
 
@@ -165,8 +179,10 @@ export const CustomOrderView: React.FC = () => {
                 <Crown className="text-accent" size={22} />
               </div>
               <div>
-                <h3 className="font-bold text-primary mb-1 text-lg">3. L'Excellence</h3>
-                <p className="text-sm text-primary/70 leading-relaxed">Recevez une création exclusive et raffinée, conçue spécifiquement pour vous.</p>
+                <h3 className="font-bold text-primary mb-1 text-lg">{isEn ? '3. Excellence' : '3. L\'Excellence'}</h3>
+                <p className="text-sm text-primary/70 leading-relaxed">
+                  {isEn ? 'Receive an exclusive, refined creation custom-crafted specifically for you.' : 'Recevez une création exclusive et raffinée, conçue spécifiquement pour vous.'}
+                </p>
               </div>
             </div>
           </div>
@@ -178,13 +194,13 @@ export const CustomOrderView: React.FC = () => {
           <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-bl-[100%] opacity-50 pointer-events-none transition-transform duration-700 group-hover:scale-110" />
 
           <div className="relative z-10">
-            <h2 className="text-3xl font-serif text-primary mb-2">Votre Projet</h2>
-            <p className="text-sm text-primary/70 mb-8">Remplissez ce formulaire pour démarrer l'aventure.</p>
+            <h2 className="text-3xl font-serif text-primary mb-2">{isEn ? 'Your Project' : 'Votre Projet'}</h2>
+            <p className="text-sm text-primary/70 mb-8">{isEn ? 'Fill out this form to start your bespoke project.' : 'Remplissez ce formulaire pour démarrer l\'aventure.'}</p>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold uppercase tracking-wider text-primary/70 ml-2">Nom complet</label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-primary/70 ml-2">{isEn ? 'Full Name' : 'Nom complet'}</label>
                   <input
                     type="text"
                     required
@@ -195,7 +211,7 @@ export const CustomOrderView: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold uppercase tracking-wider text-primary/70 ml-2">Email</label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-primary/70 ml-2">{isEn ? 'Email' : 'Email'}</label>
                   <input
                     type="email"
                     required
@@ -209,7 +225,7 @@ export const CustomOrderView: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="space-y-1">
-                  <label htmlFor="custom-whatsapp" className="text-xs font-bold uppercase tracking-wider text-primary/70 ml-2">Numéro WhatsApp</label>
+                  <label htmlFor="custom-whatsapp" className="text-xs font-bold uppercase tracking-wider text-primary/70 ml-2">{isEn ? 'WhatsApp Number' : 'Numéro WhatsApp'}</label>
                   <input
                     id="custom-whatsapp"
                     type="tel"
@@ -223,7 +239,7 @@ export const CustomOrderView: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label htmlFor="custom-phone" className="text-xs font-bold uppercase tracking-wider text-primary/70 ml-2">Numéro de téléphone</label>
+                  <label htmlFor="custom-phone" className="text-xs font-bold uppercase tracking-wider text-primary/70 ml-2">{isEn ? 'Phone Number' : 'Numéro de téléphone'}</label>
                   <input
                     id="custom-phone"
                     type="tel"
@@ -240,31 +256,31 @@ export const CustomOrderView: React.FC = () => {
 
               <div className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold uppercase tracking-wider text-primary/70 ml-2">Votre Idée / Projet</label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-primary/70 ml-2">{isEn ? 'Your Idea / Concept' : 'Votre Idée / Projet'}</label>
                   <textarea 
                     required
                     rows={4}
                     className="w-full px-5 py-4 bg-[#F9F7F2] border border-transparent rounded-2xl focus:border-accent/30 focus:bg-white focus:ring-4 focus:ring-accent/10 transition-all resize-none text-primary placeholder:text-primary/70 leading-relaxed"
-                    placeholder="Décrivez-nous votre idée..."
+                    placeholder={isEn ? 'Describe your bespoke creation idea...' : 'Décrivez-nous votre idée...'}
                     value={idea}
                     onChange={(e) => setIdea(e.target.value)}
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold uppercase tracking-wider text-primary/70 ml-2">Matériaux souhaités</label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-primary/70 ml-2">{isEn ? 'Desired Materials' : 'Matériaux souhaités'}</label>
                   <input
                     type="text"
                     required
                     className="w-full px-5 py-4 bg-[#F9F7F2] border border-transparent rounded-2xl focus:border-accent/30 focus:bg-white focus:ring-4 focus:ring-accent/10 transition-all text-primary placeholder:text-primary/70"
-                    placeholder="Ex: Laine mérinos, coton, bois..."
+                    placeholder={isEn ? 'e.g., Merino wool, Cotton, Wood...' : 'Ex: Laine mérinos, coton, bois...'}
                     value={materials}
                     onChange={(e) => setMaterials(e.target.value)}
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold uppercase tracking-wider text-primary/70 ml-2">Dimensions approximatives</label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-primary/70 ml-2">{isEn ? 'Approximate Dimensions' : 'Dimensions approximatives'}</label>
                   <input 
                     type="text"
                     className="w-full px-5 py-4 bg-[#F9F7F2] border border-transparent rounded-2xl focus:border-accent/30 focus:bg-white focus:ring-4 focus:ring-accent/10 transition-all text-primary placeholder:text-primary/70"
@@ -281,11 +297,11 @@ export const CustomOrderView: React.FC = () => {
                   disabled={isSubmitting || !idea.trim() || !name.trim() || !email.trim() || !whatsapp.trim() || !phone.trim()}
                   className="w-full py-5 rounded-2xl text-lg font-bold bg-[#5c5e46] hover:bg-primary text-white transition-all shadow-xl shadow-primary/10 hover:shadow-primary/20 animate-shine flex justify-center items-center gap-2"
                 >
-                  {isSubmitting ? 'Envoi en cours...' : 'Envoyer ma demande'}
+                  {isSubmitting ? (isEn ? 'Sending...' : 'Envoi en cours...') : (isEn ? 'Submit Request' : 'Envoyer ma demande')}
                 </Button>
               </div>
               <p className="text-center text-[11px] text-primary/70 uppercase tracking-wider mt-4">
-                Devis gratuit sous 48h ouvrées
+                {isEn ? 'Free quote within 48 business hours' : 'Devis gratuit sous 48h ouvrées'}
               </p>
             </form>
           </div>

@@ -21,6 +21,7 @@ import { useEntity } from '../hooks/useEntity';
 import { useAuthStore } from '../../stores/authStore';
 import type { KnittingProject, Product } from '../../types';
 import { triggerHaptic } from '../utils/haptics';
+import { useTranslation } from '../../i18n';
 
 const LOCAL_STORAGE_KEY = 'knitting-companion-projects:v2';
 
@@ -68,6 +69,7 @@ const readLocalProjects = (): KnittingProject[] => {
 
 export const KnittingCompanionView: React.FC = () => {
   const user = useAuthStore((state) => state.user);
+  const { t, isEn, l } = useTranslation();
   const [localProjects, setLocalProjects] = useState<KnittingProject[]>([]);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isExpertMode, setIsExpertMode] = useState(false);

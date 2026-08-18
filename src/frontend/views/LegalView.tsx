@@ -210,7 +210,7 @@ export const LegalView: React.FC<LegalViewProps> = ({ onNavigate }) => {
                   </div>
                   <div>
                     <span className="font-semibold text-primary dark:text-white block mb-1">Secteur d'activité :</span>
-                    <span>Mercerie créative, pelotes de laine noble, décoration d'intérieur fait main</span>
+                    <span>Mercerie créative, pelotes de laine noble, crochets, aiguilles de précision et accessoires d'artisanat</span>
                   </div>
                   <div>
                     <span className="font-semibold text-primary dark:text-white block mb-1">Siège social :</span>
@@ -218,7 +218,7 @@ export const LegalView: React.FC<LegalViewProps> = ({ onNavigate }) => {
                   </div>
                   <div>
                     <span className="font-semibold text-primary dark:text-white block mb-1">Fondateurs & Direction :</span>
-                    <span>Landry & Dolères</span>
+                    <span>Laine & Déco</span>
                   </div>
                   <div>
                     <span className="font-semibold text-primary dark:text-white block mb-1">Email de contact officiel :</span>
@@ -231,7 +231,7 @@ export const LegalView: React.FC<LegalViewProps> = ({ onNavigate }) => {
                 </div>
 
                 <p>
-                  L'entreprise a pour vocation la promotion des arts du fil, la confection artisanale, la commercialisation de pelotes de haute qualité, d'accessoires de tricot/crochet ainsi que d'objets de décoration d'intérieur authentiques.
+                  L'entreprise a pour vocation la promotion des arts du fil, la confection artisanale, la commercialisation de pelotes de haute qualité, de crochets, d'aiguilles de précision, d'accessoires de tricot ainsi que d'artisanat fait main authentique.
                 </p>
               </div>
             </div>
@@ -258,7 +258,7 @@ export const LegalView: React.FC<LegalViewProps> = ({ onNavigate }) => {
                   La responsabilité de la publication, de la ligne éditoriale, des articles de blog, des fiches conseils tricot et des guides d'entretien est assurée conjointement par :
                 </p>
                 <ul className="list-disc list-inside space-y-2 pl-2 text-sm">
-                  <li><strong>Directeurs de la publication :</strong> Landry & Dolères (Co-fondateurs).</li>
+                  <li><strong>Directeurs de la publication :</strong> L'équipe de Laine & Déco.</li>
                   <li><strong>Pôle Rédaction & Contenu :</strong> L’équipe créative Laine et Déco.</li>
                   <li><strong>Contact éditorial :</strong> Pour toute question relative aux contenus diffusés, contactez le pôle éditorial via <a href="mailto:redaction@laineetdeco.cm" className="text-accent underline">redaction@laineetdeco.cm</a> ou le formulaire de contact.</li>
                 </ul>
@@ -327,7 +327,7 @@ export const LegalView: React.FC<LegalViewProps> = ({ onNavigate }) => {
 
               <div className="space-y-4 text-sm sm:text-base leading-relaxed text-primary/80 dark:text-white/80">
                 <p>
-                  L’ensemble des éléments constituant le site <strong>Laine et Déco</strong> — notamment mais non exclusivement : les textes, chartes graphiques, logos, marques déposées, iconographies, photographies de pelotes et d'articles de décoration, vidéos, architectures logicielles, algorithmes, ainsi que les outils interactifs exclusifs (tels que le <em>Compagnon Tricot</em>, le <em>Générateur de Patrons</em>, le <em>Calculateur de Volume</em> et le <em>Configurateur</em>) — sont la propriété exclusive de <strong>Laine & Déco</strong> ou font l’objet d’une licence d’exploitation régulière.
+                  L’ensemble des éléments constituant le site <strong>Laine et Déco</strong> — notamment mais non exclusivement : les textes, chartes graphiques, logos, marques déposées, iconographies, photographies de pelotes et d'articles d'artisanat ou mercerie, vidéos, architectures logicielles, algorithmes, ainsi que les outils interactifs exclusifs (tels que le <em>Compagnon Tricot</em>, le <em>Générateur de Patrons</em>, le <em>Calculateur de Volume</em> et le <em>Configurateur</em>) — sont la propriété exclusive de <strong>Laine & Déco</strong> ou font l’objet d’une licence d’exploitation régulière.
                 </p>
                 <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 text-amber-900 dark:text-amber-200 text-xs sm:text-sm">
                   <strong>Interdiction stricte :</strong> Toute reproduction, représentation, modification, publication, adaptation totale ou partielle de l'un quelconque de ces éléments, quel que soit le moyen ou le procédé utilisé, est formellement interdite sans autorisation écrite préalable.
@@ -434,7 +434,7 @@ export const LegalView: React.FC<LegalViewProps> = ({ onNavigate }) => {
 
               <div className="space-y-4 text-sm sm:text-base leading-relaxed text-primary/80 dark:text-white/80">
                 <p>
-                  <strong>Laine et Déco</strong> s’efforce de fournir des informations aussi précises que possible concernant la composition des laines, les grammages, les métrages et les dimensions des objets de décoration.
+                  <strong>Laine et Déco</strong> s’efforce de fournir des informations aussi précises que possible concernant la composition des laines, les grammages, les métrages et les dimensions des crochets, aiguilles et accessoires d'artisanat.
                 </p>
                 <div className="p-4 rounded-2xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 text-xs sm:text-sm space-y-2">
                   <p>

@@ -72,7 +72,17 @@ export function AdminNavItems({ ctx }: { ctx: any }) {
               data={[...navItemsWithDefaults].sort((a, b) => a.order - b.order)}
                 columns={[
                   { header: 'Ordre', accessor: 'order', sortable: true },
-                  { header: 'Nom', accessor: 'name', sortable: true },
+                  { 
+                    header: 'Nom (FR / EN)', 
+                    accessor: (item: NavItem) => (
+                      <div>
+                        <div className="font-bold text-primary">{item.name}</div>
+                        {item.name_en && <div className="text-xs text-primary/60 italic">EN: {item.name_en}</div>}
+                      </div>
+                    ), 
+                    sortable: true,
+                    sortKey: 'name' 
+                  },
                   { header: 'Vue / Lien', accessor: 'view', sortable: true },
                   { 
                     header: 'Statut', 

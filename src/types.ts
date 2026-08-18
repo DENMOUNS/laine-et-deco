@@ -14,6 +14,7 @@ export interface Currency {
 export interface NavItem extends BaseEntity {
   id: string;
   name: string;
+  name_en?: string;
   view: string;
   order: number;
   status: 'active' | 'inactive';
@@ -25,7 +26,9 @@ export interface NavItem extends BaseEntity {
 export interface FAQ {
   id: string;
   question: string;
+  question_en?: string;
   answer: string;
+  answer_en?: string;
   category: string;
   order: number;
   status: 'active' | 'inactive';
@@ -93,14 +96,18 @@ export interface Review {
 export interface BlogPost {
   id: string;
   title: string;
+  title_en?: string;
   excerpt: string;
+  excerpt_en?: string;
   content: string;
+  content_en?: string;
   image: string;
   date: string;
   author: string;
   authorBio?: string;
   tags?: string[];
   category: string;
+  category_en?: string;
   status?: 'active' | 'inactive';
   createdAt?: string;
   updatedAt?: string;
@@ -169,6 +176,7 @@ export interface BrandingConfig {
 export interface Product {
   id: string;
   name: string;
+  name_en?: string;
   slug?: string;
   price: number;
   salePrice?: number; // Prix de vente (peut être différent du prix unitaire)
@@ -176,6 +184,7 @@ export interface Product {
   promoPrice?: number; // Prix promotionnel (affichage avec strikethrough)
   isInPromotion?: boolean; // Flag pour indiquer si le produit est en promotion
   category: string;
+  category_en?: string;
   image: string;
   /** Galerie de sous-images optionnelles (vues supplémentaires du produit) */
   images?: string[];
@@ -188,6 +197,7 @@ export interface Product {
   /** Autorise la précommande des quantités des arrivages futurs. */
   allowPreorder?: boolean;
   description: string;
+  description_en?: string;
   stock: number;
   /** Alias of stock — kept for backward-compat with legacy data */
   quantity?: number;
@@ -198,12 +208,14 @@ export interface Product {
   isSale?: boolean;
   isAvailable: boolean; // Added for stock management toggle
   material?: string;
+  material_en?: string;
   colors?: string[];
   specs?: Record<string, any>; // Technical specifications
   reviews?: Review[];
   views?: number;
   salesCount?: number;
   brand?: string;
+  brand_en?: string;
   seo?: SEOMeta; // Added for SEO
   purchasePrice?: number; // Added for Finance Management
   warranty?: string; // Warranty information
@@ -240,6 +252,9 @@ export interface Expense {
 export interface Category {
   id: string;
   name: string;
+  name_en?: string;
+  description?: string;
+  description_en?: string;
   slug?: string;
   image: string;
   count: number;
@@ -578,6 +593,7 @@ export interface SiteConfig extends BaseEntity {
   accentColor: string;
   showAdBanner: boolean;
   adBannerText: string;
+  adBannerText_en?: string;
   loyaltyConfig: LoyaltyConfig;
   homeFeaturedProducts: string[]; // IDs
   homeFeaturedCategories: string[]; // IDs
@@ -688,7 +704,9 @@ export interface WishlistItem {
 export interface Pack {
   id: string;
   name: string;
+  name_en?: string;
   description: string;
+  description_en?: string;
   products: { productId: string; quantity: number }[]; // Up to 20 products
   promoCode: string;
   discountPercentage: number;
@@ -743,6 +761,7 @@ export interface FlashSaleItem {
 export interface FlashSale {
   id: string;
   name: string;
+  name_en?: string;
   endDate: string;
   status: 'active' | 'inactive';
   items: FlashSaleItem[];
@@ -753,8 +772,10 @@ export interface FlashSale {
 export interface Lookbook {
   id: string;
   title: string;
+  title_en?: string;
   image: string;
   description?: string;
+  description_en?: string;
   status: 'active' | 'inactive';
   products: string[];
   createdAt?: string;
@@ -802,11 +823,13 @@ export interface PortfolioCertification {
 export type ExpertiseCategory = 'Frontend' | 'Backend' | 'Database' | 'Methodologie' | 'API' | 'Outils' | 'Expertise' | 'Gestion de Projet' | 'Communication' | 'Design' | 'Organisation';
 
 export interface MemberPortfolio {
-  id: string; // 'landry' or 'doleres'
-  profileType: 'developer' | 'manager';
+  id: string; // member id
+  profileType?: 'developer' | 'manager';
   name: string;
   role: string;
+  role_en?: string;
   bio: string;
+  bio_en?: string;
   email: string;
   github?: string;
   linkedin?: string;
@@ -850,8 +873,11 @@ export interface HeroBannerConfig extends BaseEntity {
   id?: string;
   image: string;
   title: string;
+  title_en?: string;
   subtitle: string;
+  subtitle_en?: string;
   ctaText: string;
+  ctaText_en?: string;
   /** Lien de destination du bouton CTA. Vide = boutique par défaut. */
   link?: string;
   order?: number;
@@ -863,6 +889,7 @@ export interface HeroBannerConfig extends BaseEntity {
 export interface AnnouncementBannerConfig extends BaseEntity {
   id?: string;
   message: string;
+  message_en?: string;
   status: 'active' | 'inactive';
   createdAt?: string;
   updatedAt?: string;
@@ -871,6 +898,7 @@ export interface AnnouncementBannerConfig extends BaseEntity {
 export interface ScrollingBannerConfig extends BaseEntity {
   id?: string;
   text: string;
+  text_en?: string;
   iconName: string;
   status: 'active' | 'inactive';
   createdAt?: string;
@@ -880,6 +908,7 @@ export interface ScrollingBannerConfig extends BaseEntity {
 export interface MarqueeItem extends BaseEntity {
   id: string;
   text: string;
+  text_en?: string;
   iconName: string;
   order?: number;
   status: 'active' | 'inactive';
@@ -920,11 +949,15 @@ export interface NewsletterPopupConfig extends BaseEntity {
   id?: string;
   isActive: boolean;
   title: string;
+  title_en?: string;
   message: string;
+  message_en?: string;
   delay: number;
   image: string;
   button1Text: string;
+  button1Text_en?: string;
   button2Text: string;
+  button2Text_en?: string;
   status: 'active' | 'inactive';
   createdAt?: string;
   updatedAt?: string;
@@ -933,6 +966,7 @@ export interface NewsletterPopupConfig extends BaseEntity {
 export interface CustomSectionConfig extends BaseEntity {
   id?: string;
   title: string;
+  title_en?: string;
   type: 'products' | 'categories' | 'banner';
   itemIds: string[];
   status: 'active' | 'inactive';

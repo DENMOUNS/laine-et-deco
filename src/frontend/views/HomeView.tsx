@@ -21,6 +21,7 @@ import { HeroTrustWidget } from '../components/ui/HeroTrustWidget';
 import { CategorySkeleton, ContentCardSkeleton, ProductSkeleton, Skeleton } from '../components/ui/Skeleton';
 import { toast } from 'sonner';
 import { isFeatureEnabled } from '../utils/featureFlags';
+import { useTranslation } from '../../i18n';
 
 const CountdownTimer: React.FC<{ endDate: string; compact?: boolean }> = ({ endDate, compact }) => {
   const [timeLeft, setTimeLeft] = useState({
@@ -110,6 +111,7 @@ interface HomeViewProps {
 
 export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onAddToWishlist, onQuickView, onAddToComparison, onProductClick, siteConfig, events = [] }) => {
   const { isMarqueeReady, isAllReady } = useLoadingSequence();
+  const { t, l, isEn } = useTranslation();
   const isLookbookEnabled = isFeatureEnabled({ featureFlags: siteConfig.featureFlags }, 'lookbook');
   const isBlogEnabled = isFeatureEnabled({ featureFlags: siteConfig.featureFlags }, 'blog');
 
@@ -472,9 +474,9 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
               <motion.div key={currentSlide} className="mb-6 space-y-4 animate-hero-fade-in">
                 {/* Header row: Subtitle + Mobile Slider Counter without overlapping */}
                 <div className="flex items-center justify-between gap-3">
-                  {currentHeroSlide.subtitle ? (
+                  {l(currentHeroSlide, 'subtitle') ? (
                     <span className="block text-xs sm:text-sm font-bold uppercase tracking-[0.2em] sm:tracking-[0.3em] text-white/90 leading-relaxed max-w-xl whitespace-normal break-words">
-                      {currentHeroSlide.subtitle}
+                      {l(currentHeroSlide, 'subtitle')}
                     </span>
                   ) : <div />}
 
@@ -504,15 +506,15 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                 </div>
 
                 <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif leading-[1.1] text-white">
-                  {currentHeroSlide.title}
+                  {l(currentHeroSlide, 'title')}
                 </h1>
-                {currentHeroSlide.ctaText && (
+                {l(currentHeroSlide, 'ctaText') && (
                   <div className="pt-2">
                     <button 
                       onClick={() => onNavigate(currentHeroSlide.link || 'shop')}
                       className="bg-[#ffffff] text-[#111311] px-6 sm:px-8 py-3 sm:py-4 rounded-full font-bold hover:bg-[#E2C29B] hover:text-[#111311] transition-all duration-300 inline-flex items-center group shadow-xl animate-shine text-sm sm:text-base cursor-pointer"
                     >
-                      {currentHeroSlide.ctaText}
+                      {l(currentHeroSlide, 'ctaText')}
                       <ArrowRight className="ml-3 group-hover:translate-x-1 transition-transform" size={18} />
                     </button>
                   </div>
@@ -985,15 +987,19 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-10">
               <div>
                 <span className="text-xs font-bold uppercase tracking-widest text-accent mb-2 block">Inspiration</span>
-                <h2 className="text-4xl font-serif">Notre Lookbook</h2>
-                <p className="text-primary/70 mt-2 max-w-xl">Explorez des idées de décoration, des ambiances laine et des looks créatifs pour vos projets déco.</p>
+                <h2 className="text-4xl font-serif">{isEn ? 'Our Lookbook' : 'Notre Lookbook'}</h2>
+                <p className="text-primary/70 mt-2 max-w-xl">
+                  {isEn 
+                    ? 'Explore knitting models, noble wool decors and creative styles for all your craft projects.'
+                    : "Explorez des modèles de tricot, des ambiances en laine noble et des looks créatifs pour tous vos projets d'artisanat."}
+                </p>
               </div>
               <button
                 type="button"
                 onClick={() => onNavigate('lookbook')}
                 className="text-primary font-bold border-b-2 border-primary/20 hover:border-accent hover:text-accent transition-all pb-1"
               >
-                Voir tout
+                {isEn ? 'View all' : 'Voir tout'}
               </button>
             </div>
 
@@ -1385,7 +1391,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
             <div>
               <span className="text-xs font-bold uppercase tracking-widest text-accent mb-1 sm:mb-2 block">Offres Spéciales</span>
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif">Promotions du Moment</h2>
-              <p className="text-xs sm:text-sm text-primary/70 max-w-xl hidden sm:block mt-1">Profitez de remises exceptionnelles sur une sélection d'articles pour embellir votre intérieur à petit prix.</p>
+              <p className="text-xs sm:text-sm text-primary/70 max-w-xl hidden sm:block mt-1">Profitez de remises exceptionnelles sur une sélection d'articles pour réussir vos projets d'artisanat et de tricot à petit prix.</p>
             </div>
             <button 
               onClick={() => onNavigate('shop')}

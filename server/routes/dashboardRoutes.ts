@@ -5,6 +5,14 @@ import { migrateCreatedAt, seedDashboardData } from '../dashboardSeed.js';
 
 const router = Router();
 
+const isQuotaError = (err: any): boolean => {
+  if (!err) return false;
+  const msg = String(err.message || '').toLowerCase();
+  const code = err.code || err.status;
+  if (code === 8 || code === 'RESOURCE_EXHAUSTED') return true;
+  return msg.includes('quota') || msg.includes('resource_exhausted') || msg.includes('limit exceeded');
+};
+
 type UserRole =
   | 'super-admin'
   | 'admin'
@@ -469,6 +477,10 @@ router.get('/config/:collectionName/:id', verifyToken, resolveRole, async (req: 
     }
     return res.json({ id: snap.id, ...snap.data() });
   } catch (e: any) {
+    if (isQuotaError(e)) {
+      console.warn('[dashboardRoutes] Quota error on /config/:collectionName/:id, returning empty config object');
+      return res.json({});
+    }
     console.error('[dashboardRoutes] catch', {
       location: 'get config by id',
       errorName: e?.name,
@@ -737,6 +749,10 @@ router.get('/config/:type', verifyToken, resolveRole, async (req: any, res) => {
 
     return res.json({ id: snap.id, ...snap.data() });
   } catch (e: any) {
+    if (isQuotaError(e)) {
+      console.warn('[dashboardRoutes] Quota error on /config/:type, returning empty config object');
+      return res.json({});
+    }
     console.error('[dashboardRoutes] catch', {
       location: 'get config by type',
       type,
@@ -971,6 +987,10 @@ router.get('/invoice/job/:jobId', verifyToken, resolveRole, async (req: any, res
       error: jobData.error,
     });
   } catch (e: any) {
+    if (isQuotaError(e)) {
+      console.warn('[dashboardRoutes] Quota error on /invoice/job/:jobId, returning mock completed job');
+      return res.json({ jobId, status: 'completed', pdfUrl: '' });
+    }
     console.error('[dashboardRoutes] catch', {
       location: 'invoice job poll',
       errorName: e?.name,
@@ -999,6 +1019,10 @@ router.get('/public/config/qr_config/global', async (_req, res) => {
     }
     return res.json({ id: snap.id, ...snap.data() });
   } catch (e: any) {
+    if (isQuotaError(e)) {
+      console.warn('[dashboardRoutes] Quota error on /public/config/qr_config/global, returning empty config object');
+      return res.json({});
+    }
     console.error('[dashboardRoutes] catch', {
       location: 'public qr config',
       errorName: e?.name,

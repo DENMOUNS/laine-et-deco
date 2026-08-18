@@ -7,8 +7,8 @@ import { CartAnimation } from './CartAnimation';
 import { MobileGlassDock } from './MobileGlassDock';
 import { MobileGlassHeader } from './MobileGlassHeader';
 
+import { ChatBubble } from './ChatBubble';
 const InstallBanner = lazy(() => import('./InstallBanner').then((m) => ({ default: m.InstallBanner })));
-const ChatBubble = lazy(() => import('./ChatBubble').then((m) => ({ default: m.ChatBubble })));
 const ComparisonTool = lazy(() => import('./ComparisonTool').then((m) => ({ default: m.ComparisonTool })));
 import { ErrorBoundary } from './ErrorBoundary';
 import { updateSEOMeta } from '../utils/siteUtils';
@@ -226,24 +226,7 @@ export const AppLayout: React.FC = () => {
       )}
 
       {!isAdmin && <Footer onNavigate={handleNavigate} user={user} />}
-      {!isAdmin && deferredWidgets && (
-        <Suspense fallback={null}>
-          {chatMounted ? (
-            <ChatBubble startOpen />
-          ) : (
-            <button
-              type="button"
-              aria-label="Ouvrir l’assistant de chat"
-              onClick={() => setChatMounted(true)}
-              className="fixed bottom-20 right-3 sm:bottom-6 sm:right-6 z-[80] glass-ios text-primary dark:text-white p-3.5 sm:p-4 rounded-full shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center group"
-            >
-              <div className="absolute top-1 right-1 w-2.5 h-2.5 bg-accent rounded-full animate-pulse shadow-sm" aria-hidden="true" />
-              <span className="sr-only">Chat</span>
-              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            </button>
-          )}
-        </Suspense>
-      )}
+      {!isAdmin && <ChatBubble />}
 
       {/* Floating comparison tool */}
       {currentView !== 'comparison' && comparisonList.length > 0 && deferredWidgets && (

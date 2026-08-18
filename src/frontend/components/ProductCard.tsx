@@ -7,6 +7,7 @@ import { generateSvgPlaceholder } from './ui/ImageWithFallback';
 import { optimizeImageUrl } from '../utils/imageUtils';
 import { triggerHaptic } from '../utils/haptics';
 import { toast } from 'sonner';
+import { useTranslation } from '../../i18n';
 
 interface ProductCardProps {
   product: Product;
@@ -20,15 +21,18 @@ interface ProductCardProps {
 }
 
 export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, onAddToCart, onAddToWishlist, onQuickView, onAddToComparison, onClick, events = [], isFullWidthOnMobile = false }) => {
+  const { t, l } = useTranslation();
   const effectivePrice = getEffectivePrice(product, events);
   const hasDiscount = effectivePrice < product.price;
   const isOutOfStock = !product.isAvailable || product.stock <= 0;
+  const displayName = l(product, 'name', product.name);
+  const displayCategory = l(product, 'category', product.category);
 
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
     const shareData = {
-      title: product.name,
-      text: cleanText(product.description),
+      title: displayName,
+      text: cleanText(l(product, 'description', product.description)),
       url: window.location.href,
     };
 
@@ -36,7 +40,7 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, on
       navigator.share(shareData).catch(console.error);
     } else {
       navigator.clipboard.writeText(window.location.href);
-      toast.success('Lien copié dans le presse-papier !');
+      toast.success(t('common.success'));
     }
   };
 
@@ -59,7 +63,7 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, on
       }`}>
         {product.isNew && (
           <span className="glass-ios text-primary text-[9px] sm:text-[10px] font-black uppercase tracking-wider px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full shadow-xs">
-            Nouveau
+            {t('common.new')}
           </span>
         )}
         {(product.isSale || hasDiscount) && (
@@ -69,7 +73,7 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, on
         )}
         {isOutOfStock && (
           <span className="bg-red-500/90 backdrop-blur-md text-white text-[9px] sm:text-[10px] font-black uppercase tracking-wider px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full shadow-xs border border-white/30">
-            Indisponible
+            {t('common.outOfStock')}
           </span>
         )}
       </div>
@@ -84,15 +88,15 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, on
         onClick={() => onClick(product)}
       >
         <img
-          src={optimizeImageUrl(product.image || (product as any).imageUrl || (Array.isArray(product.images) && product.images[0]) || generateSvgPlaceholder(product.name), 600)}
-          alt={product.name}
+          src={optimizeImageUrl(product.image || (product as any).imageUrl || (Array.isArray(product.images) && product.images[0]) || generateSvgPlaceholder(displayName), 600)}
+          alt={displayName}
           className="w-full h-full object-cover transition-transform duration-1000 ease-out group-hover/img:scale-110"
           referrerPolicy="no-referrer"
           loading="lazy"
           width="400"
           height="400"
           onError={(e) => {
-            e.currentTarget.src = generateSvgPlaceholder(product.name);
+            e.currentTarget.src = generateSvgPlaceholder(displayName);
           }}
         />
         {/* Gradient Overlay for better contrast */}
@@ -100,7 +104,7 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, on
         
         <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2 sm:gap-3 p-2 sm:p-4">
           <motion.button 
-            aria-label="Ajouter aux favoris"
+            aria-label={t('common.wishlist')}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={(e) => { 
@@ -109,11 +113,12 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, on
               onAddToWishlist(product); 
             }}
             className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-white text-primary flex items-center justify-center hover:bg-accent hover:text-primary transition-colors shadow-xl"
+            title={t('common.wishlist')}
           >
             <Heart size={15} className="sm:w-5 sm:h-5" />
           </motion.button>
           <motion.button 
-            aria-label="Ajouter au panier"
+            aria-label={t('common.addToCart')}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={(e) => { 
@@ -122,6 +127,7 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, on
               onAddToCart(product); 
             }}
             className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-white text-primary flex items-center justify-center hover:bg-accent hover:text-primary transition-colors shadow-xl"
+            title={t('common.addToCart')}
           >
             <ShoppingCart size={15} className="sm:w-5 sm:h-5" />
           </motion.button>
@@ -139,7 +145,7 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, on
           </motion.button>
           {onAddToComparison && (
             <motion.button 
-              aria-label="Comparer"
+              aria-label={t('common.comparison')}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={(e) => { 
@@ -148,7 +154,7 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, on
                 onAddToComparison(product); 
               }}
               className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-white text-primary flex items-center justify-center hover:bg-accent hover:text-primary transition-colors shadow-xl"
-              title="Comparer"
+              title={t('common.comparison')}
             >
               <ArrowRightLeft size={15} className="sm:w-5 sm:h-5" />
             </motion.button>
@@ -164,13 +170,13 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, on
       }`}>
         <div>
           <div className="flex justify-between items-start mb-1 gap-1">
-            <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-primary/70 font-bold truncate">{product.category}</p>
+            <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-primary/70 font-bold truncate">{displayCategory}</p>
             <span className={`text-[8px] sm:text-[9px] font-bold uppercase tracking-widest px-1.5 sm:px-2 py-0.5 rounded-full shrink-0 ${
               product.stock > 10 ? 'bg-green-100 text-green-700' : 
               product.stock > 0 ? 'bg-orange-100 text-orange-700' : 
               'bg-red-100 text-red-700'
             }`}>
-              {product.stock > 0 ? `${product.stock} dispo` : 'Épuisé'}
+              {product.stock > 0 ? `${product.stock} ${t('common.inStock').toLowerCase()}` : t('common.outOfStock')}
             </span>
           </div>
           <h3 className={`font-serif text-primary group-hover:text-accent transition-colors mb-2 cursor-pointer line-clamp-2 font-medium ${
@@ -178,7 +184,7 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, on
               ? 'text-sm sm:text-base md:text-lg' 
               : 'text-xs sm:text-base md:text-lg'
           }`} onClick={() => onClick(product)}>
-            {product.name}
+            {displayName}
           </h3>
         </div>
         <div className="flex justify-between items-end gap-1 pt-1">

@@ -247,6 +247,21 @@
         "count": { "type": "number" },
         "updatedAt": { "type": "string" }
       }
+    },
+    "call": {
+      "title": "Call",
+      "description": "WebRTC peer-to-peer call session",
+      "type": "object",
+      "properties": {
+        "callerId": { "type": "string" },
+        "callerName": { "type": "string" },
+        "status": { "type": "string", "enum": ["ringing", "connected", "rejected", "ended"] },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "offer": { "type": "object" },
+        "answer": { "type": "object" }
+      },
+      "required": ["callerId", "callerName", "status", "createdAt"]
     }
   },
   "firestore": {
@@ -270,6 +285,7 @@
     "badge": { "schema": "badge", "description": "Badges collection" },
     "community_post": { "schema": "community_post", "description": "Community posts collection" },
     "coupon": { "schema": "coupon", "description": "Discount coupons collection" },
-    "analytics": { "schema": "analytics", "description": "Global analytics and visitor counts" }
+    "analytics": { "schema": "analytics", "description": "Global analytics and visitor counts" },
+    "calls": { "schema": "call", "description": "WebRTC voice calls collection" }
   }
 }

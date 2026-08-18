@@ -215,12 +215,13 @@ export const MobileGlassDock: React.FC<MobileGlassDockProps> = ({
                       onNavigate(item.view);
                     }
                   }}
-                  className={`relative flex flex-col items-center justify-center rounded-2xl flex-1 transition-all py-1.5 px-1 group ${
+                  className={`relative flex flex-col items-center justify-center rounded-2xl flex-1 transition-all py-1.5 px-1 group cursor-pointer ${
                     active
                       ? 'text-[#243325] dark:text-accent font-bold'
                       : 'text-[#2D3E31] dark:text-[#E2ECE2] hover:text-[#182419]'
                   }`}
                   aria-label={item.label}
+                  title={item.label}
                 >
                   {/* Active Capsule Glass Effect */}
                   {active && (

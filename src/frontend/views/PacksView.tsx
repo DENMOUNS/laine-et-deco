@@ -43,7 +43,7 @@ export const PacksView: React.FC<PacksViewProps> = ({ onNavigate, onAddToCart, o
         </motion.div>
         <h1 className="text-5xl font-serif text-primary mb-6">Nos Packs Créatifs</h1>
         <p className="text-primary/70 max-w-2xl mx-auto text-lg">
-          Économisez jusqu'à 20% en choisissant nos packs soigneusement composés pour vos projets de tricot et de décoration.
+          Économisez jusqu'à 20% en choisissant nos packs soigneusement composés pour tous vos projets de tricot, crochet et créations en laine.
         </p>
       </div>
 

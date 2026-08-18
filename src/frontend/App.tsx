@@ -10,6 +10,7 @@ import { getStaticEntityCacheKey, readCache, writeCache, getTTLForEntity } from 
 import { dispatchNetworkIssue, getNetworkWarningMessage } from './utils/networkStatus';
 import { AppRoutes } from './components/AppRoutes';
 import { useThemeStore } from '../stores/themeStore';
+import { CallManager } from './components/CallManager';
 
 const HOME_CACHE_COLLECTIONS = [
   { name: 'product', max: 24 },
@@ -252,6 +253,7 @@ export function App() {
     <>
       <NavigationProgress />
       <Toaster position="top-center" duration={5000} closeButton />
+      <CallManager />
       <Suspense fallback={<RouteFallback />}>
         <AppRoutes />
       </Suspense>
