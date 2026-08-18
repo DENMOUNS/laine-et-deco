@@ -100,14 +100,31 @@ export function formatUserNotification(action: string, user: any, details?: any)
  * Formate la date de manière naturelle sans notation technique
  * Ex: "10 août 2026, 14:30" au lieu de "2026-08-10T14:30:00Z"
  */
-export function formatNotificationDate(dateString: string | Date | null | undefined): string {
+export function formatNotificationDate(dateString: any): string {
   // Validation: vérifier si la date existe
   if (!dateString) return 'Date inconnue';
   
-  const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+  let date: Date;
+  if (dateString instanceof Date) {
+    date = dateString;
+  } else if (typeof dateString === 'string') {
+    date = new Date(dateString);
+  } else if (typeof dateString === 'number') {
+    date = new Date(dateString);
+  } else if (dateString && typeof dateString === 'object' && typeof dateString.toDate === 'function') {
+    date = dateString.toDate();
+  } else if (dateString && typeof dateString === 'object' && typeof dateString.seconds === 'number') {
+    date = new Date(dateString.seconds * 1000);
+  } else {
+    try {
+      date = new Date(dateString);
+    } catch {
+      return 'Date inconnue';
+    }
+  }
   
   // Validation: vérifier si la date est valide
-  if (isNaN(date.getTime())) return 'Date invalide';
+  if (!date || isNaN(date.getTime())) return 'Date inconnue';
   
   const months = [
     'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
@@ -126,14 +143,31 @@ export function formatNotificationDate(dateString: string | Date | null | undefi
 /**
  * Retourne la date au format relatif (il y a X minutes/heures/jours)
  */
-export function formatTimeAgo(dateString: string | Date | null | undefined): string {
+export function formatTimeAgo(dateString: any): string {
   // Validation: vérifier si la date existe
   if (!dateString) return 'Date inconnue';
   
-  const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+  let date: Date;
+  if (dateString instanceof Date) {
+    date = dateString;
+  } else if (typeof dateString === 'string') {
+    date = new Date(dateString);
+  } else if (typeof dateString === 'number') {
+    date = new Date(dateString);
+  } else if (dateString && typeof dateString === 'object' && typeof dateString.toDate === 'function') {
+    date = dateString.toDate();
+  } else if (dateString && typeof dateString === 'object' && typeof dateString.seconds === 'number') {
+    date = new Date(dateString.seconds * 1000);
+  } else {
+    try {
+      date = new Date(dateString);
+    } catch {
+      return 'Date inconnue';
+    }
+  }
   
   // Validation: vérifier si la date est valide
-  if (isNaN(date.getTime())) return 'Date invalide';
+  if (!date || isNaN(date.getTime())) return 'Date inconnue';
   
   const now = new Date();
   const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);

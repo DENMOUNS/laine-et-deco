@@ -308,11 +308,28 @@ export const getPaginatedEntities = async <T extends BaseEntity>(
   } catch (err) {
     console.warn(`Direct query for ${entityType} failed. Trying fallback via API.`, err);
     try {
-      const allItems = await entityApiRequest(entityType, 'GET') as T[];
-      return filterAndSortInMemory<T>(allItems, constraints, pageSize, lastDocument?.id || null);
+      const allItems = await fetchEntityDataFromApi<T>(entityType);
+      if (allItems && Array.isArray(allItems)) {
+        return filterAndSortInMemory<T>(allItems, constraints, pageSize, lastDocument?.id || null);
+      }
+      // If API returned null, try local cache
+      const cachedData = await readEntityCache<T[]>(entityType);
+      if (cachedData && Array.isArray(cachedData)) {
+        return filterAndSortInMemory<T>(cachedData, constraints, pageSize, lastDocument?.id || null);
+      }
+      return { items: [], lastDoc: null, hasMore: false };
     } catch (fallbackErr) {
-      console.error(`API fallback for ${entityType} failed:`, fallbackErr);
-      throw err;
+      console.warn(`API fallback for ${entityType} failed:`, fallbackErr);
+      // Try local cache
+      try {
+        const cachedData = await readEntityCache<T[]>(entityType);
+        if (cachedData && Array.isArray(cachedData)) {
+          return filterAndSortInMemory<T>(cachedData, constraints, pageSize, lastDocument?.id || null);
+        }
+      } catch (cacheErr) {
+        console.warn('Failed to read cache for entity:', entityType, cacheErr);
+      }
+      return { items: [], lastDoc: null, hasMore: false };
     }
   }
 };
@@ -365,8 +382,8 @@ export const getEntityAggregate = async (
   } catch (err) {
     console.warn(`Direct aggregation for ${entityType} failed. Trying fallback via API.`, err);
     try {
-      const allItems = await entityApiRequest(entityType, 'GET') as any[];
-      const filtered = filterInMemory(allItems, constraints);
+      const allItems = await fetchEntityDataFromApi<any>(entityType);
+      const filtered = filterInMemory(allItems || [], constraints);
       if (fieldToSum) {
         const total = filtered.reduce((sumVal, item) => sumVal + (Number(item[fieldToSum]) || 0), 0);
         return {
@@ -380,8 +397,32 @@ export const getEntityAggregate = async (
         };
       }
     } catch (fallbackErr) {
-      console.error(`API fallback aggregation for ${entityType} failed:`, fallbackErr);
-      throw err;
+      console.warn(`API fallback aggregation for ${entityType} failed:`, fallbackErr);
+      // Try local cache
+      try {
+        const cachedData = await readEntityCache<any[]>(entityType);
+        if (cachedData && Array.isArray(cachedData)) {
+          const filtered = filterInMemory(cachedData, constraints);
+          if (fieldToSum) {
+            const total = filtered.reduce((sumVal, item) => sumVal + (Number(item[fieldToSum]) || 0), 0);
+            return {
+              count: filtered.length,
+              total
+            };
+          } else {
+            return {
+              count: filtered.length,
+              total: 0
+            };
+          }
+        }
+      } catch (cacheErr) {
+        console.warn('Failed to read cache for aggregation:', entityType, cacheErr);
+      }
+      return {
+        count: 0,
+        total: 0
+      };
     }
   }
 };
