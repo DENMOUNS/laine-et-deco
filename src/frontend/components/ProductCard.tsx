@@ -1,5 +1,5 @@
 import React from 'react';
-import { Star, Heart, ShoppingCart, Share2, ArrowRightLeft } from 'lucide-react';
+import { Star, Heart, ShoppingCart, Share2, ArrowRightLeft, Eye } from 'lucide-react';
 import { Product, PromoEvent } from '../../types';
 import { motion } from 'motion/react';
 import { getEffectivePrice, cleanText } from '../utils/siteUtils';
@@ -20,7 +20,16 @@ interface ProductCardProps {
   isFullWidthOnMobile?: boolean;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, onAddToCart, onAddToWishlist, onQuickView, onAddToComparison, onClick, events = [], isFullWidthOnMobile = false }) => {
+export const ProductCard: React.FC<ProductCardProps> = React.memo(({ 
+  product, 
+  onAddToCart, 
+  onAddToWishlist, 
+  onQuickView, 
+  onAddToComparison, 
+  onClick, 
+  events = [], 
+  isFullWidthOnMobile = false 
+}) => {
   const { t, l } = useTranslation();
   const effectivePrice = getEffectivePrice(product, events);
   const hasDiscount = effectivePrice < product.price;
@@ -49,13 +58,13 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, on
       layout
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className={`group relative bg-white md:clay-tactile rounded-2xl sm:rounded-3xl md:rounded-[2rem] overflow-hidden shadow-xs hover:shadow-xl transition-all duration-500 flex ${
+      className={`group relative bg-white md:clay-tactile rounded-2xl sm:rounded-3xl border border-primary/5 overflow-hidden shadow-xs hover:shadow-xl transition-all duration-300 flex ${
         isFullWidthOnMobile 
-          ? 'flex-row items-center p-3 h-[160px] sm:h-[180px] md:h-[220px] gap-4 w-full' 
+          ? 'flex-row items-center p-3 gap-4 w-full min-h-[160px]' 
           : 'flex-col h-full'
-      } ${isOutOfStock ? 'opacity-75 grayscale-[0.5]' : ''}`}
+      } ${isOutOfStock ? 'opacity-75 grayscale-[0.3]' : ''}`}
     >
-      {/* Badges with iPhone glass finish */}
+      {/* Badges */}
       <div className={`absolute z-10 flex flex-col gap-1 sm:gap-1.5 ${
         isFullWidthOnMobile 
           ? 'top-4 left-4' 
@@ -82,15 +91,15 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, on
       <div 
         className={`relative overflow-hidden cursor-pointer group/img ${
           isFullWidthOnMobile 
-            ? 'w-[136px] h-[136px] sm:w-[156px] sm:h-[156px] md:w-[196px] md:h-[196px] rounded-xl shrink-0' 
-            : 'aspect-square sm:aspect-[3/4]'
+            ? 'w-[120px] h-[120px] sm:w-[150px] sm:h-[150px] rounded-xl shrink-0' 
+            : 'w-full aspect-square sm:aspect-[4/3]'
         }`} 
         onClick={() => onClick(product)}
       >
         <img
           src={optimizeImageUrl(product.image || (product as any).imageUrl || (Array.isArray(product.images) && product.images[0]) || generateSvgPlaceholder(displayName), 600)}
           alt={displayName}
-          className="w-full h-full object-cover transition-transform duration-1000 ease-out group-hover/img:scale-110"
+          className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover/img:scale-105"
           referrerPolicy="no-referrer"
           loading="lazy"
           width="400"
@@ -99,10 +108,9 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, on
             e.currentTarget.src = generateSvgPlaceholder(displayName);
           }}
         />
-        {/* Gradient Overlay for better contrast */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover/img:opacity-100 transition-opacity duration-500" />
         
-        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2 sm:gap-3 p-2 sm:p-4">
+        {/* Overlay actions (Wishlist, QuickView, Share, Compare) - WITHOUT AddToCart which is now next to price */}
+        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2 p-2">
           <motion.button 
             aria-label={t('common.wishlist')}
             whileHover={{ scale: 1.1 }}
@@ -112,25 +120,27 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, on
               triggerHaptic('selection');
               onAddToWishlist(product); 
             }}
-            className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-white text-primary flex items-center justify-center hover:bg-accent hover:text-primary transition-colors shadow-xl"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/90 text-primary flex items-center justify-center hover:bg-accent hover:text-primary transition-colors shadow-lg cursor-pointer"
             title={t('common.wishlist')}
           >
-            <Heart size={15} className="sm:w-5 sm:h-5" />
+            <Heart size={16} />
           </motion.button>
+          
           <motion.button 
-            aria-label={t('common.addToCart')}
+            aria-label="Aperçu rapide"
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={(e) => { 
               e.stopPropagation(); 
-              triggerHaptic('success');
-              onAddToCart(product); 
+              triggerHaptic('light');
+              onQuickView(product); 
             }}
-            className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-white text-primary flex items-center justify-center hover:bg-accent hover:text-primary transition-colors shadow-xl"
-            title={t('common.addToCart')}
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/90 text-primary flex items-center justify-center hover:bg-accent hover:text-primary transition-colors shadow-lg cursor-pointer"
+            title="Aperçu rapide"
           >
-            <ShoppingCart size={15} className="sm:w-5 sm:h-5" />
+            <Eye size={16} />
           </motion.button>
+
           <motion.button 
             aria-label="Partager"
             whileHover={{ scale: 1.1 }}
@@ -139,10 +149,12 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, on
               triggerHaptic('light');
               handleShare(e);
             }}
-            className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-white text-primary flex items-center justify-center hover:bg-accent hover:text-primary transition-colors shadow-xl"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/90 text-primary flex items-center justify-center hover:bg-accent hover:text-primary transition-colors shadow-lg cursor-pointer"
+            title="Partager"
           >
-            <Share2 size={15} className="sm:w-5 sm:h-5" />
+            <Share2 size={16} />
           </motion.button>
+
           {onAddToComparison && (
             <motion.button 
               aria-label={t('common.comparison')}
@@ -153,10 +165,10 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, on
                 triggerHaptic('light');
                 onAddToComparison(product); 
               }}
-              className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-white text-primary flex items-center justify-center hover:bg-accent hover:text-primary transition-colors shadow-xl"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/90 text-primary flex items-center justify-center hover:bg-accent hover:text-primary transition-colors shadow-lg cursor-pointer"
               title={t('common.comparison')}
             >
-              <ArrowRightLeft size={15} className="sm:w-5 sm:h-5" />
+              <ArrowRightLeft size={16} />
             </motion.button>
           )}
         </div>
@@ -165,42 +177,71 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, on
       {/* Content */}
       <div className={`flex flex-col justify-between flex-grow min-w-0 ${
         isFullWidthOnMobile 
-          ? 'p-2 sm:p-5 md:p-6 h-full' 
-          : 'p-3 sm:p-5 md:p-6'
+          ? 'p-2 sm:p-4 h-full' 
+          : 'p-3.5 sm:p-4 md:p-5'
       }`}>
         <div>
-          <div className="flex justify-between items-start mb-1 gap-1">
+          <div className="flex justify-between items-center mb-1 gap-1">
             <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-primary/70 font-bold truncate">{displayCategory}</p>
-            <span className={`text-[8px] sm:text-[9px] font-bold uppercase tracking-widest px-1.5 sm:px-2 py-0.5 rounded-full shrink-0 ${
-              product.stock > 10 ? 'bg-green-100 text-green-700' : 
-              product.stock > 0 ? 'bg-orange-100 text-orange-700' : 
-              'bg-red-100 text-red-700'
-            }`}>
-              {product.stock > 0 ? `${product.stock} ${t('common.inStock').toLowerCase()}` : t('common.outOfStock')}
-            </span>
+            <div className="flex items-center text-amber-500 text-xs shrink-0">
+              <Star size={12} fill="currentColor" />
+              <span className="ml-1 text-primary/70 font-semibold text-[11px]">{product.rating}</span>
+            </div>
           </div>
-          <h3 className={`font-serif text-primary group-hover:text-accent transition-colors mb-2 cursor-pointer line-clamp-2 font-medium ${
-            isFullWidthOnMobile 
-              ? 'text-sm sm:text-base md:text-lg' 
-              : 'text-xs sm:text-base md:text-lg'
-          }`} onClick={() => onClick(product)}>
+          
+          <h3 
+            className="font-serif text-primary group-hover:text-accent transition-colors mb-2 cursor-pointer font-semibold text-xs sm:text-sm md:text-base leading-snug line-clamp-2 min-h-[2.4rem]" 
+            onClick={() => onClick(product)}
+            title={displayName}
+          >
             {displayName}
           </h3>
         </div>
-        <div className="flex justify-between items-end gap-1 pt-1">
+
+        {/* Footer Row: Price + Add to Cart Button */}
+        <div className="flex items-center justify-between gap-2 pt-2 border-t border-primary/5 mt-auto">
           <div className="flex flex-col min-w-0">
             {hasDiscount && (
-              <span className="text-[10px] sm:text-xs text-primary/60 line-through font-medium truncate">{product.price.toLocaleString()} FCFA</span>
+              <span className="text-[10px] sm:text-xs text-primary/50 line-through font-medium whitespace-nowrap">
+                {product.price.toLocaleString()} FCFA
+              </span>
             )}
-            <span className={`font-bold text-primary truncate ${
-              isFullWidthOnMobile 
-                ? 'text-sm sm:text-base md:text-xl' 
-                : 'text-xs sm:text-base md:text-xl'
-            }`}>{effectivePrice.toLocaleString()} FCFA</span>
+            <span className="font-bold text-primary text-xs sm:text-sm md:text-base whitespace-nowrap">
+              {effectivePrice.toLocaleString()} FCFA
+            </span>
           </div>
-          <div className="flex items-center text-amber-500 text-xs sm:text-sm shrink-0">
-            <Star size={12} className="sm:w-3.5 sm:h-3.5" fill="currentColor" />
-            <span className="ml-1 text-primary/70 font-medium text-[11px] sm:text-xs">{product.rating}</span>
+
+          <div className="flex items-center gap-1 shrink-0">
+            {onAddToComparison && (
+              <button
+                type="button"
+                aria-label={t('common.comparison')}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  triggerHaptic('light');
+                  onAddToComparison(product);
+                }}
+                className="p-2 rounded-xl bg-secondary/30 text-primary hover:bg-accent hover:text-white transition-all cursor-pointer"
+                title={t('common.comparison')}
+              >
+                <ArrowRightLeft size={15} />
+              </button>
+            )}
+            <button
+              type="button"
+              aria-label={t('common.addToCart')}
+              disabled={isOutOfStock}
+              onClick={(e) => {
+                e.stopPropagation();
+                triggerHaptic('success');
+                onAddToCart(product);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 bg-primary hover:bg-accent text-white rounded-xl text-xs font-bold transition-all shadow-sm hover:shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              title={t('common.addToCart')}
+            >
+              <ShoppingCart size={14} />
+              <span className="hidden sm:inline">{t('common.addToCart')}</span>
+            </button>
           </div>
         </div>
       </div>

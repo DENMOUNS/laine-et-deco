@@ -7,6 +7,7 @@ import { initFirebase } from '../../backend/firebase';
 import { collection, addDoc, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
 import { readCache, getSharedEntityCacheKey } from '../utils/cacheStorage';
 import { useTranslation } from '../../i18n';
+import { useAuthStore } from '../../stores/authStore';
 
 interface ChatBubbleProps {
   startOpen?: boolean;
@@ -14,6 +15,10 @@ interface ChatBubbleProps {
 
 export const ChatBubble: React.FC<ChatBubbleProps> = ({ startOpen = false }) => {
   const { language, t } = useTranslation();
+  const user = useAuthStore((s) => s.user);
+
+  if (!user) return null;
+
   const [isOpen, setIsOpen] = useState(startOpen);
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<any[]>([
@@ -167,6 +172,13 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ startOpen = false }) => 
   }, []);
 
   const startVoiceCall = () => {
+    if (!user) {
+      toast.error(language === 'en' ? "Please log in to start a call." : "Veuillez vous connecter pour passer un appel vocal.");
+      setIsOpen(false);
+      window.history.pushState({}, '', '/login');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+      return;
+    }
     window.dispatchEvent(new CustomEvent('app:start-call'));
   };
 
@@ -372,83 +384,114 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ startOpen = false }) => 
                 </button>
               </div>
 
-              {/* Messages Container */}
-              <div 
-                ref={scrollRef}
-                className="h-72 sm:h-80 overflow-y-auto p-4 sm:p-5 space-y-3.5 bg-secondary/10 dark:bg-black/20 scroll-smooth"
-              >
-                {messages.map((msg) => {
-                  const isAI = msg.senderId === 'ai';
-                  const formattedTime = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                  return (
-                    <div key={msg.id} className={`flex ${isAI ? 'justify-start' : 'justify-end'}`}>
-                      <div className={`max-w-[88%] p-3.5 rounded-2xl text-sm shadow-sm ${
-                        isAI 
-                          ? 'bg-white dark:bg-[#252a25] text-primary dark:text-white rounded-tl-none border border-primary/5' 
-                          : 'bg-primary text-white rounded-tr-none'
-                      }`}>
-                        <p className="leading-relaxed text-xs sm:text-sm whitespace-pre-wrap">{msg.text}</p>
-                        
-                        <span className={`text-[10px] mt-1.5 block font-medium ${isAI ? 'text-primary/60 dark:text-white/60' : 'text-white/80'}`}>
-                          {formattedTime}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-                {isTyping && (
-                  <div className="flex justify-start">
-                    <div className="bg-white dark:bg-[#252a25] p-3.5 rounded-2xl rounded-tl-none shadow-sm flex items-center gap-2 border border-primary/5">
-                      <Loader2 size={14} className="animate-spin text-accent" />
-                      <span className="text-xs text-primary/80 dark:text-white/80 font-medium italic">
-                        {language === 'en' ? 'Laine & Déco assistant is thinking...' : "L'expert Laine & Déco réfléchit..."}
-                      </span>
-                    </div>
+              {!user ? (
+                <div className="p-8 flex flex-col items-center justify-center text-center space-y-4 my-auto min-h-[300px]">
+                  <div className="w-16 h-16 rounded-3xl bg-accent/10 flex items-center justify-center text-accent shadow-inner">
+                    <MessageCircle size={32} />
                   </div>
-                )}
-              </div>
+                  <div className="space-y-2">
+                    <h4 className="font-bold text-lg text-primary dark:text-white font-serif">
+                      {language === 'en' ? 'Sign in to access live chat' : 'Connexion requise pour le tchat'}
+                    </h4>
+                    <p className="text-xs text-primary/70 dark:text-white/70 max-w-xs leading-relaxed">
+                      {language === 'en'
+                        ? 'Please log in to chat with our team and receive personalized advice.'
+                        : 'Connectez-vous pour échanger en direct avec un conseiller et bénéficier d’un accompagnement sur-mesure.'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsOpen(false);
+                      window.history.pushState({}, '', '/login');
+                      window.dispatchEvent(new PopStateEvent('popstate'));
+                    }}
+                    className="px-6 py-3 bg-accent hover:bg-accent-dark text-white text-xs font-bold rounded-2xl transition-all shadow-md active:scale-95 cursor-pointer mt-2"
+                  >
+                    {language === 'en' ? 'Sign In / Register' : 'Se connecter / S’inscrire'}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {/* Messages Container */}
+                  <div 
+                    ref={scrollRef}
+                    className="h-72 sm:h-80 overflow-y-auto p-4 sm:p-5 space-y-3.5 bg-secondary/10 dark:bg-black/20 scroll-smooth"
+                  >
+                    {messages.map((msg) => {
+                      const isAI = msg.senderId === 'ai';
+                      const formattedTime = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                      return (
+                        <div key={msg.id} className={`flex ${isAI ? 'justify-start' : 'justify-end'}`}>
+                          <div className={`max-w-[88%] p-3.5 rounded-2xl text-sm shadow-sm ${
+                            isAI 
+                              ? 'bg-white dark:bg-[#252a25] text-primary dark:text-white rounded-tl-none border border-primary/5' 
+                              : 'bg-primary text-white rounded-tr-none'
+                          }`}>
+                            <p className="leading-relaxed text-xs sm:text-sm whitespace-pre-wrap">{msg.text}</p>
+                            
+                            <span className={`text-[10px] mt-1.5 block font-medium ${isAI ? 'text-primary/60 dark:text-white/60' : 'text-white/80'}`}>
+                              {formattedTime}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {isTyping && (
+                      <div className="flex justify-start">
+                        <div className="bg-white dark:bg-[#252a25] p-3.5 rounded-2xl rounded-tl-none shadow-sm flex items-center gap-2 border border-primary/5">
+                          <Loader2 size={14} className="animate-spin text-accent" />
+                          <span className="text-xs text-primary/80 dark:text-white/80 font-medium italic">
+                            {language === 'en' ? 'Laine & Déco assistant is thinking...' : "L'expert Laine & Déco réfléchit..."}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
-              {/* Quick Actions Row */}
-              <div className="px-4 py-2.5 bg-secondary/20 dark:bg-black/30 flex gap-2 overflow-x-auto no-scrollbar items-center">
-                <button 
-                  type="button"
-                  onClick={generateMoodboard}
-                  disabled={isTyping}
-                  className="whitespace-nowrap flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#2a302a] rounded-full text-[10px] font-bold text-primary dark:text-white shadow-xs hover:bg-accent hover:text-white transition-all disabled:opacity-50 cursor-pointer shrink-0"
-                >
-                  <Palette size={12} />
-                  {language === 'en' ? 'Knitting Moodboard' : 'Moodboard Tricot'}
-                </button>
-                <button 
-                  type="button"
-                  onClick={generateDecorAdvice}
-                  disabled={isTyping}
-                  className="whitespace-nowrap flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#2a302a] rounded-full text-[10px] font-bold text-primary dark:text-white shadow-xs hover:bg-accent hover:text-white transition-all disabled:opacity-50 cursor-pointer shrink-0"
-                >
-                  <ImageIcon size={12} />
-                  {language === 'en' ? 'Style & Decor Advice' : 'Conseil Déco'}
-                </button>
-              </div>
+                  {/* Quick Actions Row */}
+                  <div className="px-4 py-2.5 bg-secondary/20 dark:bg-black/30 flex gap-2 overflow-x-auto no-scrollbar items-center">
+                    <button 
+                      type="button"
+                      onClick={generateMoodboard}
+                      disabled={isTyping}
+                      className="whitespace-nowrap flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#2a302a] rounded-full text-[10px] font-bold text-primary dark:text-white shadow-xs hover:bg-accent hover:text-white transition-all disabled:opacity-50 cursor-pointer shrink-0"
+                    >
+                      <Palette size={12} />
+                      {language === 'en' ? 'Knitting Moodboard' : 'Moodboard Tricot'}
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={generateDecorAdvice}
+                      disabled={isTyping}
+                      className="whitespace-nowrap flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#2a302a] rounded-full text-[10px] font-bold text-primary dark:text-white shadow-xs hover:bg-accent hover:text-white transition-all disabled:opacity-50 cursor-pointer shrink-0"
+                    >
+                      <ImageIcon size={12} />
+                      {language === 'en' ? 'Style & Decor Advice' : 'Conseil Déco'}
+                    </button>
+                  </div>
 
-              {/* Chat Input */}
-              <form onSubmit={handleSend} className="p-3 bg-white dark:bg-[#1a1d1a] border-t border-primary/5 flex gap-2 shrink-0">
-                <input
-                  type="text"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder={language === 'en' ? "Ask any question (yarns, orders, patterns)..." : "Posez votre question (laines, aiguilles, commandes)..."}
-                  aria-label="Votre message"
-                  className="flex-grow bg-secondary/30 dark:bg-black/30 rounded-2xl px-4 py-2.5 text-xs sm:text-sm text-primary dark:text-white placeholder:text-primary/60 dark:placeholder:text-white/50 focus:outline-none focus:ring-1 focus:ring-accent transition-all"
-                />
-                <button
-                  type="submit"
-                  disabled={isTyping || !message.trim()}
-                  aria-label={language === 'en' ? "Send message" : "Envoyer le message"}
-                  className="bg-primary text-white p-2.5 rounded-2xl hover:bg-accent transition-all duration-200 disabled:opacity-50 shadow-md flex items-center justify-center cursor-pointer active:scale-95"
-                >
-                  <Send size={16} aria-hidden="true" />
-                </button>
-              </form>
+                  {/* Chat Input */}
+                  <form onSubmit={handleSend} className="p-3 bg-white dark:bg-[#1a1d1a] border-t border-primary/5 flex gap-2 shrink-0">
+                    <input
+                      type="text"
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      placeholder={language === 'en' ? "Ask any question (yarns, orders, patterns)..." : "Posez votre question (laines, aiguilles, commandes)..."}
+                      aria-label="Votre message"
+                      className="flex-grow bg-secondary/30 dark:bg-black/30 rounded-2xl px-4 py-2.5 text-xs sm:text-sm text-primary dark:text-white placeholder:text-primary/60 dark:placeholder:text-white/50 focus:outline-none focus:ring-1 focus:ring-accent transition-all"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isTyping || !message.trim()}
+                      aria-label={language === 'en' ? "Send message" : "Envoyer le message"}
+                      className="bg-primary text-white p-2.5 rounded-2xl hover:bg-accent transition-all duration-200 disabled:opacity-50 shadow-md flex items-center justify-center cursor-pointer active:scale-95"
+                    >
+                      <Send size={16} aria-hidden="true" />
+                    </button>
+                  </form>
+                </>
+              )}
             </motion.div>
           </div>
         )}

@@ -215,8 +215,8 @@ export const MobileGlassDock: React.FC<MobileGlassDockProps> = ({
         <nav
           className={`pointer-events-auto relative w-full max-w-[400px] transition-all duration-300 overflow-hidden ${
             isMobileLandscape 
-              ? 'rounded-full p-1 shadow-2xl bg-white/95 dark:bg-[#181C18]/95 backdrop-blur-2xl border-2 border-[#3E4A3D]/25 dark:border-white/20' 
-              : 'rounded-[2.2rem] p-1.5 shadow-[0_12px_36px_rgba(45,69,51,0.25),0_4px_16px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_36px_rgba(0,0,0,0.6)] bg-white/95 dark:bg-[#181C18]/95 backdrop-blur-2xl border-2 border-[#3E4A3D]/20 dark:border-white/20'
+              ? 'rounded-full p-1 shadow-2xl bg-white/75 dark:bg-[#181C18]/80 backdrop-blur-2xl border-2 border-[#3E4A3D]/25 dark:border-white/20' 
+              : 'rounded-[2.2rem] p-1.5 shadow-[0_12px_36px_rgba(45,69,51,0.25),0_4px_16px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_36px_rgba(0,0,0,0.6)] bg-white/75 dark:bg-[#181C18]/80 backdrop-blur-2xl border-2 border-[#3E4A3D]/20 dark:border-white/20'
           }`}
         >
           <div className="flex items-center justify-between relative px-1">

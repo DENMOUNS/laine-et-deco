@@ -107,8 +107,9 @@ export const CallManager: React.FC = () => {
         const name = currentUserDoc?.name || user.displayName || user.email?.split('@')[0] || 'Client Laine & Déco';
         initiateOutgoingCall(name);
       } else {
-        // Demander un nom d'affichage élégant
-        setCallState('prompt_name');
+        toast.error("Veuillez vous connecter pour passer un appel vocal avec notre équipe.");
+        window.history.pushState({}, '', '/login');
+        window.dispatchEvent(new PopStateEvent('popstate'));
       }
     };
 

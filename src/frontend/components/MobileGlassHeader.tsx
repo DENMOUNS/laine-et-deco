@@ -44,7 +44,7 @@ export const MobileGlassHeader: React.FC<MobileGlassHeaderProps> = ({
       }}
     >
       <div
-        className={`pointer-events-auto mx-auto relative rounded-full flex items-center justify-between overflow-hidden transition-all duration-300 bg-white/95 dark:bg-[#18201a] backdrop-blur-xl border border-stone-300/80 dark:border-stone-700 shadow-md ${
+        className={`glass-ios-navbar pointer-events-auto mx-auto relative rounded-full flex items-center justify-between overflow-hidden transition-all duration-300 border border-stone-200/50 dark:border-stone-800/50 shadow-md ${
           isMobileLandscape ? 'max-w-[390px] px-3 py-1' : 'max-w-[460px] px-3.5 py-1.5'
         }`}
       >

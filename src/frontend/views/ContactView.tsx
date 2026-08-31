@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { MapPin, Mail, Phone, Clock, Send, ArrowRight } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useTranslation } from '../../i18n';
+import { useAuthStore } from '../../stores/authStore';
 
 interface ContactViewProps {
   onNavigate: (view: string) => void;
@@ -10,6 +11,7 @@ interface ContactViewProps {
 
 export const ContactView: React.FC<ContactViewProps> = ({ onNavigate }) => {
   const { t, l, isEn } = useTranslation();
+  const user = useAuthStore((s) => s.user);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -87,13 +89,15 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate }) => {
                     {isEn ? 'Mon-Fri, 9am to 6pm' : 'Lun-Ven, 9h à 18h'}
                   </p>
                 </div>
-                <Button 
-                  type="button"
-                  onClick={() => window.dispatchEvent(new CustomEvent('app:start-call'))}
-                  className="bg-accent/10 text-accent hover:bg-accent hover:text-white transition-all text-xs font-semibold py-2 px-4 rounded-xl self-start flex items-center gap-1.5"
-                >
-                  <Phone size={13} className="animate-pulse" /> {isEn ? 'Call online (Free)' : 'Appeler en ligne (Gratuit)'}
-                </Button>
+                {!!user && (
+                  <Button 
+                    type="button"
+                    onClick={() => window.dispatchEvent(new CustomEvent('app:start-call'))}
+                    className="bg-accent/10 text-accent hover:bg-accent hover:text-white transition-all text-xs font-semibold py-2 px-4 rounded-xl self-start flex items-center gap-1.5"
+                  >
+                    <Phone size={13} className="animate-pulse" /> {isEn ? 'Call online (Free)' : 'Appeler en ligne (Gratuit)'}
+                  </Button>
+                )}
               </div>
 
               <div className="bg-white p-8 rounded-3xl border border-primary/5 shadow-sm hover:shadow-md transition-shadow">

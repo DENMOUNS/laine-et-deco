@@ -1,11 +1,12 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, ShoppingBag, Star, Heart } from 'lucide-react';
+import { X, ShoppingBag, Star, Heart, ArrowRightLeft } from 'lucide-react';
 import { Product } from '../../types';
 import { Button } from './ui/Button';
 import { cleanText } from '../utils/siteUtils';
 import { ProductImageGallery } from './ProductImageGallery';
 import { triggerHaptic } from '../utils/haptics';
+import { useComparisonStore } from '../../stores/comparisonStore';
 
 interface QuickViewModalProps {
   product: Product | null;
@@ -91,18 +92,31 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
                   {cleanText(product.description) || "Une pièce d'exception façonnée avec passion pour vos plus beaux projets."}
                 </p>
 
-                <div className="mt-auto space-y-3 pt-4">
-                  <Button 
-                    onClick={() => { 
-                      triggerHaptic('success');
-                      onAddToCart(product, 1); 
-                      onClose(); 
-                    }}
-                    className="w-full py-3.5 rounded-2xl font-bold gap-3 shadow-xl shadow-primary/20"
-                  >
-                    <ShoppingBag size={20} />
-                    Ajouter au panier
-                  </Button>
+                <div className="mt-auto space-y-2.5 pt-4">
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={() => { 
+                        triggerHaptic('success');
+                        onAddToCart(product, 1); 
+                        onClose(); 
+                      }}
+                      className="flex-grow py-3 rounded-2xl font-bold gap-2 shadow-xl shadow-primary/20 text-xs sm:text-sm"
+                    >
+                      <ShoppingBag size={18} />
+                      Ajouter au panier
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={() => {
+                        triggerHaptic('light');
+                        useComparisonStore.getState().addToComparison(product);
+                      }}
+                      title="Ajouter au comparateur"
+                      className="py-3 px-3.5 border border-primary/10 rounded-2xl font-bold hover:bg-accent hover:text-white transition-all flex items-center justify-center gap-1.5 text-xs"
+                    >
+                      <ArrowRightLeft size={18} />
+                    </Button>
+                  </div>
                   <Button 
                     variant="outline"
                     onClick={() => { 
@@ -110,9 +124,9 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
                       onAddToWishlist(product); 
                       onClose(); 
                     }}
-                    className="w-full py-3.5 border border-primary/10 rounded-2xl font-bold hover:bg-secondary flex items-center justify-center gap-3"
+                    className="w-full py-2.5 border border-primary/10 rounded-2xl font-bold hover:bg-secondary flex items-center justify-center gap-2 text-xs"
                   >
-                    <Heart size={20} />
+                    <Heart size={16} />
                     Ajouter aux favoris
                   </Button>
                 </div>

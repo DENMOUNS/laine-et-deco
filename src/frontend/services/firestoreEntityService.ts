@@ -69,6 +69,7 @@ const PUBLIC_COLLECTIONS = new Set([
   'product',
   'category',
   'pack',
+  'promotion',
   'blog_post',
   'promo_event',
   'lookbook_post',
@@ -574,7 +575,6 @@ export const subscribeToEntityCollection = <T extends BaseEntity>(
 const requireAuth = () => {
   const { auth: firebaseAuth } = initFirebase();
   if (!firebaseAuth?.currentUser) {
-    window.dispatchEvent(new CustomEvent('auth-required'));
     throw new Error('Authentication is required.');
   }
 };
@@ -582,8 +582,7 @@ const requireAuth = () => {
 const getAuthToken = async () => {
   const { auth: firebaseAuth } = initFirebase();
   if (!firebaseAuth?.currentUser) {
-    window.dispatchEvent(new CustomEvent('auth-required'));
-    throw new Error('Authentication is required.');
+    return null;
   }
 
   return firebaseAuth.currentUser.getIdToken();
@@ -591,6 +590,9 @@ const getAuthToken = async () => {
 
 const entityApiRequest = async (entityType: string, method: string, id?: string, payload?: any) => {
   const token = await getAuthToken();
+  if (!token) {
+    throw new Error('Authentication is required.');
+  }
   const url = id
     ? `/api/entity/${encodeURIComponent(entityType)}/${encodeURIComponent(id)}`
     : `/api/entity/${encodeURIComponent(entityType)}`;

@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Product, PromoEvent } from '../../types';
 import { Button } from '../components/ui/Button';
-import { Minus, Plus, ShoppingBag, Heart } from 'lucide-react';
+import { Minus, Plus, ShoppingBag, Heart, ArrowRightLeft, Check, Sparkles } from 'lucide-react';
 import { ImageWithFallback } from '../components/ui/ImageWithFallback';
 import { ProductImageGallery } from '../components/ProductImageGallery';
 import { formatAvailabilityDate, getProductAvailability } from '../utils/stockAvailability';
-import { getEffectivePrice } from '../utils/siteUtils';
+import { getEffectivePrice, cleanText } from '../utils/siteUtils';
 import { triggerHaptic } from '../utils/haptics';
+import { useComparisonStore } from '../../stores/comparisonStore';
 
 interface FlyingDot {
   id: number;
@@ -39,6 +40,10 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
   const [selectedColor, setSelectedColor] = useState<string | undefined>();
   const availability = getProductAvailability(product, selectedColor);
   const maxQuantity = availability.total;
+
+  const comparisonList = useComparisonStore((s) => s.comparisonList);
+  const addToComparison = useComparisonStore((s) => s.addToComparison);
+  const isCompared = comparisonList.some((p) => p.id === product.id);
 
   // Rassembler toutes les photos du produit
   const productImages = React.useMemo(() => {
@@ -187,8 +192,8 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                   <Plus size={18} />
                 </Button>
               </div>
-              <div className="flex gap-4">
-                <Button variant="primary" className="flex-grow relative overflow-hidden" onClick={(e) => {
+              <div className="flex flex-wrap gap-3">
+                <Button variant="primary" className="flex-grow relative overflow-hidden py-3.5" onClick={(e) => {
                   if (maxQuantity <= 0) return;
                   triggerHaptic('success');
                   const rect = e.currentTarget.getBoundingClientRect();
@@ -199,16 +204,101 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                 }} disabled={maxQuantity <= 0}>
                   <ShoppingBag size={20} className="mr-2" /> {availability.immediate >= quantity ? 'Ajouter au panier' : 'Précommander'}
                 </Button>
-                <Button variant="outline" onClick={() => {
-                  triggerHaptic('selection');
-                  onAddToWishlist(product);
-                }}>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    triggerHaptic('selection');
+                    onAddToWishlist(product);
+                  }}
+                  title="Ajouter aux favoris"
+                  className="px-4"
+                >
                   <Heart size={20} />
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    triggerHaptic('light');
+                    addToComparison(product);
+                  }}
+                  title={isCompared ? "Déjà dans le comparateur" : "Ajouter au comparateur de prix"}
+                  className={`px-4 gap-2 transition-all ${isCompared ? 'bg-accent/15 border-accent text-accent font-bold' : ''}`}
+                >
+                  {isCompared ? <Check size={20} className="text-accent" /> : <ArrowRightLeft size={20} />}
+                  <span className="hidden sm:inline">{isCompared ? 'Comparé' : 'Comparer'}</span>
                 </Button>
               </div>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Section Comparateur Rapide */}
+      <div className="mt-12 bg-gradient-to-br from-primary/5 via-secondary/20 to-accent/10 p-6 sm:p-8 rounded-[2.5rem] border border-primary/10 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <div className="flex items-center gap-2 text-accent font-bold text-xs uppercase tracking-widest mb-1">
+              <Sparkles size={16} /> Comparateur de Produits
+            </div>
+            <h3 className="text-xl sm:text-2xl font-serif text-primary">Comparer avec d'autres articles</h3>
+          </div>
+          <Button 
+            variant="outline"
+            onClick={() => {
+              addToComparison(product);
+              onNavigate('comparison');
+            }}
+            className="self-start sm:self-auto gap-2 border-primary/20 hover:border-accent text-primary hover:text-accent font-bold text-xs rounded-xl"
+          >
+            <ArrowRightLeft size={16} /> Ouvrir le comparateur complet ({comparisonList.length})
+          </Button>
+        </div>
+
+        {recommendedProducts.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Produit Actuel */}
+            <div className="bg-white p-4 rounded-2xl border-2 border-accent shadow-md relative">
+              <span className="absolute top-3 right-3 bg-accent text-primary text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">
+                Ce produit
+              </span>
+              <p className="font-serif font-bold text-primary truncate mb-1">{product.name}</p>
+              <p className="text-accent font-bold text-lg mb-2">{product.price.toLocaleString()} FCFA</p>
+              <p className="text-xs text-primary/70 line-clamp-2">{cleanText(product.description)}</p>
+            </div>
+
+            {/* Alternatives */}
+            {recommendedProducts.slice(0, 2).map((other) => (
+              <div key={other.id} className="bg-white/80 backdrop-blur-sm p-4 rounded-2xl border border-primary/10 shadow-xs flex flex-col justify-between">
+                <div>
+                  <p className="font-serif font-bold text-primary truncate mb-1">{other.name}</p>
+                  <p className="text-primary/80 font-bold text-lg mb-2">{other.price.toLocaleString()} FCFA</p>
+                  <p className="text-xs text-primary/70 line-clamp-2">{cleanText(other.description)}</p>
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      addToComparison(product);
+                      addToComparison(other);
+                    }}
+                    className="flex-1 py-1.5 px-3 bg-secondary/40 hover:bg-accent hover:text-white text-primary rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <ArrowRightLeft size={13} /> Comparer les 2
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onNavigate('product-detail', other.id)}
+                    className="py-1.5 px-3 bg-primary/5 hover:bg-primary hover:text-white text-primary rounded-xl text-xs font-medium transition-all cursor-pointer"
+                  >
+                    Voir
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-primary/70">Ajoutez ce produit et d'autres articles au comparateur pour analyser leurs caractéristiques côte à côte.</p>
+        )}
       </div>
 
       {recommendedProducts.length > 0 && (

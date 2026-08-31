@@ -136,7 +136,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   const navLinks = [
     ...mainNavLinks,
   ];
-  const hasBackofficeAccess = true;
+  const backofficeRoles = ['super-admin', 'admin', 'editor', 'stock-manager', 'support-client'];
+  const hasBackofficeAccess = Boolean(user && userRole && backofficeRoles.includes(userRole));
 
   return (
     <>
@@ -185,17 +186,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span>{language === 'fr' ? 'EN' : 'FR'}</span>
               </button>
 
-              {/* Bouton d'appel direct vocal gratuit */}
-              <button
-                type="button"
-                aria-label={language === 'en' ? "Free voice call with an advisor" : "Appel gratuit avec un conseiller"}
-                onClick={() => window.dispatchEvent(new CustomEvent('app:start-call'))}
-                className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-accent hover:bg-accent-dark text-white rounded-full text-xs font-bold shadow-sm transition-all hover:scale-105 active:scale-95 ring-2 ring-accent/20 cursor-pointer"
-                title={language === 'en' ? "Free voice call with an advisor" : "Appel direct vocal gratuit avec un conseiller"}
-              >
-                <Phone size={14} className="animate-pulse fill-current" />
-                <span className="hidden xl:inline">{language === 'en' ? "Free Call" : "Appel Gratuit"}</span>
-              </button>
+              {/* Bouton d'appel direct vocal gratuit (uniquement si connecté) */}
+              {!!user && (
+                <button
+                  type="button"
+                  aria-label={language === 'en' ? "Free voice call with an advisor" : "Appel gratuit avec un conseiller"}
+                  onClick={() => window.dispatchEvent(new CustomEvent('app:start-call'))}
+                  className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-accent hover:bg-accent-dark text-white rounded-full text-xs font-bold shadow-sm transition-all hover:scale-105 active:scale-95 ring-2 ring-accent/20 cursor-pointer"
+                  title={language === 'en' ? "Free voice call with an advisor" : "Appel direct vocal gratuit avec un conseiller"}
+                >
+                  <Phone size={14} className="animate-pulse fill-current" />
+                  <span className="hidden xl:inline">{language === 'en' ? "Free Call" : "Appel Gratuit"}</span>
+                </button>
+              )}
 
               <button 
                 aria-label={language === 'en' ? "My wishlist" : "Mes favoris"} 
@@ -431,28 +434,30 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </form>
                 </div>
 
-                {/* Bannière d'appel direct dans le menu */}
-                <div className="bg-gradient-to-r from-accent/30 via-accent/20 to-amber-500/20 border border-accent/40 rounded-2xl p-4 my-3 text-white shadow-lg">
-                  <div className="flex items-center gap-3 mb-2.5">
-                    <div className="w-9 h-9 rounded-full bg-accent text-white flex items-center justify-center shrink-0 shadow-md">
-                      <Phone size={17} className="animate-pulse" />
+                {/* Bannière d'appel direct dans le menu (uniquement si connecté) */}
+                {!!user && (
+                  <div className="bg-gradient-to-r from-accent/30 via-accent/20 to-amber-500/20 border border-accent/40 rounded-2xl p-4 my-3 text-white shadow-lg">
+                    <div className="flex items-center gap-3 mb-2.5">
+                      <div className="w-9 h-9 rounded-full bg-accent text-white flex items-center justify-center shrink-0 shadow-md">
+                        <Phone size={17} className="animate-pulse" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold leading-tight">Besoin d'un conseil immédiat ?</p>
+                        <p className="text-[11px] text-white/80 leading-tight">Appel vocal gratuit sans quitter le site</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs font-bold leading-tight">Besoin d'un conseil immédiat ?</p>
-                      <p className="text-[11px] text-white/80 leading-tight">Appel vocal gratuit sans quitter le site</p>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        window.dispatchEvent(new CustomEvent('app:start-call'));
+                      }}
+                      className="w-full bg-accent hover:bg-accent-dark text-white text-xs font-bold py-2.5 px-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer active:scale-95"
+                    >
+                      <Phone size={13} /> Lancer l'appel gratuit
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      window.dispatchEvent(new CustomEvent('app:start-call'));
-                    }}
-                    className="w-full bg-accent hover:bg-accent-dark text-white text-xs font-bold py-2.5 px-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer active:scale-95"
-                  >
-                    <Phone size={13} /> Lancer l'appel gratuit
-                  </button>
-                </div>
+                )}
 
                 <hr className="border-white/10 my-4" />
 

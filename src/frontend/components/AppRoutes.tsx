@@ -414,12 +414,40 @@ function AdminDashboardPage() {
 function AdminProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const onNavigate = useNavigateAdapter();
+  const user = useAuthStore((s) => s.user);
+  const userRole = useAuthStore((s) => s.currentUserDoc?.role || 'customer');
+  const isAuthLoading = useAuthStore((s) => s.isAuthLoading);
+
+  React.useEffect(() => {
+    const backofficeRoles = ['super-admin', 'admin', 'editor', 'stock-manager', 'support-client'];
+    if (!isAuthLoading && !backofficeRoles.includes(userRole)) {
+      if (!user) { onNavigate('auth'); toast.error("Veuillez vous connecter."); }
+      else { onNavigate('home'); toast.error("Accès refusé."); }
+    }
+  }, [isAuthLoading, user, userRole]);
+
+  if (isAuthLoading) return <Loader fullScreen text="Vérification des accès admin..." />;
+  if (!user) return null;
   return <AdminProductDetailView productId={id!} onNavigate={onNavigate} />;
 }
 
 function AdminUserDetailPage() {
   const { id } = useParams<{ id: string }>();
   const onNavigate = useNavigateAdapter();
+  const user = useAuthStore((s) => s.user);
+  const userRole = useAuthStore((s) => s.currentUserDoc?.role || 'customer');
+  const isAuthLoading = useAuthStore((s) => s.isAuthLoading);
+
+  React.useEffect(() => {
+    const backofficeRoles = ['super-admin', 'admin', 'editor', 'stock-manager', 'support-client'];
+    if (!isAuthLoading && !backofficeRoles.includes(userRole)) {
+      if (!user) { onNavigate('auth'); toast.error("Veuillez vous connecter."); }
+      else { onNavigate('home'); toast.error("Accès refusé."); }
+    }
+  }, [isAuthLoading, user, userRole]);
+
+  if (isAuthLoading) return <Loader fullScreen text="Vérification des accès admin..." />;
+  if (!user) return null;
   return <AdminUserDetailView userId={id!} onNavigate={onNavigate} />;
 }
 

@@ -226,7 +226,7 @@ export const AppLayout: React.FC = () => {
       )}
 
       {!isAdmin && <Footer onNavigate={handleNavigate} user={user} />}
-      {!isAdmin && <ChatBubble />}
+      {!isAdmin && !!user && <ChatBubble />}
 
       {/* Floating comparison tool */}
       {currentView !== 'comparison' && comparisonList.length > 0 && deferredWidgets && (
