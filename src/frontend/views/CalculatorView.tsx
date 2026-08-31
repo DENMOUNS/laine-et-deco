@@ -81,6 +81,11 @@ export const CalculatorView: React.FC<CalculatorViewProps> = ({ onNavigate, onAd
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-12 min-h-screen">
+      {/* Notice Mobile PC Uniquement */}
+      <div className="md:hidden bg-amber-500/10 border border-amber-500/20 text-amber-900 text-xs font-semibold p-3.5 rounded-2xl mb-6 flex items-center gap-2">
+        <span>🖥️</span> <span>{isEn ? 'This tool is optimized for PC / Desktop view.' : 'Cet outil est disponible et optimisé sur la version Ordinateur (PC).'}</span>
+      </div>
+
       <div className="flex items-center gap-2 text-sm text-primary/70 mb-8 font-bold tracking-widest uppercase">
         <button onClick={() => onNavigate('home')} className="hover:text-primary transition-colors">
           {isEn ? 'Home' : 'Accueil'}

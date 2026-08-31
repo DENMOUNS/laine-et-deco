@@ -233,8 +233,8 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
         </div>
       </div>
 
-      {/* Section Comparateur Rapide */}
-      <div className="mt-12 bg-gradient-to-br from-primary/5 via-secondary/20 to-accent/10 p-6 sm:p-8 rounded-[2.5rem] border border-primary/10 shadow-sm">
+      {/* Section Comparateur Rapide (PC Uniquement) */}
+      <div className="hidden md:block mt-12 bg-gradient-to-br from-primary/5 via-secondary/20 to-accent/10 p-6 sm:p-8 rounded-[2.5rem] border border-primary/10 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <div className="flex items-center gap-2 text-accent font-bold text-xs uppercase tracking-widest mb-1">

@@ -64,6 +64,11 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      {/* Notice Mobile PC Uniquement */}
+      <div className="md:hidden bg-amber-500/10 border border-amber-500/20 text-amber-900 text-xs font-semibold p-3.5 rounded-2xl mb-6 flex items-center gap-2">
+        <span>🖥️</span> <span>Le comparateur de prix est une fonctionnalité disponible uniquement sur la version Ordinateur (PC).</span>
+      </div>
+
       <div className="flex flex-wrap items-center justify-between mb-8 gap-4">
         <div>
           <button 

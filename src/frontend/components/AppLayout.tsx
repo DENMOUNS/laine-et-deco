@@ -228,16 +228,18 @@ export const AppLayout: React.FC = () => {
       {!isAdmin && <Footer onNavigate={handleNavigate} user={user} />}
       {!isAdmin && !!user && <ChatBubble />}
 
-      {/* Floating comparison tool */}
+      {/* Floating comparison tool (PC Only) */}
       {currentView !== 'comparison' && comparisonList.length > 0 && deferredWidgets && (
-        <Suspense fallback={null}>
-          <ComparisonTool
-            comparisonList={comparisonList}
-            onRemove={removeFromComparison}
-            onClear={clearComparison}
-            onNavigate={handleNavigate}
-          />
-        </Suspense>
+        <div className="hidden md:block">
+          <Suspense fallback={null}>
+            <ComparisonTool
+              comparisonList={comparisonList}
+              onRemove={removeFromComparison}
+              onClear={clearComparison}
+              onNavigate={handleNavigate}
+            />
+          </Suspense>
+        </div>
       )}
     </div>
   );

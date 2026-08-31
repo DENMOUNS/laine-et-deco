@@ -67,12 +67,10 @@ export const MobileGlassDock: React.FC<MobileGlassDockProps> = ({
     };
   }, []);
 
-  // Tool views list
+  // Tool views list (PC-only features like calculators are excluded on mobile)
   const toolViews = [
     'workshops',
     'knitting-companion',
-    'calculator',
-    'volume-calculator',
     'pattern-generator',
     'custom-order',
     'lookbook',
@@ -98,20 +96,6 @@ export const MobileGlassDock: React.FC<MobileGlassDockProps> = ({
       icon: Scissors,
       view: 'knitting-companion',
       badge: 'Populaire',
-    },
-    {
-      id: 'calculator',
-      label: 'Calculateur de Pelotes',
-      description: 'Estimez la quantité exacte de laine',
-      icon: Calculator,
-      view: 'calculator',
-    },
-    {
-      id: 'volume-calc',
-      label: 'Calculateur de Volume',
-      description: 'Dimensions et métrage',
-      icon: Ruler,
-      view: 'volume-calculator',
     },
     {
       id: 'generator',
@@ -251,11 +235,11 @@ export const MobileGlassDock: React.FC<MobileGlassDockProps> = ({
                   {/* Icon Container */}
                   <div className="relative z-10 flex items-center justify-center">
                     {item.id === 'account' && user ? (
-                      <div className="relative flex items-center justify-center">
+                      <div className="relative flex items-center justify-center shrink-0">
                         <img
                           src={user.photoURL || initialsAvatarDataUri(user.displayName, 48)}
                           alt={user.displayName || 'Profil'}
-                          className={`rounded-full object-cover border border-primary/20 ${
+                          className={`rounded-full object-cover border border-primary/20 shrink-0 aspect-square ${
                             isMobileLandscape ? 'w-[19px] h-[19px]' : 'w-[23px] h-[23px]'
                           } ${active ? 'ring-2 ring-accent' : ''}`}
                           loading="lazy"

@@ -872,7 +872,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
             { label: 'Déco', icon: '🏺', view: 'shop', query: 'Décoration', bg: 'from-rose-400 to-pink-600', feature: 'shop' },
             { label: 'Packs', icon: '🎁', view: 'packs', bg: 'from-emerald-400 to-teal-600', feature: 'packs' },
             { label: 'Flash', icon: '⚡', view: 'flash-sales', bg: 'from-amber-500 to-red-500', feature: 'flashSales' },
-            { label: 'Calculateur', icon: '🧮', view: 'calculator', bg: 'from-blue-400 to-indigo-600', feature: 'calculator' },
             { label: 'Lookbook', icon: '📖', view: 'lookbook', bg: 'from-purple-400 to-violet-600', feature: 'lookbook' },
             { label: 'Sur Mesure', icon: '🎨', view: 'custom-order', bg: 'from-fuchsia-400 to-pink-500', feature: 'customOrder' },
           ].filter(item => isFeatureEnabled(siteConfig, item.feature)).map((item, idx) => (
@@ -1101,9 +1100,9 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
         ) : null
       )}
 
-      {/* Wool Calculator Teaser */}
+      {/* Wool Calculator Teaser (PC Uniquement) */}
       {isCalculatorEnabled && (
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="hidden md:block max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-8 md:p-10 border border-primary/10 flex flex-col md:flex-row items-center gap-6 md:gap-10 relative overflow-hidden">
           <div className="w-full md:w-1/2 space-y-4 relative z-10">
             <span className="text-xs font-bold uppercase tracking-widest text-accent">Nouveau Outil</span>

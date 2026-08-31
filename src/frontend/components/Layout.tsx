@@ -251,15 +251,15 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button 
                 aria-label={user ? `${language === 'en' ? 'My Account' : 'Mon compte'} - ${user.displayName || 'Profil'}` : (language === 'en' ? "Sign In / Register" : "Connexion / Inscription")}
                 onClick={() => user ? onNavigate('customer-dashboard') : onNavigate('auth')} 
-                className={`flex p-2 sm:p-2.5 transition-colors rounded-full glass-ios-pill hover:bg-white/90 cursor-pointer ${currentView === 'customer-dashboard' ? 'text-accent' : 'text-primary'} items-center gap-2`}
+                className={`flex p-2 sm:p-2.5 transition-colors rounded-full glass-ios-pill hover:bg-white/90 cursor-pointer ${currentView === 'customer-dashboard' ? 'text-accent' : 'text-primary'} items-center gap-2 shrink-0`}
                 title={user ? (language === 'en' ? `My Account (${user.displayName || 'Profile'})` : `Mon compte client (${user.displayName || 'Profil'})`) : (language === 'en' ? "Sign In / Register" : "Se connecter / Créer un compte")}
               >
                 {user ? (
-                  <div className="relative flex items-center justify-center">
+                  <div className="relative flex items-center justify-center shrink-0 w-6 h-6">
                     <img
                       src={user.photoURL || initialsAvatarDataUri(user.displayName, 48)}
                       alt={user.displayName || 'Profil'}
-                      className="w-6 h-6 rounded-full border border-primary/10 object-cover"
+                      className="w-6 h-6 shrink-0 aspect-square rounded-full border border-primary/10 object-cover"
                       width="24"
                       height="24"
                       loading="lazy"
@@ -270,13 +270,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                       }}
                     />
                     {/* Pastille verte clignotante statut connecté */}
-                    <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+                    <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5 shrink-0 pointer-events-none">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                       <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 border border-white dark:border-[#181C18] shadow-sm" />
                     </span>
                   </div>
                 ) : (
-                  <User size={19} />
+                  <User size={19} className="shrink-0" />
                 )}
                 {user && <span className="hidden xl:block text-xs font-bold">{user.displayName || (language === 'en' ? "Account" : "Compte")}</span>}
               </button>
@@ -473,18 +473,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                       {wishlistCount > 0 && <span className="bg-accent text-[10px] px-2 py-0.5 rounded-full">{wishlistCount}</span>}
                     </button>
                   )}
-                  {isFeatureEnabled(siteConfig, 'comparison') && (
-                    <button
-                      onClick={() => { onNavigate('comparison'); setIsMenuOpen(false); }}
-                      className="lg:hidden text-sm font-medium text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 text-white flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-2">
-                        <ArrowRightLeft size={18} /> Comparateur
-                      </div>
-                      {comparisonList?.length > 0 && <span className="bg-accent text-[10px] px-2 py-0.5 rounded-full">{comparisonList.length}</span>}
-                    </button>
-                  )}
-                  {sidebarLinks.map((link) => (
+                  {/* PC-only tools (Comparateur, Calculateurs) are hidden on mobile drawer */}
+                  {sidebarLinks
+                    .filter(link => link.view !== 'calculator' && link.view !== 'volume-calculator' && link.view !== 'comparison')
+                    .map((link) => (
                     <button
                       key={link.id || link.view || link.name}
                       onClick={() => {
