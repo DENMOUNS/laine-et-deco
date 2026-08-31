@@ -74,7 +74,6 @@ export const MobileGlassDock: React.FC<MobileGlassDockProps> = ({
     'calculator',
     'volume-calculator',
     'pattern-generator',
-    'configurator',
     'custom-order',
     'lookbook',
     'blog',
@@ -121,13 +120,6 @@ export const MobileGlassDock: React.FC<MobileGlassDockProps> = ({
       icon: Wand2,
       view: 'pattern-generator',
       badge: 'IA',
-    },
-    {
-      id: 'configurator',
-      label: 'Configurateur Personnalisé',
-      description: 'Créez votre pièce sur-mesure',
-      icon: Palette,
-      view: 'configurator',
     },
     {
       id: 'lookbook',

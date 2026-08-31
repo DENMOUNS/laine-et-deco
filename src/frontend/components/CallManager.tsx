@@ -7,14 +7,30 @@ import { toast } from 'sonner';
 
 export const CallManager: React.FC = () => {
   const { user, currentUserDoc, userRole } = useAuthStore();
-  const isStaff = ['super-admin', 'admin', 'editor', 'stock-manager', 'support-client'].includes(userRole);
+  const staffRoles = ['super-admin', 'admin', 'editor', 'stock-manager', 'support-client'];
+  const isStaff = Boolean(
+    user && (
+      staffRoles.includes(userRole) ||
+      staffRoles.includes(currentUserDoc?.role) ||
+      user.email === 'landrymoutongo97@gmail.com'
+    )
+  );
 
   // États de l'appel
   const [callState, setCallState] = useState<'idle' | 'prompt_name' | 'ringing_out' | 'ringing_in' | 'connected' | 'rejected' | 'ended'>('idle');
   const [callerNameInput, setCallerNameInput] = useState('');
   const [callerName, setCallerName] = useState('');
   const [activeCallId, setActiveCallId] = useState<string | null>(null);
-  const [incomingCall, setIncomingCall] = useState<{ id: string; callerName: string; callerId: string } | null>(null);
+  const [incomingCall, setIncomingCall] = useState<{ id: string; callerName: string; callerId: string; offer?: any } | null>(null);
+
+  // Refs pour conserver l'état frais dans les abonnements Firestore
+  const callStateRef = useRef(callState);
+  callStateRef.current = callState;
+
+  const incomingCallRef = useRef(incomingCall);
+  incomingCallRef.current = incomingCall;
+
+  const isAnsweringRef = useRef(false);
 
   // Médias
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
@@ -44,6 +60,9 @@ export const CallManager: React.FC = () => {
 
       const playTone = () => {
         if (!audioCtx || audioCtx.state === 'closed') return;
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume().catch(() => {});
+        }
         
         const osc1 = audioCtx.createOscillator();
         const osc2 = audioCtx.createOscillator();
@@ -117,33 +136,52 @@ export const CallManager: React.FC = () => {
     return () => window.removeEventListener('app:start-call', handleStartCallSignal);
   }, [callState, user, currentUserDoc]);
 
-  // Écouter les appels entrants (Staff uniquement)
+  // Écouter les appels entrants (Staff uniquement, qu'il soit sur le dashboard admin ou le site client)
   useEffect(() => {
     if (!isStaff) return;
 
+    const currentUid = user?.uid || '';
+
     const unsubscribe = callService.listenForIncomingCalls(
+      currentUid,
       (incoming) => {
-        // Un nouvel appel arrive et nous ne sommes pas déjà en appel
-        if (callState === 'idle') {
+        // Un nouvel appel arrive et nous sommes disponibles (libre)
+        if (callStateRef.current === 'idle') {
           setIncomingCall(incoming);
           setCallState('ringing_in');
           startRingtone('incoming');
         }
       },
-      (cancelledCallId) => {
-        // L'appelant a raccroché avant qu'on réponde
-        if (incomingCall && incomingCall.id === cancelledCallId) {
+      (answeredCallId, answeredBy) => {
+        // Ne pas déclencher le message si c'est nous-même qui décrochons cet appel
+        if (isAnsweringRef.current) return;
+        if (answeredBy?.uid && currentUid && answeredBy.uid === currentUid) {
+          return;
+        }
+
+        // Un autre administrateur/conseiller a décroché cet appel
+        if (incomingCallRef.current?.id === answeredCallId && callStateRef.current === 'ringing_in') {
           stopRingtone();
-          setCallState('ended');
+          const name = incomingCallRef.current.callerName || 'Client';
           setIncomingCall(null);
+          setCallState('idle');
+          const adminName = answeredBy?.name || 'un autre conseiller';
+          toast.info(`L'appel de ${name} a été pris par ${adminName}.`);
+        }
+      },
+      (cancelledCallId) => {
+        // L'appelant a raccroché avant qu'aucun admin ne décroche
+        if (incomingCallRef.current?.id === cancelledCallId && callStateRef.current === 'ringing_in') {
+          stopRingtone();
+          setIncomingCall(null);
+          setCallState('idle');
           toast.info('L\'appelant a raccroché.');
-          setTimeout(() => setCallState('idle'), 3000);
         }
       }
     );
 
     return () => unsubscribe();
-  }, [isStaff, callState, incomingCall]);
+  }, [isStaff, user]);
 
   // Gérer le minuteur d'appel
   useEffect(() => {
@@ -167,9 +205,55 @@ export const CallManager: React.FC = () => {
   useEffect(() => {
     if (remoteStream && remoteAudioRef.current) {
       remoteAudioRef.current.srcObject = remoteStream;
-      remoteAudioRef.current.play().catch((err) => console.warn('Lecture audio distante bloquée:', err));
+      const playPromise = remoteAudioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err) => console.warn('Lecture audio distante bloquée:', err));
+      }
     }
   }, [remoteStream]);
+
+  // Empêcher la mise en veille de l'appareil (Screen Wake Lock API) pendant un appel actif
+  useEffect(() => {
+    let wakeLockSentinel: any = null;
+
+    const requestWakeLock = async () => {
+      if ('wakeLock' in navigator && callState !== 'idle') {
+        try {
+          wakeLockSentinel = await (navigator as any).wakeLock.request('screen');
+        } catch (err) {
+          console.warn('[CallManager] Wake Lock non accordé ou non supporté:', err);
+        }
+      }
+    };
+
+    const releaseWakeLock = async () => {
+      if (wakeLockSentinel) {
+        try {
+          await wakeLockSentinel.release();
+        } catch (_) {}
+        wakeLockSentinel = null;
+      }
+    };
+
+    if (callState !== 'idle') {
+      requestWakeLock();
+    } else {
+      releaseWakeLock();
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && callState !== 'idle') {
+        requestWakeLock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      releaseWakeLock();
+    };
+  }, [callState]);
 
   // Formater la durée en MM:SS
   const formatDuration = (secs: number) => {
@@ -224,17 +308,26 @@ export const CallManager: React.FC = () => {
   // Répondre à l'appel (Staff / Admin)
   const handleAnswerCall = async () => {
     if (!incomingCall) return;
+    isAnsweringRef.current = true;
     stopRingtone();
+
+    const adminName = currentUserDoc?.name || user?.displayName || user?.email?.split('@')[0] || 'Conseiller Laine & Déco';
+    const adminUid = user?.uid || '';
 
     try {
       const { hangUp } = await callService.answerCall(
         incomingCall.id,
+        adminName,
+        adminUid,
+        incomingCall.offer,
         (stream) => setRemoteStream(stream),
         (status) => {
           if (status === 'connected') {
             setCallState('connected');
+            isAnsweringRef.current = false;
           } else if (status === 'ended') {
             setCallState('ended');
+            isAnsweringRef.current = false;
             setTimeout(() => setCallState('idle'), 3000);
           }
         },
@@ -244,7 +337,10 @@ export const CallManager: React.FC = () => {
       setActiveCallId(incomingCall.id);
       currentHangUpRef.current = hangUp;
     } catch (err: any) {
+      isAnsweringRef.current = false;
+      stopRingtone();
       setCallState('idle');
+      setIncomingCall(null);
       toast.error(err.message || 'Erreur lors de la prise de l\'appel.');
     }
   };
@@ -286,7 +382,12 @@ export const CallManager: React.FC = () => {
   return (
     <>
       {/* Élément audio invisible pour restituer le flux de voix distant */}
-      <audio ref={remoteAudioRef} className="hidden" autoPlay playsInline />
+      <audio 
+        ref={remoteAudioRef} 
+        autoPlay 
+        playsInline 
+        style={{ position: 'fixed', top: -9999, left: -9999, width: 1, height: 1, opacity: 0.01, pointerEvents: 'none' }} 
+      />
 
       <AnimatePresence>
         {callState !== 'idle' && (
@@ -361,11 +462,14 @@ export const CallManager: React.FC = () => {
                   <div>
                     <p className="text-accent text-xs font-bold uppercase tracking-widest animate-pulse">Appel en cours...</p>
                     <h3 className="font-serif text-2xl font-bold mt-2">Laine & Déco</h3>
-                    <p className="text-stone-400 text-xs mt-1">Sourcing & Conseil à Douala</p>
+                    <p className="text-stone-400 text-xs mt-1">Sourcing & Conseil en ligne</p>
+                    <p className="text-amber-400/90 text-[11px] font-medium mt-3 bg-amber-500/10 py-1.5 px-3 rounded-full inline-block">
+                      Mise en relation avec le premier conseiller disponible...
+                    </p>
                   </div>
                   <button
                     onClick={handleHangUp}
-                    className="mx-auto w-14 h-14 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center transition-colors shadow-lg"
+                    className="mx-auto w-14 h-14 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center transition-colors shadow-lg cursor-pointer"
                     aria-label="Raccrocher"
                   >
                     <PhoneOff size={24} />

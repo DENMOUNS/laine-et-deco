@@ -2,11 +2,11 @@ import {
   collection, 
   doc, 
   setDoc, 
+  getDoc,
   onSnapshot, 
   addDoc, 
   getDocs, 
   deleteDoc, 
-  updateDoc, 
   serverTimestamp, 
   query, 
   where 
@@ -20,6 +20,14 @@ const configuration = {
     { urls: 'stun:stun2.l.google.com:19302' }
   ]
 };
+
+async function safeSetDoc(docRef: any, data: any) {
+  try {
+    await setDoc(docRef, data, { merge: true });
+  } catch (err) {
+    console.warn('[callService] safeSetDoc error ignored:', err);
+  }
+}
 
 export interface CallSession {
   id: string;
@@ -152,9 +160,9 @@ export const callService = {
 
     const hangUp = () => {
       cleanup();
-      // Mettre à jour Firestore
-      updateDoc(callRef, { status: 'ended' })
-        .then(() => deleteDoc(callRef))
+      // Mettre à jour Firestore de façon sécurisée
+      safeSetDoc(callRef, { status: 'ended' })
+        .then(() => deleteDoc(callRef).catch(() => {}))
         .catch(() => {});
     };
 
@@ -165,33 +173,50 @@ export const callService = {
    * Écoute en continu les appels entrants pour les administrateurs (Côté Admin).
    */
   listenForIncomingCalls(
-    onIncomingCall: (call: { id: string; callerName: string; callerId: string }) => void,
+    currentAdminUid: string,
+    onIncomingCall: (call: { id: string; callerName: string; callerId: string; offer?: any }) => void,
+    onCallAnsweredByOther: (callId: string, answeredBy?: { uid?: string; name?: string }) => void,
     onCallCancelled: (callId: string) => void
   ): () => void {
     const { db } = initFirebase();
     if (!db) return () => {};
 
     const callsCollection = collection(db, 'calls');
-    const q = query(callsCollection, where('status', '==', 'ringing'));
 
-    return onSnapshot(q, (snapshot) => {
+    return onSnapshot(callsCollection, (snapshot) => {
       snapshot.docChanges().forEach((change) => {
-        if (change.type === 'added') {
-          const data = change.doc.data();
-          if (data) {
+        const data = change.doc.data();
+        const docId = change.doc.id;
+
+        // Ignorer les appels périmés (> 3 minutes)
+        if (data?.createdAt) {
+          const createdAtMs = data.createdAt.toMillis ? data.createdAt.toMillis() : Date.now();
+          if (Date.now() - createdAtMs > 180000) return;
+        }
+
+        if (change.type === 'added' || change.type === 'modified') {
+          if (data && data.status === 'ringing') {
             onIncomingCall({
-              id: change.doc.id,
-              callerName: data.callerName,
-              callerId: data.callerId
+              id: docId,
+              callerName: data.callerName || 'Client',
+              callerId: data.callerId || '',
+              offer: data.offer
             });
+          } else if (data && data.status === 'connected') {
+            // Ignorer si c'est cet admin qui a répondu lui-même à l'appel
+            if (data.answeredBy?.uid && currentAdminUid && data.answeredBy.uid === currentAdminUid) {
+              return;
+            }
+            onCallAnsweredByOther(docId, data.answeredBy);
+          } else if (data && (data.status === 'ended' || data.status === 'rejected')) {
+            onCallCancelled(docId);
           }
-        } else if (change.type === 'removed' || change.type === 'modified') {
-          const data = change.doc.data();
-          if (data && (data.status === 'ended' || data.status === 'rejected' || change.type === 'removed')) {
-            onCallCancelled(change.doc.id);
-          }
+        } else if (change.type === 'removed') {
+          onCallCancelled(docId);
         }
       });
+    }, (err) => {
+      console.warn('[callService] Error listening for calls:', err);
     });
   },
 
@@ -200,12 +225,32 @@ export const callService = {
    */
   async answerCall(
     callId: string,
+    adminName: string,
+    adminUid: string,
+    cachedOffer: any | undefined,
     onRemoteStream: (stream: MediaStream) => void,
     onStateChange: (state: 'connected' | 'ended') => void,
     onLocalStream: (stream: MediaStream) => void
   ): Promise<{ hangUp: () => void }> {
     const { db } = initFirebase();
     if (!db) throw new Error('Firebase non initialisé');
+
+    const callRef = doc(db, 'calls', callId);
+
+    let offer = cachedOffer;
+    if (!offer) {
+      const snap = await getDoc(callRef);
+      if (snap.exists()) {
+        const currentData = snap.data();
+        if (currentData?.status === 'ringing') {
+          offer = currentData?.offer;
+        }
+      }
+    }
+
+    if (!offer) {
+      throw new Error('Cet appel n\'existe plus ou a déjà pris fin.');
+    }
 
     // 1. Obtenir le flux audio local
     let localStream: MediaStream;
@@ -231,7 +276,6 @@ export const callService = {
       }
     };
 
-    const callRef = doc(db, 'calls', callId);
     const callerCandidatesCollection = collection(db, `calls/${callId}/callerCandidates`);
     const calleeCandidatesCollection = collection(db, `calls/${callId}/calleeCandidates`);
 
@@ -243,29 +287,6 @@ export const callService = {
         );
       }
     };
-
-    // Lire l'offre du client
-    const response = await fetch(`/api/entity/calls/${callId}`);
-    let offer;
-    if (response.ok) {
-      const docData = await response.json().catch(() => null);
-      if (docData?.offer) {
-        offer = docData.offer;
-      }
-    }
-
-    if (!offer) {
-      // Fallback direct sur Firestore si l'API est absente ou lente
-      const { getDoc } = await import('firebase/firestore');
-      const snap = await getDoc(callRef);
-      offer = snap.data()?.offer;
-    }
-
-    if (!offer) {
-      localStream.getTracks().forEach((track) => track.stop());
-      peerConnection.close();
-      throw new Error('Offre de connexion introuvable.');
-    }
 
     // Appliquer l'offre distante
     await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
@@ -279,10 +300,14 @@ export const callService = {
       type: answerDescription.type
     };
 
-    // Mettre à jour la session dans Firestore comme connectée avec notre réponse
-    await updateDoc(callRef, {
+    // Mettre à jour la session dans Firestore comme connectée de façon sécurisée
+    await safeSetDoc(callRef, {
       answer,
-      status: 'connected'
+      status: 'connected',
+      answeredBy: {
+        uid: adminUid || '',
+        name: adminName || 'Conseiller Laine & Déco'
+      }
     });
 
     onStateChange('connected');
@@ -321,9 +346,9 @@ export const callService = {
 
     const hangUp = () => {
       cleanup();
-      // Marquer fin d'appel
-      updateDoc(callRef, { status: 'ended' })
-        .then(() => deleteDoc(callRef))
+      // Marquer fin d'appel de façon sécurisée
+      safeSetDoc(callRef, { status: 'ended' })
+        .then(() => deleteDoc(callRef).catch(() => {}))
         .catch(() => {});
     };
 
@@ -337,7 +362,7 @@ export const callService = {
     const { db } = initFirebase();
     if (!db) return;
     const callRef = doc(db, 'calls', callId);
-    await updateDoc(callRef, { status: 'rejected' });
+    await safeSetDoc(callRef, { status: 'rejected' });
     // Supprimer après un léger délai pour que le client reçoive l'état rejeté
     setTimeout(() => {
       deleteDoc(callRef).catch(() => {});

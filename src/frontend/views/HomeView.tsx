@@ -20,7 +20,7 @@ import { YarnLoadingBanner } from '../components/ui/YarnLoadingBanner';
 import { HeroTrustWidget } from '../components/ui/HeroTrustWidget';
 import { CategorySkeleton, ContentCardSkeleton, ProductSkeleton, Skeleton } from '../components/ui/Skeleton';
 import { toast } from 'sonner';
-import { isFeatureEnabled } from '../utils/featureFlags';
+import { isFeatureEnabled, isFeatureDisabled } from '../utils/featureFlags';
 import { useTranslation } from '../../i18n';
 
 const CountdownTimer: React.FC<{ endDate: string; compact?: boolean }> = ({ endDate, compact }) => {
@@ -152,13 +152,12 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
     enabled: true,
   });
   const PRODUCTS = fetchedProducts;
-  const secondaryOpts = { enabled: true };
-  const { data: CATEGORIES, isLoading: isCategoriesLoading, error: categoriesError } = useStaticEntity<any>('category', [], secondaryOpts);
-  const { data: BLOG_POSTS, isLoading: isBlogLoading, error: blogError } = useStaticEntity<any>('blog_post', [], secondaryOpts);
-  const { data: PACKS, isLoading: isPacksLoading, error: packsError } = useStaticEntity<any>('pack', [], secondaryOpts);
-  const { data: RECENT_FLASH_SALES, isLoading: isFlashSalesLoading, error: flashSalesError } = useStaticEntity<FlashSale>('flash_sale', [], secondaryOpts);
-  const { data: RECENT_PROMOTIONS, isLoading: isPromotionsLoading, error: promotionsError } = useStaticEntity<Promotion>('promotion', [], secondaryOpts);
-  const { data: LOOKBOOKS, isLoading: isLookbooksLoading, error: lookbooksError } = useStaticEntity<Lookbook>('lookbook', [], secondaryOpts);
+  const { data: CATEGORIES, isLoading: isCategoriesLoading, error: categoriesError } = useStaticEntity<any>('category', [], { enabled: true });
+  const { data: BLOG_POSTS, isLoading: isBlogLoading, error: blogError } = useStaticEntity<any>('blog_post', [], { enabled: !isFeatureDisabled(siteConfig, 'blog') });
+  const { data: PACKS, isLoading: isPacksLoading, error: packsError } = useStaticEntity<any>('pack', [], { enabled: !isFeatureDisabled(siteConfig, 'packs') });
+  const { data: RECENT_FLASH_SALES, isLoading: isFlashSalesLoading, error: flashSalesError } = useStaticEntity<FlashSale>('flash_sale', [], { enabled: !isFeatureDisabled(siteConfig, 'flashSales') });
+  const { data: RECENT_PROMOTIONS, isLoading: isPromotionsLoading, error: promotionsError } = useStaticEntity<Promotion>('promotion', [], { enabled: true });
+  const { data: LOOKBOOKS, isLoading: isLookbooksLoading, error: lookbooksError } = useStaticEntity<Lookbook>('lookbook', [], { enabled: !isFeatureDisabled(siteConfig, 'lookbook') });
 
   const HERO_BANNERS = React.useMemo(() => {
     return (rawHeroBanners || [])
@@ -875,7 +874,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
             { label: 'Flash', icon: '⚡', view: 'flash-sales', bg: 'from-amber-500 to-red-500', feature: 'flashSales' },
             { label: 'Calculateur', icon: '🧮', view: 'calculator', bg: 'from-blue-400 to-indigo-600', feature: 'calculator' },
             { label: 'Lookbook', icon: '📖', view: 'lookbook', bg: 'from-purple-400 to-violet-600', feature: 'lookbook' },
-            { label: 'Personnaliser', icon: '🎨', view: 'configurator', bg: 'from-fuchsia-400 to-pink-500', feature: 'customOrder' },
+            { label: 'Sur Mesure', icon: '🎨', view: 'custom-order', bg: 'from-fuchsia-400 to-pink-500', feature: 'customOrder' },
           ].filter(item => isFeatureEnabled(siteConfig, item.feature)).map((item, idx) => (
             <motion.button
               key={idx}

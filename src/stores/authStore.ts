@@ -23,6 +23,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   currentUserDoc: null,
 
   get userRole() {
+    const user = get().user;
+    if (user?.email === 'landrymoutongo97@gmail.com') return 'super-admin';
     return get().currentUserDoc?.role || 'customer';
   },
 

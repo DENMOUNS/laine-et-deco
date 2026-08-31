@@ -24,7 +24,6 @@ export const getAdminMenuItems = () => [
   { id: 'packs', label: 'Gestion des Packs', icon: <Plus size={20} />, permission: 'marketing.view' },
   { id: 'lookbook', label: 'Lookbook Automne', icon: <Plus size={20} />, permission: 'lookbook.view' },
   { id: 'pattern-models', label: 'Modèles de Patrons IA', icon: <Wand2 size={20} />, permission: 'content.view' },
-  { id: 'configurator-models', label: 'Modèles du Configurateur', icon: <Wand2 size={20} />, permission: 'content.view' },
   
   // Finance
   { id: 'finance_header', label: 'FINANCE', isHeader: true },

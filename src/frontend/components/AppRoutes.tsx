@@ -451,6 +451,32 @@ function AdminUserDetailPage() {
   return <AdminUserDetailView userId={id!} onNavigate={onNavigate} />;
 }
 
+function QRLandingViewPage() {
+  const onNavigate = useNavigateAdapter();
+  const user = useAuthStore((s) => s.user);
+  const userRole = useAuthStore((s) => s.currentUserDoc?.role || 'customer');
+  const isAuthLoading = useAuthStore((s) => s.isAuthLoading);
+
+  React.useEffect(() => {
+    const backofficeRoles = ['super-admin', 'admin', 'editor', 'stock-manager', 'support-client'];
+    if (!isAuthLoading) {
+      if (!user) {
+        toast.error("Veuillez vous connecter en tant qu'administrateur.");
+        onNavigate('auth');
+      } else if (!backofficeRoles.includes(userRole)) {
+        toast.error("Accès refusé. Cette page est réservée uniquement aux administrateurs.");
+        onNavigate('home');
+      }
+    }
+  }, [isAuthLoading, user, userRole, onNavigate]);
+
+  if (isAuthLoading) return <Loader fullScreen text="Vérification des accès admin..." />;
+  const backofficeRoles = ['super-admin', 'admin', 'editor', 'stock-manager', 'support-client'];
+  if (!user || !backofficeRoles.includes(userRole)) return null;
+
+  return <QRLandingView onNavigate={onNavigate} />;
+}
+
 function CustomerDashboardPage() {
   const onNavigate = useNavigateAdapter();
   const user = useAuthStore((s) => s.user);
@@ -491,7 +517,7 @@ export const AppRoutes: React.FC = () => {
           <Route path="/community" element={<FeatureRoute feature="community" element={<CommunityGalleryView onNavigate={onNavigate} />} />} />
           <Route path="/knitting-companion" element={<FeatureRoute feature="knittingCompanion" element={<KnittingCompanionView />} />} />
           <Route path="/pattern-generator" element={<FeatureRoute feature="patternGenerator" element={<PatternGeneratorPage />} />} />
-          <Route path="/configurator" element={<ConfiguratorPage />} />
+          <Route path="/configurator" element={<Navigate to="/" replace />} />
           <Route path="/custom-order" element={<FeatureRoute feature="customOrder" element={<CustomOrderView />} />} />
           
           {/* Packs */}
@@ -532,7 +558,7 @@ export const AppRoutes: React.FC = () => {
           <Route path="/admin/user/:id" element={<AdminUserDetailPage />} />
           
           {/* Special */}
-          <Route path="/qr-landing" element={<QRLandingView onNavigate={onNavigate} />} />
+          <Route path="/qr-landing" element={<QRLandingViewPage />} />
           <Route path="/invite/:code" element={<Navigate to="/" replace />} />
           
           {/* 404 Catch-all */}

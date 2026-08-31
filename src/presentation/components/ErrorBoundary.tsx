@@ -37,27 +37,20 @@ export class ErrorBoundary extends Component<Props, State> {
         // @ts-ignore
         this.props.fallback || (
           <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-            <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center border border-red-100">
-              <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+            <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center border border-amber-100">
+              <div className="w-16 h-16 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-6">
                 <AlertCircle size={32} />
               </div>
-              <h1 className="text-2xl font-bold text-slate-900 mb-2">Oups ! Quelque chose s'est mal passé</h1>
-              <p className="text-slate-500 mb-8">
-                Une erreur inattendue est survenue. Nous nous excusons pour le désagrément.
+              <h1 className="text-2xl font-bold text-slate-900 mb-2">Oups, une erreur s'est produite</h1>
+              <p className="text-slate-600 mb-8 font-medium">
+                Nous travaillons à la résoudre, contactez l'équipe technique.
               </p>
-              {this.state.error && (
-                <div className="bg-red-50 rounded-lg p-4 mb-8 text-left overflow-auto max-h-32">
-                  <code className="text-xs text-red-600 font-mono">
-                    {this.state.error.message}
-                  </code>
-                </div>
-              )}
               <button
                 onClick={this.handleReset}
                 className="w-full flex items-center justify-center gap-2 bg-primary text-white py-3 rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
               >
                 <RefreshCcw size={18} />
-                Recharger la page
+                Réessayer
               </button>
             </div>
           </div>

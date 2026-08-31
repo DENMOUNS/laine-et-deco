@@ -90,12 +90,10 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'n-lookbook', name: 'Lookbook', name_en: 'Lookbook', view: 'lookbook', order: 1, status: 'active' },
     { id: 'n-companion', name: 'Compagnon Tricot', name_en: 'Knitting Companion', view: 'knitting-companion', order: 2, status: 'active' },
     { id: 'n-generator', name: 'Générateur IA', name_en: 'AI Generator', view: 'pattern-generator', order: 2, status: 'active' },
-    { id: 'n-configurator', name: 'Configurateur', name_en: '3D Configurator', view: 'configurator', order: 2, status: 'active' },
     { id: 'n-custom', name: 'Sur Mesure', name_en: 'Custom Order', view: 'custom-order', order: 2, status: 'active' },
     { id: 'n-blog', name: 'Blog Inspirations', name_en: 'Blog', view: 'blog', order: 2, status: 'active' },
     { id: 'n-calculator', name: 'Calculateur de Laine', name_en: 'Yarn Calculator', view: 'calculator', order: 2, status: 'active' },
     { id: 'n-volcalc', name: 'Calculateur de Volume', name_en: 'Volume Calculator', view: 'volume-calculator', order: 2, status: 'active' },
-    { id: 'n-qr', name: 'Aperçu QR Landing', name_en: 'QR Landing', view: 'qr-landing', order: 2, status: 'active' },
   ];
 
   const resolvedNavItems: NavItem[] = (firestoreNavItems && firestoreNavItems.length > 0)
@@ -103,7 +101,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     : defaultNavs;
 
   // order === 1 → top navbar  |  order > 1 → sidebar
-  const featureAwareNavItems = resolvedNavItems;
+  const featureAwareNavItems = resolvedNavItems.filter(item => isFeatureEnabled(siteConfig, item.view));
 
   const mainNavLinks = featureAwareNavItems
     .filter(item => item.status === 'active' && item.order === 1);
@@ -120,18 +118,19 @@ export const Navbar: React.FC<NavbarProps> = ({
   const aboutSectionViews = ['about', 'team', 'contact', 'faq', 'legal', 'privacy', 'terms'];
   const isAboutSectionActive = aboutSectionViews.includes(currentView);
 
-  const sidebarLinks = dynamicSidebarLinks.length > 0 ? dynamicSidebarLinks : [
+  const defaultSidebarLinks = [
     { id: 'sb-companion', name: t('nav.companion'), view: 'knitting-companion', icon: <ChevronRight size={18} /> },
     { id: 'sb-generator', name: t('nav.patternGenerator'), view: 'pattern-generator', icon: <ChevronRight size={18} /> },
-    { id: 'sb-configurator', name: t('nav.configurator'), view: 'configurator', icon: <ChevronRight size={18} /> },
     { id: 'sb-custom', name: t('nav.customOrder'), view: 'custom-order', icon: <ChevronRight size={18} /> },
     { id: 'sb-lookbook', name: t('nav.lookbook'), view: 'lookbook', icon: <ChevronRight size={18} /> },
     { id: 'sb-blog', name: t('nav.blog'), view: 'blog', icon: <ChevronRight size={18} /> },
     { id: 'sb-contact', name: t('nav.contact'), view: 'contact', icon: <ChevronRight size={18} /> },
     { id: 'sb-calculator', name: t('nav.calculator'), view: 'calculator', icon: <ChevronRight size={18} /> },
     { id: 'sb-volcalc', name: t('nav.volumeCalculator'), view: 'volume-calculator', icon: <ChevronRight size={18} /> },
-    { id: 'sb-qr', name: 'QR Landing', view: 'qr-landing', icon: <ChevronRight size={18} /> },
   ];
+
+  const sidebarLinks = (dynamicSidebarLinks.length > 0 ? dynamicSidebarLinks : defaultSidebarLinks)
+    .filter(link => isFeatureEnabled(siteConfig, link.view));
 
   const navLinks = [
     ...mainNavLinks,
@@ -463,24 +462,28 @@ export const Navbar: React.FC<NavbarProps> = ({
 
                 <p className="text-[10px] font-bold uppercase tracking-widest text-white mb-2 px-2">Outils & Services</p>
                 <div className="grid grid-cols-1 gap-2">
-                  <button
-                    onClick={() => { onNavigate('wishlist'); setIsMenuOpen(false); }}
-                    className="sm:hidden text-sm font-medium text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 text-white flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Heart size={18} /> Favoris
-                    </div>
-                    {wishlistCount > 0 && <span className="bg-accent text-[10px] px-2 py-0.5 rounded-full">{wishlistCount}</span>}
-                  </button>
-                  <button
-                    onClick={() => { onNavigate('comparison'); setIsMenuOpen(false); }}
-                    className="lg:hidden text-sm font-medium text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 text-white flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-2">
-                      <ArrowRightLeft size={18} /> Comparateur
-                    </div>
-                    {comparisonList?.length > 0 && <span className="bg-accent text-[10px] px-2 py-0.5 rounded-full">{comparisonList.length}</span>}
-                  </button>
+                  {isFeatureEnabled(siteConfig, 'wishlist') && (
+                    <button
+                      onClick={() => { onNavigate('wishlist'); setIsMenuOpen(false); }}
+                      className="sm:hidden text-sm font-medium text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 text-white flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Heart size={18} /> Favoris
+                      </div>
+                      {wishlistCount > 0 && <span className="bg-accent text-[10px] px-2 py-0.5 rounded-full">{wishlistCount}</span>}
+                    </button>
+                  )}
+                  {isFeatureEnabled(siteConfig, 'comparison') && (
+                    <button
+                      onClick={() => { onNavigate('comparison'); setIsMenuOpen(false); }}
+                      className="lg:hidden text-sm font-medium text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 text-white flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-2">
+                        <ArrowRightLeft size={18} /> Comparateur
+                      </div>
+                      {comparisonList?.length > 0 && <span className="bg-accent text-[10px] px-2 py-0.5 rounded-full">{comparisonList.length}</span>}
+                    </button>
+                  )}
                   {sidebarLinks.map((link) => (
                     <button
                       key={link.id || link.view || link.name}
@@ -683,7 +686,6 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, user }) => {
                     {isFeatureEnabled(siteConfig, 'lookbook') && <li><button onClick={() => onNavigate('lookbook')} className="hover:text-white py-1 block w-full text-left font-medium">Lookbook</button></li>}
                     {isFeatureEnabled(siteConfig, 'customOrder') && <li><button onClick={() => onNavigate('custom-order')} className="hover:text-white py-1 block w-full text-left font-medium">Sur Mesure</button></li>}
                     {isFeatureEnabled(siteConfig, 'patternGenerator') && <li><button onClick={() => onNavigate('pattern-generator')} className="hover:text-white py-1 block w-full text-left font-medium">Générateur IA</button></li>}
-                    <li><button onClick={() => onNavigate('configurator')} className="hover:text-white py-1 block w-full text-left font-medium">Configurateur</button></li>
                   </ul>
                 </motion.div>
               )}
@@ -777,7 +779,6 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, user }) => {
               {isFeatureEnabled(siteConfig, 'lookbook') && <li><button onClick={() => onNavigate('lookbook')} className="hover:text-white transition-colors">Lookbook</button></li>}
               {isFeatureEnabled(siteConfig, 'customOrder') && <li><button onClick={() => onNavigate('custom-order')} className="hover:text-white transition-colors">Sur Mesure</button></li>}
               {isFeatureEnabled(siteConfig, 'patternGenerator') && <li><button onClick={() => onNavigate('pattern-generator')} className="hover:text-white transition-colors">Générateur IA</button></li>}
-              <li><button onClick={() => onNavigate('configurator')} className="hover:text-white transition-colors">Configurateur</button></li>
             </ul>
           </div>
           <div>
