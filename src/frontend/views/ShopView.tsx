@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Filter, Search, ChevronDown, Grid, List as ListIcon, Loader2, Camera, X, Mic, SlidersHorizontal, Tag, Recycle, Zap } from 'lucide-react';
+import { Filter, Search, ChevronDown, Grid, List as ListIcon, Loader2, Camera, X, Mic, SlidersHorizontal, Tag, Recycle, Zap, SearchX, RotateCcw, Sparkles, PackageOpen } from 'lucide-react';
 import { toast as sonnerToast } from 'sonner';
 
 import { useEntity } from '../hooks/useEntity';
@@ -440,23 +440,48 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
     );
   }
 
+  const isAnyFilterActive = selectedCategory !== 'Tous' || onlyPromotions || onlyNewArrivals || selectedCondition !== 'Tous' || isPriceFilterActive || !!searchQuery.trim();
+
+  const resetAllFilters = () => {
+    setSelectedCategory('Tous');
+    setSelectedCondition('Tous');
+    setOnlyNewArrivals(false);
+    setOnlyPromotions(false);
+    setSearchQuery('');
+    setPriceRange(300000);
+    setIsPriceFilterActive(false);
+    setCurrentPage(1);
+    sonnerToast.info("Tous les filtres ont été réinitialisés.");
+  };
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 sm:mb-10 gap-5">
         <div>
-          <h1 className="text-4xl font-serif mb-2">{targetFlashSale ? targetFlashSale.name : 'Boutique'}</h1>
-          <p className="text-primary/70">{filteredProducts.length} produits trouvés</p>
+          <h1 className="text-3xl sm:text-4xl font-serif font-bold text-stone-900 mb-1.5">
+            {targetFlashSale ? targetFlashSale.name : 'Boutique'}
+          </h1>
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-stone-600 font-medium">
+            <span className="font-semibold text-stone-900">
+              {filteredProducts.length} {filteredProducts.length <= 1 ? 'article trouvé' : 'articles trouvés'}
+            </span>
+            {filteredProducts.length !== PRODUCTS.length && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-accent bg-accent/10 px-2.5 py-0.5 rounded-full">
+                sur {PRODUCTS.length} au total
+              </span>
+            )}
+          </div>
         </div>
         
-          <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4 w-full md:w-auto">
             <div className="relative flex-grow md:flex-grow-0">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/70" size={18} />
               <input
                 type="text"
-                placeholder="Rechercher un produit"
+                placeholder="Rechercher un produit..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-12 pr-12 py-2 bg-card border border-primary/10 rounded-full focus:outline-none focus:border-accent w-full md:w-80 shadow-sm"
+                className="pl-11 pr-12 py-2.5 bg-card border border-stone-200/80 rounded-full focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent w-full md:w-80 shadow-xs text-xs sm:text-sm"
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                 <button 
@@ -502,29 +527,175 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
               <select 
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="appearance-none pl-4 pr-10 py-2 bg-card border border-primary/10 rounded-full focus:outline-none focus:border-accent cursor-pointer shadow-sm"
+                className="appearance-none pl-4 pr-9 py-2.5 bg-card border border-stone-200/80 rounded-full focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent cursor-pointer shadow-xs text-xs sm:text-sm font-medium"
               >
                 <option value="Nouveautés">Nouveautés</option>
                 <option value="Prix croissant">Prix croissant</option>
                 <option value="Prix décroissant">Prix décroissant</option>
                 <option value="Mieux notés">Mieux notés</option>
               </select>
-              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-primary/70 pointer-events-none" size={16} />
+              <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-500 pointer-events-none" size={15} />
             </div>
 
             {/* Mobile Filter Toggle Button - Now at the top */}
             <button 
               onClick={() => setShowMobileFilters(true)}
-              className="lg:hidden flex items-center gap-2 bg-primary text-white px-5 py-2 rounded-full font-bold shadow-sm hover:bg-accent transition-all text-sm"
+              className="lg:hidden flex items-center gap-2 bg-[#2C372B] text-white px-4 py-2.5 rounded-full font-bold shadow-xs hover:bg-accent transition-all text-xs sm:text-sm cursor-pointer"
             >
-              <SlidersHorizontal size={16} />
+              <SlidersHorizontal size={15} />
               Filtres
-              {filteredProducts.length !== PRODUCTS.length && (
-                <span className="w-2 h-2 bg-accent rounded-full animate-pulse" />
+              {isAnyFilterActive && (
+                <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
               )}
             </button>
           </div>
       </div>
+
+      {/* Category Quick Ribbon */}
+      <div className="mb-5 overflow-x-auto no-scrollbar pb-1">
+        <div className="flex items-center gap-2 min-w-max">
+          <button
+            onClick={() => setSelectedCategory('Tous')}
+            className={`px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
+              selectedCategory === 'Tous'
+                ? 'bg-stone-900 text-white border-stone-900 shadow-xs'
+                : 'bg-white text-stone-700 border-stone-200 hover:border-stone-400 hover:bg-stone-50'
+            }`}
+          >
+            Tous les articles
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${selectedCategory === 'Tous' ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-600'}`}>
+              {PRODUCTS.length}
+            </span>
+          </button>
+          {CATEGORIES.map((cat) => {
+            const count = PRODUCTS.filter((p) => p.category === cat.name).length;
+            const isSelected = selectedCategory === cat.name;
+            return (
+              <button
+                key={cat.id || cat.name}
+                onClick={() => setSelectedCategory(cat.name)}
+                className={`px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
+                  isSelected
+                    ? 'bg-stone-900 text-white border-stone-900 shadow-xs'
+                    : 'bg-white text-stone-700 border-stone-200 hover:border-stone-400 hover:bg-stone-50'
+                }`}
+              >
+                {cat.name}
+                {count > 0 && (
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${isSelected ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-600'}`}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Active Filter Chips Bar */}
+      {isAnyFilterActive && (
+        <div className="mb-7 flex flex-wrap items-center gap-2 p-3 sm:p-3.5 bg-stone-50 rounded-2xl border border-stone-200/80 shadow-xs">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500 mr-1 flex items-center gap-1">
+            <Filter size={12} className="text-accent" />
+            Filtres actifs :
+          </span>
+          
+          {selectedCategory !== 'Tous' && (
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-stone-900 text-white pl-3 pr-1.5 py-1 rounded-full shadow-xs">
+              <span>Rayon : <strong>{selectedCategory}</strong></span>
+              <button 
+                onClick={() => setSelectedCategory('Tous')} 
+                className="hover:bg-white/20 p-0.5 rounded-full transition-colors cursor-pointer" 
+                aria-label="Supprimer le filtre de catégorie"
+                title="Supprimer ce filtre"
+              >
+                <X size={13} />
+              </button>
+            </span>
+          )}
+
+          {onlyPromotions && (
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-rose-600 text-white pl-3 pr-1.5 py-1 rounded-full shadow-xs">
+              <Tag size={12} />
+              <span>Promotions uniquement</span>
+              <button 
+                onClick={() => setOnlyPromotions(false)} 
+                className="hover:bg-white/20 p-0.5 rounded-full transition-colors cursor-pointer" 
+                aria-label="Supprimer le filtre promotion"
+                title="Supprimer ce filtre"
+              >
+                <X size={13} />
+              </button>
+            </span>
+          )}
+
+          {onlyNewArrivals && (
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-accent text-white pl-3 pr-1.5 py-1 rounded-full shadow-xs">
+              <Zap size={12} />
+              <span>Nouveautés</span>
+              <button 
+                onClick={() => setOnlyNewArrivals(false)} 
+                className="hover:bg-white/20 p-0.5 rounded-full transition-colors cursor-pointer" 
+                aria-label="Supprimer le filtre nouveautés"
+                title="Supprimer ce filtre"
+              >
+                <X size={13} />
+              </button>
+            </span>
+          )}
+
+          {selectedCondition !== 'Tous' && (
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-stone-200 text-stone-800 pl-3 pr-1.5 py-1 rounded-full">
+              <span>État : <strong>{selectedCondition === 'new' ? 'Neuf' : 'Deuxième Main'}</strong></span>
+              <button 
+                onClick={() => setSelectedCondition('Tous')} 
+                className="hover:bg-stone-300 p-0.5 rounded-full transition-colors cursor-pointer" 
+                aria-label="Supprimer le filtre état"
+                title="Supprimer ce filtre"
+              >
+                <X size={13} />
+              </button>
+            </span>
+          )}
+
+          {isPriceFilterActive && (
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-stone-200 text-stone-800 pl-3 pr-1.5 py-1 rounded-full">
+              <span>Budget max : <strong>{priceRange.toLocaleString('fr-FR')} FCFA</strong></span>
+              <button 
+                onClick={() => { setIsPriceFilterActive(false); setPriceRange(300000); }} 
+                className="hover:bg-stone-300 p-0.5 rounded-full transition-colors cursor-pointer" 
+                aria-label="Supprimer le filtre de prix"
+                title="Supprimer ce filtre"
+              >
+                <X size={13} />
+              </button>
+            </span>
+          )}
+
+          {searchQuery.trim() && (
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-stone-200 text-stone-800 pl-3 pr-1.5 py-1 rounded-full">
+              <span>Recherche : <strong>"{searchQuery}"</strong></span>
+              <button 
+                onClick={() => setSearchQuery('')} 
+                className="hover:bg-stone-300 p-0.5 rounded-full transition-colors cursor-pointer" 
+                aria-label="Effacer la recherche"
+                title="Effacer la recherche"
+              >
+                <X size={13} />
+              </button>
+            </span>
+          )}
+
+          <button
+            onClick={resetAllFilters}
+            className="text-xs font-bold text-accent hover:text-accent/80 flex items-center gap-1 ml-auto transition-colors cursor-pointer pl-2 py-1"
+            title="Réinitialiser tous les critères de recherche"
+          >
+            <RotateCcw size={13} />
+            Tout effacer
+          </button>
+        </div>
+      )}
 
       <div className="flex flex-col lg:flex-row gap-12">
         {/* Mobile Filter Drawer */}
@@ -657,15 +828,62 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
           </AnimatePresence>
           
           {!isFiltering && filteredProducts.length === 0 && (
-            <div className="text-center py-24">
-              <p className="text-xl text-primary/70 font-serif italic">Aucun produit ne correspond à votre recherche.</p>
-              <button 
-                onClick={() => { setSelectedCategory('Tous'); setSearchQuery(''); }}
-                className="mt-4 text-accent font-bold underline"
-              >
-                Réinitialiser les filtres
-              </button>
-            </div>
+            <motion.div 
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center py-16 sm:py-20 px-4 max-w-lg mx-auto"
+            >
+              <div className="w-20 h-20 sm:w-24 sm:h-24 bg-stone-100 rounded-full flex items-center justify-center mx-auto mb-6 text-stone-400 border border-stone-200/80 shadow-xs">
+                <SearchX size={42} className="text-stone-400 stroke-[1.8]" />
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-serif font-bold text-stone-900 mb-3">
+                Aucun article ne correspond à votre sélection
+              </h2>
+              <p className="text-stone-600 text-xs sm:text-sm leading-relaxed mb-8">
+                Vos critères de recherche ou de filtre sont peut-être trop restrictifs. Vous pouvez réinitialiser vos filtres ou explorer l'une de nos catégories populaires ci-dessous.
+              </p>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
+                <button 
+                  onClick={resetAllFilters}
+                  className="w-full sm:w-auto bg-[#2C372B] hover:bg-accent text-white px-6 py-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer"
+                >
+                  <RotateCcw size={15} />
+                  Réinitialiser tous les filtres
+                </button>
+                <button 
+                  onClick={() => {
+                    resetAllFilters();
+                    setOnlyPromotions(true);
+                  }}
+                  className="w-full sm:w-auto bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-300/80 px-5 py-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
+                >
+                  <Tag size={15} className="text-rose-600" />
+                  Voir les promotions en cours
+                </button>
+              </div>
+
+              {/* Suggestions rapides de rayons */}
+              <div className="pt-6 border-t border-stone-200/80">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-3">
+                  Suggestions de rayons rapides :
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  {CATEGORIES.slice(0, 5).map((cat) => (
+                    <button
+                      key={cat.id || cat.name}
+                      onClick={() => {
+                        resetAllFilters();
+                        setSelectedCategory(cat.name);
+                      }}
+                      className="px-3 py-1.5 rounded-full text-xs font-semibold bg-white hover:bg-stone-100 border border-stone-200 text-stone-700 transition-colors cursor-pointer"
+                    >
+                      {cat.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
           )}
 
           {filteredProducts.length > itemsPerPage && (

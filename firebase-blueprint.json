@@ -164,7 +164,10 @@
         "usageCount": { "type": "number" },
         "status": { "type": "string", "enum": ["active", "expired"] },
         "restrictedToUserId": { "type": "string" },
-        "freeShipping": { "type": "boolean" }
+        "freeShipping": { "type": "boolean" },
+        "usedByUserIds": { "type": "array", "items": { "type": "string" } },
+        "usedByEmails": { "type": "array", "items": { "type": "string" } },
+        "oncePerUser": { "type": "boolean" }
       },
       "required": ["code", "discount", "type", "expiryDate", "status"]
     },
@@ -198,6 +201,22 @@
       "type": "object",
       "properties": {
         "name": { "type": "string" },
+        "endDate": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "items": { "type": "array" }
+      },
+      "required": ["name", "endDate", "status"]
+    },
+    "promotion": {
+      "title": "Promotion",
+      "description": "Promotional campaign with full-stock discount until end date",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "name_en": { "type": "string" },
+        "description": { "type": "string" },
+        "description_en": { "type": "string" },
+        "startDate": { "type": "string" },
         "endDate": { "type": "string" },
         "status": { "type": "string", "enum": ["active", "inactive"] },
         "items": { "type": "array" }
@@ -262,6 +281,82 @@
         "answer": { "type": "object" }
       },
       "required": ["callerId", "callerName", "status", "createdAt"]
+    },
+    "subscriber": {
+      "title": "Subscriber",
+      "description": "Newsletter email subscribers",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "userId": { "type": "string" },
+        "userDisplayName": { "type": "string" },
+        "source": { "type": "string" },
+        "discountGiven": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "unsubscribed"] },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["email"]
+    },
+    "workshop": {
+      "title": "Workshop",
+      "description": "Training workshop or 1-to-1 coaching class",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "ecosystem": { "type": "string", "enum": ["tricot", "deco_resine"] },
+        "offerType": { "type": "string", "enum": ["group", "one_to_one"] },
+        "deliveryType": { "type": "string", "enum": ["visio", "presentiel"] },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "duration": { "type": "string" },
+        "price": { "type": "number" },
+        "level": { "type": "string" },
+        "maxParticipants": { "type": "number" },
+        "currentParticipants": { "type": "number" },
+        "image": { "type": "string" },
+        "category": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["title", "description", "price", "ecosystem", "offerType"]
+    },
+    "workshop_booking": {
+      "title": "WorkshopBooking",
+      "description": "User registration/booking for a workshop",
+      "type": "object",
+      "properties": {
+        "workshopId": { "type": "string" },
+        "workshopTitle": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "userPhone": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "paymentStatus": { "type": "string" },
+        "amount": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["workshopId", "userId", "userEmail"]
+    },
+    "workshop_award": {
+      "title": "WorkshopAward",
+      "description": "Attestation of participation or special prime/award granted by admin",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "workshopId": { "type": "string" },
+        "workshopTitle": { "type": "string" },
+        "awardType": { "type": "string", "enum": ["attestation", "prime_speciale", "mention_excellence"] },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "primeAmount": { "type": "number" },
+        "issueDate": { "type": "string" },
+        "issuedBy": { "type": "string" }
+      },
+      "required": ["userId", "awardType", "title"]
     }
   },
   "firestore": {
@@ -286,6 +381,11 @@
     "community_post": { "schema": "community_post", "description": "Community posts collection" },
     "coupon": { "schema": "coupon", "description": "Discount coupons collection" },
     "analytics": { "schema": "analytics", "description": "Global analytics and visitor counts" },
-    "calls": { "schema": "call", "description": "WebRTC voice calls collection" }
+    "calls": { "schema": "call", "description": "WebRTC voice calls collection" },
+    "subscriber": { "schema": "subscriber", "description": "Newsletter subscribers collection" },
+    "promotion": { "schema": "promotion", "description": "Promotions collection" },
+    "workshop": { "schema": "workshop", "description": "Workshops collection" },
+    "workshop_booking": { "schema": "workshop_booking", "description": "Workshop registrations collection" },
+    "workshop_award": { "schema": "workshop_award", "description": "Certificates, attestations and special primes collection" }
   }
 }

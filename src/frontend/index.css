@@ -194,20 +194,20 @@
   @apply bg-white/70 dark:bg-black/50 backdrop-blur-md border border-white/20 dark:border-white/10;
 }
 
-/* ── iPhone 17 Liquid Glassmorphism System Premium (Seamless & Borderless) ── */
+/* ── iPhone 17 Liquid Glassmorphism System Premium (Seamless & High Contrast) ── */
 .glass-ios {
   backdrop-filter: blur(36px) saturate(200%);
   -webkit-backdrop-filter: blur(36px) saturate(200%);
-  background: rgba(255, 255, 255, 0.65);
-  border: none;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   box-shadow: 
     0 12px 32px 0 rgba(0, 0, 0, 0.08),
     0 4px 12px 0 rgba(0, 0, 0, 0.04);
 }
 
 .dark .glass-ios {
-  background: rgba(26, 30, 26, 0.68);
-  border: none;
+  background: rgba(26, 33, 27, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 
     0 12px 32px 0 rgba(0, 0, 0, 0.35);
 }

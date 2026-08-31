@@ -61,24 +61,41 @@ const ensureFirebaseReady = async (req: AuthenticatedRequest, res: Response) => 
   return true;
 };
 
-const PUBLIC_FIRESTORE_CACHE_TTL_MS = Number(process.env.FIRESTORE_CACHE_TTL_MS || '300000');
+const PUBLIC_FIRESTORE_CACHE_TTL_MS = Number(process.env.FIRESTORE_CACHE_TTL_MS || String(24 * 60 * 60 * 1000));
+
+// Rate limiter strict pour la base de données Firestore : max 45 requêtes / minute (< 50 requêtes/min)
+const DB_MAX_REQUESTS_PER_MINUTE = 45;
+let dbRequestTimestamps: number[] = [];
+
+export const canExecuteDbRequest = (): boolean => {
+  const now = Date.now();
+  dbRequestTimestamps = dbRequestTimestamps.filter((t) => now - t < 60_000);
+  if (dbRequestTimestamps.length >= DB_MAX_REQUESTS_PER_MINUTE) {
+    console.warn(`[db-rate-limiter] Seuil de 50 requêtes BD/min atteint (${dbRequestTimestamps.length}/min). Utilisation du cache/fallback.`);
+    return false;
+  }
+  dbRequestTimestamps.push(now);
+  return true;
+};
+
+// Déduplication des requêtes Firestore en cours de vol
+const inFlightAdminFetches = new Map<string, Promise<any>>();
 
 let isQuotaExhausted = false;
 let lastQuotaExhaustedCheck = 0;
-const QUOTA_EXHAUSTED_COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes
+const QUOTA_EXHAUSTED_COOLDOWN_MS = 60 * 1000; // 1 minute cooldown
 
 const isQuotaError = (err: any): boolean => {
   if (!err) return false;
   const msg = String(err.message || '').toLowerCase();
-  
-  // EXPLICITLY ignore our own self-inflicted fallback/cached mode errors to prevent self-reinforcing loops
-  if (msg.includes('cached fallback mode active') || msg.includes('fallback cache-only mode')) {
-    return false;
-  }
-
   const code = err.code || err.status;
-  if (code === 8 || code === 'RESOURCE_EXHAUSTED') return true;
-  return msg.includes('quota') || msg.includes('resource_exhausted') || msg.includes('limit exceeded');
+  if (code === 8 || code === 'RESOURCE_EXHAUSTED' || code === 429) return true;
+  return (
+    msg.includes('quota') ||
+    msg.includes('resource_exhausted') ||
+    msg.includes('limit exceeded') ||
+    msg.includes('free tier')
+  );
 };
 
 const checkQuotaStatus = () => {
@@ -92,7 +109,7 @@ const markQuotaExhausted = () => {
   if (!isQuotaExhausted) {
     isQuotaExhausted = true;
     lastQuotaExhaustedCheck = Date.now();
-    console.warn('[entity-api] Firestore quota is exhausted (RESOURCE_EXHAUSTED). Entering fallback cache-only mode for 30 minutes to save resources and avoid error loops.');
+    console.warn('[entity-api] Firestore quota is exhausted (RESOURCE_EXHAUSTED). Graceful fallback mode active.');
   }
 };
 
@@ -101,7 +118,7 @@ const logEntity = (requestId: string | undefined, message: string, meta: Record<
 };
 
 const logEntityError = (requestId: string | undefined, message: string, error: any, meta: Record<string, unknown> = {}) => {
-  const isQuota = isQuotaError(error);
+  const isQuota = isQuotaError(error) || checkQuotaStatus();
 
   if (isQuota) {
     markQuotaExhausted();
@@ -156,34 +173,52 @@ const sendPublicReadResponse = (res: Response, data: unknown) => {
 
 const readPublicEntity = async (req: AuthenticatedRequest, res: Response, entity: string, id?: string) => {
   const collectionName = resolvePublicCollectionName(entity);
-  const staleCache = await getPublicFallbackCache(collectionName, id);
   const freshCache = await getPublicFreshCache(collectionName, id);
   const quotaExhausted = checkQuotaStatus();
 
+  // 1. Cache frais 24h : retour immédiat sans aucun accès base de données
   if (freshCache !== null && !isEmptyPublicList(freshCache) && !quotaExhausted) {
     logEntity(req.requestId, 'public:read:cache-hit', { entity, collectionName, id, source: 'fresh-cache' });
     return sendPublicReadResponse(res, freshCache);
   }
 
-  if (quotaExhausted && staleCache !== null && !isEmptyPublicList(staleCache)) {
-    logEntity(req.requestId, 'public:read:cache-fallback-quota-exhausted', {
-      entity,
-      collectionName,
-      id,
-      source: 'stale-cache-quota-exhausted',
-    });
-    return sendPublicReadResponse(res, staleCache);
+  const staleCache = await getPublicFallbackCache(collectionName, id);
+
+  // 2. Si quota épuisé ou pas de connexion DB disponible, servir le stale cache
+  if (quotaExhausted) {
+    if (staleCache !== null && !isEmptyPublicList(staleCache)) {
+      return sendPublicReadResponse(res, staleCache);
+    }
+  }
+
+  // 3. Vérification du Rate Limiter BD (< 50 requêtes / minute)
+  if (!canExecuteDbRequest()) {
+    if (staleCache !== null && !isEmptyPublicList(staleCache)) {
+      logEntity(req.requestId, 'public:read:db-rate-limited-fallback', { entity, collectionName, id });
+      return sendPublicReadResponse(res, staleCache);
+    }
   }
 
   let firestoreDb = db;
   if (!firestoreDb && !quotaExhausted) {
-    await ensureFirestoreConnection(3, 500);
+    await ensureFirestoreConnection(2, 300);
     firestoreDb = db;
   }
 
+  const fetchKey = `fetch:${collectionName}:${id || 'list'}`;
+  const existingFetch = inFlightAdminFetches.get(fetchKey);
+  if (existingFetch) {
+    try {
+      const data = await existingFetch;
+      return sendPublicReadResponse(res, data ?? staleCache);
+    } catch {
+      if (staleCache !== null) return sendPublicReadResponse(res, staleCache);
+    }
+  }
+
   const fetchAdminData = async () => {
-    if (quotaExhausted) {
-      throw new Error('Firestore quota is exhausted (cached fallback mode active)');
+    if (checkQuotaStatus()) {
+      return staleCache;
     }
     if (!firestoreDb) {
       throw new Error('Firestore backend unavailable');
@@ -217,47 +252,42 @@ const readPublicEntity = async (req: AuthenticatedRequest, res: Response, entity
     return result;
   };
 
-  if (staleCache !== null && !isEmptyPublicList(staleCache)) {
-    if (firestoreDb && !quotaExhausted) {
-      void fetchAdminData().catch((adminError: any) => {
-        if (isQuotaError(adminError)) {
-          markQuotaExhausted();
-        }
-        logEntityError(req.requestId, 'public:read:admin-failed', adminError, { entity, collectionName, id, reason: 'background-refresh' });
-      });
-    }
-    logEntity(req.requestId, 'public:read:cache-fallback', {
-      entity,
-      collectionName,
-      id,
-      source: 'stale-cache',
+  if (firestoreDb && !checkQuotaStatus()) {
+    const fetchPromise = fetchAdminData().finally(() => {
+      inFlightAdminFetches.delete(fetchKey);
     });
-    return sendPublicReadResponse(res, staleCache);
-  }
+    inFlightAdminFetches.set(fetchKey, fetchPromise);
 
-  if (firestoreDb && !quotaExhausted) {
     try {
-      const adminResult = await fetchAdminData();
-      return sendPublicReadResponse(res, adminResult);
+      const adminResult = await fetchPromise;
+      if (adminResult !== null) {
+        return sendPublicReadResponse(res, adminResult);
+      }
     } catch (adminError: any) {
       if (isQuotaError(adminError)) {
         markQuotaExhausted();
+      } else {
+        logEntityError(req.requestId, 'public:read:admin-failed', adminError, { entity, collectionName, id });
       }
-      logEntityError(req.requestId, 'public:read:admin-failed', adminError, { entity, collectionName, id });
       
-      // En cas d'erreur de la BDD, utiliser le staleCache s'il existe
       if (staleCache !== null && !isEmptyPublicList(staleCache)) {
-        logEntity(req.requestId, 'public:read:cache-fallback-on-error', { entity, collectionName, id });
         return sendPublicReadResponse(res, staleCache);
       }
 
-      // Si aucune donnée en cache et la BDD a échoué, retourner une erreur 503 au lieu d'un faux 200 []
+      if (!id) {
+        return sendPublicReadResponse(res, []);
+      }
+
       return res.status(503).json({ error: `Database temporarily unavailable for ${entity}` });
     }
   }
 
   if (staleCache !== null && !isEmptyPublicList(staleCache)) {
     return sendPublicReadResponse(res, staleCache);
+  }
+
+  if (!id) {
+    return sendPublicReadResponse(res, []);
   }
 
   return res.status(503).json({ error: `Database backend unavailable for ${entity}` });
@@ -319,6 +349,8 @@ const PUBLIC_READ_COLLECTIONS = new Set([
   'promo_event',
   'flash_sale',
   'flash_sales',
+  'promotion',
+  'promotions',
   'lookbook',
   'lookbooks',
   'lookbook_post',
@@ -367,6 +399,8 @@ const PUBLIC_ENTITY_COLLECTION_ALIASES: Record<string, string> = {
   blog_categories: 'blog_category',
   promo_events: 'promo_event',
   flash_sales: 'flash_sale',
+  promotions: 'promotion',
+  promotion: 'promotion',
   coupons: 'coupon',
   lookbooks: 'lookbook',
   lookbook: 'lookbook',
@@ -391,6 +425,7 @@ const STAFF_READ_COLLECTIONS = new Set([
   'category',
   'order',
   'user',
+  'promotion',
   'knitting_tool',
   'lookbook',
   'blog_post',
@@ -1299,6 +1334,60 @@ const getPrivateEntityFallback = (entity: string, id: string | undefined, uid: s
     return list;
   }
 
+  if (normEntity === 'member_portfolio' || normEntity === 'member_portfolios') {
+    const list = [
+      {
+        id: 'landry',
+        profileType: 'developer',
+        name: 'Landry',
+        role: 'Co-fondateur & Responsable Technique',
+        role_en: 'Co-founder & Technical Lead',
+        bio: 'Développeur passionné et garant de toute la partie digitale de Laine & Déco. Landry conçoit et optimise notre plateforme pour vous offrir une expérience d\'achat fluide, sécurisée et à la pointe de l\'innovation.',
+        bio_en: 'Passionate developer and custodian of all digital aspects of Laine & Déco. Landry designs and optimizes our platform to offer a seamless, secure, and cutting-edge shopping experience.',
+        email: 'landry@laine-deco.com',
+        avatar: '',
+        linkedin: 'https://linkedin.com',
+        externalPortfolioUrl: '#',
+        expertise: [
+          {
+            category: 'Frontend',
+            skills: [{ name: 'React', iconUrl: '' }, { name: 'Tailwind CSS', iconUrl: '' }]
+          }
+        ],
+        projects: [],
+        experience: [],
+        education: [],
+        certifications: []
+      },
+      {
+        id: 'sourcing',
+        profileType: 'manager',
+        name: 'L\'équipe Laine & Déco',
+        role: 'Sourcing, Logistique & Service Client',
+        role_en: 'Sourcing, Logistics & Customer Service',
+        bio: 'Le cœur opérationnel de notre projet. Nous coordonnons les arrivages, supervisons le sourcing soigné de nos laines nobles, de nos crochets, aiguilles et accessoires de mercerie, et veillons à ce que chaque colis préparé à Douala soit une expérience chaleureuse.',
+        bio_en: 'The operational heart of our project. We coordinate shipments, supervise the careful sourcing of our noble yarns, hooks, needles, and haberdashery accessories, ensuring each package prepared in Douala is a warm experience.',
+        email: 'contact@laine-deco.com',
+        avatar: '',
+        linkedin: 'https://linkedin.com',
+        expertise: [
+          {
+            category: 'Organisation',
+            skills: [{ name: 'Sourcing', iconUrl: '' }, { name: 'Contrôle Qualité', iconUrl: '' }, { name: 'Logistique', iconUrl: '' }]
+          }
+        ],
+        projects: [],
+        experience: [],
+        education: [],
+        certifications: []
+      }
+    ];
+    if (id) {
+      return list.find(m => m.id === id) || { id };
+    }
+    return list;
+  }
+
   // Fallback for other arbitrary private collections
   if (id) {
     return { id };
@@ -1336,34 +1425,18 @@ const readEntity = async (req: any, res: any) => {
     return rejectInvalidEntity(res, req.params?.entity as string | undefined);
   }
 
-  // Defensively check for known Firestore quota exhaustions first
+  // Defensively check for known Firestore quota exhaustions or DB rate limit (< 50 req/min)
   const quotaExhausted = checkQuotaStatus();
-  if (quotaExhausted) {
-    console.warn(`[entityRoutes] checkQuotaStatus returned true. Serving private mock fallback for ${entity} (id: ${id})`);
+  if (quotaExhausted || !canExecuteDbRequest()) {
+    console.warn(`[entityRoutes] Rate limit or Quota protection active. Serving private fallback for ${entity} (id: ${id})`);
     const fallbackData = getPrivateEntityFallback(entity, id, uid, role);
     return res.json(fallbackData);
   }
 
   try {
-    // 1. Accès public universel pour les collections publiques (Bannières, Logos, Nav, Produits, etc.)
+    // 1. Accès public universel (déjà routé plus haut, fallback de sécurité)
     if (PUBLIC_READ_COLLECTIONS.has(entity)) {
-      res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
-      if (id) {
-        const snap = await retryFirestoreOperation<any>(() => (db as any).collection(entity).doc(id).get());
-        if (!snap.exists) return res.json(null);
-        console.log('[entityRoutes] public read single', { requestId: req.requestId, entity, id: snap.id });
-        return res.json({ id: snap.id, ...snap.data() });
-      }
-
-      const snap = await retryFirestoreOperation<any>(() => (db as any).collection(entity).get());
-      const docs = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
-      console.log('[entityRoutes] public read list', {
-        requestId: req.requestId,
-        entity,
-        count: docs.length,
-        first: docs.length > 0 ? { id: docs[0].id } : null,
-      });
-      return res.json(docs);
+      return readPublicEntity(req, res, entity, id);
     }
 
     // 2. Si non connecté pour une ressource privée
@@ -1373,16 +1446,26 @@ const readEntity = async (req: any, res: any) => {
 
     // 3. Admin Level
     if (isAdminLevel(role)) {
+      const adminCacheKey = `admin-firestore:${entity}:${id || 'list'}`;
+      const freshAdminCache = await getFreshCachedResponse(adminCacheKey, PUBLIC_FIRESTORE_CACHE_TTL_MS);
+      if (freshAdminCache !== null) {
+        return res.json(freshAdminCache);
+      }
+
       if (id) {
         const snap = await retryFirestoreOperation<any>(() => (db as any).collection(entity).doc(id).get());
-        return res.json(snap.exists ? { id: snap.id, ...snap.data() } : null);
+        const data = snap.exists ? { id: snap.id, ...snap.data() } : null;
+        if (data) await setCachedResponse(adminCacheKey, data);
+        return res.json(data);
       }
 
       const snap = await retryFirestoreOperation<any>(() => (db as any).collection(entity).get());
-      return res.json(snap.docs.map((d: any) => ({
+      const docs = snap.docs.map((d: any) => ({
         id: d.id,
         ...d.data(),
-      })));
+      }));
+      await setCachedResponse(adminCacheKey, docs);
+      return res.json(docs);
     }
 
     // 4. Stock Manager

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowRight, Package, Truck, ShieldCheck, Heart, Calendar, User, Search, Camera, Zap, Clock, Loader2, Mic, X as CloseIcon, HelpCircle, Star, Sparkles, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { ArrowRight, Package, Truck, ShieldCheck, Heart, Calendar, User, Search, Camera, Zap, Clock, Loader2, Mic, X as CloseIcon, HelpCircle, Star, Sparkles, ChevronLeft, ChevronRight, ChevronDown, Tag } from 'lucide-react';
 
 import { useStaticEntity } from '../hooks/useStaticEntity';
 import { useHeroBannersService } from '../hooks/useHeroBannersService';
@@ -9,13 +9,14 @@ import { where, orderBy, limit as fsLimit } from 'firebase/firestore';
 import { useProducts } from '../hooks/useProducts';
 import { ProductCard } from '../components/ProductCard';
 import { Button } from '../components/ui/Button';
-import { Product, SiteConfig, PromoEvent, Pack, FlashSale, Lookbook, HeroBannerConfig } from '../../types';
+import { Product, SiteConfig, PromoEvent, Pack, FlashSale, Lookbook, HeroBannerConfig, Promotion } from '../../types';
 import { AdBanner } from '../components/AdBanner';
 import { productSearch } from '../utils/searchUtils';
 import { useDeferUntilInteraction } from '../hooks/useAfterIdle';
 import { optimizeImageUrl } from '../utils/imageUtils';
 import { cleanText } from '../utils/siteUtils';
 import { ImageWithFallback } from '../components/ui/ImageWithFallback';
+import { PackImageDisplay } from '../components/ui/PackImageDisplay';
 import { YarnLoadingBanner } from '../components/ui/YarnLoadingBanner';
 import { HeroTrustWidget } from '../components/ui/HeroTrustWidget';
 import { CategorySkeleton, ContentCardSkeleton, ProductSkeleton, Skeleton } from '../components/ui/Skeleton';
@@ -103,17 +104,19 @@ interface HomeViewProps {
   onAddToCart: (p: Product) => void;
   onAddToWishlist: (p: Product) => void;
   onQuickView: (p: Product) => void;
-  onAddToComparison: (p: Product) => void;
   onProductClick: (p: Product) => void;
   siteConfig: SiteConfig;
   events?: PromoEvent[];
 }
 
-export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onAddToWishlist, onQuickView, onAddToComparison, onProductClick, siteConfig, events = [] }) => {
+export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onAddToWishlist, onQuickView, onProductClick, siteConfig, events = [] }) => {
   const { isMarqueeReady, isAllReady } = useLoadingSequence();
   const { t, l, isEn } = useTranslation();
-  const isLookbookEnabled = isFeatureEnabled({ featureFlags: siteConfig.featureFlags }, 'lookbook');
-  const isBlogEnabled = isFeatureEnabled({ featureFlags: siteConfig.featureFlags }, 'blog');
+  const isLookbookEnabled = isFeatureEnabled(siteConfig, 'lookbook');
+  const isBlogEnabled = isFeatureEnabled(siteConfig, 'blog');
+  const isCalculatorEnabled = isFeatureEnabled(siteConfig, 'calculator');
+  const isFlashSalesEnabled = isFeatureEnabled(siteConfig, 'flashSales');
+  const isPacksEnabled = isFeatureEnabled(siteConfig, 'packs');
 
   // ── Mobile Landscape detector ──
   const [isMobileLandscape, setIsMobileLandscape] = React.useState(false);
@@ -154,6 +157,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
   const { data: BLOG_POSTS, isLoading: isBlogLoading, error: blogError } = useStaticEntity<any>('blog_post', [], secondaryOpts);
   const { data: PACKS, isLoading: isPacksLoading, error: packsError } = useStaticEntity<any>('pack', [], secondaryOpts);
   const { data: RECENT_FLASH_SALES, isLoading: isFlashSalesLoading, error: flashSalesError } = useStaticEntity<FlashSale>('flash_sale', [], secondaryOpts);
+  const { data: RECENT_PROMOTIONS, isLoading: isPromotionsLoading, error: promotionsError } = useStaticEntity<Promotion>('promotion', [], secondaryOpts);
   const { data: LOOKBOOKS, isLoading: isLookbooksLoading, error: lookbooksError } = useStaticEntity<Lookbook>('lookbook', [], secondaryOpts);
 
   const HERO_BANNERS = React.useMemo(() => {
@@ -169,8 +173,40 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
     fs.items.length > 0 &&
     fs.items.some((item) => PRODUCTS.some((product) => product.id === item.productId))
   );
+  const activePromotions = React.useMemo(() => {
+    return RECENT_PROMOTIONS.filter(p =>
+      p.status === 'active' &&
+      new Date(p.endDate) > new Date() &&
+      (!p.startDate || new Date(p.startDate) <= new Date()) &&
+      Array.isArray(p.items) &&
+      p.items.length > 0 &&
+      p.items.some((item) => PRODUCTS.some((product) => product.id === item.productId))
+    );
+  }, [RECENT_PROMOTIONS, PRODUCTS]);
   const activeLookbooks = LOOKBOOKS.filter(lb => lb.status === 'active');
   const visiblePacks = PACKS.filter((pack) => Array.isArray(pack.products) && pack.products.length > 0);
+
+  const [isNewsletterSubscribed, setIsNewsletterSubscribed] = React.useState(() => {
+    const dec = localStorage.getItem('newsletter_decision');
+    const sub = localStorage.getItem('newsletter_subscribed');
+    return dec === 'accepted' || sub === 'true';
+  });
+
+  React.useEffect(() => {
+    const checkSub = () => {
+      const dec = localStorage.getItem('newsletter_decision');
+      const sub = localStorage.getItem('newsletter_subscribed');
+      if (dec === 'accepted' || sub === 'true') {
+        setIsNewsletterSubscribed(true);
+      }
+    };
+    window.addEventListener('storage', checkSub);
+    window.addEventListener('newsletter_subscribed', checkSub);
+    return () => {
+      window.removeEventListener('storage', checkSub);
+      window.removeEventListener('newsletter_subscribed', checkSub);
+    };
+  }, []);
 
   const [showOnlyPromos, setShowOnlyPromos] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
@@ -215,12 +251,30 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Produits enrichis avec les promotions actives
+  const enhancedProducts = React.useMemo(() => {
+    return PRODUCTS.map((p) => {
+      let promoPrice = p.promoPrice;
+      for (const promo of activePromotions) {
+        const item = promo.items?.find((i) => i.productId === p.id);
+        if (item && typeof item.promoPrice === 'number' && item.promoPrice > 0 && item.promoPrice < p.price) {
+          promoPrice = item.promoPrice;
+          break;
+        }
+      }
+      if (typeof promoPrice === 'number' && promoPrice > 0 && promoPrice < p.price) {
+        return { ...p, promoPrice };
+      }
+      return p;
+    });
+  }, [PRODUCTS, activePromotions]);
+
   // Index products for Lucene-like search
   React.useEffect(() => {
-    if (PRODUCTS.length > 0) {
-      productSearch.indexItems(PRODUCTS);
+    if (enhancedProducts.length > 0) {
+      productSearch.indexItems(enhancedProducts);
     }
-  }, [PRODUCTS]);
+  }, [enhancedProducts]);
 
   // Update live search results
   React.useEffect(() => {
@@ -232,16 +286,29 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
     }
   }, [searchQuery]);
 
-  // (timer unique géré ci-dessus, pas de doublon)
+  // Produits avec prix promotionnel actif
+  const promoProductsOnly = React.useMemo(() => {
+    return enhancedProducts.filter(
+      (p) => typeof p.promoPrice === 'number' && p.promoPrice > 0 && p.promoPrice < p.price
+    );
+  }, [enhancedProducts]);
 
-  const featuredProducts = PRODUCTS.filter(p => siteConfig.homeFeaturedProducts.includes(p.id));
+  // Pour la section d'accueil "Nos Coups de Cœur", on affiche uniquement les produits qui ont un prix promotionnel
+  const homeDisplayProducts = React.useMemo(() => {
+    if (promoProductsOnly.length > 0) {
+      return promoProductsOnly;
+    }
+    const featured = enhancedProducts.filter(p => siteConfig.homeFeaturedProducts.includes(p.id));
+    return featured.length > 0 ? featured : enhancedProducts;
+  }, [promoProductsOnly, enhancedProducts, siteConfig.homeFeaturedProducts]);
+
   const featuredCategories = CATEGORIES.filter(c => siteConfig.homeFeaturedCategories.includes(c.id));
 
   // Produits éligibles avec un prix valide
   const validProducts = React.useMemo(() => {
-    const list = PRODUCTS.filter(p => p && p.price && p.price > 0);
-    return list.length > 0 ? list : PRODUCTS;
-  }, [PRODUCTS]);
+    const list = enhancedProducts.filter(p => p && p.price && p.price > 0);
+    return list.length > 0 ? list : enhancedProducts;
+  }, [enhancedProducts]);
 
   // Produit du jour pour la Vente Flash (-10%, rotation automatique quotidienne à minuit)
   const flashSaleProduct = React.useMemo(() => {
@@ -398,7 +465,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
   };
 
   return (
-    <motion.div className="relative space-y-10 sm:space-y-16 md:space-y-24 pb-24">
+    <motion.div className="relative space-y-10 sm:space-y-16 md:space-y-20 pb-4 sm:pb-8">
       {isSearchFocused && (
         <button
           type="button"
@@ -802,14 +869,14 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
           isMobileLandscape ? 'gap-2 pb-1 pt-0.5 justify-center w-full max-w-full' : 'gap-3 pb-2 pt-1 w-full'
         }`}>
           {[
-            { label: 'Laines', icon: '🧶', view: 'shop', query: 'Laine', bg: 'from-amber-400 to-orange-500' },
-            { label: 'Déco', icon: '🏺', view: 'shop', query: 'Décoration', bg: 'from-rose-400 to-pink-600' },
-            { label: 'Packs', icon: '🎁', view: 'packs', bg: 'from-emerald-400 to-teal-600' },
-            { label: 'Flash', icon: '⚡', view: 'flash-sales', bg: 'from-amber-500 to-red-500' },
-            { label: 'Calculateur', icon: '🧮', view: 'calculator', bg: 'from-blue-400 to-indigo-600' },
-            { label: 'Lookbook', icon: '📖', view: 'lookbook', bg: 'from-purple-400 to-violet-600' },
-            { label: 'Personnaliser', icon: '🎨', view: 'knitting-configurator', bg: 'from-fuchsia-400 to-pink-500' },
-          ].map((item, idx) => (
+            { label: 'Laines', icon: '🧶', view: 'shop', query: 'Laine', bg: 'from-amber-400 to-orange-500', feature: 'shop' },
+            { label: 'Déco', icon: '🏺', view: 'shop', query: 'Décoration', bg: 'from-rose-400 to-pink-600', feature: 'shop' },
+            { label: 'Packs', icon: '🎁', view: 'packs', bg: 'from-emerald-400 to-teal-600', feature: 'packs' },
+            { label: 'Flash', icon: '⚡', view: 'flash-sales', bg: 'from-amber-500 to-red-500', feature: 'flashSales' },
+            { label: 'Calculateur', icon: '🧮', view: 'calculator', bg: 'from-blue-400 to-indigo-600', feature: 'calculator' },
+            { label: 'Lookbook', icon: '📖', view: 'lookbook', bg: 'from-purple-400 to-violet-600', feature: 'lookbook' },
+            { label: 'Personnaliser', icon: '🎨', view: 'configurator', bg: 'from-fuchsia-400 to-pink-500', feature: 'customOrder' },
+          ].filter(item => isFeatureEnabled(siteConfig, item.feature)).map((item, idx) => (
             <motion.button
               key={idx}
               whileTap={{ scale: 0.92 }}
@@ -836,7 +903,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
       </section>
 
       {/* Flash Sale Section */}
-      {flashSaleProduct && (
+      {isFlashSalesEnabled && flashSaleProduct && (
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* ── Mobile Flash Sale Layout ── */}
         <div className="md:hidden bg-gradient-to-br from-[#3E4A3D] via-[#2F392E] to-slate-900 rounded-[2rem] p-5 relative overflow-hidden text-white shadow-xl border border-white/10">
@@ -909,23 +976,23 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
         </div>
 
         {/* ── Desktop / Tablet Flash Sale Layout ── */}
-        <div className="hidden md:block bg-[#3E4A3D] dark:bg-[#1A1D1A] border border-white/5 rounded-[3rem] overflow-hidden relative shadow-2xl">
+        <div className="hidden md:block bg-[#3E4A3D] dark:bg-[#1A1D1A] border border-white/5 rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden relative shadow-xl">
           <div className="absolute top-0 right-0 w-1/2 h-full bg-primary/10 skew-x-12 translate-x-1/4" />
           <div className="relative z-10 flex flex-col lg:flex-row items-center">
-            <div className="w-full lg:w-1/2 p-12 md:p-20 space-y-8">
-              <div className="flex items-center gap-3 text-accent font-bold uppercase tracking-widest text-sm">
-                <Zap size={20} fill="currentColor" />
+            <div className="w-full lg:w-1/2 p-6 sm:p-8 lg:p-10 space-y-4 lg:space-y-5">
+              <div className="flex items-center gap-2.5 text-accent font-bold uppercase tracking-widest text-xs">
+                <Zap size={16} fill="currentColor" />
                 <span>Vente Flash du Jour • Offre Limitée</span>
               </div>
-              <h2 className="text-4xl md:text-6xl font-serif text-white leading-tight">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-serif text-white leading-tight">
                 -10% sur <span className="italic text-accent">{flashSaleProduct.name}</span>
               </h2>
-              <p className="text-white text-lg max-w-md">
+              <p className="text-white/85 text-xs sm:text-sm max-w-md leading-relaxed">
                 Profitez d'une remise exceptionnelle de 10% sur cette création artisanale sélectionnée, valable aujourd'hui jusqu'à minuit.
               </p>
               
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-white text-xs font-bold uppercase tracking-widest">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-white/80 text-xs font-bold uppercase tracking-widest">
                   <Clock size={14} />
                   <span>Se termine dans :</span>
                 </div>
@@ -934,21 +1001,21 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
 
               <Button 
                 onClick={() => onProductClick({ ...flashSaleProduct, salePrice: flashSalePrice })}
-                className="px-10 py-4 animate-shine"
+                className="px-6 py-3 text-xs font-bold animate-shine"
               >
                 En profiter maintenant (-10%)
               </Button>
             </div>
             
-            <div className="w-full lg:w-1/2 p-12 lg:p-0">
+            <div className="w-full lg:w-1/2 p-6 lg:p-8 flex justify-center">
               <div 
                 onClick={() => onProductClick({ ...flashSaleProduct, salePrice: flashSalePrice })}
-                className="relative aspect-square max-w-md mx-auto cursor-pointer group"
+                className="relative w-48 h-48 sm:w-56 sm:h-56 lg:w-64 lg:h-64 cursor-pointer group"
               >
                 <motion.div 
                   animate={{ rotate: 360 }}
                   transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                  className="absolute inset-0 border-2 border-dashed border-primary/30 rounded-full"
+                  className="absolute inset-0 border-2 border-dashed border-white/20 rounded-full"
                 />
                 <img 
                   src={flashSaleProduct?.image || 'https://picsum.photos/seed/flash/600/600'} 
@@ -956,13 +1023,13 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                   className="w-full h-full object-cover rounded-full relative z-10 group-hover:scale-105 transition-transform duration-500 shadow-2xl"
                   referrerPolicy="no-referrer"
                   loading="lazy"
-                  width={400}
-                  height={400}
+                  width={300}
+                  height={300}
                 />
-                <div className="absolute top-1/4 -right-4 bg-white dark:bg-stone-900 p-4 rounded-2xl shadow-2xl z-20 rotate-12 border border-primary/10">
+                <div className="absolute top-1/4 -right-4 bg-white dark:bg-stone-900 p-3 rounded-2xl shadow-2xl z-20 rotate-12 border border-primary/10">
                   <div className="inline-block bg-accent text-primary text-[10px] font-black uppercase px-2 py-0.5 rounded-md mb-1">-10%</div>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-primary/70 dark:text-stone-300">Prix Flash</p>
-                  <p className="text-2xl font-bold text-accent">{flashSalePrice.toLocaleString()} FCFA</p>
+                  <p className="text-lg font-bold text-accent">{flashSalePrice.toLocaleString()} FCFA</p>
                   {flashSaleProduct.price && flashSaleProduct.price > flashSalePrice && (
                     <p className="text-xs line-through text-primary/50 dark:text-stone-400 font-normal">
                       {flashSaleProduct.price.toLocaleString()} FCFA
@@ -1036,68 +1103,54 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
       )}
 
       {/* Wool Calculator Teaser */}
+      {isCalculatorEnabled && (
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-[3rem] p-8 md:p-16 border border-primary/10 flex flex-col md:flex-row items-center gap-12 relative overflow-hidden">
-          <div className="w-full md:w-1/2 space-y-6 relative z-10">
+        <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-8 md:p-10 border border-primary/10 flex flex-col md:flex-row items-center gap-6 md:gap-10 relative overflow-hidden">
+          <div className="w-full md:w-1/2 space-y-4 relative z-10">
             <span className="text-xs font-bold uppercase tracking-widest text-accent">Nouveau Outil</span>
-            <h2 className="text-4xl font-serif text-primary">Calculateur de Pelotes</h2>
-            <p className="text-primary/70 text-lg">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif text-primary">Calculateur de Pelotes</h2>
+            <p className="text-primary/70 text-xs sm:text-sm md:text-base leading-relaxed">
               Vous ne savez pas combien de pelotes acheter pour votre prochain projet ? 
               Utilisez notre calculateur intelligent pour estimer la quantité exacte de laine nécessaire pour votre pull, écharpe ou bonnet.
             </p>
             <Button 
               onClick={() => onNavigate('calculator')}
-              className="px-8 py-4 flex items-center gap-2 animate-shine"
+              className="px-6 py-3 flex items-center gap-2 text-xs sm:text-sm animate-shine"
             >
-              <Package size={20} />
+              <Package size={18} />
               Calculer maintenant
             </Button>
           </div>
-          <div className="w-full md:w-1/2 relative flex justify-center h-[400px]">
-            <div className="relative w-64 h-64 bg-white rounded-full flex items-center justify-center shadow-2xl border-8 border-white/20">
-              <span className="text-9xl font-serif text-accent">?</span>
+          <div className="w-full md:w-1/2 relative flex justify-center items-center h-[220px] sm:h-[280px]">
+            <div className="relative w-44 h-44 sm:w-52 sm:h-52 bg-white rounded-full flex items-center justify-center shadow-xl border-4 border-white/20">
+              <span className="text-7xl sm:text-8xl font-serif text-accent">?</span>
               
               <motion.div 
-                animate={{ y: [0, -20, 0] }}
+                animate={{ y: [0, -10, 0] }}
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute -top-10 -right-10 bg-white p-4 rounded-2xl shadow-xl rotate-12"
+                className="absolute -top-6 -right-6 bg-white p-3 rounded-2xl shadow-lg rotate-12"
               >
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                  <Package className="text-accent" />
+                <div className="w-9 h-9 bg-primary/10 rounded-full flex items-center justify-center">
+                  <Package size={18} className="text-accent" />
                 </div>
               </motion.div>
 
               <motion.div 
-                animate={{ y: [0, 20, 0] }}
+                animate={{ y: [0, 10, 0] }}
                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-                className="absolute -bottom-5 -left-10 bg-white p-4 rounded-2xl shadow-xl -rotate-6"
+                className="absolute -bottom-3 -left-6 bg-white p-3 rounded-2xl shadow-lg -rotate-6"
               >
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                  <div className="w-8 h-1 bg-primary rounded-full rotate-45" />
-                  <div className="w-8 h-1 bg-primary rounded-full -rotate-45 absolute" />
+                <div className="w-9 h-9 bg-primary/10 rounded-full flex items-center justify-center">
+                  <div className="w-6 h-0.5 bg-primary rounded-full rotate-45" />
+                  <div className="w-6 h-0.5 bg-primary rounded-full -rotate-45 absolute" />
                 </div>
               </motion.div>
             </div>
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-primary/10 rounded-full blur-3xl -z-10" />
-             
-             {/* Floating elements */}
-             <motion.div 
-                animate={{ y: [0, -20, 0], rotate: [0, 10, 0] }}
-                transition={{ duration: 4, repeat: Infinity, delay: 1 }}
-                className="absolute top-10 left-10 bg-white p-4 rounded-2xl shadow-lg z-20"
-             >
-                <span className="text-4xl">🧶</span>
-             </motion.div>
-             <motion.div 
-                animate={{ y: [0, 20, 0], rotate: [0, -10, 0] }}
-                transition={{ duration: 5, repeat: Infinity, delay: 2 }}
-                className="absolute bottom-20 right-10 bg-white p-4 rounded-2xl shadow-lg z-20"
-             >
-                <span className="text-4xl">📏</span>
-             </motion.div>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-56 bg-primary/10 rounded-full blur-2xl -z-10" />
           </div>
         </div>
       </section>
+      )}
 
       {/* Featured Slider / Création d'Exception */}
       {(() => {
@@ -1106,20 +1159,20 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
         const cleanedDescription = cleanText(featuredProduct.description) || "Une création d'exception façonnée avec des matières nobles pour sublimer vos projets les plus précieux.";
         return (
           <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="bg-gradient-to-br from-stone-50 via-white to-amber-50/30 dark:from-slate-900 dark:via-slate-900/90 dark:to-slate-800 rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-12 md:p-20 overflow-hidden relative border border-primary/5 shadow-sm">
-              <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
-                <div className="w-full md:w-1/2 space-y-4 sm:space-y-6 text-left">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent text-[11px] sm:text-xs font-bold uppercase tracking-widest">
+            <div className="bg-gradient-to-br from-stone-50 via-white to-amber-50/30 dark:from-slate-900 dark:via-slate-900/90 dark:to-slate-800 rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-8 md:p-10 overflow-hidden relative border border-primary/5 shadow-sm">
+              <div className="flex flex-col md:flex-row items-center gap-6 md:gap-10">
+                <div className="w-full md:w-1/2 space-y-3 sm:space-y-4 text-left">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent text-[10px] sm:text-xs font-bold uppercase tracking-widest">
                     <span>Création d'Exception</span>
                   </div>
-                  <h2 className="text-2xl sm:text-4xl md:text-5xl font-serif text-primary leading-tight">{featuredProduct.name}</h2>
-                  <p className="text-primary/75 text-sm sm:text-base md:text-lg line-clamp-3 leading-relaxed">{cleanedDescription}</p>
+                  <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif text-primary leading-tight">{featuredProduct.name}</h2>
+                  <p className="text-primary/75 text-xs sm:text-sm md:text-base line-clamp-3 leading-relaxed">{cleanedDescription}</p>
                   
                   <div className="pt-2 flex items-center gap-4">
-                    <span className="text-xl sm:text-3xl font-bold text-primary font-serif">{featuredProduct.price.toLocaleString()} FCFA</span>
+                    <span className="text-lg sm:text-2xl font-bold text-primary font-serif">{featuredProduct.price.toLocaleString()} FCFA</span>
                     <Button 
                       onClick={() => onProductClick(featuredProduct)}
-                      className="px-6 py-3 text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all"
+                      className="px-5 py-2.5 text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all"
                     >
                       <span>Découvrir l'ouvrage</span>
                       <ArrowRight size={15} className="ml-1.5" />
@@ -1129,25 +1182,25 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
 
                 <div 
                   onClick={() => onProductClick(featuredProduct)}
-                  className="w-full md:w-1/2 relative cursor-pointer group"
+                  className="w-full md:w-1/2 relative cursor-pointer group flex justify-center"
                 >
                   <motion.div 
-                    animate={{ y: [0, -12, 0] }}
+                    animate={{ y: [0, -8, 0] }}
                     transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                    className="relative z-10"
+                    className="relative z-10 w-full max-w-md"
                   >
                     <ImageWithFallback 
                       src={optimizeImageUrl(featuredProduct.image, 800)} 
                       alt={featuredProduct.name} 
-                      className="w-full aspect-[4/3] sm:aspect-square object-cover rounded-2xl sm:rounded-[3rem] shadow-xl group-hover:scale-102 transition-transform duration-500"
+                      className="w-full aspect-[4/3] sm:aspect-[16/10] object-cover rounded-2xl sm:rounded-[2rem] shadow-xl group-hover:scale-102 transition-transform duration-500 max-h-[280px] sm:max-h-[340px]"
                       referrerPolicy="no-referrer"
                       loading="lazy"
-                      width={800}
-                      height={800}
+                      width={600}
+                      height={400}
                     />
                   </motion.div>
-                  <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-accent/10 rounded-full blur-3xl" />
-                  <div className="absolute -top-10 -left-10 w-48 h-48 bg-primary/5 rounded-full blur-2xl" />
+                  <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-accent/10 rounded-full blur-3xl" />
+                  <div className="absolute -top-10 -left-10 w-36 h-36 bg-primary/5 rounded-full blur-2xl" />
                 </div>
               </div>
             </div>
@@ -1185,7 +1238,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
       </section>
 
       {/* Flash Sales Section */}
-      {isFlashSalesLoading || flashSalesError ? (
+      {isFlashSalesEnabled && (isFlashSalesLoading || flashSalesError ? (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 bg-stone-50/50 py-8 sm:py-12 rounded-[2rem] sm:rounded-[3rem] my-8 sm:my-12 border border-primary/5">
           <div className="flex justify-between items-end mb-8 gap-8">
             <div className="space-y-3 w-full max-w-md"><Skeleton className="h-3 w-1/3" /><Skeleton className="h-8 sm:h-10 w-2/3" /><Skeleton className="h-4 w-full" /></div>
@@ -1193,8 +1246,8 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4"><ProductSkeleton /><ProductSkeleton /></div>
         </section>
-      ) : activeFlashSales.length > 0 && activeFlashSales.map((fs) => (
-        <section key={fs.id} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-6 sm:my-12">
+      ) : activeFlashSales.length > 0 ? activeFlashSales.map((fs) => (
+        <section key={fs.id} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Cadre Noble : Charme atelier haut de gamme */}
           <div className="bg-gradient-to-br from-stone-900 via-stone-900 to-slate-950 text-white p-5 sm:p-8 md:p-12 rounded-[2rem] md:rounded-[3rem] border border-amber-500/20 shadow-xl relative overflow-hidden">
             {/* Lueur d'ambiance dorée subtile */}
@@ -1230,7 +1283,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
             
             {/* Grille de produits : 2 colonnes fixes sur mobile, jamais de carte étirée */}
             <div className="relative z-10 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
-              {fs.items.map(item => {
+              {fs.items.slice(0, 4).map(item => {
                 const product = PRODUCTS.find(p => p.id === item.productId);
                 if (!product) return null;
                 
@@ -1252,7 +1305,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                       }}
                       onAddToWishlist={onAddToWishlist}
                       onQuickView={onQuickView}
-                      onAddToComparison={onAddToComparison}
                       onClick={onProductClick}
                     />
                     
@@ -1269,12 +1321,12 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
             </div>
           </div>
         </section>
-      ))}
+      )) : null)}
 
-      {/* Categories Bento Grid */}
+      {/* Categories Grid */}
       {(isCategoriesLoading || categoriesError || CATEGORIES.length > 0) && (
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-end mb-6 md:mb-12">
+        <div className="flex justify-between items-end mb-4 sm:mb-6 md:mb-8">
           <div>
             <span className="text-xs font-bold uppercase tracking-widest text-accent mb-1 sm:mb-2 block">Explorer</span>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif">Nos Catégories</h2>
@@ -1284,37 +1336,32 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
           </button>
         </div>
         
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 auto-rows-[160px] sm:auto-rows-[220px] md:auto-rows-[300px]">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-5 md:gap-6">
           {isCategoriesLoading || categoriesError ? [0, 1, 2, 3].map((i) => (
-            <CategorySkeleton key={i} className={i === 0 ? 'md:col-span-2 md:row-span-2' : i === 3 ? 'md:row-span-2' : ''} />
+            <CategorySkeleton key={i} />
           )) : (featuredCategories.length > 0 ? featuredCategories : CATEGORIES).slice(0, 4).map((cat, i) => {
-            const isLarge = i === 0;
-            const isTall = i === 3;
             return (
               <motion.div
                 key={cat.id}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className={`group relative overflow-hidden rounded-[1.8rem] md:rounded-[2.5rem] cursor-pointer shadow-sm hover:shadow-2xl transition-all duration-500 ${
-                  isLarge ? 'md:col-span-2 md:row-span-2' : 
-                  isTall ? 'md:row-span-2' : ''
-                }`}
+                transition={{ delay: i * 0.08 }}
+                className="group relative overflow-hidden rounded-[1.5rem] sm:rounded-[2rem] cursor-pointer shadow-sm hover:shadow-xl transition-all duration-500 h-44 sm:h-56 md:h-64"
                 onClick={() => onNavigate('shop', undefined, cat.name)}
               >
                 <ImageWithFallback
                   src={cat.image}
                   alt={cat.name}
-                  className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   loading="lazy"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
-                <div className="absolute bottom-3 sm:bottom-6 md:bottom-8 left-3 sm:left-6 md:left-8 right-3 sm:right-6 md:right-8 text-white">
-                  <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] mb-1 text-white/80">{cat.count} Articles</p>
-                  <h3 className={`${isLarge ? 'text-lg sm:text-2xl md:text-4xl' : 'text-sm sm:text-xl md:text-2xl'} font-serif mb-1 sm:mb-4 leading-tight`}>{cat.name}</h3>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent opacity-70 group-hover:opacity-85 transition-opacity" />
+                <div className="absolute bottom-3 sm:bottom-5 left-3 sm:left-5 right-3 sm:right-5 text-white">
+                  <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] mb-0.5 text-white/80">{cat.count || 0} Articles</p>
+                  <h3 className="text-base sm:text-lg md:text-xl font-serif mb-1 sm:mb-2 leading-tight line-clamp-1">{cat.name}</h3>
                   <span className="inline-flex items-center text-[10px] sm:text-xs font-bold uppercase tracking-widest group-hover:text-accent transition-colors">
-                    Découvrir <ArrowRight size={12} className="ml-1 sm:ml-2 group-hover:translate-x-1 transition-transform" />
+                    Découvrir <ArrowRight size={12} className="ml-1 sm:ml-1.5 group-hover:translate-x-1 transition-transform" />
                   </span>
                 </div>
               </motion.div>
@@ -1326,8 +1373,8 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
 
       {/* Nos Coups de Cœur (Max 6 derniers) */}
       {(isProductsLoading || productsError || PRODUCTS.length > 0) && (
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-12">
-        <div className="flex justify-between items-end mb-6 md:mb-10">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-end mb-4 sm:mb-6">
           <div>
             <span className="text-xs font-bold uppercase tracking-widest text-accent mb-1 sm:mb-2 block">Incontournables</span>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif">Nos Coups de Cœur</h2>
@@ -1337,7 +1384,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
           </button>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 md:gap-5">
-          {isProductsLoading || productsError ? [0, 1, 2, 3, 4, 5].map((i) => <ProductSkeleton key={i} />) : (featuredProducts.length > 0 ? featuredProducts : PRODUCTS).slice(0, 6).map((product) => (
+          {isProductsLoading || productsError ? [0, 1, 2, 3, 4, 5].map((i) => <ProductSkeleton key={i} />) : homeDisplayProducts.slice(0, 6).map((product) => (
             <ProductCard 
               key={product.id}
               product={product} 
@@ -1345,7 +1392,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
               onAddToWishlist={onAddToWishlist}
               onQuickView={onQuickView}
               onClick={onProductClick}
-              onAddToComparison={onAddToComparison}
               events={events}
             />
           ))}
@@ -1354,9 +1400,9 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
       )}
 
       {/* Laines Section */}
-      {(isProductsLoading || productsError || PRODUCTS.filter(p => p.category === 'Laine').length > 0) && (
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-12">
-        <div className="flex justify-between items-end mb-6 md:mb-12">
+      {(isProductsLoading || productsError || enhancedProducts.filter(p => p.category === 'Laine').length > 0) && (
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-end mb-4 sm:mb-6">
           <div>
             <span className="text-xs font-bold uppercase tracking-widest text-accent mb-1 sm:mb-2 block">Essentiels</span>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif">Laines & Fils</h2>
@@ -1366,7 +1412,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
           </button>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 md:gap-8">
-          {isProductsLoading || productsError ? [0, 1, 2, 3].map((i) => <ProductSkeleton key={i} />) : PRODUCTS.filter(p => p.category === 'Laine').slice(0, 4).map((product) => (
+          {isProductsLoading || productsError ? [0, 1, 2, 3].map((i) => <ProductSkeleton key={i} />) : enhancedProducts.filter(p => p.category === 'Laine').slice(0, 4).map((product) => (
             <ProductCard 
               key={product.id}
               product={product} 
@@ -1374,7 +1420,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
               onAddToWishlist={onAddToWishlist}
               onQuickView={onQuickView}
               onClick={onProductClick}
-              onAddToComparison={onAddToComparison}
               events={events}
             />
           ))}
@@ -1384,43 +1429,79 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
 
 
 
-      {/* Promotions Section */}
-      {(isProductsLoading || productsError || PRODUCTS.some(p => p.oldPrice || p.promoPrice)) && <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-gradient-to-br from-amber-500/5 via-primary/5 to-transparent rounded-[2rem] md:rounded-[3rem] p-4 sm:p-8 md:p-14 border border-accent/15">
-          <div className="flex justify-between items-end mb-6 md:mb-10">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-widest text-accent mb-1 sm:mb-2 block">Offres Spéciales</span>
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif">Promotions du Moment</h2>
-              <p className="text-xs sm:text-sm text-primary/70 max-w-xl hidden sm:block mt-1">Profitez de remises exceptionnelles sur une sélection d'articles pour réussir vos projets d'artisanat et de tricot à petit prix.</p>
+      {/* Promotions Section (Uniquement promotions réelles créées) */}
+      {activePromotions.length > 0 && activePromotions.map((promo) => {
+        const promoProducts = promo.items
+          .map((item) => {
+            const product = PRODUCTS.find((p) => p.id === item.productId);
+            if (!product) return null;
+            return {
+              ...product,
+              promoPrice: item.promoPrice,
+            };
+          })
+          .filter(Boolean) as Product[];
+
+        if (promoProducts.length === 0) return null;
+
+        const promoTitle = isEn && promo.name_en ? promo.name_en : promo.name;
+        const promoDesc = isEn && promo.description_en ? promo.description_en : promo.description;
+
+        return (
+          <section key={promo.id} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-gradient-to-br from-amber-500/5 via-primary/5 to-transparent rounded-[2rem] p-5 sm:p-8 md:p-10 border border-accent/15">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-6 md:mb-8">
+                <div>
+                  <div className="flex items-center gap-2 mb-1 sm:mb-2">
+                    <span className="text-xs font-bold uppercase tracking-widest text-accent flex items-center gap-1">
+                      <Tag size={14} /> Promotion
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-accent/15 text-accent px-2.5 py-0.5 rounded-full">
+                      Toute la quantité en stock
+                    </span>
+                  </div>
+                  <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif">{promoTitle}</h2>
+                  {promoDesc ? (
+                    <p className="text-xs sm:text-sm text-primary/70 max-w-xl mt-1">{promoDesc}</p>
+                  ) : (
+                    <p className="text-xs sm:text-sm text-primary/70 max-w-xl hidden sm:block mt-1">
+                      Profitez de réductions sur l'ensemble du stock disponible jusqu'à la fin de la promotion.
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                  <CountdownTimer endDate={promo.endDate} />
+                  <button 
+                    onClick={() => onNavigate('promotions')}
+                    className="text-primary font-bold text-xs sm:text-sm md:text-base border-b-2 border-primary/20 hover:border-accent hover:text-accent transition-all pb-1 whitespace-nowrap"
+                  >
+                    Voir tout
+                  </button>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 md:gap-8">
+                {promoProducts.slice(0, 4).map((product) => (
+                  <ProductCard 
+                    key={product.id}
+                    product={product} 
+                    onAddToCart={onAddToCart}
+                    onAddToWishlist={onAddToWishlist}
+                    onQuickView={onQuickView}
+                    onClick={onProductClick}
+                    events={[]}
+                  />
+                ))}
+              </div>
             </div>
-            <button 
-              onClick={() => onNavigate('shop')}
-              className="text-primary font-bold text-xs sm:text-sm md:text-base border-b-2 border-primary/20 hover:border-accent hover:text-accent transition-all pb-1 whitespace-nowrap"
-            >
-              Voir tout
-            </button>
-          </div>
-          
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 md:gap-8">
-            {isProductsLoading || productsError ? [0, 1, 2, 3].map((i) => <ProductSkeleton key={i} />) : PRODUCTS.filter(p => p.oldPrice || p.promoPrice).slice(0, 4).map((product) => (
-              <ProductCard 
-                key={product.id}
-                product={product} 
-                onAddToCart={onAddToCart}
-                onAddToWishlist={onAddToWishlist}
-                onQuickView={onQuickView}
-                onClick={onProductClick}
-                events={events}
-              />
-            ))}
-          </div>
-        </div>
-      </section>}
+          </section>
+        );
+      })}
 
       {/* Packs & Bundles Section */}
-      {(isPacksLoading || packsError || visiblePacks.length > 0) && <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-slate-50 dark:bg-slate-900/60 rounded-[2rem] md:rounded-[3rem] p-4 sm:p-8 md:p-14 border border-primary/5 shadow-sm">
-          <div className="flex justify-between items-end mb-6 md:mb-10">
+      {isPacksEnabled && (isPacksLoading || packsError || visiblePacks.length > 0) && <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-slate-50 dark:bg-slate-900/60 rounded-[2rem] p-5 sm:p-8 md:p-10 border border-primary/5 shadow-sm">
+          <div className="flex justify-between items-end mb-6 md:mb-8">
             <div>
               <span className="text-xs font-bold uppercase tracking-widest text-accent mb-1 sm:mb-2 block">Kits Complets</span>
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif">Packs & Bundles</h2>
@@ -1452,15 +1533,11 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                   onClick={() => onNavigate('pack-detail', pack.id)}
                 >
                   <div className="relative aspect-[16/9] rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800">
-                    {pack.coverImage ? (
-                      <ImageWithFallback src={pack.coverImage} alt={pack.name} className="w-full h-full object-cover" loading="lazy" />
-                    ) : (
-                      <div className="grid grid-cols-2 gap-0.5 h-full">
-                        {packProducts.slice(0, 4).map((p, i) => (
-                          <ImageWithFallback key={i} src={p?.image} alt={p?.name} className="w-full h-full object-cover" loading="lazy" width={150} height={150} />
-                        ))}
-                      </div>
-                    )}
+                    <PackImageDisplay
+                      coverImage={pack.coverImage}
+                      productImages={packProducts.map(p => p?.image).filter((img): img is string => Boolean(img))}
+                      alt={pack.name}
+                    />
                     <div className="absolute top-2.5 left-2.5 bg-accent text-primary font-black text-[10px] px-2 py-0.5 rounded-md shadow uppercase tracking-wider">
                       -{pack.discountPercentage}%
                     </div>
@@ -1509,35 +1586,31 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
               const discountedPrice = totalPrice * (1 - (pack.discountPercentage || 0) / 100);
 
               return (
-                <div key={pack.id} className="bg-white dark:bg-slate-800/80 rounded-[2rem] p-8 shadow-sm border border-primary/5 flex flex-col gap-6 group cursor-pointer hover:shadow-md transition-shadow" onClick={() => onNavigate('pack-detail', pack.id)}>
-                  <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-700">
-                     {pack.coverImage ? (
-                        <ImageWithFallback src={pack.coverImage} alt={pack.name} className="w-full h-full object-cover" loading="lazy" />
-                     ) : (
-                        <div className="grid grid-cols-2 gap-1 h-full">
-                           {packProducts.slice(0, 4).map((p, i) => (
-                               <ImageWithFallback key={i} src={p?.image} alt={p?.name} className="w-full h-full object-cover" loading="lazy" width={200} height={200} />
-                           ))}
-                        </div>
-                     )}
-                     <div className="absolute bottom-0 right-0 bg-primary text-white px-3 py-1 rounded-tl-xl text-xs font-bold uppercase tracking-widest">
+                <div key={pack.id} className="bg-white dark:bg-slate-800/80 rounded-[1.8rem] p-5 shadow-sm border border-primary/5 flex flex-col gap-4 group cursor-pointer hover:shadow-md transition-shadow" onClick={() => onNavigate('pack-detail', pack.id)}>
+                  <div className="relative aspect-[16/10] sm:aspect-[4/3] rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-700">
+                    <PackImageDisplay
+                      coverImage={pack.coverImage}
+                      productImages={packProducts.map(p => p?.image).filter((img): img is string => Boolean(img))}
+                      alt={pack.name}
+                    />
+                     <div className="absolute bottom-0 right-0 bg-primary text-white px-2.5 py-1 rounded-tl-xl text-[10px] font-bold uppercase tracking-widest">
                         {packProducts.length} Articles
-                     </div>
+                      </div>
                   </div>
-                  <div className="space-y-4">
-                    <span className="px-3 py-1 bg-primary/10 text-accent rounded-full text-[10px] font-bold uppercase tracking-widest">Économisez {pack.discountPercentage}%</span>
-                    <h3 className="text-2xl font-serif text-primary dark:text-white group-hover:text-accent transition-colors">{pack.name}</h3>
-                    <p className="text-sm text-primary/70 dark:text-white/70 line-clamp-2">{cleanText(pack.description)}</p>
-                    <div className="flex items-center gap-4 pt-4">
-                      <span className="text-lg text-primary/70 dark:text-white/50 line-through font-bold">{totalPrice.toLocaleString()} FCFA</span>
-                      <span className="text-2xl font-bold text-primary dark:text-accent">{discountedPrice.toLocaleString()} FCFA</span>
+                  <div className="space-y-2.5">
+                    <span className="px-2.5 py-0.5 bg-primary/10 text-accent rounded-full text-[10px] font-bold uppercase tracking-widest">Économisez {pack.discountPercentage}%</span>
+                    <h3 className="text-xl font-serif text-primary dark:text-white group-hover:text-accent transition-colors">{pack.name}</h3>
+                    <p className="text-xs sm:text-sm text-primary/70 dark:text-white/70 line-clamp-2">{cleanText(pack.description)}</p>
+                    <div className="flex items-center gap-3 pt-2">
+                      <span className="text-sm text-primary/70 dark:text-white/50 line-through font-bold">{totalPrice.toLocaleString()} FCFA</span>
+                      <span className="text-xl font-bold text-primary dark:text-accent">{discountedPrice.toLocaleString()} FCFA</span>
                     </div>
                     <Button 
                       onClick={(e) => { 
                           e.stopPropagation(); 
                           onNavigate('pack-detail', pack.id);
                       }}
-                      className="w-full py-4 mt-4"
+                      className="w-full py-3 mt-2 text-xs font-bold"
                     >
                       Voir le pack
                     </Button>
@@ -1685,8 +1758,14 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
         </div>
       </section>}
 
-      {/* Custom Sections */}
-      {siteConfig.customSections.map((section) => (
+      {/* Custom Sections (Exclut les doublons éventuels de sections principales) */}
+      {siteConfig.customSections
+        .filter((section) => {
+          if (!section || !section.title) return false;
+          const normalized = section.title.trim().toLowerCase();
+          return normalized !== 'nos coups de cœur' && normalized !== 'nos coups de coeur';
+        })
+        .map((section) => (
         <section key={section.id} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-end mb-12">
             <h2 className="text-4xl font-serif">{section.title}</h2>
@@ -1704,7 +1783,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                   onAddToCart={onAddToCart}
                   onAddToWishlist={onAddToWishlist}
                   onQuickView={onQuickView}
-                  onAddToComparison={onAddToComparison}
                   onClick={onProductClick}
                   events={events}
                 />
@@ -1746,52 +1824,64 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
         </section>
       ))}
 
-      {/* Newsletter / CTA Redesigned */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-gradient-to-r from-[#2C3E35] via-[#3E4A3D] to-[#2C3E35] dark:from-[#1C1F1C] dark:via-[#141614] dark:to-[#0D0F0D] rounded-3xl sm:rounded-[2.5rem] p-6 sm:p-8 md:p-10 text-white relative overflow-hidden border border-amber-500/20 dark:border-white/10 shadow-xl">
-          <div className="absolute top-0 right-0 w-72 h-72 bg-accent/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary/20 rounded-full blur-2xl pointer-events-none" />
-          
-          <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-6 lg:gap-10">
-            <div className="text-center lg:text-left space-y-2 max-w-xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/20 text-amber-300 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
-                <span>Club Privilège Laine & Déco</span>
+      {/* Newsletter / CTA Rejoignez la communauté (Masqué si l'utilisateur est déjà abonné) */}
+      {!isNewsletterSubscribed && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-gradient-to-r from-[#2C3E35] via-[#3E4A3D] to-[#2C3E35] dark:from-[#1C1F1C] dark:via-[#141614] dark:to-[#0D0F0D] rounded-3xl sm:rounded-[2.5rem] p-6 sm:p-8 md:p-10 text-white relative overflow-hidden border border-amber-500/20 dark:border-white/10 shadow-xl">
+            <div className="absolute top-0 right-0 w-72 h-72 bg-accent/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary/20 rounded-full blur-2xl pointer-events-none" />
+            
+            <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-6 lg:gap-10">
+              <div className="text-center lg:text-left space-y-2 max-w-xl">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/20 text-amber-300 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
+                  <span>Club Privilège Laine & Déco</span>
+                </div>
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-serif text-white leading-tight">Rejoignez la communauté</h2>
+                <p className="text-xs sm:text-sm text-stone-300/90 leading-relaxed">
+                  Profitez de <span className="text-amber-300 font-bold">-10% sur votre première commande</span> et recevez nos tutoriels créatifs & ventes privées en avant-première.
+                </p>
               </div>
-              <h2 className="text-xl sm:text-2xl md:text-3xl font-serif text-white leading-tight">Rejoignez la communauté</h2>
-              <p className="text-xs sm:text-sm text-stone-300/90 leading-relaxed">
-                Profitez de <span className="text-amber-300 font-bold">-10% sur votre première commande</span> et recevez nos tutoriels créatifs & ventes privées en avant-première.
-              </p>
-            </div>
 
-            <div className="w-full lg:w-auto shrink-0 max-w-md">
-              <form 
-                onSubmit={(e) => { 
-                  e.preventDefault(); 
-                  toast.success("Merci ! Votre inscription à la communauté est confirmée. Vérifiez vos emails pour votre code promo de -10%."); 
-                }} 
-                className="relative flex items-center group w-full"
-              >
-                <input
-                  type="email"
-                  required
-                  placeholder="Votre adresse email..."
-                  className="w-full bg-white/10 dark:bg-black/40 border border-white/20 rounded-full py-3 sm:py-3.5 pl-4 sm:pl-5 pr-28 sm:pr-32 text-xs sm:text-sm text-white placeholder:text-white/60 focus:outline-none focus:border-amber-400 focus:bg-black/30 transition-all shadow-inner"
-                />
-                <button
-                  type="submit"
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-accent hover:bg-amber-400 text-primary font-bold text-xs sm:text-sm px-4 sm:px-5 py-2 rounded-full transition-all shadow-md active:scale-95 flex items-center gap-1.5 whitespace-nowrap"
+              <div className="w-full lg:w-auto shrink-0 max-w-md">
+                <form 
+                  onSubmit={(e) => { 
+                    e.preventDefault(); 
+                    const form = e.currentTarget;
+                    const emailInput = form.querySelector('input[type="email"]') as HTMLInputElement;
+                    const emailVal = emailInput?.value?.trim();
+                    if (emailVal) {
+                      localStorage.setItem('newsletter_decision', 'accepted');
+                      localStorage.setItem('newsletter_subscribed', 'true');
+                      localStorage.setItem(`newsletter_decision_${emailVal.toLowerCase()}`, 'accepted');
+                      setIsNewsletterSubscribed(true);
+                      window.dispatchEvent(new Event('newsletter_subscribed'));
+                    }
+                    toast.success("Merci ! Votre inscription à la communauté est confirmée. Vérifiez vos emails pour votre code promo de -10%."); 
+                  }} 
+                  className="relative flex items-center group w-full"
                 >
-                  <span>S'abonner</span>
-                  <ArrowRight size={13} />
-                </button>
-              </form>
-              <p className="text-[10px] text-stone-400/70 mt-2 text-center lg:text-left">
-                Pas de spam. Désinscription possible à tout moment.
-              </p>
+                  <input
+                    type="email"
+                    required
+                    placeholder="Votre adresse email..."
+                    className="w-full bg-white/10 dark:bg-black/40 border border-white/20 rounded-full py-3 sm:py-3.5 pl-4 sm:pl-5 pr-28 sm:pr-32 text-xs sm:text-sm text-white placeholder:text-white/60 focus:outline-none focus:border-amber-400 focus:bg-black/30 transition-all shadow-inner"
+                  />
+                  <button
+                    type="submit"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-accent hover:bg-amber-400 text-primary font-bold text-xs sm:text-sm px-4 sm:px-5 py-2 rounded-full transition-all shadow-md active:scale-95 flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                  >
+                    <span>S'abonner</span>
+                    <ArrowRight size={13} />
+                  </button>
+                </form>
+                <p className="text-[10px] text-stone-400/70 mt-2 text-center lg:text-left">
+                  Pas de spam. Désinscription possible à tout moment.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
     </motion.div>
   );
 };

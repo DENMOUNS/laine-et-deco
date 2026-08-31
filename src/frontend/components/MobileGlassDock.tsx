@@ -15,12 +15,20 @@ import {
   Heart, 
   X, 
   ChevronRight,
-  Wand2
+  Wand2,
+  GraduationCap,
+  Globe,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { triggerHaptic } from '../utils/haptics';
 import { initialsAvatarDataUri } from '../utils/avatarFallback';
+import { useConfigStore } from '../../stores/configStore';
+import { isViewEnabled } from '../utils/featureFlags';
+import { useThemeStore } from '../../stores/themeStore';
+import { useLanguageStore } from '../../stores/languageStore';
 
 interface MobileGlassDockProps {
   currentView: string;
@@ -38,6 +46,9 @@ export const MobileGlassDock: React.FC<MobileGlassDockProps> = ({
   wishlistCount,
   user,
 }) => {
+  const { siteConfig } = useConfigStore();
+  const { theme, toggleTheme } = useThemeStore();
+  const { language, toggleLanguage } = useLanguageStore();
   const [isMobileLandscape, setIsMobileLandscape] = React.useState(false);
   const [isToolsSheetOpen, setIsToolsSheetOpen] = useState(false);
 
@@ -58,6 +69,7 @@ export const MobileGlassDock: React.FC<MobileGlassDockProps> = ({
 
   // Tool views list
   const toolViews = [
+    'workshops',
     'knitting-companion',
     'calculator',
     'volume-calculator',
@@ -72,6 +84,14 @@ export const MobileGlassDock: React.FC<MobileGlassDockProps> = ({
   const isToolActive = toolViews.includes(currentView);
 
   const toolsList = [
+    ...(user ? [{
+      id: 'workshops',
+      label: 'Ateliers & Formations',
+      description: 'Ateliers de Groupe & Coaching 1-à-1 (Visio/Présentiel)',
+      icon: GraduationCap,
+      view: 'workshops',
+      badge: 'Nouveau',
+    }] : []),
     {
       id: 'companion',
       label: 'Compagnon Tricot',
@@ -133,6 +153,8 @@ export const MobileGlassDock: React.FC<MobileGlassDockProps> = ({
     },
   ];
 
+  const enabledToolsList = toolsList.filter(tool => isViewEnabled(siteConfig, tool.view));
+
   const handleToolClick = (view: string) => {
     setIsToolsSheetOpen(false);
     onNavigate(view);
@@ -153,13 +175,13 @@ export const MobileGlassDock: React.FC<MobileGlassDockProps> = ({
       view: 'shop',
       active: currentView === 'shop' || currentView === 'product-detail'
     },
-    { 
+    ...(enabledToolsList.length > 0 ? [{ 
       id: 'tools', 
       label: 'Outils', 
       icon: Wand2, 
       isToolsButton: true,
       active: isToolActive
-    },
+    }] : []),
     { 
       id: 'cart', 
       label: 'Panier', 
@@ -339,7 +361,52 @@ export const MobileGlassDock: React.FC<MobileGlassDockProps> = ({
 
               {/* Tools List */}
               <div className="p-4 overflow-y-auto space-y-2.5 max-h-[calc(85vh-100px)] pb-10">
-                {toolsList.map((tool) => {
+                {/* Préférences d'affichage rapides (Langue & Thème) */}
+                <div className="p-3 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-md mb-3 flex items-center justify-between gap-2 shadow-sm">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-white tracking-wide">
+                      {language === 'en' ? 'Quick Settings' : 'Affichage & Langue'}
+                    </span>
+                    <span className="text-[11px] text-white/60">
+                      {language === 'en' ? 'Language & Dark/Light mode' : 'Langue & Thème clair/sombre'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {/* Bouton Langue */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic('selection');
+                        toggleLanguage();
+                      }}
+                      className="px-3 py-1.5 rounded-full bg-white/20 hover:bg-white/30 border border-white/25 text-white flex items-center gap-1.5 text-xs font-black uppercase tracking-wider active:scale-95 transition-all shadow-xs cursor-pointer"
+                      title={language === 'fr' ? "Passer en Anglais" : "Switch to French"}
+                    >
+                      <Globe size={14} className="text-amber-300" />
+                      <span>{language === 'fr' ? 'FR ➜ EN' : 'EN ➜ FR'}</span>
+                    </button>
+
+                    {/* Bouton Thème */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic('light');
+                        toggleTheme();
+                      }}
+                      className="p-2 rounded-full bg-white/20 hover:bg-white/30 border border-white/25 text-white flex items-center justify-center active:scale-95 transition-all shadow-xs cursor-pointer"
+                      title={theme === 'dark' ? "Passer en mode clair" : "Passer en mode sombre"}
+                    >
+                      {theme === 'dark' ? (
+                        <Sun size={17} className="text-amber-300 fill-amber-300/30" />
+                      ) : (
+                        <Moon size={17} className="text-white fill-white/20" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {enabledToolsList.map((tool) => {
                   const ToolIcon = tool.icon;
                   const active = currentView === tool.view;
 

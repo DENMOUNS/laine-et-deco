@@ -45,16 +45,19 @@ export const TopMarquee: React.FC<TopMarqueeProps> = () => {
   const items = [...baseItems, ...baseItems, ...baseItems, ...baseItems];
 
   return (
-    <div className="hidden md:flex bg-primary text-secondary overflow-hidden py-2 relative z-30 w-full">
-      <div className="flex w-max animate-marquee">
+    <div className="hidden md:flex bg-[#F4EFE6] dark:bg-[#1B221B] text-stone-800 dark:text-stone-200 border-b border-stone-200/80 dark:border-stone-800 overflow-hidden py-2 relative z-30 w-full group shadow-xs">
+      <div className="flex w-max animate-marquee group-hover:[animation-play-state:paused]">
         {[0, 1].map((setIndex) => (
-          <div key={setIndex} className="flex gap-16 items-center pr-16 whitespace-nowrap">
+          <div key={setIndex} className="flex gap-14 items-center pr-14 whitespace-nowrap">
             {items.map((item, index) => {
               const Icon = item.Icon;
               return (
-                <div key={`${setIndex}-${index}-${item.id || index}`} className="flex items-center gap-3">
-                  <Icon size={14} className="text-secondary/70" />
-                  <span className="text-xs font-bold uppercase tracking-widest">{l(item, 'text', item.text)}</span>
+                <div key={`${setIndex}-${index}-${item.id || index}`} className="flex items-center gap-2.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-accent/70 shrink-0" />
+                  <Icon size={13} className="text-accent shrink-0" />
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-stone-700 dark:text-stone-300">
+                    {l(item, 'text', item.text)}
+                  </span>
                 </div>
               );
             })}
