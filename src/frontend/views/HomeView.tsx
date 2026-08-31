@@ -16,7 +16,6 @@ import { useDeferUntilInteraction } from '../hooks/useAfterIdle';
 import { optimizeImageUrl } from '../utils/imageUtils';
 import { cleanText } from '../utils/siteUtils';
 import { ImageWithFallback } from '../components/ui/ImageWithFallback';
-import { PackImageDisplay } from '../components/ui/PackImageDisplay';
 import { YarnLoadingBanner } from '../components/ui/YarnLoadingBanner';
 import { HeroTrustWidget } from '../components/ui/HeroTrustWidget';
 import { CategorySkeleton, ContentCardSkeleton, ProductSkeleton, Skeleton } from '../components/ui/Skeleton';
@@ -104,12 +103,13 @@ interface HomeViewProps {
   onAddToCart: (p: Product) => void;
   onAddToWishlist: (p: Product) => void;
   onQuickView: (p: Product) => void;
+  onAddToComparison?: (p: Product) => void;
   onProductClick: (p: Product) => void;
   siteConfig: SiteConfig;
   events?: PromoEvent[];
 }
 
-export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onAddToWishlist, onQuickView, onProductClick, siteConfig, events = [] }) => {
+export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onAddToWishlist, onQuickView, onAddToComparison, onProductClick, siteConfig, events = [] }) => {
   const { isMarqueeReady, isAllReady } = useLoadingSequence();
   const { t, l, isEn } = useTranslation();
   const isLookbookEnabled = isFeatureEnabled(siteConfig, 'lookbook');
@@ -1533,10 +1533,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
                   onClick={() => onNavigate('pack-detail', pack.id)}
                 >
                   <div className="relative aspect-[16/9] rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800">
-                    <PackImageDisplay
-                      coverImage={pack.coverImage}
-                      productImages={packProducts.map(p => p?.image).filter((img): img is string => Boolean(img))}
+                    <ImageWithFallback
+                      src={pack.coverImage || packProducts[0]?.image}
                       alt={pack.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     <div className="absolute top-2.5 left-2.5 bg-accent text-primary font-black text-[10px] px-2 py-0.5 rounded-md shadow uppercase tracking-wider">
                       -{pack.discountPercentage}%
@@ -1588,10 +1588,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
               return (
                 <div key={pack.id} className="bg-white dark:bg-slate-800/80 rounded-[1.8rem] p-5 shadow-sm border border-primary/5 flex flex-col gap-4 group cursor-pointer hover:shadow-md transition-shadow" onClick={() => onNavigate('pack-detail', pack.id)}>
                   <div className="relative aspect-[16/10] sm:aspect-[4/3] rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-700">
-                    <PackImageDisplay
-                      coverImage={pack.coverImage}
-                      productImages={packProducts.map(p => p?.image).filter((img): img is string => Boolean(img))}
+                    <ImageWithFallback
+                      src={pack.coverImage || packProducts[0]?.image}
                       alt={pack.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                      <div className="absolute bottom-0 right-0 bg-primary text-white px-2.5 py-1 rounded-tl-xl text-[10px] font-bold uppercase tracking-widest">
                         {packProducts.length} Articles

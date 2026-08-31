@@ -769,6 +769,26 @@ export interface FlashSale {
   updatedAt?: string;
 }
 
+export interface PromotionItem {
+  productId: string;
+  promoPrice: number;
+  discountPercentage?: number;
+}
+
+export interface Promotion {
+  id: string;
+  name: string;
+  name_en?: string;
+  description?: string;
+  description_en?: string;
+  startDate?: string;
+  endDate: string;
+  status: 'active' | 'inactive';
+  items: PromotionItem[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Lookbook {
   id: string;
   title: string;

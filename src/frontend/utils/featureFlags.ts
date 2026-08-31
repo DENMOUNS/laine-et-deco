@@ -33,3 +33,6 @@ export const isFeatureEnabled = (
   const value = normalizeFeatureFlags(siteConfig?.featureFlags)[feature];
   return value ?? true;
 };
+
+export const isViewEnabled = isFeatureEnabled;
+

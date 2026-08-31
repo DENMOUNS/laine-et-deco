@@ -36,6 +36,8 @@ interface FilterContentProps {
   setSelectedCondition: (cond: string) => void;
   onlyNewArrivals: boolean;
   setOnlyNewArrivals: (val: boolean) => void;
+  onlyPromotions: boolean;
+  setOnlyPromotions: (val: boolean) => void;
   setSearchQuery: (query: string) => void;
 }
 
@@ -52,9 +54,26 @@ const FilterContent: React.FC<FilterContentProps> = ({
   setSelectedCondition,
   onlyNewArrivals,
   setOnlyNewArrivals,
+  onlyPromotions,
+  setOnlyPromotions,
   setSearchQuery
 }) => (
   <div className="space-y-10">
+    <div>
+      <h3 className="font-bold uppercase tracking-widest text-xs mb-6 flex items-center">
+        <Tag size={14} className="mr-2 text-rose-500" /> Promotions
+      </h3>
+      <button
+        onClick={() => setOnlyPromotions(!onlyPromotions)}
+        className={`flex items-center justify-between w-full p-4 rounded-2xl border transition-all ${onlyPromotions ? 'bg-rose-600 border-rose-600 text-white shadow-lg shadow-primary/10' : 'bg-card border-primary/10 text-primary/70 hover:border-primary/30'}`}
+      >
+        <span className="text-sm font-bold">Voir uniquement les promotions</span>
+        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${onlyPromotions ? 'bg-white border-white' : 'border-primary/20'}`}>
+          {onlyPromotions && <div className="w-2 h-2 bg-white rounded-full" />}
+        </div>
+      </button>
+    </div>
+
     <div>
       <h3 className="font-bold uppercase tracking-widest text-xs mb-6 flex items-center">
         <Zap size={14} className="mr-2 text-accent" /> Nouveautés
@@ -178,6 +197,7 @@ const FilterContent: React.FC<FilterContentProps> = ({
         setSelectedCategory('Tous');
         setSelectedCondition('Tous');
         setOnlyNewArrivals(false);
+        setOnlyPromotions(false);
         setSearchQuery('');
         setPriceRange(300000);
         setIsPriceFilterActive(false);
@@ -223,6 +243,7 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
   const [selectedCategory, setSelectedCategory] = useState('Tous');
   const [selectedCondition, setSelectedCondition] = useState('Tous');
   const [onlyNewArrivals, setOnlyNewArrivals] = useState(false);
+  const [onlyPromotions, setOnlyPromotions] = useState(false);
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
   const [sortBy, setSortBy] = useState('Nouveautés');
   const [priceRange, setPriceRange] = useState(300000);
@@ -281,7 +302,7 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
     setCurrentPage(1);
     const timer = setTimeout(() => setIsFiltering(false), 400);
     return () => clearTimeout(timer);
-  }, [selectedCategory, selectedCondition, onlyNewArrivals, searchQuery, sortBy, priceRange, isPriceFilterActive]);
+  }, [selectedCategory, selectedCondition, onlyNewArrivals, onlyPromotions, searchQuery, sortBy, priceRange, isPriceFilterActive]);
 
   const handleImageSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -381,10 +402,13 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
                            CATEGORIES.find(c => c.name === p.category)?.slug === selectedCategory;
     const matchesCondition = selectedCondition === 'Tous' || (p.condition || 'new') === selectedCondition;
     const matchesNew = !onlyNewArrivals || p.isNew;
+    const hasPromo = (typeof p.promoPrice === 'number' && p.promoPrice > 0 && p.promoPrice < p.price) || 
+                     (events && events.some(e => e.status === 'active' && (e.applyToAll || e.productIds?.includes(p.id))));
+    const matchesPromotion = !onlyPromotions || hasPromo;
     const effectivePrice = filterProductPrice(p);
     const matchesPrice = !isPriceFilterActive || effectivePrice <= priceRange;
     
-    return matchesAllowedCategory && matchesCategory && matchesCondition && matchesNew && matchesPrice;
+    return matchesAllowedCategory && matchesCategory && matchesCondition && matchesNew && matchesPromotion && matchesPrice;
   }).sort((a, b) => {
     if (sortBy === 'Prix croissant') return a.price - b.price;
     if (sortBy === 'Prix décroissant') return b.price - a.price;
@@ -736,6 +760,8 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
                   setSelectedCondition={setSelectedCondition}
                   onlyNewArrivals={onlyNewArrivals}
                   setOnlyNewArrivals={setOnlyNewArrivals}
+                  onlyPromotions={onlyPromotions}
+                  setOnlyPromotions={setOnlyPromotions}
                   setSearchQuery={setSearchQuery}
                 />
               </motion.aside>
@@ -758,6 +784,8 @@ export const ShopView: React.FC<ShopViewProps> = ({ onAddToCart, onAddToWishlist
             setSelectedCondition={setSelectedCondition}
             onlyNewArrivals={onlyNewArrivals}
             setOnlyNewArrivals={setOnlyNewArrivals}
+            onlyPromotions={onlyPromotions}
+            setOnlyPromotions={setOnlyPromotions}
             setSearchQuery={setSearchQuery}
           />
         </aside>
