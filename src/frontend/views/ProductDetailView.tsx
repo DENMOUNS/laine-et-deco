@@ -9,6 +9,7 @@ import { formatAvailabilityDate, getProductAvailability } from '../utils/stockAv
 import { getEffectivePrice, cleanText } from '../utils/siteUtils';
 import { triggerHaptic } from '../utils/haptics';
 import { useComparisonStore } from '../../stores/comparisonStore';
+import { SEO } from '../components/SEO';
 
 interface FlyingDot {
   id: number;
@@ -64,6 +65,12 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-12">
+      <SEO 
+        title={product.seo?.title || product.name}
+        description={product.seo?.description || cleanText(product.description).slice(0, 160)}
+        ogImage={product.image || (product.images && product.images[0])}
+        ogType="product"
+      />
       <div className="bg-card p-6 sm:p-8 md:p-12 rounded-[2.5rem] md:rounded-[3rem] border border-primary/5 shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
           {/* Galerie d'images avec swipe tactile et points de pagination */}

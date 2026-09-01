@@ -245,22 +245,6 @@
   box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.25);
 }
 
-.glass-ios-card {
-  backdrop-filter: blur(28px) saturate(190%);
-  -webkit-backdrop-filter: blur(28px) saturate(190%);
-  background: rgba(255, 255, 255, 0.75);
-  border: none;
-  box-shadow: 
-    0 8px 24px -4px rgba(0, 0, 0, 0.06);
-}
-
-.dark .glass-ios-card {
-  background: rgba(30, 35, 30, 0.75);
-  border: none;
-  box-shadow: 
-    0 8px 24px -4px rgba(0, 0, 0, 0.3);
-}
-
 .glass-ios-pill {
   backdrop-filter: blur(24px) saturate(190%);
   -webkit-backdrop-filter: blur(24px) saturate(190%);
@@ -274,19 +258,6 @@
   background: rgba(35, 40, 35, 0.7);
   border: none;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-}
-
-/* Liquid light reflection shimmer for cards on mobile */
-@media (max-width: 768px) {
-  .mobile-glass-surface {
-    backdrop-filter: blur(28px) saturate(200%);
-    -webkit-backdrop-filter: blur(28px) saturate(200%);
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.52) 100%);
-    border: 1.5px solid rgba(255, 255, 255, 0.88);
-    box-shadow: 
-      0 14px 35px -6px rgba(0, 0, 0, 0.09),
-      inset 0 2px 2px 0 rgba(255, 255, 255, 1);
-  }
 }
 
 .card-hover {

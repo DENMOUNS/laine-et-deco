@@ -1,5 +1,6 @@
 import './server/loadEnv.js';
 import express from "express";
+import helmet from "helmet";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import path from "path";
@@ -87,6 +88,17 @@ async function startServer() {
   /** Vite middleware (dev) sauf si NODE_ENV=production (npm run start après build). */
   const useViteDevServer =
     process.env.SERVE_WITH_VITE === 'true' || process.env.NODE_ENV !== 'production';
+
+  // --- Security: HTTP Headers hardening with Helmet ---
+  app.use(
+    helmet({
+      contentSecurityPolicy: false, // Allows Vite dev, Google Fonts, Firebase & CDN assets
+      frameguard: false, // Essential for AI Studio iframe preview environment
+      crossOriginEmbedderPolicy: false,
+      crossOriginResourcePolicy: { policy: "cross-origin" },
+      hidePoweredBy: true, // Masque l'en-tête X-Powered-By
+    })
+  );
 
   app.use(express.json({ limit: '10mb' }));
   app.use(logWriteRequests);

@@ -12,6 +12,7 @@ const InstallBanner = lazy(() => import('./InstallBanner').then((m) => ({ defaul
 const ComparisonTool = lazy(() => import('./ComparisonTool').then((m) => ({ default: m.ComparisonTool })));
 import { ErrorBoundary } from './ErrorBoundary';
 import { updateSEOMeta } from '../utils/siteUtils';
+import { SEO } from './SEO';
 
 import { useAuthStore } from '../../stores/authStore';
 import { useCartStore } from '../../stores/cartStore';
@@ -166,6 +167,8 @@ export const AppLayout: React.FC = () => {
   const theme = useThemeStore((s) => s.theme);
   const isDark = theme === 'dark';
 
+  const currentSeo = (siteConfig?.seo as any)?.[currentView] || siteConfig?.seo?.home;
+
   return (
     <div
       className="min-h-screen bg-secondary text-primary font-sans transition-colors duration-300"
@@ -174,6 +177,11 @@ export const AppLayout: React.FC = () => {
         '--accent-color': siteConfig?.accentColor || '#5C6B5A',
       } as React.CSSProperties : {}}
     >
+      <SEO 
+        title={currentSeo?.title}
+        description={currentSeo?.description}
+        ogImage={currentSeo?.ogImage}
+      />
       <a href="#main-content" className="sr-only">
         Aller au contenu principal
       </a>

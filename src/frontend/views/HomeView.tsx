@@ -1369,33 +1369,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
       </section>
       )}
 
-      {/* Nos Coups de Cœur (Max 6 derniers) */}
-      {(isProductsLoading || productsError || PRODUCTS.length > 0) && (
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-end mb-4 sm:mb-6">
-          <div>
-            <span className="text-xs font-bold uppercase tracking-widest text-accent mb-1 sm:mb-2 block">Incontournables</span>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif">Nos Coups de Cœur</h2>
-          </div>
-          <button onClick={() => onNavigate('shop')} className="text-primary font-bold text-xs sm:text-sm md:text-base border-b-2 border-primary/20 hover:border-accent hover:text-accent transition-all pb-1">
-            Voir toute la boutique
-          </button>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 md:gap-5">
-          {isProductsLoading || productsError ? [0, 1, 2, 3, 4, 5].map((i) => <ProductSkeleton key={i} />) : homeDisplayProducts.slice(0, 6).map((product) => (
-            <ProductCard 
-              key={product.id}
-              product={product} 
-              onAddToCart={onAddToCart}
-              onAddToWishlist={onAddToWishlist}
-              onQuickView={onQuickView}
-              onClick={onProductClick}
-              events={events}
-            />
-          ))}
-        </div>
-      </section>
-      )}
 
       {/* Laines Section */}
       {(isProductsLoading || productsError || enhancedProducts.filter(p => p.category === 'Laine').length > 0) && (
