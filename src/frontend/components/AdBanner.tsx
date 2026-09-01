@@ -11,7 +11,7 @@ export const AdBanner = () => {
   if (!isVisible || !siteConfig.showAdBanner) return null;
 
   return (
-    <div className="relative z-40 bg-accent text-white text-center py-2.5 px-4 text-sm font-medium">
+    <div className="relative z-40 bg-accent text-white text-center py-2.5 px-4 text-sm font-medium lg:max-w-7xl lg:mx-auto lg:rounded-2xl lg:my-2 lg:shadow-md">
       <p className="pr-12 max-w-4xl mx-auto">{l(siteConfig, 'adBannerText', siteConfig.adBannerText)}</p>
       <button
         type="button"

@@ -140,9 +140,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <>
-      <nav className="hidden md:block sticky top-0 z-50 glass-ios-navbar transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-5 lg:px-8">
-          <div className="flex justify-between items-center h-16 md:h-20 relative">
+      <nav className="hidden md:block sticky top-0 z-50 glass-ios-navbar transition-all duration-300 lg:top-2.5 lg:my-1.5 lg:max-w-7xl lg:mx-auto lg:rounded-full lg:border lg:border-stone-200/60 dark:lg:border-stone-800/60 lg:shadow-md">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-5 lg:px-6">
+          <div className="flex justify-between items-center h-16 md:h-20 lg:h-16 relative">
           <div className="flex items-center gap-2 sm:gap-3 z-20 flex-shrink-0">
             <div className="cursor-pointer flex items-center group" onClick={() => onNavigate('home')}>
               <LogoDisplay />
@@ -225,19 +225,21 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </span>
                 )}
               </button>
-              <button 
-                aria-label={language === 'en' ? "Product comparison" : "Comparateur de produits"} 
-                onClick={() => onNavigate('comparison')} 
-                className="hidden sm:flex lg:flex p-2 md:p-2.5 text-primary hover:text-accent transition-colors relative rounded-full glass-ios-pill hover:bg-white/90 cursor-pointer shrink-0"
-                title={language === 'en' ? "Product comparison" : "Comparateur de produits"}
-              >
-                <ArrowRightLeft size={18} className="md:w-[19px] md:h-[19px]" />
-                {comparisonList?.length > 0 && (
-                  <span className="absolute top-0.5 right-0.5 bg-accent text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm">
-                    {comparisonList.length}
-                  </span>
-                )}
-              </button>
+              {isFeatureEnabled(siteConfig, 'comparison') && (
+                <button 
+                  aria-label={language === 'en' ? "Product comparison" : "Comparateur de produits"} 
+                  onClick={() => onNavigate('comparison')} 
+                  className="hidden lg:flex p-2 md:p-2.5 text-primary hover:text-accent transition-colors relative rounded-full glass-ios-pill hover:bg-white/90 cursor-pointer shrink-0"
+                  title={language === 'en' ? "Product comparison" : "Comparateur de produits"}
+                >
+                  <ArrowRightLeft size={18} className="md:w-[19px] md:h-[19px]" />
+                  {comparisonList?.length > 0 && (
+                    <span className="absolute top-0.5 right-0.5 bg-accent text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm">
+                      {comparisonList.length}
+                    </span>
+                  )}
+                </button>
+              )}
               {hasBackofficeAccess && (
                 <button 
                   aria-label={language === 'en' ? "Admin dashboard" : "Panneau d'administration"}

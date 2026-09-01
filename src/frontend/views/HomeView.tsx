@@ -475,8 +475,8 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
       )}
       <AdBanner />
       
-      {/* Hero Section Slider — Card soignée sur mobile avec bordures douces et hauteur adaptée */}
-      <section className="relative min-h-[500px] h-auto py-12 sm:py-16 md:py-0 md:h-[600px] lg:h-[680px] xl:h-[720px] flex items-center overflow-hidden mx-2.5 sm:mx-4 md:mx-0 rounded-[2rem] md:rounded-none shadow-md md:shadow-none">
+      {/* Hero Section Slider — Card soignée sur mobile avec bordures douces et cadrée sur PC */}
+      <section className="relative min-h-[500px] h-auto py-12 sm:py-16 md:py-0 md:h-[600px] lg:h-[680px] xl:h-[720px] flex items-center overflow-hidden mx-2.5 sm:mx-4 md:mx-0 lg:mx-auto lg:max-w-7xl lg:rounded-[2.5rem] lg:my-3 lg:shadow-xl lg:border lg:border-white/10 rounded-[2rem] md:rounded-none shadow-md md:shadow-none lg:shadow-xl">
         {/* Background */}
         <div className="absolute inset-0 z-0 bg-slate-950">
           {isHeroLoading || HERO_SLIDES.length === 0 ? (

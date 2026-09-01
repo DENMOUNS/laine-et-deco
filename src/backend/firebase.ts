@@ -91,12 +91,12 @@ function ensureFirebaseInitialized() {
       normalizeDatabaseId(firebaseConfig.firestoreDatabaseId) ||
       '(default)';
 
-    // Auto detect long polling for reliable connectivity in container / iframe environments
+    // Force robust long polling for resilient connectivity in sandboxed container and iframe environments
     db = initializeFirestore(
       app,
       {
         localCache: memoryLocalCache(),
-        experimentalAutoDetectLongPolling: true,
+        experimentalForceLongPolling: true,
       },
       databaseId
     );
