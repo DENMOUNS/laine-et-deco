@@ -141,21 +141,21 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <>
       <nav className="hidden md:block sticky top-0 z-50 glass-ios-navbar transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20 relative">
-          <div className="flex items-center gap-3 z-20 flex-shrink-0">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-5 lg:px-8">
+          <div className="flex justify-between items-center h-16 md:h-20 relative">
+          <div className="flex items-center gap-2 sm:gap-3 z-20 flex-shrink-0">
             <div className="cursor-pointer flex items-center group" onClick={() => onNavigate('home')}>
               <LogoDisplay />
             </div>
           </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-4 lg:gap-8">
+          {/* Desktop & Tablet Navigation Links */}
+          <div className="hidden md:flex items-center gap-2 lg:gap-6 xl:gap-8 flex-shrink-1 min-w-0">
             {mainNavLinks.map((link) => (
               <button
                 key={link.id || link.view || link.name}
                 onClick={() => onNavigate(link.view)}
-                className={`text-sm font-bold uppercase tracking-widest transition-all hover:text-accent relative py-2 ${
+                className={`text-xs lg:text-sm font-bold uppercase tracking-wider lg:tracking-widest transition-all hover:text-accent relative py-2 whitespace-nowrap ${
                   currentView === link.view ? 'text-accent' : 'text-primary'
                 }`}
               >
@@ -170,18 +170,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             ))}
           </div>
 
-          <div className="flex items-center space-x-1 md:space-x-2 z-20">
-            {/* Icons visible on all screens */}
-            <div className="flex items-center space-x-1 sm:space-x-1.5 flex-nowrap z-20">
+          <div className="flex items-center space-x-1 sm:space-x-1.5 md:space-x-2 z-20 shrink-0">
+            {/* Action buttons with responsive spacing and sizing */}
+            <div className="flex items-center space-x-1 md:space-x-1.5 flex-nowrap z-20">
               {/* Bouton de bascule de langue FR/EN */}
               <button
                 type="button"
                 aria-label={language === 'fr' ? "Switch to English" : "Passer en Français"}
                 onClick={toggleLanguage}
-                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-black text-primary hover:text-accent transition-all rounded-full glass-ios-pill hover:bg-white/90 cursor-pointer uppercase tracking-wider border border-primary/10"
+                className="flex items-center gap-1 px-2 md:px-2.5 py-1.5 text-xs font-black text-primary hover:text-accent transition-all rounded-full glass-ios-pill hover:bg-white/90 cursor-pointer uppercase tracking-wider border border-primary/10 shrink-0"
                 title={language === 'fr' ? "Changer de langue (Passer en Anglais)" : "Switch to French (Passer en Français)"}
               >
-                <Globe size={14} className="text-accent" />
+                <Globe size={14} className="text-accent shrink-0" />
                 <span>{language === 'fr' ? 'EN' : 'FR'}</span>
               </button>
 
@@ -191,10 +191,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                   type="button"
                   aria-label={language === 'en' ? "Free voice call with an advisor" : "Appel gratuit avec un conseiller"}
                   onClick={() => window.dispatchEvent(new CustomEvent('app:start-call'))}
-                  className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-accent hover:bg-accent-dark text-white rounded-full text-xs font-bold shadow-sm transition-all hover:scale-105 active:scale-95 ring-2 ring-accent/20 cursor-pointer"
+                  className="hidden md:flex items-center gap-1.5 px-2.5 md:px-3 py-1.5 bg-accent hover:bg-accent-dark text-white rounded-full text-xs font-bold shadow-sm transition-all hover:scale-105 active:scale-95 ring-2 ring-accent/20 cursor-pointer shrink-0"
                   title={language === 'en' ? "Free voice call with an advisor" : "Appel direct vocal gratuit avec un conseiller"}
                 >
-                  <Phone size={14} className="animate-pulse fill-current" />
+                  <Phone size={14} className="animate-pulse fill-current shrink-0" />
                   <span className="hidden xl:inline">{language === 'en' ? "Free Call" : "Appel Gratuit"}</span>
                 </button>
               )}
@@ -202,10 +202,10 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button 
                 aria-label={language === 'en' ? "My wishlist" : "Mes favoris"} 
                 onClick={() => onNavigate('wishlist')} 
-                className="flex p-2.5 text-primary hover:text-accent transition-colors relative rounded-full glass-ios-pill hover:bg-white/90 cursor-pointer"
+                className="flex p-2 md:p-2.5 text-primary hover:text-accent transition-colors relative rounded-full glass-ios-pill hover:bg-white/90 cursor-pointer shrink-0"
                 title={language === 'en' ? "Wishlist (saved items)" : "Mes favoris (articles sauvegardés)"}
               >
-                <Heart size={19} />
+                <Heart size={18} className="md:w-[19px] md:h-[19px]" />
                 {wishlistCount > 0 && (
                   <span className="absolute top-0.5 right-0.5 bg-accent text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm">
                     {wishlistCount}
@@ -215,10 +215,10 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button 
                 aria-label={language === 'en' ? "Shopping cart" : "Mon panier"} 
                 onClick={() => onNavigate('cart')} 
-                className="p-2.5 text-primary hover:text-accent transition-colors relative rounded-full glass-ios-pill hover:bg-white/90 cursor-pointer"
+                className="p-2 md:p-2.5 text-primary hover:text-accent transition-colors relative rounded-full glass-ios-pill hover:bg-white/90 cursor-pointer shrink-0"
                 title={language === 'en' ? "Shopping cart" : "Mon panier d'achats"}
               >
-                <ShoppingBag size={19} />
+                <ShoppingBag size={18} className="md:w-[19px] md:h-[19px]" />
                 {cartCount > 0 && (
                   <span className="absolute top-0.5 right-0.5 bg-primary text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm">
                     {cartCount}
@@ -228,10 +228,10 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button 
                 aria-label={language === 'en' ? "Product comparison" : "Comparateur de produits"} 
                 onClick={() => onNavigate('comparison')} 
-                className="hidden sm:flex lg:flex p-2.5 text-primary hover:text-accent transition-colors relative rounded-full glass-ios-pill hover:bg-white/90 cursor-pointer"
+                className="hidden sm:flex lg:flex p-2 md:p-2.5 text-primary hover:text-accent transition-colors relative rounded-full glass-ios-pill hover:bg-white/90 cursor-pointer shrink-0"
                 title={language === 'en' ? "Product comparison" : "Comparateur de produits"}
               >
-                <ArrowRightLeft size={19} />
+                <ArrowRightLeft size={18} className="md:w-[19px] md:h-[19px]" />
                 {comparisonList?.length > 0 && (
                   <span className="absolute top-0.5 right-0.5 bg-accent text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm">
                     {comparisonList.length}
@@ -242,16 +242,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <button 
                   aria-label={language === 'en' ? "Admin dashboard" : "Panneau d'administration"}
                   onClick={() => onNavigate('admin-dashboard')} 
-                  className={`hidden md:flex p-2.5 transition-colors rounded-full glass-ios-pill hover:bg-white/90 cursor-pointer ${currentView === 'admin-dashboard' ? 'text-accent' : 'text-primary'}`}
+                  className={`hidden md:flex p-2 md:p-2.5 transition-colors rounded-full glass-ios-pill hover:bg-white/90 cursor-pointer shrink-0 ${currentView === 'admin-dashboard' ? 'text-accent' : 'text-primary'}`}
                   title={language === 'en' ? "Admin dashboard" : "Administration & gestion"}
                 >
-                  <Shield size={19} />
+                  <Shield size={18} className="md:w-[19px] md:h-[19px]" />
                 </button>
               )}
               <button 
                 aria-label={user ? `${language === 'en' ? 'My Account' : 'Mon compte'} - ${user.displayName || 'Profil'}` : (language === 'en' ? "Sign In / Register" : "Connexion / Inscription")}
                 onClick={() => user ? onNavigate('customer-dashboard') : onNavigate('auth')} 
-                className={`flex p-2 sm:p-2.5 transition-colors rounded-full glass-ios-pill hover:bg-white/90 cursor-pointer ${currentView === 'customer-dashboard' ? 'text-accent' : 'text-primary'} items-center gap-2 shrink-0`}
+                className={`flex p-1.5 sm:p-2 md:p-2.5 transition-colors rounded-full glass-ios-pill hover:bg-white/90 cursor-pointer shrink-0 ${currentView === 'customer-dashboard' ? 'text-accent' : 'text-primary'} items-center gap-1.5 md:gap-2`}
                 title={user ? (language === 'en' ? `My Account (${user.displayName || 'Profile'})` : `Mon compte client (${user.displayName || 'Profil'})`) : (language === 'en' ? "Sign In / Register" : "Se connecter / Créer un compte")}
               >
                 {user ? (
@@ -276,26 +276,26 @@ export const Navbar: React.FC<NavbarProps> = ({
                     </span>
                   </div>
                 ) : (
-                  <User size={19} className="shrink-0" />
+                  <User size={18} className="shrink-0 md:w-[19px] md:h-[19px]" />
                 )}
                 {user && <span className="hidden xl:block text-xs font-bold">{user.displayName || (language === 'en' ? "Account" : "Compte")}</span>}
               </button>
-              {/* Bouton de mode sombre sur ordinateur */}
+              {/* Bouton de mode sombre sur ordinateur & tablette */}
               <button 
                 aria-label={theme === 'dark' ? (language === 'en' ? "Switch to light mode" : "Activer le mode clair") : (language === 'en' ? "Switch to dark mode" : "Activer le mode sombre")}
                 onClick={toggleTheme}
-                className="p-2.5 text-primary hover:text-accent transition-colors rounded-full glass-ios-pill hover:bg-white/90 ml-0.5 cursor-pointer"
+                className="p-2 md:p-2.5 text-primary hover:text-accent transition-colors rounded-full glass-ios-pill hover:bg-white/90 ml-0.5 cursor-pointer shrink-0"
                 title={theme === 'dark' ? (language === 'en' ? "Switch to light mode" : "Activer le mode clair") : (language === 'en' ? "Switch to dark mode" : "Activer le mode sombre")}
               >
-                {theme === 'dark' ? <Sun size={19} className="text-amber-500" /> : <Moon size={19} />}
+                {theme === 'dark' ? <Sun size={18} className="text-amber-500 md:w-[19px] md:h-[19px]" /> : <Moon size={18} className="md:w-[19px] md:h-[19px]" />}
               </button>
               <button 
                 aria-label={language === 'en' ? "Main menu" : "Menu principal"}
                 onClick={() => setIsMenuOpen(true)}
-                className="p-2.5 text-primary hover:text-accent transition-colors rounded-full glass-ios-pill hover:bg-white/90 ml-0.5 cursor-pointer"
+                className="p-2 md:p-2.5 text-primary hover:text-accent transition-colors rounded-full glass-ios-pill hover:bg-white/90 ml-0.5 cursor-pointer shrink-0"
                 title={language === 'en' ? "Main menu & categories" : "Menu principal & navigation"}
               >
-                <Menu size={19} />
+                <Menu size={18} className="md:w-[19px] md:h-[19px]" />
               </button>
             </div>
           </div>

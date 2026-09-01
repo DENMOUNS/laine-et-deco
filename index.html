@@ -35,6 +35,14 @@
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
     <title>Laine & Déco | Laines, Crochets, Aiguilles & Artisanat</title>
+    <script>
+      // Anti-fingerprinting / Disable React DevTools hook
+      if (typeof window.__REACT_DEVTOOLS_GLOBAL_HOOK__ === 'object') {
+        for (const [key, value] of Object.entries(window.__REACT_DEVTOOLS_GLOBAL_HOOK__)) {
+          window.__REACT_DEVTOOLS_GLOBAL_HOOK__[key] = typeof value === 'function' ? () => {} : null;
+        }
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

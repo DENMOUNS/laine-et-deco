@@ -90,6 +90,7 @@ async function startServer() {
     process.env.SERVE_WITH_VITE === 'true' || process.env.NODE_ENV !== 'production';
 
   // --- Security: HTTP Headers hardening with Helmet ---
+  app.disable('x-powered-by');
   app.use(
     helmet({
       contentSecurityPolicy: false, // Allows Vite dev, Google Fonts, Firebase & CDN assets
@@ -99,6 +100,13 @@ async function startServer() {
       hidePoweredBy: true, // Masque l'en-tête X-Powered-By
     })
   );
+
+  // Strip server signature headers
+  app.use((_req, res, next) => {
+    res.removeHeader('X-Powered-By');
+    res.removeHeader('Server');
+    next();
+  });
 
   app.use(express.json({ limit: '10mb' }));
   app.use(logWriteRequests);
