@@ -57,14 +57,21 @@ export function AdminAnnouncementBanners({ ctx }: { ctx: any }) {
     }
   };
 
-  const handleSetActive = async (banner: AnnouncementBannerConfig) => {
+  const handleToggleStatus = async (banner: AnnouncementBannerConfig) => {
     try {
-      const activeBanner = banners.find(b => b.status === 'active');
-      if (activeBanner && activeBanner.id !== banner.id) await updateEntity(activeBanner.id!, { status: 'inactive' });
-      await updateEntity(banner.id!, { status: 'active' });
-      toast.success('Bannière définie comme active');
+      if (banner.status === 'active') {
+        await updateEntity(banner.id!, { status: 'inactive' });
+        toast.success('Bannière désactivée');
+      } else {
+        const activeBanner = banners.find(b => b.status === 'active');
+        if (activeBanner && activeBanner.id !== banner.id) {
+          await updateEntity(activeBanner.id!, { status: 'inactive' });
+        }
+        await updateEntity(banner.id!, { status: 'active' });
+        toast.success('Bannière activée');
+      }
     } catch (error) {
-      toast.error('Erreur');
+      toast.error('Erreur lors du changement de statut');
     }
   };
 
@@ -101,9 +108,19 @@ export function AdminAnnouncementBanners({ ctx }: { ctx: any }) {
               header: 'Actions',
               accessor: (b: AnnouncementBannerConfig) => (
                 <div className="flex items-center gap-2">
-                  {b.status !== 'active' && <button onClick={() => handleSetActive(b)} className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100"><CheckCircle2 size={16} /></button>}
-                  <button onClick={() => { setEditingItem(b); setFormData({ message: b.message, message_en: b.message_en || '' }); setIsModalOpen(true); }} className="p-2 bg-primary/5 text-primary rounded-lg hover:bg-primary/10"><Edit size={16} /></button>
-                  <button onClick={() => { if(confirm('Supprimer ?')) deleteEntity(b.id!); }} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100"><Trash2 size={16} /></button>
+                  <button 
+                    onClick={() => handleToggleStatus(b)} 
+                    className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer ${
+                      b.status === 'active' 
+                        ? 'bg-amber-500/10 text-amber-700 hover:bg-amber-500/20' 
+                        : 'bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20'
+                    }`}
+                  >
+                    <CheckCircle2 size={14} />
+                    <span>{b.status === 'active' ? 'Désactiver' : 'Activer'}</span>
+                  </button>
+                  <button onClick={() => { setEditingItem(b); setFormData({ message: b.message, message_en: b.message_en || '' }); setIsModalOpen(true); }} className="p-2 bg-primary/5 text-primary rounded-lg hover:bg-primary/10 cursor-pointer" title="Modifier"><Edit size={16} /></button>
+                  <button onClick={() => { if(confirm('Supprimer cette bannière ?')) deleteEntity(b.id!); }} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 cursor-pointer" title="Supprimer"><Trash2 size={16} /></button>
                 </div>
               )
             }

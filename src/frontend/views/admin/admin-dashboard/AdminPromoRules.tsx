@@ -20,7 +20,6 @@ import { CatalogPriceRuleEditor } from '../../../components/dashboard/CatalogPri
 import { cn } from '../../../utils/utils';
 
 import { AdminFlashSales } from '../AdminFlashSales';
-import { AdminLookbooks } from '../AdminLookbooks';
 import { AdminPortfolios } from '../AdminPortfolios';
 
 export function AdminPromoRules({ ctx }: { ctx: any }) {

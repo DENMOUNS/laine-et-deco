@@ -83,6 +83,51 @@ export const AdminPortfolios: React.FC = () => {
     }
   };
 
+  const handleSeedDefaultMembers = async () => {
+    try {
+      const defaultMembers: MemberPortfolio[] = [
+        {
+          id: 'elena-vance',
+          name: 'Elena Vance',
+          role: 'Co-Fondatrice & Directrice Artistique',
+          role_en: 'Co-Founder & Creative Director',
+          bio: 'Passionnée de tricot contemporain et de design responsable.',
+          bio_en: 'Passionate about contemporary knitting and responsible design.',
+          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=400',
+          email: 'elena@atelier.fr',
+          externalPortfolioUrl: '',
+          expertise: [],
+          projects: [],
+          experience: [],
+          education: [],
+          certifications: []
+        },
+        {
+          id: 'marcus-chen',
+          name: 'Marcus Chen',
+          role: 'Co-Fondateur & Maître Artisan',
+          role_en: 'Co-Founder & Master Craftsman',
+          bio: 'Expert en modélisme textile et sélection des fibres d’exception.',
+          bio_en: 'Expert in textile modeling and selection of premium fibers.',
+          avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400',
+          email: 'marcus@atelier.fr',
+          externalPortfolioUrl: '',
+          expertise: [],
+          projects: [],
+          experience: [],
+          education: [],
+          certifications: []
+        }
+      ];
+      for (const m of defaultMembers) {
+        await addEntity(m);
+      }
+      toast.success('Membres par défaut créés en base de données');
+    } catch {
+      toast.error('Erreur lors de la création des membres');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center bg-card p-6 rounded-2xl border border-primary/10">
@@ -150,7 +195,15 @@ export const AdminPortfolios: React.FC = () => {
               ))}
               {portfolios.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-primary/50">Aucun membre trouvé.</td>
+                  <td colSpan={5} className="px-6 py-12 text-center text-primary/60">
+                    <p className="mb-4">Aucun membre trouvé en base de données.</p>
+                    <button
+                      onClick={handleSeedDefaultMembers}
+                      className="px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl font-bold text-xs transition-colors cursor-pointer"
+                    >
+                      Initialiser avec les membres du duo fondateur
+                    </button>
+                  </td>
                 </tr>
               )}
             </tbody>

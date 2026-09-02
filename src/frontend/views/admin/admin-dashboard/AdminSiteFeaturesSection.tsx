@@ -66,12 +66,9 @@ export function AdminSiteFeaturesSection({ ctx }: { ctx: any }) {
     { key: 'faq', title: 'FAQ', description: 'Masque la page FAQ.' },
     { key: 'calculator', title: 'Calculateur de laine', description: 'Masque la page du calculateur.' },
     { key: 'volumeCalculator', title: 'Calculateur de volume', description: 'Masque la page du calculateur de volume.' },
-    { key: 'knittingCompanion', title: 'Compagnon tricot', description: 'Masque la page Compagnon tricot.' },
-    { key: 'patternGenerator', title: 'Générateur IA', description: 'Masque la page Générateur IA.' },
     { key: 'customOrder', title: 'Sur mesure', description: 'Masque la page Sur mesure.' },
     { key: 'comparison', title: 'Comparateur', description: 'Masque le comparateur et ses liens publics.' },
     { key: 'wishlist', title: 'Liste de souhaits', description: 'Masque la wishlist et ses liens publics.' },
-    { key: 'community', title: 'Communauté', description: 'Masque la page communauté.' },
   ];
 
   return (

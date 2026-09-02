@@ -45,6 +45,10 @@ const normalizeSiteConfig = (config: Partial<SiteConfig> = {}): SiteConfig => ({
     ...DEFAULT_SITE_CONFIG.newsletterPopup,
     ...config.newsletterPopup,
   },
+  contactPage: {
+    ...DEFAULT_SITE_CONFIG.contactPage,
+    ...config.contactPage,
+  },
   homeFeaturedProducts: config.homeFeaturedProducts ?? DEFAULT_SITE_CONFIG.homeFeaturedProducts,
   homeFeaturedCategories: config.homeFeaturedCategories ?? DEFAULT_SITE_CONFIG.homeFeaturedCategories,
   sliderItems: config.sliderItems ?? DEFAULT_SITE_CONFIG.sliderItems,

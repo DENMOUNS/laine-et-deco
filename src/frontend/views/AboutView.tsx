@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Heart,
@@ -18,6 +18,7 @@ import {
   Smile,
   Package,
   Clock,
+  Scissors,
   MapPin,
   Code2,
   Package2,
@@ -26,8 +27,13 @@ import {
   Palette,
   Zap
 } from 'lucide-react';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../../backend/firebase';
 import { Button } from '../components/ui/Button';
 import { useTranslation } from '../../i18n';
+import { useConfigStore } from '../../stores/configStore';
+import { DEFAULT_ABOUT_PAGE_CONFIG } from '../../siteDefaults';
+import { AboutPageConfig } from '../../types';
 
 interface AboutViewProps {
   onNavigate?: (view: string) => void;
@@ -35,6 +41,50 @@ interface AboutViewProps {
 
 export const AboutView: React.FC<AboutViewProps> = ({ onNavigate }) => {
   const { l, isEn } = useTranslation();
+  const siteConfig = useConfigStore((s) => s.siteConfig);
+  const setSiteConfig = useConfigStore((s) => s.setSiteConfig);
+  const rawAboutConfig = siteConfig.aboutPage;
+
+  const [liveAboutConfig, setLiveAboutConfig] = useState<AboutPageConfig>(rawAboutConfig || DEFAULT_ABOUT_PAGE_CONFIG);
+
+  useEffect(() => {
+    if (rawAboutConfig) {
+      setLiveAboutConfig(rawAboutConfig);
+    }
+  }, [rawAboutConfig]);
+
+  // Real-time Firestore subscription
+  useEffect(() => {
+    try {
+      const docId = siteConfig?.id || 'global';
+      const ref = doc(db, 'site_config', docId);
+      const unsubscribe = onSnapshot(
+        ref,
+        (snapshot) => {
+          if (snapshot.exists()) {
+            const data = snapshot.data();
+            if (data?.aboutPage) {
+              setLiveAboutConfig(data.aboutPage);
+              setSiteConfig((prev) => ({
+                ...prev,
+                ...data,
+                aboutPage: data.aboutPage,
+              }));
+            }
+          }
+        },
+        (error) => {
+          console.warn('Firestore real-time subscription note:', error);
+        }
+      );
+      return () => unsubscribe();
+    } catch (err) {
+      console.warn('Could not attach Firestore listener on AboutView:', err);
+    }
+  }, [siteConfig?.id, setSiteConfig]);
+
+  const cfg: AboutPageConfig = { ...DEFAULT_ABOUT_PAGE_CONFIG, ...liveAboutConfig };
+
   const [activeTab, setActiveTab] = useState<'duo' | 'vision' | 'process' | 'tools' | 'faq'>('duo');
   const [selectedFounder, setSelectedFounder] = useState<'landry' | 'sourcing'>('landry');
 
@@ -96,31 +146,31 @@ export const AboutView: React.FC<AboutViewProps> = ({ onNavigate }) => {
   const values = [
     {
       icon: <Award className="text-accent" size={26} />,
-      title: isEn ? 'Uncompromising Quality' : 'Qualité Sans Compromis',
-      description: isEn
+      title: cfg.qualityTitle || cfg.pillar1Title || (isEn ? 'Uncompromising Quality' : 'Qualité Sans Compromis'),
+      description: cfg.qualityDescription || cfg.pillar1Desc || (isEn
         ? 'Every yarn ball and decorative item is thoroughly inspected. We reject coarse synthetic fibers and prioritize softness, wash durability and longevity.'
-        : 'Chaque pelote et objet décoratif est minutieusement vérifié. Nous refusons les fibres synthétiques rugueuses et privilégions la douceur, la tenue au lavage et la durabilité.'
+        : 'Chaque pelote et objet décoratif est minutieusement vérifié. Nous refusons les fibres synthétiques rugueuses et privilégions la douceur, la tenue au lavage et la durabilité.')
     },
     {
       icon: <ShieldCheck className="text-emerald-600 dark:text-emerald-400" size={26} />,
-      title: isEn ? 'Transparency & Fair Prices' : 'Transparence & Prix Justes',
-      description: isEn
+      title: cfg.transparencyTitle || cfg.pillar2Title || (isEn ? 'Transparency & Fair Prices' : 'Transparence & Prix Justes'),
+      description: cfg.transparencyDescription || cfg.pillar2Desc || (isEn
         ? 'By cutting unnecessary intermediaries, we offer transparent prices in CFA Francs (XAF) with no bad surprises, making high-end creation accessible to all.'
-        : 'En supprimant les intermédiaires superflus, nous proposons des tarifs clairs en Francs CFA (XAF) sans mauvaise surprise, rendant la création haut de gamme accessible à tous.'
+        : 'En supprimant les intermédiaires superflus, nous proposons des tarifs clairs en Francs CFA (XAF) sans mauvaise surprise, rendant la création haut de gamme accessible à tous.')
     },
     {
       icon: <Smile className="text-blue-600 dark:text-blue-400" size={26} />,
-      title: isEn ? '100% Local Human Proximity' : 'Proximité Humaine 100% Locale',
-      description: isEn
+      title: cfg.proximityTitle || cfg.pillar3Title || (isEn ? '100% Local Human Proximity' : 'Proximité Humaine 100% Locale'),
+      description: cfg.proximityDescription || cfg.pillar3Desc || (isEn
         ? 'No outsourced call centers or impersonal robots. The Laine & Déco team answers your WhatsApp messages directly to guide you on your choices of yarns and dye lots.'
-        : "Pas de centre d'appels délocalisé ni de robots impersonnels. L'équipe de Laine & Déco répond directement à vos messages WhatsApp pour vous conseiller sur vos choix de fil et de bain."
+        : "Pas de centre d'appels délocalisé ni de robots impersonnels. L'équipe de Laine & Déco répond directement à vos messages WhatsApp pour vous conseiller sur vos choix de fil et de bain.")
     },
     {
       icon: <Palette className="text-purple-600 dark:text-purple-400" size={26} />,
-      title: isEn ? 'Creativity & Transmission' : 'Créativité & Transmission',
-      description: isEn
+      title: cfg.creativityTitle || cfg.pillar4Title || (isEn ? 'Creativity & Transmission' : 'Créativité & Transmission'),
+      description: cfg.creativityDescription || cfg.pillar4Desc || (isEn
         ? 'We design free interactive tools (yardage calculator, AI model generator) to inspire everyone to create with their own hands.'
-        : 'Nous concevons des outils interactifs gratuits (calculateur de métrage, générateur de modèles IA) pour donner envie à chacun de créer de ses propres mains.'
+        : 'Nous concevons des outils interactifs gratuits (calculateur de métrage, générateur de modèles IA) pour donner envie à chacun de créer de ses propres mains.')
     }
   ];
 
@@ -197,7 +247,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ onNavigate }) => {
             transition={{ delay: 0.1 }}
             className="text-3xl sm:text-4xl md:text-6xl font-serif mb-6 leading-tight font-bold"
           >
-            {isEn ? 'Our History & Mission' : "Notre Histoire & Notre Raison d'Être"}
+            {cfg.heroTitle || (isEn ? 'Our History & Mission' : "Notre Histoire & Notre Raison d'Être")}
           </motion.h1>
 
           <motion.p
@@ -206,7 +256,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ onNavigate }) => {
             transition={{ delay: 0.2 }}
             className="text-white/80 max-w-3xl mx-auto text-sm sm:text-base md:text-lg font-light leading-relaxed mb-8"
           >
-            {isEn ? (
+            {cfg.heroSubtitle || (isEn ? (
               <>
                 Discover the adventure of <strong>Laine & Déco</strong>, combining technological expertise and sourcing passion to reinvent premium wool supplies, knitting tools, crochet hooks, and handmade crafts in Cameroon.
               </>
@@ -214,7 +264,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ onNavigate }) => {
               <>
                 Découvrez l'aventure de <strong>Laine & Déco</strong>, alliant expertise technologique et passion du sourcing pour réinventer la fourniture de laine noble, d'accessoires de tricot, de crochets, d'aiguilles et d'artisanat fait main au Cameroun.
               </>
-            )}
+            ))}
           </motion.p>
 
           {/* Quick Key Facts Badges */}
@@ -393,19 +443,19 @@ export const AboutView: React.FC<AboutViewProps> = ({ onNavigate }) => {
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="font-serif text-lg font-bold text-primary dark:text-white">
-                          {isEn ? 'Digital Hub' : 'Pôle Digital'}
+                          {cfg.founder1Name || (isEn ? 'Digital Hub' : 'Pôle Digital')}
                         </h3>
                         <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 text-[10px] font-bold">
                           {isEn ? 'Tech & AI' : 'Tech & IA'}
                         </span>
                       </div>
                       <p className="text-xs text-accent font-semibold mb-2">
-                        {isEn ? 'Digital Development & Innovation' : 'Développement & Innovation Numérique'}
+                        {cfg.founder1Role || (isEn ? 'Digital Development & Innovation' : 'Développement & Innovation Numérique')}
                       </p>
                       <p className="text-xs text-primary/70 dark:text-white/70 leading-relaxed">
-                        {isEn 
+                        {cfg.founderLandryBio || cfg.founder1Bio || (isEn 
                           ? 'Drives the digital scope: ultra-fast web platform, secure Mobile Money payment integration, smart yardage algorithms and the innovative AI Knitting Companion.'
-                          : 'Pilote toute la dimension numérique : plateforme web ultra-rapide, passerelles de paiement sécurisées Mobile Money, algorithmes du calculateur de pelotes et assistant Compagnon Tricot IA.'}
+                          : 'Pilote toute la dimension numérique : plateforme web ultra-rapide, passerelles de paiement sécurisées Mobile Money, algorithmes du calculateur de pelotes et assistant Compagnon Tricot IA.')}
                       </p>
                     </div>
                   </div>
@@ -435,19 +485,19 @@ export const AboutView: React.FC<AboutViewProps> = ({ onNavigate }) => {
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="font-serif text-lg font-bold text-primary dark:text-white">
-                          {isEn ? 'Sourcing Hub' : 'Pôle Sourcing'}
+                          {cfg.founder2Name || (isEn ? 'Sourcing Hub' : 'Pôle Sourcing')}
                         </h3>
                         <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 text-[10px] font-bold">
                           {isEn ? 'Operations' : 'Opérations'}
                         </span>
                       </div>
                       <p className="text-xs text-accent font-semibold mb-2">
-                        {isEn ? 'Material Quality & Sourcing' : 'Qualité Matérielle & Approvisionnement'}
+                        {cfg.founder2Role || (isEn ? 'Material Quality & Sourcing' : 'Qualité Matérielle & Approvisionnement')}
                       </p>
                       <p className="text-xs text-primary/70 dark:text-white/70 leading-relaxed">
-                        {isEn
+                        {cfg.founderSourcingBio || cfg.founder2Bio || (isEn
                           ? 'Ensures strict material quality: meticulous selection of premium wool, direct negotiations with spinning workshops, rigorous control of dye lots and supervising domestic shipping.'
-                          : 'Garante de la qualité matérielle : sélection minutieuse des pelotes de laine, négociation directe avec les ateliers, contrôle rigoureux des bains de teinture et supervision des expéditions locales.'}
+                          : 'Garante de la qualité matérielle : sélection minutieuse des pelotes de laine, négociation directe avec les ateliers, contrôle rigoureux des bains de teinture et supervision des expéditions locales.')}
                       </p>
                     </div>
                   </div>
@@ -735,34 +785,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ onNavigate }) => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
                 
-                {/* Tool 1: AI Knitting Companion */}
-                <div className="p-6 rounded-3xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 flex flex-col justify-between space-y-4">
-                  <div className="space-y-3">
-                    <div className="w-12 h-12 rounded-2xl bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300 flex items-center justify-center font-bold">
-                      <Cpu size={24} />
-                    </div>
-                    <h3 className="font-serif text-lg font-bold text-primary dark:text-white">
-                      {isEn ? 'Knitting Companion & AI Assistant' : 'Compagnon Tricot & Assistant IA'}
-                    </h3>
-                    <p className="text-xs sm:text-sm text-primary/70 dark:text-white/70 leading-relaxed">
-                      {isEn
-                        ? 'An intelligent assistant capable of analyzing your design ideas, recommending the best needle gauges and explaining technical stitches step-by-step.'
-                        : "Un assistant intelligent capable d'analyser vos envies d'ouvrage, de recommander les calibres d'aiguilles adaptés et d'expliquer les points techniques pas à pas."}
-                    </p>
-                  </div>
-
-                  {onNavigate && (
-                    <Button
-                      variant="outline"
-                      onClick={() => onNavigate('knitting-companion')}
-                      className="w-full rounded-2xl text-xs font-bold mt-2"
-                    >
-                      {isEn ? 'Try the AI Companion' : 'Essayer le Compagnon IA'}
-                    </Button>
-                  )}
-                </div>
-
-                {/* Tool 2: Yarn Calculator */}
+                {/* Tool 1: Yarn Calculator */}
                 <div className="p-6 rounded-3xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 flex flex-col justify-between space-y-4">
                   <div className="space-y-3">
                     <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-300 flex items-center justify-center font-bold">
@@ -789,56 +812,56 @@ export const AboutView: React.FC<AboutViewProps> = ({ onNavigate }) => {
                   )}
                 </div>
 
-                {/* Tool 3: Pattern Generator */}
+                {/* Tool 2: Volume Calculator */}
                 <div className="p-6 rounded-3xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 flex flex-col justify-between space-y-4">
                   <div className="space-y-3">
                     <div className="w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 flex items-center justify-center font-bold">
                       <Sparkles size={24} />
                     </div>
                     <h3 className="font-serif text-lg font-bold text-primary dark:text-white">
-                      {isEn ? 'Free Pattern Generator' : 'Générateur de Patrons Gratuits'}
+                      {isEn ? 'Volume Calculator' : 'Calculateur de Volume'}
                     </h3>
                     <p className="text-xs sm:text-sm text-primary/70 dark:text-white/70 leading-relaxed">
                       {isEn
-                        ? 'Create custom charts and personalized tutorials depending on your stock of wool balls for 100% original designs adapted to local climates.'
-                        : "Créez des grilles et tutoriels personnalisés selon vos pelotes en stock pour des créations 100% originales et adaptées au climat local."}
+                        ? 'Calculate the volume and total weight of yarn required for large projects like blankets and home decor.'
+                        : "Calculez le volume et le poids total de laine requis pour vos grands projets de décoration et grands plaids."}
                     </p>
                   </div>
 
                   {onNavigate && (
                     <Button
                       variant="outline"
-                      onClick={() => onNavigate('pattern-generator')}
+                      onClick={() => onNavigate('volume-calculator')}
                       className="w-full rounded-2xl text-xs font-bold mt-2"
                     >
-                      {isEn ? 'Generate a Pattern' : 'Générer un Patron'}
+                      {isEn ? 'Calculate Volume' : 'Calculer le Volume'}
                     </Button>
                   )}
                 </div>
 
-                {/* Tool 4: Community Gallery */}
+                {/* Tool 4: Custom Order */}
                 <div className="p-6 rounded-3xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 flex flex-col justify-between space-y-4">
                   <div className="space-y-3">
                     <div className="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-300 flex items-center justify-center font-bold">
-                      <Users size={24} />
+                      <Scissors size={24} />
                     </div>
                     <h3 className="font-serif text-lg font-bold text-primary dark:text-white">
-                      {isEn ? 'Community Gallery' : 'Galerie Communautaire'}
+                      {isEn ? 'Custom Bespoke Order' : 'Créations Sur Mesure'}
                     </h3>
                     <p className="text-xs sm:text-sm text-primary/70 dark:text-white/70 leading-relaxed">
                       {isEn
-                        ? 'Share your finished knitting, crocheting and creative yarn projects with other passionate members in Cameroon and vote for your favorites.'
-                        : "Partagez vos réalisations de tricot, crochet et créations en laine avec les autres membres passionnés au Cameroun et votez pour vos créations préférées."}
+                        ? 'Command custom handmade knitted items tailored precisely to your measurements and material preferences.'
+                        : "Commandez des pièces uniques tricotées à la main selon vos mensurations et vos choix de matières."}
                     </p>
                   </div>
 
                   {onNavigate && (
                     <Button
                       variant="outline"
-                      onClick={() => onNavigate('community')}
+                      onClick={() => onNavigate('custom-order')}
                       className="w-full rounded-2xl text-xs font-bold mt-2"
                     >
-                      {isEn ? 'Explore the Gallery' : 'Explorer la Galerie'}
+                      {isEn ? 'Custom Order' : 'Commander Sur Mesure'}
                     </Button>
                   )}
                 </div>

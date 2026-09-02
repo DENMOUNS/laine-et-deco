@@ -27,7 +27,6 @@ import { DashboardSidebar } from '../components/dashboard/DashboardSidebar';
 import { DashboardOverview } from '../components/dashboard/DashboardOverview';
 import { DashboardOrders } from '../components/dashboard/DashboardOrders';
 import { DashboardProjects } from '../components/dashboard/DashboardProjects';
-import { DashboardLoyalty } from '../components/dashboard/DashboardLoyalty';
 import { DashboardProfile } from '../components/dashboard/DashboardProfile';
 import { DashboardPayments } from '../components/dashboard/DashboardPayments';
 import { DashboardTools } from '../components/dashboard/DashboardTools';

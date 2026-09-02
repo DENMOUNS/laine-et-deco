@@ -3,7 +3,7 @@ import React from 'react';
 import { 
   LayoutDashboard, Package, ShoppingBag, Users, BarChart3, Settings, 
   TrendingUp, Bell, Plus, Coins, Globe, Shield, History, Percent, 
-  Truck, MapPin, Download, Lock, BoxesIcon, Image as ImageIcon, Palette, Monitor, Megaphone, Type as TypeIcon, Search, Award, Wrench, Mail, FileText, QrCode, Wand2
+  Truck, MapPin, Download, Lock, BoxesIcon, Image as ImageIcon, Palette, Monitor, Megaphone, Type as TypeIcon, Search, Award, Wrench, Mail, FileText, QrCode, Wand2, MessageSquare
 } from 'lucide-react';
 
 export const getAdminMenuItems = () => [
@@ -14,23 +14,23 @@ export const getAdminMenuItems = () => [
   { id: 'products', label: 'Catalogue Produits', icon: <Package size={20} />, permission: 'products.view' },
   { id: 'inventory', label: 'Gestion des Stocks', icon: <BoxesIcon size={20} />, permission: 'inventory.view' },
   { id: 'categories', label: 'Catégories', icon: <Plus size={20} />, permission: 'categories.view' },
-  { id: 'customers', label: 'Utilisateurs & Fidélité', icon: <Users size={20} />, permission: 'users.view' },
+  { id: 'customers', label: 'Clients', icon: <Users size={20} />, permission: 'users.view' },
+  { id: 'system_users', label: 'Utilisateurs Système', icon: <Shield size={20} />, permission: 'users.view' },
   
   // Marketing & Ventes
   { id: 'marketing_header', label: 'MARKETING', isHeader: true },
   { id: 'coupons', label: 'Coupons & Promos', icon: <Plus size={20} />, permission: 'marketing.view' },
-  { id: 'promo-rules', label: 'Règles de Prix', icon: <Percent size={20} />, permission: 'marketing.view' },
   { id: 'flash-sales', label: 'Ventes Flash', icon: <TrendingUp size={20} />, permission: 'marketing.view' },
   { id: 'packs', label: 'Gestion des Packs', icon: <Plus size={20} />, permission: 'marketing.view' },
-  { id: 'lookbook', label: 'Lookbook Automne', icon: <Plus size={20} />, permission: 'lookbook.view' },
-  { id: 'pattern-models', label: 'Modèles de Patrons IA', icon: <Wand2 size={20} />, permission: 'content.view' },
   
   // Finance
   { id: 'finance_header', label: 'FINANCE', isHeader: true },
   { id: 'expenses', label: 'Dépenses & Achats', icon: <History size={20} />, permission: 'finance.view' },
 
   // Contenu
-  { id: 'content_header', label: 'CONTENU', isHeader: true },
+  { id: 'content_header', label: 'CONTENU & DISCUSSIONS', isHeader: true },
+  { id: 'messages', label: 'Messages & Discussions', icon: <MessageSquare size={20} />, permission: 'messages.view' },
+  { id: 'pages', label: 'Gestion des Pages', icon: <FileText size={20} />, permission: 'content.view' },
   { id: 'portfolios', label: 'Membres & Portfolios', icon: <Users size={20} />, permission: 'content.view' },
   { id: 'blog', label: 'Blog & Articles', icon: <Plus size={20} />, permission: 'blog.view' },
   { id: 'reviews', label: 'Avis & Retours', icon: <Plus size={20} />, permission: 'messages.view' },
@@ -49,13 +49,10 @@ export const getAdminMenuItems = () => [
   { id: 'hero_banners', label: 'Bannières Hero', icon: <Monitor size={20} />, permission: 'system.view' },
   { id: 'announcement_banners', label: 'Bannières Annonce', icon: <Megaphone size={20} />, permission: 'system.view' },
   { id: 'scrolling_banners', label: 'Bannières Défilantes', icon: <TypeIcon size={20} />, permission: 'system.view' },
-  { id: 'seo_pages', label: 'Pages SEO', icon: <Search size={20} />, permission: 'system.view' },
-  { id: 'loyalty_config', label: 'Prog. de Fidélité', icon: <Award size={20} />, permission: 'system.view' },
   { id: 'maintenance_config', label: 'Mode Maintenance', icon: <Wrench size={20} />, permission: 'system.view' },
   { id: 'newsletter_config', label: 'Popup Newsletter', icon: <Mail size={20} />, permission: 'system.view' },
   { id: 'invoice_config', label: 'Factures (PDF)', icon: <FileText size={20} />, permission: 'system.view' },
   { id: 'qr', label: 'QR Code Landing', icon: <QrCode size={20} />, permission: 'system.view' },
-  { id: 'taxes', label: 'Taxes (TVA)', icon: <Percent size={20} />, permission: 'system.view' },
   { id: 'shipping', label: 'Livraison', icon: <Truck size={20} />, permission: 'system.view' },
   { id: 'cities', label: 'Villes & Tarifs', icon: <MapPin size={20} />, permission: 'system.view' },
   { id: 'import-export', label: 'Import / Export', icon: <Download size={20} />, permission: 'system.view' },

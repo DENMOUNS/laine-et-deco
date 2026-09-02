@@ -87,9 +87,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   // Default robust navigation items if Firestore is empty
   const defaultNavs: NavItem[] = [
     { id: 'n-shop', name: 'Boutique', name_en: 'Shop', view: 'shop', order: 1, status: 'active' },
-    { id: 'n-lookbook', name: 'Lookbook', name_en: 'Lookbook', view: 'lookbook', order: 1, status: 'active' },
-    { id: 'n-companion', name: 'Compagnon Tricot', name_en: 'Knitting Companion', view: 'knitting-companion', order: 2, status: 'active' },
-    { id: 'n-generator', name: 'Générateur IA', name_en: 'AI Generator', view: 'pattern-generator', order: 2, status: 'active' },
     { id: 'n-custom', name: 'Sur Mesure', name_en: 'Custom Order', view: 'custom-order', order: 2, status: 'active' },
     { id: 'n-blog', name: 'Blog Inspirations', name_en: 'Blog', view: 'blog', order: 2, status: 'active' },
     { id: 'n-calculator', name: 'Calculateur de Laine', name_en: 'Yarn Calculator', view: 'calculator', order: 2, status: 'active' },
@@ -119,8 +116,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   const isAboutSectionActive = aboutSectionViews.includes(currentView);
 
   const defaultSidebarLinks = [
-    { id: 'sb-companion', name: t('nav.companion'), view: 'knitting-companion', icon: <ChevronRight size={18} /> },
-    { id: 'sb-generator', name: t('nav.patternGenerator'), view: 'pattern-generator', icon: <ChevronRight size={18} /> },
     { id: 'sb-custom', name: t('nav.customOrder'), view: 'custom-order', icon: <ChevronRight size={18} /> },
     { id: 'sb-lookbook', name: t('nav.lookbook'), view: 'lookbook', icon: <ChevronRight size={18} /> },
     { id: 'sb-blog', name: t('nav.blog'), view: 'blog', icon: <ChevronRight size={18} /> },
@@ -599,7 +594,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, user }) => {
   };
 
   return (
-    <footer className="bg-gradient-to-b from-[#384A38] via-[#2C3B2C] to-[#222E22] dark:from-[#171C17] dark:via-[#121612] dark:to-[#0D100D] text-white pt-10 sm:pt-16 pb-36 sm:pb-40 md:pb-12 border-t-2 border-[#4A634A]/40 dark:border-white/10 shadow-[0_-8px_24px_rgba(30,45,30,0.15)] relative z-10">
+    <footer className="bg-gradient-to-b from-[#384A38] via-[#2C3B2C] to-[#222E22] dark:from-[#171C17] dark:via-[#121612] dark:to-[#0D100D] text-white pt-10 sm:pt-16 pb-36 sm:pb-40 md:pb-12 border-t-2 border-[#4A634A]/40 dark:border-white/10 shadow-[0_-8px_24px_rgba(30,45,30,0.15)] relative z-10 lg:max-w-7xl lg:mx-auto lg:rounded-[2.5rem] lg:mb-8 lg:mt-12 lg:border lg:border-white/15 lg:shadow-2xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Brand presentation */}
         <div className="flex flex-col items-center text-center md:items-start md:text-left mb-8 md:mb-12">
@@ -676,10 +671,8 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, user }) => {
                 >
                   <ul className="py-3 px-4 space-y-2.5 text-xs text-white/90 bg-white/5">
                     {isFeatureEnabled(siteConfig, 'comparison') && <li><button onClick={() => onNavigate('comparison')} className="hover:text-white py-1 block w-full text-left font-medium">Comparateur</button></li>}
-                    {isFeatureEnabled(siteConfig, 'knittingCompanion') && <li><button onClick={() => onNavigate('knitting-companion')} className="hover:text-white py-1 block w-full text-left font-medium">Compagnon Tricot</button></li>}
                     {isFeatureEnabled(siteConfig, 'lookbook') && <li><button onClick={() => onNavigate('lookbook')} className="hover:text-white py-1 block w-full text-left font-medium">Lookbook</button></li>}
                     {isFeatureEnabled(siteConfig, 'customOrder') && <li><button onClick={() => onNavigate('custom-order')} className="hover:text-white py-1 block w-full text-left font-medium">Sur Mesure</button></li>}
-                    {isFeatureEnabled(siteConfig, 'patternGenerator') && <li><button onClick={() => onNavigate('pattern-generator')} className="hover:text-white py-1 block w-full text-left font-medium">Générateur IA</button></li>}
                   </ul>
                 </motion.div>
               )}
@@ -769,10 +762,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, user }) => {
             <h3 className="font-bold mb-6 uppercase tracking-widest text-xs">Applications</h3>
             <ul className="space-y-3 text-sm text-white/70">
               {isFeatureEnabled(siteConfig, 'comparison') && <li><button onClick={() => onNavigate('comparison')} className="hover:text-white transition-colors">Comparateur</button></li>}
-              {isFeatureEnabled(siteConfig, 'knittingCompanion') && <li><button onClick={() => onNavigate('knitting-companion')} className="hover:text-white transition-colors">Compagnon Tricot</button></li>}
-              {isFeatureEnabled(siteConfig, 'lookbook') && <li><button onClick={() => onNavigate('lookbook')} className="hover:text-white transition-colors">Lookbook</button></li>}
               {isFeatureEnabled(siteConfig, 'customOrder') && <li><button onClick={() => onNavigate('custom-order')} className="hover:text-white transition-colors">Sur Mesure</button></li>}
-              {isFeatureEnabled(siteConfig, 'patternGenerator') && <li><button onClick={() => onNavigate('pattern-generator')} className="hover:text-white transition-colors">Générateur IA</button></li>}
             </ul>
           </div>
           <div>

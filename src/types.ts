@@ -462,6 +462,7 @@ export interface City {
 
 export interface User {
   id: string;
+  uid?: string;
   name: string;
   email: string;
   profileImage?: string;
@@ -492,6 +493,7 @@ export interface Notification {
   message: string;
   timestamp: string;
   read: boolean;
+  readAt?: string;
   relatedId?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -587,6 +589,106 @@ export interface LoyaltyConfig {
   levels: LoyaltyLevel[];
 }
 
+export interface ContactPageConfig {
+  headerTitle?: string;
+  headerTitle_en?: string;
+  headerSubtitle?: string;
+  headerSubtitle_en?: string;
+  shopTitle?: string;
+  shopTitle_en?: string;
+  shopAddressLine1?: string;
+  shopAddressLine2?: string;
+  phoneTitle?: string;
+  phoneTitle_en?: string;
+  phoneNumber?: string;
+  phoneAvailability?: string;
+  phoneAvailability_en?: string;
+  allowDirectCall?: boolean;
+  emailTitle?: string;
+  emailTitle_en?: string;
+  emailAddress?: string;
+  emailResponseTime?: string;
+  emailResponseTime_en?: string;
+  hoursTitle?: string;
+  hoursTitle_en?: string;
+  hoursWeekday?: string;
+  hoursWeekday_en?: string;
+  hoursSaturday?: string;
+  hoursSaturday_en?: string;
+  hoursSunday?: string;
+  hoursSunday_en?: string;
+  customOrderTitle?: string;
+  customOrderTitle_en?: string;
+  customOrderDescription?: string;
+  customOrderDescription_en?: string;
+  customOrderButtonText?: string;
+  customOrderButtonText_en?: string;
+  formTitle?: string;
+  formTitle_en?: string;
+}
+
+export interface AboutPageConfig {
+  badgeTitle?: string;
+  badgeTitle_en?: string;
+  heroTitle?: string;
+  heroTitle_en?: string;
+  heroSubtitle?: string;
+  heroSubtitle_en?: string;
+  missionTitle?: string;
+  missionTitle_en?: string;
+  missionDescription?: string;
+  missionDescription_en?: string;
+  qualityTitle?: string;
+  qualityTitle_en?: string;
+  qualityDescription?: string;
+  qualityDescription_en?: string;
+  transparencyTitle?: string;
+  transparencyTitle_en?: string;
+  transparencyDescription?: string;
+  transparencyDescription_en?: string;
+  proximityTitle?: string;
+  proximityTitle_en?: string;
+  proximityDescription?: string;
+  proximityDescription_en?: string;
+  creativityTitle?: string;
+  creativityTitle_en?: string;
+  creativityDescription?: string;
+  creativityDescription_en?: string;
+  founderLandryBio?: string;
+  founderLandryBio_en?: string;
+  founderSourcingBio?: string;
+  founderSourcingBio_en?: string;
+  pillar1Title?: string;
+  pillar1Desc?: string;
+  pillar2Title?: string;
+  pillar2Desc?: string;
+  pillar3Title?: string;
+  pillar3Desc?: string;
+  pillar4Title?: string;
+  pillar4Desc?: string;
+  founder1Name?: string;
+  founder1Role?: string;
+  founder1Bio?: string;
+  founder2Name?: string;
+  founder2Role?: string;
+  founder2Bio?: string;
+}
+
+export interface FaqPageConfig {
+  heroTitle?: string;
+  heroTitle_en?: string;
+  heroSubtitle?: string;
+  heroSubtitle_en?: string;
+  searchPlaceholder?: string;
+  searchPlaceholder_en?: string;
+  bottomBannerTitle?: string;
+  bottomBannerTitle_en?: string;
+  bottomBannerSubtitle?: string;
+  bottomBannerSubtitle_en?: string;
+  bottomBannerButtonText?: string;
+  bottomBannerButtonText_en?: string;
+}
+
 export interface SiteConfig extends BaseEntity {
   id?: string;
   primaryColor: string;
@@ -595,6 +697,9 @@ export interface SiteConfig extends BaseEntity {
   adBannerText: string;
   adBannerText_en?: string;
   loyaltyConfig: LoyaltyConfig;
+  aboutPage?: AboutPageConfig;
+  faqPage?: FaqPageConfig;
+  contactPage?: ContactPageConfig;
   homeFeaturedProducts: string[]; // IDs
   homeFeaturedCategories: string[]; // IDs
   showSlider: boolean;

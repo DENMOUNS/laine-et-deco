@@ -21,10 +21,10 @@ import { cn } from '../../../utils/utils';
 import { formatNotificationDate, formatTimeAgo } from '../../../utils/notificationFormatter';
 
 import { AdminFlashSales } from '../AdminFlashSales';
-import { AdminLookbooks } from '../AdminLookbooks';
 import { AdminPortfolios } from '../AdminPortfolios';
 
 export function AdminNotifications({ ctx }: { ctx: any }) {
+  const markAllNotificationsAsRead = ctx.markAllNotificationsAsRead;
   const { ABANDONED_CARTS, ANALYTICS, BLOG_POSTS, CATEGORIES, CATEGORY_DISTRIBUTION, CHAT_MESSAGES, CITIES, CONVERSATIONS, COUPONS, CUSTOMER_GROUPS, DEVICE_DATA, EMAILS, EXPENSES, FAQS, LOGIN_LOGS, LOOKBOOK_POSTS, NAV_ITEMS, NOTIFICATIONS, ORDERS, PACKS, PRODUCTS, PROMO_EVENTS, PUSH_NOTIFICATIONS, REQUEST_LOGS, RETENTION_DATA, REVENUE_BY_PAYMENT, REVIEWS, SALES_DATA, SHIPPING_RULES, SUBSCRIBERS, TAX_RULES, TRAFFIC_SOURCES, USERS, activeMenuItem, activeTab, addBlogPost, addCatalogRule, addCategory, addCity, addCoupon, addCurrency, addCustomerGroup, addEvent, addExpense, addFAQ, addLocalRole, addLookbook, addNavItem, addPack, addProduct, addRMA, addReview, addShippingRule, addTaxRule, allOrders, averageOrderValue, catalogRulesWithDefaults, categoryPage, currentImage, currentSlug, currentUserDoc, customerDetailTab, customerFilter, deleteAbandonedCart, deleteCatalogRule, deleteCategory, deleteChatMessage, deleteCity, deleteConversation, deleteCoupon, deleteCurrency, deleteCustomerGroup, deleteEvent, deleteFAQ, deleteLocalRole, deleteLoginLog, deleteNavItem, deleteNotification, deleteOrder, deletePack, deleteProduct, deleteRequestLog, deleteReview, deleteShippingRule, deleteSiteConfig, deleteSubscriber, deleteTaxRule, deleteUser, editedOrder, editingItem, events, fetchedProducts, filteredMenuItems, formatDate, handleDeleteCatalogRule, handleDeleteCity, handleDeleteEvent, handleDeleteFAQ, handleEditCatalogRule, handleEditCity, handleEditCoupon, handleEditEvent, handleEditFAQ, handleFormSubmit, handleNotificationClick, handleSaveCatalogRule, handleSaveCity, handleSaveCoupon, handleSaveEvent, handleSaveFAQ, handleSearch, handleSeed, handleSendMessage, hasPermission, isAddModalOpen, isAuthLoading, isCatalogRuleEditorOpen, isCityEditorOpen, isCouponEditorOpen, isDataLoading, isEditingOrder, isEventEditorOpen, isFAQEditorOpen, isLoadingAbandoned, isLoadingBlog, isLoadingCatalog, isLoadingCategories, isLoadingCategoryDist, isLoadingDevice, isLoadingEmails, isLoadingExpenses, isLoadingGroups, isLoadingLookbook, isLoadingOrders, isLoadingPacks, isLoadingProducts, isLoadingPush, isLoadingRetention, isLoadingRevenue, isLoadingReviews, isLoadingRoles, isLoadingShipping, isLoadingSubscribers, isLoadingTax, isLoadingTraffic, isLogsLoading, isSaving, isSidebarOpen, isSuperAdmin, isTabAllowed, isUserCustomer, itemsPerPage, localAbandonedCarts, localBlogPosts, localCatalogPriceRules, localCategories, localCurrencies, localCustomerGroups, localExpenses, localLookbook, localNavItems, localOrders, localPacks, localProducts, localRMAs, localReviews, localRoles, localShippingRules, localSystemNotifications, localTaxRules, localUsers, logFilter, menuItems, messageInput, modalType, navItemsWithDefaults, newNote, newRMANote, notificationFilter, notificationPage, onNavigate, orderFilter, overviewOrderFilter, permissions, productFilter, propSetSiteConfig, propSiteConfig, rawSiteConfig, realLogs, requestLogFilter, reviewFilter, roleData, saveAllSiteConfig, saveSiteSection, searchResults, selectedCatalogRule, selectedCity, selectedConversation, selectedCoupon, selectedCustomer, selectedCustomerGroup, selectedEvent, selectedFAQ, selectedOrder, selectedPackProducts, setActiveTab, setCategoryPage, setCurrentImage, setCurrentSlug, setCustomerDetailTab, setCustomerFilter, setEditedOrder, setEditingItem, setEvents, setIsAddModalOpen, setIsCatalogRuleEditorOpen, setIsCityEditorOpen, setIsCouponEditorOpen, setIsEditingOrder, setIsEventEditorOpen, setIsFAQEditorOpen, setIsSaving, setIsSidebarOpen, setLocalAbandonedCarts, setLocalAbandonedCarts2, setLocalBlogPosts, setLocalBlogPosts2, setLocalCategories, setLocalCurrencies, setLocalCustomerGroups, setLocalCustomerGroups2, setLocalEmails, setLocalExpenses, setLocalLookbook, setLocalLookbook2, setLocalOrders, setLocalPacks, setLocalProducts, setLocalPushNotifications, setLocalReviews, setLocalReviews2, setLocalRole, setLocalRoles, setLocalShippingRules, setLocalShippingRules2, setLocalSubscribers, setLocalSystemNotifications, setLocalTaxRules, setLocalTaxRules2, setLocalUser, setLocalUsers, setLogFilter, setMessageInput, setModalType, setNewNote, setNewRMANote, setNotificationFilter, setNotificationPage, setOrderFilter, setOverviewOrderFilter, setProductFilter, setRequestLogFilter, setReviewFilter, setSearchResults, setSelectedCatalogRule, setSelectedCity, setSelectedConversation, setSelectedCoupon, setSelectedCustomer, setSelectedCustomerGroup, setSelectedEvent, setSelectedFAQ, setSelectedOrder, setSelectedPackProducts, setShowNotifications, setSiteConfig, setViewingCustomer, showNotifications, siteConfig, siteConfigs, sortByDate, stats, totalCustomers, totalOrdersCount, totalSales, totalVisitors, updateBlogPost, updateCatalogRule, updateCategory, updateCity, updateCoupon, updateCurrency, updateCustomerGroup, updateEvent, updateExpense, updateFAQ, updateLocalRole, updateLocalUser, updateLookbook, updateNavItem, updatePack, updateProduct, updateRMA, updateReview, updateShippingRule, updateSiteConfig, updateTaxRule, user, userRoleSlug, viewingCustomer } = ctx;
 
   const [dateFilterType, setDateFilterType] = useState<'all' | 'today' | 'week' | 'month' | 'custom'>('all');
@@ -68,6 +68,22 @@ export function AdminNotifications({ ctx }: { ctx: any }) {
     });
   }, [localSystemNotifications, notificationFilter, dateFilterType, customDateRange]);
 
+  const sortedNotifications = useMemo(() => {
+    return [...filteredNotifications].sort((a: any, b: any) => {
+      const timeA = new Date(a.createdAt || a.timestamp || 0).getTime();
+      const timeB = new Date(b.createdAt || b.timestamp || 0).getTime();
+      return timeB - timeA;
+    });
+  }, [filteredNotifications]);
+
+  const [page, setPage] = useState(1);
+  const NOTIF_ITEMS_PER_PAGE = 25;
+  const totalPages = Math.max(1, Math.ceil(sortedNotifications.length / NOTIF_ITEMS_PER_PAGE));
+  const currentPageNotifications = useMemo(() => {
+    const start = (page - 1) * NOTIF_ITEMS_PER_PAGE;
+    return sortedNotifications.slice(start, start + NOTIF_ITEMS_PER_PAGE);
+  }, [sortedNotifications, page]);
+
   return (
     <>
       {activeTab === 'notifications' && (
@@ -77,8 +93,12 @@ export function AdminNotifications({ ctx }: { ctx: any }) {
               <div className="flex flex-wrap items-center gap-3">
                 <button 
                   onClick={() => {
-                    setLocalSystemNotifications(prev => prev.map(n => ({ ...n, read: true })));
-                    toast.success('Toutes les notifications ont été marquées comme lues');
+                    if (markAllNotificationsAsRead) {
+                      markAllNotificationsAsRead();
+                    } else {
+                      setLocalSystemNotifications((prev: any[]) => prev.map(n => ({ ...n, read: true })));
+                      toast.success('Toutes les notifications ont été marquées comme lues');
+                    }
                   }}
                   className="text-xs font-bold text-primary hover:underline"
                 >
@@ -179,31 +199,31 @@ export function AdminNotifications({ ctx }: { ctx: any }) {
             </div>
 
             <div className="bg-card rounded-[2.5rem] shadow-sm border border-primary/10 overflow-hidden">
-                {filteredNotifications.map((notif) => (
+                {currentPageNotifications.map((notif) => (
                   <div 
                     key={notif.id} 
                     onClick={() => {
                       // Marquer comme lu
                       const newNotif = { ...notif, read: true, readAt: new Date().toISOString() };
-                      setLocalSystemNotifications(prev => prev.map(n => n.id === notif.id ? newNotif : n));
+                      setLocalSystemNotifications((prev: any[]) => prev.map(n => n.id === notif.id ? newNotif : n));
 
                       // Naviguer selon le type
                       if (notif.type === 'order' && notif.relatedId) {
-                        const order = localOrders.find(o => o.id === notif.relatedId);
+                        const order = localOrders.find((o: any) => o.id === notif.relatedId);
                         if (order) {
                           setSelectedOrder(order);
                           setActiveTab('order-detail');
                           toast.success('Notification marquée comme lue');
                         }
                       } else if (notif.type === 'product' && notif.relatedId) {
-                        const product = localProducts.find(p => p.id === notif.relatedId);
+                        const product = localProducts.find((p: any) => p.id === notif.relatedId);
                         if (product) {
                           setEditingItem(product);
                           setActiveTab('products');
                           toast.success('Notification marquée comme lue');
                         }
                       } else if (notif.type === 'stock' && notif.relatedId) {
-                        const product = localProducts.find(p => p.id === notif.relatedId);
+                        const product = localProducts.find((p: any) => p.id === notif.relatedId);
                         if (product) {
                           setEditingItem(product);
                           setActiveTab('inventory');
@@ -243,10 +263,31 @@ export function AdminNotifications({ ctx }: { ctx: any }) {
                     </div>
                   </div>
                 ))}
-                {filteredNotifications.length === 0 && (
+                {sortedNotifications.length === 0 && (
                   <div className="p-12 text-center text-primary/60">
                     <Bell size={48} className="mx-auto mb-4 opacity-20" />
                     <p>Aucune notification pour les critères sélectionnés</p>
+                  </div>
+                )}
+                {totalPages > 1 && (
+                  <div className="p-4 border-t border-primary/10 flex justify-between items-center bg-secondary/10">
+                    <button
+                      disabled={page === 1}
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      className="px-4 py-2 text-xs font-bold bg-white text-primary border border-primary/10 rounded-xl disabled:opacity-40 hover:bg-primary/5 transition-all"
+                    >
+                      Précédent
+                    </button>
+                    <span className="text-xs font-bold text-primary/70">
+                      Page {page} sur {totalPages} ({sortedNotifications.length} notification{sortedNotifications.length > 1 ? 's' : ''})
+                    </span>
+                    <button
+                      disabled={page >= totalPages}
+                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                      className="px-4 py-2 text-xs font-bold bg-white text-primary border border-primary/10 rounded-xl disabled:opacity-40 hover:bg-primary/5 transition-all"
+                    >
+                      Suivant
+                    </button>
                   </div>
                 )}
             </div>

@@ -78,12 +78,8 @@ const CalculatorView = lazyRetry(() => import('../views/CalculatorView'), 'Calcu
 const CustomOrderView = lazyRetry(() => import('../views/CustomOrderView'), 'CustomOrderView');
 const VolumeCalculatorView = lazyRetry(() => import('../views/VolumeCalculatorView'), 'VolumeCalculatorView');
 const CareGuideView = lazyRetry(() => import('../views/CareGuideView'), 'CareGuideView');
-const LookbookView = lazyRetry(() => import('../views/LookbookView'), 'LookbookView');
-const CommunityGalleryView = lazyRetry(() => import('../views/CommunityGalleryView'), 'CommunityGalleryView');
 const KnittingConfiguratorView = lazyRetry(() => import('../views/KnittingConfiguratorView'), 'KnittingConfiguratorView');
 const OrderSuccessView = lazyRetry(() => import('../views/OrderSuccessView'), 'OrderSuccessView');
-const KnittingCompanionView = lazyRetry(() => import('../views/KnittingCompanionView'), 'KnittingCompanionView');
-const PatternGeneratorView = lazyRetry(() => import('../views/PatternGeneratorView'), 'PatternGeneratorView');
 const PrivacyPolicyView = lazyRetry(() => import('../views/PrivacyPolicyView'), 'PrivacyPolicyView');
 const ComparisonView = lazyRetry(() => import('../views/ComparisonView'), 'ComparisonView');
 const ContactView = lazyRetry(() => import('../views/ContactView'), 'ContactView');
@@ -261,16 +257,7 @@ function VolumeCalculatorPage() {
 }
 
 function LookbookPage() {
-  const onNavigate = useNavigateAdapter();
-  const { products: fetchedProducts } = useProducts({ cacheOnly: true });
-  const PRODUCTS = fetchedProducts;
-  return <LookbookView onNavigate={onNavigate} products={PRODUCTS} />;
-}
-
-function PatternGeneratorPage() {
-  const onNavigate = useNavigateAdapter();
-  const addToCart = useCartStore((s) => s.addToCart);
-  return <PatternGeneratorView onAddToCart={addToCart} onNavigate={onNavigate} />;
+  return null;
 }
 
 function ConfiguratorPage() {
@@ -513,10 +500,7 @@ export const AppRoutes: React.FC = () => {
           <Route path="/calculator" element={<FeatureRoute feature="calculator" element={<CalculatorPage />} />} />
           <Route path="/volume-calculator" element={<FeatureRoute feature="volumeCalculator" element={<VolumeCalculatorPage />} />} />
           <Route path="/care-guide" element={<CareGuideView />} />
-          <Route path="/lookbook" element={<FeatureRoute feature="lookbook" element={<LookbookPage />} />} />
-          <Route path="/community" element={<FeatureRoute feature="community" element={<CommunityGalleryView onNavigate={onNavigate} />} />} />
-          <Route path="/knitting-companion" element={<FeatureRoute feature="knittingCompanion" element={<KnittingCompanionView />} />} />
-          <Route path="/pattern-generator" element={<FeatureRoute feature="patternGenerator" element={<PatternGeneratorPage />} />} />
+          <Route path="/lookbook" element={<Navigate to="/" replace />} />
           <Route path="/configurator" element={<Navigate to="/" replace />} />
           <Route path="/custom-order" element={<FeatureRoute feature="customOrder" element={<CustomOrderView />} />} />
           

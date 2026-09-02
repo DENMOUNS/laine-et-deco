@@ -20,10 +20,10 @@ import { CatalogPriceRuleEditor } from '../../../components/dashboard/CatalogPri
 import { cn } from '../../../utils/utils';
 
 import { AdminFlashSales } from '../AdminFlashSales';
-import { AdminLookbooks } from '../AdminLookbooks';
 import { AdminPortfolios } from '../AdminPortfolios';
 
 export function AdminReviews({ ctx }: { ctx: any }) {
+  const [rejectingReview, setRejectingReview] = React.useState<any>(null);
   const { ABANDONED_CARTS, ANALYTICS, BLOG_POSTS, CATEGORIES, CATEGORY_DISTRIBUTION, CHAT_MESSAGES, CITIES, CONVERSATIONS, COUPONS, CUSTOMER_GROUPS, DEVICE_DATA, EMAILS, EXPENSES, FAQS, LOGIN_LOGS, LOOKBOOK_POSTS, NAV_ITEMS, NOTIFICATIONS, ORDERS, PACKS, PRODUCTS, PROMO_EVENTS, PUSH_NOTIFICATIONS, REQUEST_LOGS, RETENTION_DATA, REVENUE_BY_PAYMENT, REVIEWS, SALES_DATA, SHIPPING_RULES, SUBSCRIBERS, TAX_RULES, TRAFFIC_SOURCES, USERS, activeMenuItem, activeTab, addBlogPost, addCatalogRule, addCategory, addCity, addCoupon, addCurrency, addCustomerGroup, addEvent, addExpense, addFAQ, addLocalRole, addLookbook, addNavItem, addPack, addProduct, addRMA, addReview, addShippingRule, addTaxRule, allOrders, averageOrderValue, catalogRulesWithDefaults, categoryPage, currentImage, currentSlug, currentUserDoc, customerDetailTab, customerFilter, deleteAbandonedCart, deleteCatalogRule, deleteCategory, deleteChatMessage, deleteCity, deleteConversation, deleteCoupon, deleteCurrency, deleteCustomerGroup, deleteEvent, deleteFAQ, deleteLocalRole, deleteLoginLog, deleteNavItem, deleteNotification, deleteOrder, deletePack, deleteProduct, deleteRequestLog, deleteReview, deleteShippingRule, deleteSiteConfig, deleteSubscriber, deleteTaxRule, deleteUser, editedOrder, editingItem, events, fetchedProducts, filteredMenuItems, formatDate, handleDeleteCatalogRule, handleDeleteCity, handleDeleteEvent, handleDeleteFAQ, handleEditCatalogRule, handleEditCity, handleEditCoupon, handleEditEvent, handleEditFAQ, handleFormSubmit, handleNotificationClick, handleSaveCatalogRule, handleSaveCity, handleSaveCoupon, handleSaveEvent, handleSaveFAQ, handleSearch, handleSeed, handleSendMessage, hasPermission, isAddModalOpen, isAuthLoading, isCatalogRuleEditorOpen, isCityEditorOpen, isCouponEditorOpen, isDataLoading, isEditingOrder, isEventEditorOpen, isFAQEditorOpen, isLoadingAbandoned, isLoadingBlog, isLoadingCatalog, isLoadingCategories, isLoadingCategoryDist, isLoadingDevice, isLoadingEmails, isLoadingExpenses, isLoadingGroups, isLoadingLookbook, isLoadingOrders, isLoadingPacks, isLoadingProducts, isLoadingPush, isLoadingRetention, isLoadingRevenue, isLoadingReviews, isLoadingRoles, isLoadingShipping, isLoadingSubscribers, isLoadingTax, isLoadingTraffic, isLogsLoading, isSaving, isSidebarOpen, isSuperAdmin, isTabAllowed, isUserCustomer, itemsPerPage, localAbandonedCarts, localBlogPosts, localCatalogPriceRules, localCategories, localCurrencies, localCustomerGroups, localExpenses, localLookbook, localNavItems, localOrders, localPacks, localProducts, localRMAs, localReviews, localRoles, localShippingRules, localSystemNotifications, localTaxRules, localUsers, logFilter, menuItems, messageInput, modalType, navItemsWithDefaults, newNote, newRMANote, notificationFilter, notificationPage, onNavigate, orderFilter, overviewOrderFilter, permissions, productFilter, propSetSiteConfig, propSiteConfig, rawSiteConfig, realLogs, requestLogFilter, reviewFilter, roleData, saveAllSiteConfig, saveSiteSection, searchResults, selectedCatalogRule, selectedCity, selectedConversation, selectedCoupon, selectedCustomer, selectedCustomerGroup, selectedEvent, selectedFAQ, selectedOrder, selectedPackProducts, setActiveTab, setCategoryPage, setCurrentImage, setCurrentSlug, setCustomerDetailTab, setCustomerFilter, setEditedOrder, setEditingItem, setEvents, setIsAddModalOpen, setIsCatalogRuleEditorOpen, setIsCityEditorOpen, setIsCouponEditorOpen, setIsEditingOrder, setIsEventEditorOpen, setIsFAQEditorOpen, setIsSaving, setIsSidebarOpen, setLocalAbandonedCarts, setLocalAbandonedCarts2, setLocalBlogPosts, setLocalBlogPosts2, setLocalCategories, setLocalCurrencies, setLocalCustomerGroups, setLocalCustomerGroups2, setLocalEmails, setLocalExpenses, setLocalLookbook, setLocalLookbook2, setLocalOrders, setLocalPacks, setLocalProducts, setLocalPushNotifications, setLocalReviews, setLocalReviews2, setLocalRole, setLocalRoles, setLocalShippingRules, setLocalShippingRules2, setLocalSubscribers, setLocalSystemNotifications, setLocalTaxRules, setLocalTaxRules2, setLocalUser, setLocalUsers, setLogFilter, setMessageInput, setModalType, setNewNote, setNewRMANote, setNotificationFilter, setNotificationPage, setOrderFilter, setOverviewOrderFilter, setProductFilter, setRequestLogFilter, setReviewFilter, setSearchResults, setSelectedCatalogRule, setSelectedCity, setSelectedConversation, setSelectedCoupon, setSelectedCustomer, setSelectedCustomerGroup, setSelectedEvent, setSelectedFAQ, setSelectedOrder, setSelectedPackProducts, setShowNotifications, setSiteConfig, setViewingCustomer, showNotifications, siteConfig, siteConfigs, sortByDate, stats, totalCustomers, totalOrdersCount, totalSales, totalVisitors, updateBlogPost, updateCatalogRule, updateCategory, updateCity, updateCoupon, updateCurrency, updateCustomerGroup, updateEvent, updateExpense, updateFAQ, updateLocalRole, updateLocalUser, updateLookbook, updateNavItem, updatePack, updateProduct, updateRMA, updateReview, updateShippingRule, updateSiteConfig, updateTaxRule, user, userRoleSlug, viewingCustomer } = ctx;
   return (
     <>
@@ -53,36 +53,105 @@ export function AdminReviews({ ctx }: { ctx: any }) {
                 { header: 'Produit', accessor: 'productName', className: 'font-medium' },
                 { header: 'Client', accessor: 'userName', className: 'font-medium' },
                 { header: 'Commentaire', accessor: 'comment', className: 'text-primary/60 text-sm max-w-xs truncate' },
+                { 
+                  header: 'Statut', 
+                  accessor: (review: any) => <StatusBadge status={review.status || 'pending'} />,
+                  sortable: true,
+                  sortKey: 'status'
+                },
                 { header: 'Créé le', accessor: (item: any) => formatDate(item.createdAt), className: 'text-primary/60 text-sm' },
                 {
                   header: 'Actions',
-                  accessor: (review: any) => (
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setLocalReviews(prev => prev.map(r => r.id === review.id ? { ...r, status: 'approved' } : r));
-                          toast.success('Avis approuvé');
-                        }}
-                        className="p-2 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors tooltip" title="Approuver"
-                      >
-                        Approuver
-                      </button>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setLocalReviews(prev => prev.map(r => r.id === review.id ? { ...r, status: 'rejected' } : r));
-                          toast.error('Avis rejeté');
-                        }}
-                        className="p-2 bg-rose-50 text-rose-700 rounded-lg hover:bg-rose-100 transition-colors tooltip" title="Rejeter"
-                      >
-                        Rejeter
-                      </button>
-                    </div>
-                  )
+                  accessor: (review: any) => {
+                    const isRejected = review.status === 'rejected';
+                    return (
+                      <div className="flex gap-2" onClick={(e: any) => e.stopPropagation()}>
+                        {isRejected ? (
+                          <span className="px-3 py-1.5 bg-red-100 text-red-700 font-bold text-xs rounded-xl flex items-center gap-1 border border-red-200">
+                            <Lock size={12} /> Rejeté (Verrouillé)
+                          </span>
+                        ) : (
+                          <>
+                            <button 
+                              onClick={() => {
+                                if (updateReview) {
+                                  updateReview(review.id, { status: 'approved' });
+                                }
+                                setLocalReviews((prev: any[]) => prev.map((r: any) => r.id === review.id ? { ...r, status: 'approved' } : r));
+                                toast.success('Avis approuvé');
+                              }}
+                              className="px-3 py-1.5 bg-emerald-50 text-emerald-700 font-bold text-xs rounded-xl hover:bg-emerald-100 transition-colors"
+                              title="Approuver"
+                            >
+                              Approuver
+                            </button>
+                            <button 
+                              onClick={() => setRejectingReview(review)}
+                              className="px-3 py-1.5 bg-rose-50 text-rose-700 font-bold text-xs rounded-xl hover:bg-rose-100 transition-colors"
+                              title="Rejeter"
+                            >
+                              Rejeter
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    );
+                  }
                 },
               ]}
             />
+
+            {/* Modal de confirmation de rejet */}
+            <AnimatePresence>
+              {rejectingReview && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="bg-card w-full max-w-md p-6 rounded-3xl shadow-2xl border border-primary/10 space-y-4"
+                  >
+                    <div className="flex justify-between items-center pb-2 border-b border-primary/10">
+                      <h3 className="font-serif font-bold text-lg text-red-600 flex items-center gap-2">
+                        <AlertCircle size={20} /> Refuser l'avis
+                      </h3>
+                      <button 
+                        onClick={() => setRejectingReview(null)}
+                        className="p-1 text-primary/60 hover:text-primary rounded-full"
+                      >
+                        <X size={20} />
+                      </button>
+                    </div>
+
+                    <p className="text-sm text-primary/80">
+                      Êtes-vous sûr de vouloir rejeter cet avis de <strong>{rejectingReview.userName || 'Client'}</strong> ? Une fois rejeté, le statut sera mis à jour en base de données et l'avis ne pourra plus être modifié.
+                    </p>
+
+                    <div className="flex justify-end gap-3 pt-2">
+                      <button
+                        onClick={() => setRejectingReview(null)}
+                        className="px-4 py-2 rounded-xl text-sm font-bold bg-secondary text-primary hover:bg-secondary/80"
+                      >
+                        Annuler
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (rejectingReview) {
+                            if (updateReview) updateReview(rejectingReview.id, { status: 'rejected' });
+                            setLocalReviews((prev: any[]) => prev.map((r: any) => r.id === rejectingReview.id ? { ...r, status: 'rejected' } : r));
+                            toast.error('Avis rejeté et enregistré en BD (Verrouillé)');
+                            setRejectingReview(null);
+                          }
+                        }}
+                        className="px-5 py-2 rounded-xl text-sm font-bold bg-red-600 text-white hover:bg-red-700 shadow-md"
+                      >
+                        Confirmer le Rejet
+                      </button>
+                    </div>
+                  </motion.div>
+                </div>
+              )}
+            </AnimatePresence>
           </div>
         )}
     </>

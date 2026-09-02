@@ -514,7 +514,14 @@ router.put('/config/:collectionName/:id', verifyToken, resolveRole, async (req: 
         docId = query.docs[0].id;
         snap = query.docs[0];
       } else {
-        return res.status(404).json({ error: 'Configuration introuvable.' });
+        // Create the document if it doesn't exist
+        await db.collection(collectionName).doc(id).set({
+          ...req.body,
+          id: id,
+          createdAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+        });
+        return res.json({ message: 'Configuration créée.' });
       }
     }
     

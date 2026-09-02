@@ -8,7 +8,6 @@ import {
   AdminSearchResults,
   AdminOverview,
   AdminInventory,
-  AdminLoyalty,
   AdminCustomerGroups,
   AdminOrders,
   AdminStats,
@@ -33,11 +32,9 @@ import {
   AdminCities,
   AdminRoles,
   AdminFlashSalesTab,
-  AdminLookbooksTab,
   AdminPortfoliosTab,
   AdminCustomers,
   AdminPacks,
-  AdminLookbook,
   AdminPatternModels,
   AdminConfiguratorModels,
   AdminBlog,
@@ -45,6 +42,7 @@ import {
   AdminNewsletter,
   AdminPushNotifications,
   AdminFaq,
+  AdminPages,
   AdminEmails,
   AdminUserProfile,
   AdminOrderDetail,
@@ -56,7 +54,6 @@ import {
   AdminAnnouncementBanners,
   AdminScrollingBanners,
   AdminSeoPages,
-  AdminLoyaltyConfig,
   AdminMaintenanceConfig,
   AdminNewsletterConfig,
   AdminInvoiceConfig,
@@ -104,8 +101,6 @@ export const AdminDashboardShell: React.FC<Props> = ({ ctx }) => {
       case 'inventory':
       case 'inventory-detail':
         return <AdminInventory ctx={ctx} />;
-      case 'loyalty':
-        return <AdminLoyalty ctx={ctx} />;
       case 'customer-groups':
         return <AdminCustomerGroups ctx={ctx} />;
       case 'orders':
@@ -127,8 +122,6 @@ export const AdminDashboardShell: React.FC<Props> = ({ ctx }) => {
         return <AdminRmas ctx={ctx} />;
       case 'abandoned-carts':
         return <AdminAbandonedCarts ctx={ctx} />;
-      case 'promo-rules':
-        return <AdminPromoRules ctx={ctx} />;
       case 'taxes':
         return <AdminTaxes ctx={ctx} />;
       case 'shipping':
@@ -156,20 +149,16 @@ export const AdminDashboardShell: React.FC<Props> = ({ ctx }) => {
         return <AdminRoles ctx={ctx} />;
       case 'flash-sales':
         return <AdminFlashSalesTab ctx={ctx} />;
-      case 'lookbooks':
-        return <AdminLookbooksTab ctx={ctx} />;
       case 'portfolios':
         return <AdminPortfoliosTab ctx={ctx} />;
       case 'customers':
+      case 'users':
+      case 'system_users':
         return <AdminCustomers ctx={ctx} />;
       case 'customer-detail':
         return <AdminCustomerDetail ctx={ctx} />;
       case 'packs':
         return <AdminPacks ctx={ctx} />;
-      case 'lookbook':
-        return <AdminLookbook ctx={ctx} />;
-      case 'pattern-models':
-        return <AdminPatternModels />;
       case 'configurator-models':
         return <AdminConfiguratorModels />;
       case 'blog':
@@ -182,6 +171,8 @@ export const AdminDashboardShell: React.FC<Props> = ({ ctx }) => {
         return <AdminPushNotifications ctx={ctx} />;
       case 'faq':
         return <AdminFaq ctx={ctx} />;
+      case 'pages':
+        return <AdminPages ctx={ctx} />;
       case 'emails':
         return <AdminEmails ctx={ctx} />;
       case 'user-profile':
@@ -202,8 +193,6 @@ export const AdminDashboardShell: React.FC<Props> = ({ ctx }) => {
         return <AdminScrollingBanners ctx={ctx} />;
       case 'seo_pages':
         return <AdminSeoPages ctx={ctx} />;
-      case 'loyalty_config':
-        return <AdminLoyaltyConfig ctx={ctx} />;
       case 'maintenance_config':
         return <AdminMaintenanceConfig ctx={ctx} />;
       case 'newsletter_config':

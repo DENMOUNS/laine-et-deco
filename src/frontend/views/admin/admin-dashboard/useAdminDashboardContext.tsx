@@ -156,7 +156,6 @@ import { Loader } from '../../../components/Loader';
 import { AdminSearchResults } from './AdminSearchResults';
 import { AdminOverview } from './AdminOverview';
 import { AdminInventory } from './AdminInventory';
-import { AdminLoyalty } from './AdminLoyalty';
 import { AdminCustomerGroups } from './AdminCustomerGroups';
 import { AdminOrders } from './AdminOrders';
 import { AdminLogs } from './AdminLogs';
@@ -182,11 +181,9 @@ import { AdminCoupons } from './AdminCoupons';
 import { AdminCities } from './AdminCities';
 import { AdminRoles } from './AdminRoles';
 import { AdminFlashSalesTab } from './AdminFlashSalesTab';
-import { AdminLookbooksTab } from './AdminLookbooksTab';
 import { AdminPortfoliosTab } from './AdminPortfoliosTab';
 import { AdminCustomers } from './AdminCustomers';
 import { AdminPacks } from './AdminPacks';
-import { AdminLookbook } from './AdminLookbook';
 import { AdminBlog } from './AdminBlog';
 import { AdminNotifications } from './AdminNotifications';
 import { AdminNewsletter } from './AdminNewsletter';
@@ -244,7 +241,7 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
     updateEntity: updateLocalUser,
     setEntity: setLocalUser,
   } = useEntity<UserType>('user', [], {
-    enabled: isActiveTab(['customers', 'customer-detail', 'customer-groups', 'customer-group-detail', 'overview', 'search-results', 'notifications', 'messages', 'stats'])
+    enabled: isActiveTab(['customers', 'users', 'customer-detail', 'customer-groups', 'customer-group-detail', 'overview', 'search-results', 'notifications', 'messages', 'stats'])
   });
   const localUsers: UserType[] = Array.isArray(USERS)
     ? USERS as UserType[]
@@ -296,6 +293,7 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
   const {
     data: NOTIFICATIONS,
     setData: setLocalSystemNotifications,
+    updateEntity: updateNotification,
     deleteEntity: deleteNotification,
   } = useEntity<Notification>('notification', [], {
     enabled: true
@@ -359,10 +357,10 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
 
   // sortByDate is now imported from adminService
 
-  const { data: CHAT_MESSAGES, deleteEntity: deleteChatMessage } = useEntity<any>('chat_message', [], {
+  const { data: CHAT_MESSAGES, addEntity: addChatMessage, deleteEntity: deleteChatMessage } = useEntity<any>('chat_message', [], {
     enabled: isActiveTab(['messages'])
   });
-  const { data: CONVERSATIONS, deleteEntity: deleteConversation } = useEntity<any>('conversation', [], {
+  const { data: CONVERSATIONS, updateEntity: updateConversation, deleteEntity: deleteConversation } = useEntity<any>('conversation', [], {
     enabled: isActiveTab(['messages'])
   });
   const { data: COUPONS, updateEntity: updateCoupon, addEntity: addCoupon, deleteEntity: deleteCoupon } = useEntity<Coupon>('coupon', [], {
@@ -793,9 +791,27 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
   const overviewOrderFilter = useAdminStore((s) => s.overviewOrderFilter);
   const setOverviewOrderFilter = useAdminStore((s) => s.setOverviewOrderFilter);
 
+  const markAllNotificationsAsRead = async () => {
+    const unreadNotifs = (localSystemNotifications || []).filter(n => !n.read);
+    setLocalSystemNotifications(prev => prev.map(n => ({ ...n, read: true, readAt: new Date().toISOString() })));
+    for (const notif of unreadNotifs) {
+      if (notif.id) {
+        try {
+          await updateNotification(notif.id, { read: true, readAt: new Date().toISOString() });
+        } catch (err) {
+          console.warn('Erreur mise à jour notification BD:', err);
+        }
+      }
+    }
+    toast.success('Toutes les notifications ont été marquées comme lues');
+  };
+
   const handleNotificationClick = (notification: Notification) => {
-    // Mark as read
-    setLocalSystemNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, read: true } : n));
+    // Mark as read in DB and local state
+    if (notification.id) {
+      updateNotification(notification.id, { read: true, readAt: new Date().toISOString() }).catch(() => {});
+    }
+    setLocalSystemNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, read: true, readAt: new Date().toISOString() } : n));
     
     // Redirect based on type
     if (notification.type === 'order') {
@@ -865,27 +881,45 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
     return () => window.removeEventListener('client-message', handleClientMessage as any);
   }, [selectedConversation]);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!messageInput.trim() || !selectedConversation) return;
 
     const newMessage: ChatMessage = {
       id: `m${Date.now()}`,
       senderId: 'u2', // Admin ID
       senderName: 'Admin Laine',
-      message: messageInput,
+      message: messageInput.trim(),
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isAdmin: true
     };
+
+    const updatedMessages = [...(selectedConversation.messages || []), newMessage];
 
     setSelectedConversation((prev: any) => {
       if (!prev) return null;
       return {
         ...prev,
-        messages: [...prev.messages, newMessage],
-        lastMessage: messageInput,
+        messages: updatedMessages,
+        lastMessage: messageInput.trim(),
         timestamp: 'À l\'instant'
       };
     });
+
+    try {
+      if (selectedConversation.id) {
+        await updateConversation(selectedConversation.id, {
+          messages: updatedMessages,
+          lastMessage: messageInput.trim(),
+          timestamp: new Date().toISOString()
+        });
+      }
+      await addChatMessage({
+        conversationId: selectedConversation.id,
+        ...newMessage
+      });
+    } catch (err) {
+      console.warn('Erreur lors de la sauvegarde du message en BD:', err);
+    }
 
     // Dispatch event for client to see
     window.dispatchEvent(new CustomEvent('admin-message', { detail: newMessage }));
@@ -1126,6 +1160,10 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
     handleEditFAQ,
     handleFormSubmit,
     handleNotificationClick,
+    markAllNotificationsAsRead,
+    updateNotification,
+    updateConversation,
+    addChatMessage,
     handleSaveCatalogRule,
     handleSaveCity,
     handleSaveCoupon,

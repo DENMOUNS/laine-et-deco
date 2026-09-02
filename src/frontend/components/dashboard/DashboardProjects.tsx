@@ -20,11 +20,11 @@ export const DashboardProjects: React.FC<DashboardProjectsProps> = ({
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <h3 className="text-2xl font-serif font-bold text-primary">Mes Projets Tricot</h3>
             <Button 
-                onClick={() => onNavigate('knitting-companion')}
+                onClick={() => onNavigate('custom-order')}
                 className="px-6 py-3 bg-accent text-white rounded-xl font-bold text-sm hover:bg-accent/90 transition-colors shadow-lg flex items-center gap-2 h-auto"
             >
                 <Scissors size={18} />
-                Nouveau Projet
+                Nouveau Projet Sur Mesure
             </Button>
         </div>
 
@@ -34,10 +34,10 @@ export const DashboardProjects: React.FC<DashboardProjectsProps> = ({
                 <h3 className="text-xl font-serif font-bold text-primary mb-2">Aucun projet</h3>
                 <p className="text-primary/70 mb-6">Commencez votre premier projet tricot dès maintenant !</p>
                 <Button 
-                    onClick={() => onNavigate('knitting-companion')}
+                    onClick={() => onNavigate('custom-order')}
                     className="px-8 py-3 bg-primary text-white rounded-full font-bold hover:bg-accent transition-colors h-auto"
                 >
-                    Lancer le Compagnon
+                    Commander Sur Mesure
                 </Button>
             </div>
         ) : (
@@ -94,10 +94,10 @@ export const DashboardProjects: React.FC<DashboardProjectsProps> = ({
 
                         <Button 
                             variant="secondary"
-                            onClick={() => onNavigate('knitting-companion')}
+                            onClick={() => onNavigate('calculator')}
                             className="w-full py-3 bg-slate-50 text-primary rounded-xl font-bold text-sm hover:bg-primary hover:text-white transition-all flex items-center justify-center gap-2 h-auto"
                         >
-                            Continuer <ChevronRight size={16} />
+                            Calculer le métrage <ChevronRight size={16} />
                         </Button>
                     </div>
                 ))}

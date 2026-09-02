@@ -108,10 +108,10 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               </div>
               <Button 
                 variant="outline"
-                onClick={() => onNavigate('knitting-companion')}
+                onClick={() => onNavigate('calculator')}
                 className="w-full py-3 bg-card border border-primary/5 rounded-xl text-xs font-bold hover:bg-primary hover:text-white transition-all h-auto"
               >
-                Ouvrir le Compagnon
+                Calculateur de Laine
               </Button>
             </div>
           ) : (
@@ -120,10 +120,10 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                 <Button 
                   variant="ghost"
                   size="sm"
-                  onClick={() => onNavigate('knitting-companion')} 
+                  onClick={() => onNavigate('custom-order')} 
                   className="mt-2 text-accent font-bold text-xs hover:underline h-auto px-0"
                 >
-                  Commencer un projet
+                  Commander Sur Mesure
                 </Button>
             </div>
           )}

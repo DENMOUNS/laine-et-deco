@@ -4,14 +4,14 @@ import { Plus, Type as TypeIcon, CheckCircle2, Trash2, Edit, Sparkles, Globe, Lo
 import { DataTable } from '../../../components/DataTable';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
 import { useEntity } from '../../../hooks/useEntity';
-import { ScrollingBannerConfig } from '../../../../types';
+import { MarqueeItem } from '../../../../types';
 import { toast } from 'sonner';
 import { translateContentWithAi } from '../../../utils/aiTranslator';
 
 export function AdminScrollingBanners({ ctx }: { ctx: any }) {
-  const { data: banners, createEntity, updateEntity, deleteEntity } = useEntity<ScrollingBannerConfig>('scrolling_banner');
+  const { data: banners, createEntity, updateEntity, deleteEntity } = useEntity<MarqueeItem>('marquee_item');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<ScrollingBannerConfig | null>(null);
+  const [editingItem, setEditingItem] = useState<MarqueeItem | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
   const [formData, setFormData] = useState<{ text: string; text_en?: string; iconName: string }>({
     text: '',
@@ -61,14 +61,13 @@ export function AdminScrollingBanners({ ctx }: { ctx: any }) {
     }
   };
 
-  const handleSetActive = async (banner: ScrollingBannerConfig) => {
+  const handleToggleStatus = async (banner: MarqueeItem) => {
     try {
-      const activeBanner = banners.find(b => b.status === 'active');
-      if (activeBanner && activeBanner.id !== banner.id) await updateEntity(activeBanner.id!, { status: 'inactive' });
-      await updateEntity(banner.id!, { status: 'active' });
-      toast.success('Bannière définie comme active');
+      const newStatus = banner.status === 'active' ? 'inactive' : 'active';
+      await updateEntity(banner.id!, { status: newStatus });
+      toast.success(newStatus === 'active' ? 'Bannière activée' : 'Bannière désactivée');
     } catch (error) {
-      toast.error('Erreur');
+      toast.error('Erreur lors du changement de statut');
     }
   };
 
@@ -82,7 +81,7 @@ export function AdminScrollingBanners({ ctx }: { ctx: any }) {
             <p className="text-sm text-primary/60">Gérez le texte défilant (Marquee)</p>
           </div>
         </div>
-        <button onClick={() => { setEditingItem(null); setFormData({ text: '', text_en: '', iconName: '' }); setIsModalOpen(true); }} className="bg-primary text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-accent transition-all cursor-pointer">
+        <button onClick={() => { setEditingItem(null); setFormData({ text: '', text_en: '', iconName: 'Sparkles' }); setIsModalOpen(true); }} className="bg-primary text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-accent transition-all cursor-pointer">
           <Plus size={20} /> Nouvelle Bannière
         </button>
       </div>
@@ -93,7 +92,7 @@ export function AdminScrollingBanners({ ctx }: { ctx: any }) {
           columns={[
             { 
               header: 'Texte (FR / EN)', 
-              accessor: (b: ScrollingBannerConfig) => (
+              accessor: (b: MarqueeItem) => (
                 <div>
                   <div className="font-bold text-primary">{b.text}</div>
                   {b.text_en && <div className="text-xs text-primary/60 italic">EN: {b.text_en}</div>}
@@ -101,14 +100,24 @@ export function AdminScrollingBanners({ ctx }: { ctx: any }) {
               ) 
             },
             { header: 'Icone', accessor: 'iconName' },
-            { header: 'Statut', accessor: (b: ScrollingBannerConfig) => <StatusBadge status={b.status} /> },
+            { header: 'Statut', accessor: (b: MarqueeItem) => <StatusBadge status={b.status} /> },
             {
               header: 'Actions',
-              accessor: (b: ScrollingBannerConfig) => (
+              accessor: (b: MarqueeItem) => (
                 <div className="flex items-center gap-2">
-                  {b.status !== 'active' && <button onClick={() => handleSetActive(b)} className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 cursor-pointer"><CheckCircle2 size={16} /></button>}
-                  <button onClick={() => { setEditingItem(b); setFormData({ text: b.text || '', text_en: b.text_en || '', iconName: b.iconName || '' }); setIsModalOpen(true); }} className="p-2 bg-primary/5 text-primary rounded-lg hover:bg-primary/10 cursor-pointer"><Edit size={16} /></button>
-                  <button onClick={() => { if(confirm('Supprimer ?')) deleteEntity(b.id!); }} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 cursor-pointer"><Trash2 size={16} /></button>
+                  <button 
+                    onClick={() => handleToggleStatus(b)} 
+                    className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer ${
+                      b.status === 'active' 
+                        ? 'bg-amber-500/10 text-amber-700 hover:bg-amber-500/20' 
+                        : 'bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20'
+                    }`}
+                  >
+                    <CheckCircle2 size={14} />
+                    <span>{b.status === 'active' ? 'Désactiver' : 'Activer'}</span>
+                  </button>
+                  <button onClick={() => { setEditingItem(b); setFormData({ text: b.text || '', text_en: b.text_en || '', iconName: b.iconName || '' }); setIsModalOpen(true); }} className="p-2 bg-primary/5 text-primary rounded-lg hover:bg-primary/10 cursor-pointer" title="Modifier"><Edit size={16} /></button>
+                  <button onClick={() => { if(confirm('Supprimer cette bannière ?')) deleteEntity(b.id!); }} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 cursor-pointer" title="Supprimer"><Trash2 size={16} /></button>
                 </div>
               )
             }

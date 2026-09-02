@@ -314,75 +314,109 @@ export function AdminCustomerDetail({ ctx }: { ctx: any }) {
                 );
               })()}
 
-              {customerDetailTab === 'loyalty' && (
-                <div className="lg:col-span-3 space-y-8">
-                  <div className="bg-gradient-to-br from-primary to-accent p-12 rounded-[3rem] text-primary-foreground relative overflow-hidden shadow-xl">
-                    <div className="relative z-10">
-                      <p className="text-primary-foreground/70 font-bold uppercase tracking-widest text-sm mb-2">Programme de Fidélité</p>
-                      <h3 className="text-4xl font-serif font-bold mb-6">Statut {selectedCustomer.loyaltyTier || 'Bronze'}</h3>
-                      <div className="flex items-end gap-4">
-                        <p className="text-6xl font-bold">{(selectedCustomer.points || 0).toLocaleString()}</p>
-                        <p className="text-xl mb-2 opacity-80">Points</p>
-                      </div>
-                      <div className="mt-8 max-w-md">
-                        <div className="flex justify-between text-sm mb-2">
-                          <span>Prochain palier : {selectedCustomer.loyaltyTier === 'Platinum' ? 'Maximum atteint' : 'Suivant'}</span>
-                          <span>{Math.min(100, ((selectedCustomer.points || 0) % 1000) / 10).toFixed(0)}%</span>
-                        </div>
-                        <div className="h-2 bg-primary-foreground/20 rounded-full overflow-hidden">
-                          <div className="h-full bg-primary-foreground" style={{ width: `${Math.min(100, ((selectedCustomer.points || 0) % 1000) / 10)}%` }}></div>
-                        </div>
-                      </div>
-                    </div>
-                    <Award size={200} className="absolute -right-10 -bottom-10 text-primary-foreground/10 rotate-12" />
-                  </div>
+              {customerDetailTab === 'loyalty' && (() => {
+                const getPoints = (u: any) => {
+                  if (!u) return 0;
+                  const ordersList = allOrders || ORDERS || [];
+                  const completedCount = ordersList.filter((o: any) => (o.userId === u.id || o.userId === u.uid) && o.status === 'completed').length;
+                  return completedCount * 10;
+                };
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="bg-card p-8 rounded-[2.5rem] border border-primary/10 shadow-sm">
-                      <h4 className="text-lg font-serif font-bold mb-6 text-primary">Badges Débloqués</h4>
-                      <div className="grid grid-cols-4 gap-4">
-                        {(selectedCustomer.badges || []).length > 0 ? (
-                          selectedCustomer.badges?.map((badge) => (
-                            <div key={badge.id} className="flex flex-col items-center gap-2">
-                              <div className="w-16 h-16 rounded-2xl bg-secondary/50 flex items-center justify-center text-accent border border-primary/10">
-                                <span className="text-2xl">{badge.icon}</span>
-                              </div>
-                              <span className="text-[10px] font-bold text-primary/60 uppercase text-center">{badge.name}</span>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="col-span-4 text-center py-8 text-primary/60 italic">Aucun badge débloqué</div>
-                        )}
+                const getLoyaltyTier = (pts: number) => {
+                  if (pts >= 600) return 'Platinum';
+                  if (pts >= 300) return 'Gold';
+                  if (pts >= 100) return 'Silver';
+                  return 'Bronze';
+                };
+
+                const getNextTierInfo = (pts: number) => {
+                  if (pts >= 600) return { next: 'Maximum atteint', progress: 100 };
+                  if (pts >= 300) {
+                    const nextMin = 600;
+                    const prevMin = 300;
+                    const progress = ((pts - prevMin) / (nextMin - prevMin)) * 100;
+                    return { next: `Platinum (${600} pts)`, progress };
+                  }
+                  if (pts >= 100) {
+                    const nextMin = 300;
+                    const prevMin = 100;
+                    const progress = ((pts - prevMin) / (nextMin - prevMin)) * 100;
+                    return { next: `Gold (${300} pts)`, progress };
+                  }
+                  const nextMin = 100;
+                  const prevMin = 0;
+                  const progress = ((pts - prevMin) / (nextMin - prevMin)) * 100;
+                  return { next: `Silver (${100} pts)`, progress };
+                };
+
+                const points = getPoints(selectedCustomer);
+                const loyaltyTier = getLoyaltyTier(points);
+                const nextTierInfo = getNextTierInfo(points);
+
+                return (
+                  <div className="lg:col-span-3 space-y-8">
+                    <div className="bg-gradient-to-br from-primary to-accent p-12 rounded-[3rem] text-primary-foreground relative overflow-hidden shadow-xl">
+                      <div className="relative z-10">
+                        <p className="text-primary-foreground/70 font-bold uppercase tracking-widest text-sm mb-2">Programme de Fidélité</p>
+                        <h3 className="text-4xl font-serif font-bold mb-6">Statut {loyaltyTier}</h3>
+                        <div className="flex items-end gap-4">
+                          <p className="text-6xl font-bold">{points.toLocaleString()}</p>
+                          <p className="text-xl mb-2 opacity-80">Points</p>
+                        </div>
+                        <div className="mt-8 max-w-md">
+                          <div className="flex justify-between text-sm mb-2">
+                            <span>Prochain palier : {nextTierInfo.next}</span>
+                            <span>{nextTierInfo.progress.toFixed(0)}%</span>
+                          </div>
+                          <div className="h-2 bg-primary-foreground/20 rounded-full overflow-hidden">
+                            <div className="h-full bg-primary-foreground" style={{ width: `${nextTierInfo.progress}%` }}></div>
+                          </div>
+                        </div>
+                      </div>
+                      <Award size={200} className="absolute -right-10 -bottom-10 text-primary-foreground/10 rotate-12" />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className="bg-card p-8 rounded-[2.5rem] border border-primary/10 shadow-sm">
+                        <h4 className="text-lg font-serif font-bold mb-6 text-primary">Fonctionnement</h4>
+                        <div className="space-y-4 text-sm text-primary/70">
+                          <p>Le programme de fidélité attribue automatiquement des points à chaque client en temps réel :</p>
+                          <div className="flex justify-between items-center bg-secondary/30 p-3.5 rounded-2xl border border-primary/5">
+                            <span className="font-medium">Par commande complétée</span>
+                            <span className="font-bold text-amber-600">+10 points</span>
+                          </div>
+                          <p className="text-xs text-primary/50">Les points sont automatiquement recalculés d'après l'historique d'achats du client.</p>
+                        </div>
+                      </div>
+                      <div className="bg-card p-8 rounded-[2.5rem] border border-primary/10 shadow-sm">
+                        <h4 className="text-lg font-serif font-bold mb-6 text-primary">Avantages Actifs</h4>
+                        <ul className="space-y-4">
+                          <li className="flex items-center gap-3 text-primary/60">
+                            <CheckCircle2 size={20} className="text-primary" />
+                            Livraison gratuite illimitée
+                          </li>
+                          {loyaltyTier === 'Gold' || loyaltyTier === 'Platinum' ? (
+                            <li className="flex items-center gap-3 text-primary/60">
+                              <CheckCircle2 size={20} className="text-primary" />
+                              -10% sur toute la boutique
+                            </li>
+                          ) : null}
+                          {loyaltyTier === 'Platinum' ? (
+                            <li className="flex items-center gap-3 text-primary/60">
+                              <CheckCircle2 size={20} className="text-primary" />
+                              Accès anticipé aux nouvelles collections
+                            </li>
+                          ) : null}
+                          <li className="flex items-center gap-3 text-primary/60">
+                            <CheckCircle2 size={20} className="text-primary" />
+                            Service client prioritaire
+                          </li>
+                        </ul>
                       </div>
                     </div>
-                    <div className="bg-card p-8 rounded-[2.5rem] border border-primary/10 shadow-sm">
-                      <h4 className="text-lg font-serif font-bold mb-6 text-primary">Avantages Actifs</h4>
-                      <ul className="space-y-4">
-                        <li className="flex items-center gap-3 text-primary/60">
-                          <CheckCircle2 size={20} className="text-primary" />
-                          Livraison gratuite illimitée
-                        </li>
-                        {selectedCustomer.loyaltyTier === 'Gold' || selectedCustomer.loyaltyTier === 'Platinum' ? (
-                          <li className="flex items-center gap-3 text-primary/60">
-                            <CheckCircle2 size={20} className="text-primary" />
-                            -10% sur toute la boutique
-                          </li>
-                        ) : null}
-                        {selectedCustomer.loyaltyTier === 'Platinum' ? (
-                          <li className="flex items-center gap-3 text-primary/60">
-                            <CheckCircle2 size={20} className="text-primary" />
-                            Accès anticipé aux nouvelles collections
-                          </li>
-                        ) : null}
-                        <li className="flex items-center gap-3 text-primary/60">
-                          <CheckCircle2 size={20} className="text-primary" />
-                          Service client prioritaire
-                        </li>
-                      </ul>
-                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {customerDetailTab === 'messages' && (() => {
                 const conversation = CONVERSATIONS.find(c => c.userId === selectedCustomer.id);

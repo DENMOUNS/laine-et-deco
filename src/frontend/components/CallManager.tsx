@@ -116,7 +116,7 @@ export const CallManager: React.FC = () => {
     }
   };
 
-  // Écouter le signal de début d'appel global (venant du chat ou du header)
+  // Écouter le signal de début d'appel global (venant du chat ou du header ou de la liste des utilisateurs admin)
   useEffect(() => {
     const handleStartCallSignal = () => {
       if (callState !== 'idle') return;
@@ -132,14 +132,32 @@ export const CallManager: React.FC = () => {
       }
     };
 
+    const handleStartCallToUserSignal = (e: CustomEvent) => {
+      if (callState !== 'idle') return;
+      const { targetUserId, targetUserName } = e.detail || {};
+      const nameToUse = targetUserName ? `Client (${targetUserName})` : 'Client';
+      initiateOutgoingCall(nameToUse);
+    };
+
     window.addEventListener('app:start-call', handleStartCallSignal);
-    return () => window.removeEventListener('app:start-call', handleStartCallSignal);
+    window.addEventListener('app:start-call-to-user', handleStartCallToUserSignal as any);
+    return () => {
+      window.removeEventListener('app:start-call', handleStartCallSignal);
+      window.removeEventListener('app:start-call-to-user', handleStartCallToUserSignal as any);
+    };
   }, [callState, user, currentUserDoc]);
 
-  // Écouter les appels entrants (Staff uniquement, qu'il soit sur le dashboard admin ou le site client)
+  // Demander la permission de notification au chargement si ce n'est pas encore fait
   useEffect(() => {
-    if (!isStaff) return;
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'default') {
+        Notification.requestPermission().catch(() => {});
+      }
+    }
+  }, []);
 
+  // Écouter les appels entrants (Staff ou Client)
+  useEffect(() => {
     const currentUid = user?.uid || '';
 
     const unsubscribe = callService.listenForIncomingCalls(
@@ -150,6 +168,22 @@ export const CallManager: React.FC = () => {
           setIncomingCall(incoming);
           setCallState('ringing_in');
           startRingtone('incoming');
+
+          // Afficher une Notification native du navigateur (qui pop-up même si le site est en arrière-plan)
+          if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+            try {
+              const notif = new Notification("📞 APPEL VOCAL ENTRANT - Laine & Déco", {
+                body: `${incoming.callerName || 'Un correspondant'} vous appelle ! Cliquez pour répondre.`,
+                icon: '/favicon.ico',
+                requireInteraction: true
+              });
+              notif.onclick = () => {
+                window.focus();
+              };
+            } catch (err) {
+              console.warn("Notification native impossible :", err);
+            }
+          }
         }
       },
       (answeredCallId, answeredBy) => {

@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, ChevronDown, MessageCircle, Truck, CreditCard, Package, Settings, Info, ChevronRight, HelpCircle } from 'lucide-react';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../../backend/firebase';
 import { cn } from '../utils/utils';
 import { useStaticEntity } from '../hooks/useStaticEntity';
-import { FAQ } from '../../types';
+import { FAQ, FaqPageConfig } from '../../types';
 import { useTranslation } from '../../i18n';
+import { useConfigStore } from '../../stores/configStore';
+import { DEFAULT_FAQ_PAGE_CONFIG } from '../../siteDefaults';
 
 export const FAQView: React.FC<{ onNavigate: (view: string) => void }> = ({ onNavigate }) => {
   const { t, l, isEn } = useTranslation();
@@ -12,6 +16,50 @@ export const FAQView: React.FC<{ onNavigate: (view: string) => void }> = ({ onNa
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [openIndex, setOpenIndex] = useState<number | null>(0);
+
+  const siteConfig = useConfigStore((s) => s.siteConfig);
+  const setSiteConfig = useConfigStore((s) => s.setSiteConfig);
+  const rawFaqConfig = siteConfig.faqPage;
+
+  const [liveFaqConfig, setLiveFaqConfig] = useState<FaqPageConfig>(rawFaqConfig || DEFAULT_FAQ_PAGE_CONFIG);
+
+  useEffect(() => {
+    if (rawFaqConfig) {
+      setLiveFaqConfig(rawFaqConfig);
+    }
+  }, [rawFaqConfig]);
+
+  // Real-time Firestore subscription
+  useEffect(() => {
+    try {
+      const docId = siteConfig?.id || 'global';
+      const ref = doc(db, 'site_config', docId);
+      const unsubscribe = onSnapshot(
+        ref,
+        (snapshot) => {
+          if (snapshot.exists()) {
+            const data = snapshot.data();
+            if (data?.faqPage) {
+              setLiveFaqConfig(data.faqPage);
+              setSiteConfig((prev) => ({
+                ...prev,
+                ...data,
+                faqPage: data.faqPage,
+              }));
+            }
+          }
+        },
+        (error) => {
+          console.warn('Firestore subscription note on FAQView:', error);
+        }
+      );
+      return () => unsubscribe();
+    } catch (err) {
+      console.warn('Could not attach Firestore listener on FAQView:', err);
+    }
+  }, [siteConfig?.id, setSiteConfig]);
+
+  const cfg: FaqPageConfig = { ...DEFAULT_FAQ_PAGE_CONFIG, ...liveFaqConfig };
 
   const categories = [
     { id: 'all', name: isEn ? 'All' : 'Toutes', icon: <HelpCircle size={20} /> },
@@ -54,14 +102,14 @@ export const FAQView: React.FC<{ onNavigate: (view: string) => void }> = ({ onNa
             animate={{ opacity: 1, y: 0 }}
             className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 leading-tight"
           >
-            {isEn ? 'How can we help you?' : 'Comment pouvons-nous vous aider ?'}
+            {cfg.heroTitle || (isEn ? 'How can we help you?' : 'Comment pouvons-nous vous aider ?')}
           </motion.h1>
           
           <div className="relative max-w-2xl mx-auto px-2">
             <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-primary/70" size={20} />
             <input 
               type="text"
-              placeholder={isEn ? 'Search a question...' : 'Rechercher une question...'}
+              placeholder={cfg.searchPlaceholder || (isEn ? 'Search a question...' : 'Rechercher une question...')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-12 pr-6 py-4 md:py-5 rounded-3xl bg-white text-primary placeholder:text-primary/70 shadow-2xl shadow-primary/20 outline-none focus:ring-4 focus:ring-accent/20 transition-all text-base md:text-lg"
@@ -214,16 +262,16 @@ export const FAQView: React.FC<{ onNavigate: (view: string) => void }> = ({ onNa
             <div className="mt-12 md:mt-16 bg-[#3E4A3D] dark:bg-[#1A1D1A] border border-white/5 rounded-[2rem] md:rounded-[3rem] p-6 sm:p-8 md:p-12 text-white relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl">
               <div className="relative z-10 text-center md:text-left">
                 <h2 className="text-xl sm:text-2xl md:text-3xl font-serif mb-4">
-                  {isEn ? 'Need personalized assistance?' : "Besoin d'un accompagnement personnalisé ?"}
+                  {cfg.bottomBannerTitle || (isEn ? 'Need personalized assistance?' : "Besoin d'un accompagnement personnalisé ?")}
                 </h2>
                 <p className="text-white/80 mb-6 md:mb-8 max-w-lg text-sm sm:text-base">
-                  {isEn 
+                  {cfg.bottomBannerSubtitle || (isEn 
                     ? 'Our experts are available to guide you through bespoke projects, choice of yarns, needles, crochets or models.'
-                    : "Nos experts sont disponibles pour vous guider dans vos projets sur mesure, vos choix de laines, d'aiguilles, de crochets ou de modèles."}
+                    : "Nos experts sont disponibles pour vous guider dans vos projets sur mesure, vos choix de laines, d'aiguilles, de crochets ou de modèles.")}
                 </p>
                 <div className="flex flex-wrap gap-4 justify-center md:justify-start">
                   <button onClick={() => onNavigate('contact')} className="bg-[#E2C29B] text-[#111311] hover:bg-white hover:text-[#111311] px-6 sm:px-8 py-3 sm:py-4 rounded-2xl font-bold hover:shadow-xl transition-all flex items-center gap-2 text-sm sm:text-base">
-                    {isEn ? 'Message Us' : 'Nous écrire'} <ChevronRight size={18} />
+                    {cfg.bottomBannerButtonText || (isEn ? 'Message Us' : 'Nous écrire')} <ChevronRight size={18} />
                   </button>
                   <button onClick={() => onNavigate('shop')} className="bg-white/10 hover:bg-white/20 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-2xl font-bold transition-all text-sm sm:text-base">
                     {isEn ? 'Explore Shop' : 'Voir la boutique'}

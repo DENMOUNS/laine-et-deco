@@ -11,21 +11,26 @@ export function NavigationProgress() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const badgeTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const prevPathRef = useRef(location.pathname + location.search);
+  const maxSafetyTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const startProgress = () => {
+  const clearAllTimers = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (badgeTimerRef.current) clearTimeout(badgeTimerRef.current);
+    if (maxSafetyTimerRef.current) clearTimeout(maxSafetyTimerRef.current);
+  };
+
+  const startProgress = () => {
+    clearAllTimers();
 
     setLoading(true);
     setProgress(20);
     setShowBadge(false);
 
-    // Show badge only if navigation takes longer than 250ms
+    // Show badge only if navigation takes longer than 350ms
     badgeTimerRef.current = setTimeout(() => {
       setShowBadge(true);
-    }, 250);
+    }, 350);
 
     // Trickle progress to indicate active loading
     intervalRef.current = setInterval(() => {
@@ -38,12 +43,18 @@ export function NavigationProgress() {
         const diff = (90 - prev) * 0.15;
         return prev + Math.max(diff, 1);
       });
-    }, 120);
+    }, 100);
+
+    // SAFETY FALLBACK: Auto-complete after 1200ms so progress bar NEVER remains stuck indefinitely
+    maxSafetyTimerRef.current = setTimeout(() => {
+      completeProgress();
+    }, 1200);
   };
 
   const completeProgress = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (badgeTimerRef.current) clearTimeout(badgeTimerRef.current);
+    if (maxSafetyTimerRef.current) clearTimeout(maxSafetyTimerRef.current);
 
     setProgress(100);
     setShowBadge(false);
@@ -54,14 +65,10 @@ export function NavigationProgress() {
     }, 250);
   };
 
-  // 1. Listen to location changes (React Router)
+  // 1. Listen to location changes (React Router) — complete on ANY location change
   useEffect(() => {
-    const currentPath = location.pathname + location.search;
-    if (currentPath !== prevPathRef.current) {
-      prevPathRef.current = currentPath;
-      completeProgress();
-    }
-  }, [location]);
+    completeProgress();
+  }, [location.pathname, location.search, location.hash, location.key]);
 
   // 2. Global event listeners for immediate tactile feedback on click
   useEffect(() => {
@@ -78,22 +85,20 @@ export function NavigationProgress() {
       if (!target) return;
 
       const link = target.closest('a') as HTMLAnchorElement | null;
-      const navBtn = target.closest('[data-navigate], button, [role="button"]') as HTMLElement | null;
+      const navBtn = target.closest('[data-navigate]') as HTMLElement | null;
 
       if (link && link.href) {
-        const url = new URL(link.href, window.location.origin);
-        // Only trigger for same-origin links that aren't download / target="_blank"
-        if (url.origin === window.location.origin && link.target !== '_blank' && !link.hasAttribute('download')) {
-          if (url.pathname + url.search !== window.location.pathname + window.location.search) {
+        try {
+          const url = new URL(link.href, window.location.origin);
+          // Only trigger for same-origin links that aren't download / target="_blank"
+          if (url.origin === window.location.origin && link.target !== '_blank' && !link.hasAttribute('download')) {
             startProgress();
           }
+        } catch {
+          // ignore invalid URLs
         }
       } else if (navBtn) {
-        // If it's a navigation button, trigger lightweight start
-        const isAction = navBtn.hasAttribute('data-navigate') || navBtn.getAttribute('type') === 'submit';
-        if (isAction) {
-          startProgress();
-        }
+        startProgress();
       }
     };
 
@@ -105,9 +110,7 @@ export function NavigationProgress() {
       window.removeEventListener('navigation:start', handleNavStart);
       window.removeEventListener('navigation:end', handleNavEnd);
       document.removeEventListener('click', handleDocumentClick, { capture: true });
-      if (timerRef.current) clearTimeout(timerRef.current);
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      if (badgeTimerRef.current) clearTimeout(badgeTimerRef.current);
+      clearAllTimers();
     };
   }, []);
 

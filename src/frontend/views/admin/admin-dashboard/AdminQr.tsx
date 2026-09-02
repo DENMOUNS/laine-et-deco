@@ -22,13 +22,13 @@ export function AdminQr({ ctx }: { ctx: any }) {
       try {
         // const data = await getSystemConfig('qr_config', 'global');
         const data = await fetchDashboardConfig('qr_config');
-        setConfig(config);
-        if (!data) throw new Error("Configuration introuvable");
-        setConfig({
-          whatsappNumber: data.whatsappNumber || '',
-          whatsappMessage: data.whatsappMessage || '',
-          welcomeMessage: data.welcomeMessage || '',
-        });
+        if (data && Object.keys(data).length > 0) {
+          setConfig({
+            whatsappNumber: data.whatsappNumber || '',
+            whatsappMessage: data.whatsappMessage || '',
+            welcomeMessage: data.welcomeMessage || '',
+          });
+        }
       } catch (error: any) {
         const msg = error?.message || String(error);
         if (!msg.includes('introuvable') && !msg.includes('404')) {

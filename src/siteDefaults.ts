@@ -1,5 +1,91 @@
-import type { NavItem, SiteConfig } from './types';
+import type { NavItem, SiteConfig, ContactPageConfig, AboutPageConfig, FaqPageConfig } from './types';
 import { DEFAULT_FEATURE_FLAGS } from './frontend/utils/featureFlags';
+
+export const DEFAULT_ABOUT_PAGE_CONFIG: AboutPageConfig = {
+  badgeTitle: "Laine de Qualité, Accessoires, Aiguilles & Crochets d'Artisanat au Cameroun",
+  badgeTitle_en: "Quality Yarn, Accessories, Needles & Crochet Hooks in Cameroon",
+  heroTitle: "Notre Histoire & Notre Raison d'Être",
+  heroTitle_en: "Our History & Mission",
+  heroSubtitle: "Découvrez l'aventure de Laine & Déco, alliant expertise technologique et passion du sourcing pour réinventer la fourniture de laine noble, d'accessoires de tricot, de crochets, d'aiguilles et d'artisanat fait main au Cameroun.",
+  heroSubtitle_en: "Discover the adventure of Laine & Déco, combining technological expertise and sourcing passion to reinvent premium wool supplies, knitting tools, crochet hooks, and handmade crafts in Cameroon.",
+  missionTitle: "Notre Mission Textile",
+  missionTitle_en: "Our Textile Mission",
+  missionDescription: "Démocratiser l'artisanat textile et le tricot moderne au Cameroun en fournissant du matériel certifié, des pelotes sans intermédiaire et un accompagnement bienveillant.",
+  missionDescription_en: "Democratize textile crafts and modern knitting in Cameroon by providing certified materials, intermediary-free yarn balls and caring support.",
+  qualityTitle: "Qualité Sans Compromis",
+  qualityTitle_en: "Uncompromising Quality",
+  qualityDescription: "Chaque pelote et objet décoratif est minutieusement vérifié. Nous refusons les fibres synthétiques rugueuses et privilégions la douceur, la tenue au lavage et la durabilité.",
+  qualityDescription_en: "Every yarn ball and decorative item is thoroughly inspected. We reject coarse synthetic fibers and prioritize softness, wash durability and longevity.",
+  transparencyTitle: "Transparence & Prix Justes",
+  transparencyTitle_en: "Transparency & Fair Prices",
+  transparencyDescription: "En supprimant les intermédiaires superflus, nous proposons des tarifs clairs en Francs CFA (XAF) sans mauvaise surprise, rendant la création haut de gamme accessible à tous.",
+  transparencyDescription_en: "By cutting unnecessary intermediaries, we offer transparent prices in CFA Francs (XAF) with no bad surprises, making high-end creation accessible to all.",
+  proximityTitle: "Proximité Humaine 100% Locale",
+  proximityTitle_en: "100% Local Human Proximity",
+  proximityDescription: "Pas de centre d'appels délocalisé ni de robots impersonnels. L'équipe de Laine & Déco répond directement à vos messages WhatsApp pour vous conseiller sur vos choix de fil et de bain.",
+  proximityDescription_en: "No outsourced call centers or impersonal robots. The Laine & Déco team answers your WhatsApp messages directly to guide you on your choices of yarns and dye lots.",
+  creativityTitle: "Créativité & Transmission",
+  creativityTitle_en: "Creativity & Transmission",
+  creativityDescription: "Nous concevons des outils interactifs gratuits (calculateur de métrage, générateur de modèles IA) pour donner envie à chacun de créer de ses propres mains.",
+  creativityDescription_en: "We design free interactive tools (yardage calculator, AI model generator) to inspire everyone to create with their own hands.",
+  founderLandryBio: "Ingénieur logiciel & passionné d'artisanat. Landry conçoit l'architecture numérique, les calculateurs intelligents et pilote l'expérience client fluide de Laine & Déco.",
+  founderLandryBio_en: "Software engineer & craft enthusiast. Landry designs the digital platform, smart tools and oversees the seamless customer experience.",
+  founderSourcingBio: "Experte en matières premières et artisanat textile. Elle sélectionne avec rigueur chaque usine partenaire, teste les bains de teinture et supervise la conformité des expéditions.",
+  founderSourcingBio_en: "Raw materials & textile craft specialist. She rigorously audits partner factories, tests dye lots and oversees order fulfillment."
+};
+
+export const DEFAULT_FAQ_PAGE_CONFIG: FaqPageConfig = {
+  heroTitle: "Comment pouvons-nous vous aider ?",
+  heroTitle_en: "How can we help you?",
+  heroSubtitle: "Trouvez des réponses instantanées sur nos pelotes, livraisons à Douala et au Cameroun, moyens de paiement et commandes personnalisées.",
+  heroSubtitle_en: "Find instant answers about our yarn balls, shipping in Douala and Cameroon, payment methods, and bespoke custom orders.",
+  searchPlaceholder: "Rechercher une question ou un mot-clé...",
+  searchPlaceholder_en: "Search a question or keyword...",
+  bottomBannerTitle: "Vous n'avez pas trouvé de réponse ?",
+  bottomBannerTitle_en: "Didn't find your answer?",
+  bottomBannerSubtitle: "Notre équipe est disponible 6j/7 sur WhatsApp et par email pour répondre à toutes vos questions.",
+  bottomBannerSubtitle_en: "Our team is available 6 days a week on WhatsApp and email to answer all your questions.",
+  bottomBannerButtonText: "Nous contacter",
+  bottomBannerButtonText_en: "Contact us"
+};
+
+export const DEFAULT_CONTACT_PAGE_CONFIG: ContactPageConfig = {
+  headerTitle: 'Contactez-nous',
+  headerTitle_en: 'Contact Us',
+  headerSubtitle: "Une question sur un produit, un modèle de tricot, un choix d'aiguilles ou de crochets, ou simplement envie de nous dire bonjour ? Notre équipe est à votre écoute pour vous répondre dans les plus brefs délais.",
+  headerSubtitle_en: "Have a question about a product, a knitting pattern, a choice of needles or crochet, or just want to say hello? Our team is listening to answer you as soon as possible.",
+  shopTitle: 'Notre Boutique',
+  shopTitle_en: 'Our Boutique',
+  shopAddressLine1: 'Quartier Akwa, Rue des Écoles',
+  shopAddressLine2: 'Douala, Cameroun',
+  phoneTitle: 'Téléphone',
+  phoneTitle_en: 'Phone',
+  phoneNumber: '+237 600 000 000',
+  phoneAvailability: 'Lun-Ven, 9h à 18h',
+  phoneAvailability_en: 'Mon-Fri, 9am to 6pm',
+  allowDirectCall: true,
+  emailTitle: 'Email',
+  emailTitle_en: 'Email',
+  emailAddress: 'contact@laine-deco.com',
+  emailResponseTime: 'Nous répondons sous 24h',
+  emailResponseTime_en: 'We reply within 24h',
+  hoursTitle: 'Horaires',
+  hoursTitle_en: 'Hours',
+  hoursWeekday: 'Lun - Ven : 09h - 19h',
+  hoursWeekday_en: 'Mon - Fri: 09am - 07pm',
+  hoursSaturday: 'Samedi : 10h - 17h',
+  hoursSaturday_en: 'Saturday: 10am - 05pm',
+  hoursSunday: '',
+  hoursSunday_en: '',
+  customOrderTitle: 'Commandes sur mesure',
+  customOrderTitle_en: 'Bespoke Custom Orders',
+  customOrderDescription: 'Vous avez une idée précise de création ? Discutons-en pour donner vie à votre projet.',
+  customOrderDescription_en: "Have a specific creation idea? Let's discuss it to bring your project to life.",
+  customOrderButtonText: 'Demander un devis',
+  customOrderButtonText_en: 'Request a quote',
+  formTitle: 'Écrivez-nous',
+  formTitle_en: 'Write to Us',
+};
 
 /** Defaults légers pour le boot — évite d'importer tout constants.ts au chargement initial. */
 // No hard-coded navigation items — frontend must read nav items from Firestore.
@@ -53,6 +139,9 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
     ctaText: '',
   },
   marqueeItems: [],
+  aboutPage: DEFAULT_ABOUT_PAGE_CONFIG,
+  faqPage: DEFAULT_FAQ_PAGE_CONFIG,
+  contactPage: DEFAULT_CONTACT_PAGE_CONFIG,
   newsletterPopup: {
     isActive: false,
     title: '',

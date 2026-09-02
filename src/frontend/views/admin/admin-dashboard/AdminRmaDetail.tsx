@@ -20,12 +20,17 @@ import { CatalogPriceRuleEditor } from '../../../components/dashboard/CatalogPri
 import { cn } from '../../../utils/utils';
 
 import { AdminFlashSales } from '../AdminFlashSales';
-import { AdminLookbooks } from '../AdminLookbooks';
 import { AdminPortfolios } from '../AdminPortfolios';
 
 
 export function AdminRmaDetail({ ctx }: { ctx: any }) {
+  const [showRejectModal, setShowRejectModal] = React.useState(false);
+  const [rejectionReason, setRejectionReason] = React.useState('');
+
   const { ABANDONED_CARTS, ANALYTICS, BLOG_POSTS, CATEGORIES, CATEGORY_DISTRIBUTION, CHAT_MESSAGES, CITIES, CONVERSATIONS, COUPONS, CUSTOMER_GROUPS, DEVICE_DATA, EMAILS, EXPENSES, FAQS, LOGIN_LOGS, LOOKBOOK_POSTS, NAV_ITEMS, NOTIFICATIONS, ORDERS, PACKS, PRODUCTS, PROMO_EVENTS, PUSH_NOTIFICATIONS, REQUEST_LOGS, RETENTION_DATA, REVENUE_BY_PAYMENT, REVIEWS, SALES_DATA, SHIPPING_RULES, SUBSCRIBERS, TAX_RULES, TRAFFIC_SOURCES, USERS, activeMenuItem, activeTab, addBlogPost, addCatalogRule, addCategory, addCity, addCoupon, addCurrency, addCustomerGroup, addEvent, addExpense, addFAQ, addLocalRole, addLookbook, addNavItem, addPack, addProduct, addRMA, addReview, addShippingRule, addTaxRule, allOrders, averageOrderValue, catalogRulesWithDefaults, categoryPage, currentImage, currentSlug, currentUserDoc, customerDetailTab, customerFilter, deleteAbandonedCart, deleteCatalogRule, deleteCategory, deleteChatMessage, deleteCity, deleteConversation, deleteCoupon, deleteCurrency, deleteCustomerGroup, deleteEvent, deleteFAQ, deleteLocalRole, deleteLoginLog, deleteNavItem, deleteNotification, deleteOrder, deletePack, deleteProduct, deleteRequestLog, deleteReview, deleteShippingRule, deleteSiteConfig, deleteSubscriber, deleteTaxRule, deleteUser, editedOrder, editingItem, events, fetchedProducts, filteredMenuItems, formatDate, handleDeleteCatalogRule, handleDeleteCity, handleDeleteEvent, handleDeleteFAQ, handleEditCatalogRule, handleEditCity, handleEditCoupon, handleEditEvent, handleEditFAQ, handleFormSubmit, handleNotificationClick, handleSaveCatalogRule, handleSaveCity, handleSaveCoupon, handleSaveEvent, handleSaveFAQ, handleSearch, handleSeed, handleSendMessage, hasPermission, isAddModalOpen, isAuthLoading, isCatalogRuleEditorOpen, isCityEditorOpen, isCouponEditorOpen, isDataLoading, isEditingOrder, isEventEditorOpen, isFAQEditorOpen, isLoadingAbandoned, isLoadingBlog, isLoadingCatalog, isLoadingCategories, isLoadingCategoryDist, isLoadingDevice, isLoadingEmails, isLoadingExpenses, isLoadingGroups, isLoadingLookbook, isLoadingOrders, isLoadingPacks, isLoadingProducts, isLoadingPush, isLoadingRetention, isLoadingRevenue, isLoadingReviews, isLoadingRoles, isLoadingShipping, isLoadingSubscribers, isLoadingTax, isLoadingTraffic, isLogsLoading, isSaving, isSidebarOpen, isSuperAdmin, isTabAllowed, isUserCustomer, itemsPerPage, localAbandonedCarts, localBlogPosts, localCatalogPriceRules, localCategories, localCurrencies, localCustomerGroups, localExpenses, localLookbook, localNavItems, localOrders, localPacks, localProducts, localRMAs, localReviews, localRoles, localShippingRules, localSystemNotifications, localTaxRules, localUsers, logFilter, menuItems, messageInput, modalType, navItemsWithDefaults, newNote, newRMANote, notificationFilter, notificationPage, onNavigate, orderFilter, overviewOrderFilter, permissions, productFilter, propSetSiteConfig, propSiteConfig, rawSiteConfig, realLogs, requestLogFilter, reviewFilter, roleData, saveAllSiteConfig, saveSiteSection, searchResults, selectedCatalogRule, selectedCity, selectedConversation, selectedCoupon, selectedCustomer, selectedCustomerGroup, selectedEvent, selectedFAQ, selectedOrder, selectedPackProducts, setActiveTab, setCategoryPage, setCurrentImage, setCurrentSlug, setCustomerDetailTab, setCustomerFilter, setEditedOrder, setEditingItem, setEvents, setIsAddModalOpen, setIsCatalogRuleEditorOpen, setIsCityEditorOpen, setIsCouponEditorOpen, setIsEditingOrder, setIsEventEditorOpen, setIsFAQEditorOpen, setIsSaving, setIsSidebarOpen, setLocalAbandonedCarts, setLocalAbandonedCarts2, setLocalBlogPosts, setLocalBlogPosts2, setLocalCategories, setLocalCurrencies, setLocalCustomerGroups, setLocalCustomerGroups2, setLocalEmails, setLocalExpenses, setLocalLookbook, setLocalLookbook2, setLocalOrders, setLocalPacks, setLocalProducts, setLocalPushNotifications, setLocalReviews, setLocalReviews2, setLocalRole, setLocalRoles, setLocalShippingRules, setLocalShippingRules2, setLocalSubscribers, setLocalSystemNotifications, setLocalTaxRules, setLocalTaxRules2, setLocalUser, setLocalUsers, setLogFilter, setMessageInput, setModalType, setNewNote, setNewRMANote, setNotificationFilter, setNotificationPage, setOrderFilter, setOverviewOrderFilter, setProductFilter, setRequestLogFilter, setReviewFilter, setSearchResults, setSelectedCatalogRule, setSelectedCity, setSelectedConversation, setSelectedCoupon, setSelectedCustomer, setSelectedCustomerGroup, setSelectedEvent, setSelectedFAQ, setSelectedOrder, setSelectedPackProducts, setShowNotifications, setSiteConfig, setViewingCustomer, showNotifications, siteConfig, siteConfigs, sortByDate, stats, totalCustomers, totalOrdersCount, totalSales, totalVisitors, updateBlogPost, updateCatalogRule, updateCategory, updateCity, updateCoupon, updateCurrency, updateCustomerGroup, updateEvent, updateExpense, updateFAQ, updateLocalRole, updateLocalUser, updateLookbook, updateNavItem, updatePack, updateProduct, updateRMA, updateReview, updateShippingRule, updateSiteConfig, updateTaxRule, user, userRoleSlug, viewingCustomer } = ctx;
+
+  const isRejected = editingItem?.status === 'rejected';
+
   return (
     <>
 {activeTab === 'rma-detail' && editingItem && (
@@ -36,6 +41,18 @@ export function AdminRmaDetail({ ctx }: { ctx: any }) {
                </button>
                <h2 className="text-2xl font-serif font-bold">Détail Retour #{editingItem.id}</h2>
             </div>
+
+            {isRejected && (
+              <div className="bg-red-500/10 border border-red-500/30 p-4 rounded-2xl flex items-center gap-3 text-red-600 font-bold text-sm">
+                <AlertCircle size={20} className="shrink-0" />
+                <div>
+                  <p>Cette demande de retour a été REJETÉE et ne peut plus être modifiée.</p>
+                  {editingItem.rejectionReason && (
+                    <p className="text-xs font-normal text-red-500 mt-1">Motif : {editingItem.rejectionReason}</p>
+                  )}
+                </div>
+              </div>
+            )}
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-6">
@@ -224,14 +241,15 @@ export function AdminRmaDetail({ ctx }: { ctx: any }) {
                         <div className="space-y-3">
                             <button 
                                 onClick={() => {
+                                    if (isRejected) return;
                                     toast.success('Retour approuvé avec succès');
                                     updateRMA(editingItem.id, { status: 'approved' });
                                     setActiveTab('rmas');
                                     setEditingItem(null);
                                 }}
-                                disabled={editingItem.status === 'approved'}
+                                disabled={isRejected || editingItem.status === 'approved'}
                                 className={`w-full py-3 rounded-xl font-bold transition-all shadow-lg ${
-                                  editingItem.status === 'approved' 
+                                  isRejected || editingItem.status === 'approved' 
                                   ? 'bg-primary/10 text-primary/40 cursor-not-allowed' 
                                   : 'bg-green-700/80 text-white hover:bg-green-700 shadow-green-500/10'
                                 }`}
@@ -240,14 +258,15 @@ export function AdminRmaDetail({ ctx }: { ctx: any }) {
                             </button>
                             <button 
                                 onClick={() => {
+                                    if (isRejected) return;
                                     toast.success('Retour marqué comme reçu');
                                     updateRMA(editingItem.id, { status: 'received' });
                                     setActiveTab('rmas');
                                     setEditingItem(null);
                                 }}
-                                disabled={editingItem.status === 'received'}
+                                disabled={isRejected || editingItem.status === 'received'}
                                 className={`w-full py-3 rounded-xl font-bold transition-all ${
-                                  editingItem.status === 'received'
+                                  isRejected || editingItem.status === 'received'
                                   ? 'bg-primary/10 text-primary/40 cursor-not-allowed'
                                   : 'bg-blue-700/80 text-white hover:bg-blue-700 shadow-blue-500/10'
                                 }`}
@@ -256,14 +275,15 @@ export function AdminRmaDetail({ ctx }: { ctx: any }) {
                             </button>
                             <button 
                                 onClick={() => {
+                                    if (isRejected) return;
                                     toast.success('Remboursement effectué');
                                     updateRMA(editingItem.id, { status: 'refunded' });
                                     setActiveTab('rmas');
                                     setEditingItem(null);
                                 }}
-                                disabled={editingItem.status === 'refunded'}
+                                disabled={isRejected || editingItem.status === 'refunded'}
                                 className={`w-full py-3 rounded-xl font-bold transition-all ${
-                                  editingItem.status === 'refunded'
+                                  isRejected || editingItem.status === 'refunded'
                                   ? 'bg-primary/10 text-primary/40 cursor-not-allowed'
                                   : 'bg-primary text-white hover:bg-accent shadow-lg'
                                 }`}
@@ -272,22 +292,89 @@ export function AdminRmaDetail({ ctx }: { ctx: any }) {
                             </button>
                             <button 
                                 onClick={() => {
-                                    toast.error('Retour refusé');
-                                    updateRMA(editingItem.id, { status: 'rejected' });
-                                    setActiveTab('rmas');
-                                    setEditingItem(null);
+                                    if (isRejected) return;
+                                    setShowRejectModal(true);
                                 }}
-                                disabled={editingItem.status === 'rejected'}
+                                disabled={isRejected}
                                 className={`w-full py-3 rounded-xl font-bold transition-all ${
-                                  editingItem.status === 'rejected'
+                                  isRejected
                                   ? 'bg-primary/10 text-primary/40 cursor-not-allowed'
                                   : 'border border-red-500/30 text-red-500 hover:bg-red-500/10'
                                 }`}
                             >
-                                Refuser
+                                {isRejected ? 'Retour Rejeté (Verrouillé)' : 'Refuser'}
                             </button>
                         </div>
                     </div>
+
+                    {/* Modal de validation de rejet */}
+                    <AnimatePresence>
+                      {showRejectModal && (
+                        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                          <motion.div 
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-card w-full max-w-md p-6 rounded-3xl shadow-2xl border border-primary/10 space-y-4"
+                          >
+                            <div className="flex justify-between items-center pb-2 border-b border-primary/10">
+                              <h3 className="font-serif font-bold text-lg text-red-600 flex items-center gap-2">
+                                <AlertCircle size={20} /> Refuser la demande de retour
+                              </h3>
+                              <button 
+                                onClick={() => setShowRejectModal(false)}
+                                className="p-1 text-primary/60 hover:text-primary rounded-full"
+                              >
+                                <X size={20} />
+                              </button>
+                            </div>
+
+                            <p className="text-sm text-primary/80">
+                              Êtes-vous sûr de vouloir rejeter cette demande de retour ? Une fois rejetée, la demande sera enregistrée en base de données comme <strong className="text-red-600">Rejetée</strong> et ne pourra plus être modifiée.
+                            </p>
+
+                            <div className="space-y-2">
+                              <label className="text-xs font-bold text-primary/70">Motif du refus (optionnel)</label>
+                              <textarea
+                                value={rejectionReason}
+                                onChange={(e) => setRejectionReason(e.target.value)}
+                                placeholder="Indiquez la raison du rejet pour le client..."
+                                className="w-full p-3 bg-secondary/30 border border-primary/10 rounded-xl text-sm focus:outline-none focus:border-red-500"
+                                rows={3}
+                              />
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-2">
+                              <button
+                                onClick={() => setShowRejectModal(false)}
+                                className="px-4 py-2 rounded-xl text-sm font-bold bg-secondary text-primary hover:bg-secondary/80"
+                              >
+                                Annuler
+                              </button>
+                              <button
+                                onClick={() => {
+                                  updateRMA(editingItem.id, { 
+                                    status: 'rejected', 
+                                    rejectionReason: rejectionReason.trim(),
+                                    rejectedAt: new Date().toISOString()
+                                  });
+                                  setEditingItem((prev: any) => ({
+                                    ...prev,
+                                    status: 'rejected',
+                                    rejectionReason: rejectionReason.trim()
+                                  }));
+                                  setShowRejectModal(false);
+                                  toast.error('Demande de retour rejetée et enregistrée en BD.');
+                                }}
+                                className="px-5 py-2 rounded-xl text-sm font-bold bg-red-600 text-white hover:bg-red-700 shadow-md"
+                              >
+                                Confirmer le Rejet
+                              </button>
+                            </div>
+                          </motion.div>
+                        </div>
+                      )}
+                    </AnimatePresence>
 
                     <div className="bg-secondary/30 p-6 rounded-[2rem] border border-primary/10 shadow-sm">
                       <h4 className="font-serif font-bold text-lg mb-4 text-primary">Historique Statut</h4>

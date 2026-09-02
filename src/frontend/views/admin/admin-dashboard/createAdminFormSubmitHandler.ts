@@ -56,40 +56,6 @@ export function createAdminFormSubmitHandler(getCtx: () => any) {
               await addCategory(newCat);
               dispatchStaticEntityUpdate('category', { record: newCat });
           }
-      } else if (modalType === 'badge') {
-        const newBadge: any = {
-            id: editingItem.id,
-            name: formData.get('name') as string,
-            icon: formData.get('icon') as string,
-            description: formData.get('description') as string,
-            unlocked: editingItem.unlocked,
-            badgeType: editingItem.badgeType,
-            autoAssignRule: editingItem.autoAssignRule
-        };
-        const now = new Date().toISOString();
-        newBadge.updatedAt = now;
-
-        setSiteConfig((prev: any) => ({
-            ...prev,
-            loyaltyConfig: {
-                ...prev.loyaltyConfig,
-                badges: prev.loyaltyConfig.badges.map((b: any) => b.id === editingItem.id ? { ...b, ...newBadge } : b)
-            }
-        }));
-      } else if (modalType === 'loyalty-config') {
-        const levels = editingItem.levels.map((_: any, index: number) => ({
-            groupId: formData.get(`groupId-${index}`) as string,
-            minPoints: Number(formData.get(`minPoints-${index}`))
-        }));
-        setSiteConfig((prev: any) => ({
-            ...prev,
-            loyaltyConfig: {
-                ...prev.loyaltyConfig,
-                pointsPerPurchase: Number(formData.get('pointsPerPurchase')),
-                pointsPerReview: Number(formData.get('pointsPerReview')),
-                levels
-            }
-        }));
       } else if (modalType === 'pack') {
           const coverImageValue = formData.get('coverImage') as string;
           const newPack: any = {

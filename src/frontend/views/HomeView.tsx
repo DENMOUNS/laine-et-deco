@@ -112,7 +112,6 @@ interface HomeViewProps {
 export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onAddToWishlist, onQuickView, onAddToComparison, onProductClick, siteConfig, events = [] }) => {
   const { isMarqueeReady, isAllReady } = useLoadingSequence();
   const { t, l, isEn } = useTranslation();
-  const isLookbookEnabled = isFeatureEnabled(siteConfig, 'lookbook');
   const isBlogEnabled = isFeatureEnabled(siteConfig, 'blog');
   const isCalculatorEnabled = isFeatureEnabled(siteConfig, 'calculator');
   const isFlashSalesEnabled = isFeatureEnabled(siteConfig, 'flashSales');
@@ -157,7 +156,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
   const { data: PACKS, isLoading: isPacksLoading, error: packsError } = useStaticEntity<any>('pack', [], { enabled: !isFeatureDisabled(siteConfig, 'packs') });
   const { data: RECENT_FLASH_SALES, isLoading: isFlashSalesLoading, error: flashSalesError } = useStaticEntity<FlashSale>('flash_sale', [], { enabled: !isFeatureDisabled(siteConfig, 'flashSales') });
   const { data: RECENT_PROMOTIONS, isLoading: isPromotionsLoading, error: promotionsError } = useStaticEntity<Promotion>('promotion', [], { enabled: true });
-  const { data: LOOKBOOKS, isLoading: isLookbooksLoading, error: lookbooksError } = useStaticEntity<Lookbook>('lookbook', [], { enabled: !isFeatureDisabled(siteConfig, 'lookbook') });
 
   const HERO_BANNERS = React.useMemo(() => {
     return (rawHeroBanners || [])
@@ -182,7 +180,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
       p.items.some((item) => PRODUCTS.some((product) => product.id === item.productId))
     );
   }, [RECENT_PROMOTIONS, PRODUCTS]);
-  const activeLookbooks = LOOKBOOKS.filter(lb => lb.status === 'active');
   const visiblePacks = PACKS.filter((pack) => Array.isArray(pack.products) && pack.products.length > 0);
 
   const [isNewsletterSubscribed, setIsNewsletterSubscribed] = React.useState(() => {
@@ -872,7 +869,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
             { label: 'Déco', icon: '🏺', view: 'shop', query: 'Décoration', bg: 'from-rose-400 to-pink-600', feature: 'shop' },
             { label: 'Packs', icon: '🎁', view: 'packs', bg: 'from-emerald-400 to-teal-600', feature: 'packs' },
             { label: 'Flash', icon: '⚡', view: 'flash-sales', bg: 'from-amber-500 to-red-500', feature: 'flashSales' },
-            { label: 'Lookbook', icon: '📖', view: 'lookbook', bg: 'from-purple-400 to-violet-600', feature: 'lookbook' },
             { label: 'Sur Mesure', icon: '🎨', view: 'custom-order', bg: 'from-fuchsia-400 to-pink-500', feature: 'customOrder' },
           ].filter(item => isFeatureEnabled(siteConfig, item.feature)).map((item, idx) => (
             <motion.button
@@ -1039,65 +1035,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
           </div>
         </div>
       </section>
-      )}
-
-      {isLookbookEnabled && (
-        isLookbooksLoading || lookbooksError ? (
-          <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="space-y-3 mb-10"><Skeleton className="h-3 w-1/4" /><Skeleton className="h-10 w-1/2" /><Skeleton className="h-4 w-2/3" /></div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6"><ContentCardSkeleton /><ContentCardSkeleton /><ContentCardSkeleton /></div>
-          </section>
-        ) : activeLookbooks.length > 0 ? (
-          <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-10">
-              <div>
-                <span className="text-xs font-bold uppercase tracking-widest text-accent mb-2 block">Inspiration</span>
-                <h2 className="text-4xl font-serif">{isEn ? 'Our Lookbook' : 'Notre Lookbook'}</h2>
-                <p className="text-primary/70 mt-2 max-w-xl">
-                  {isEn 
-                    ? 'Explore knitting models, noble wool decors and creative styles for all your craft projects.'
-                    : "Explorez des modèles de tricot, des ambiances en laine noble et des looks créatifs pour tous vos projets d'artisanat."}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => onNavigate('lookbook')}
-                className="text-primary font-bold border-b-2 border-primary/20 hover:border-accent hover:text-accent transition-all pb-1"
-              >
-                {isEn ? 'View all' : 'Voir tout'}
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {activeLookbooks.slice(0, 3).map((lookbook) => (
-                <button
-                  key={lookbook.id}
-                  type="button"
-                  onClick={() => onNavigate('lookbook')}
-                  className="group overflow-hidden rounded-[2rem] bg-white border border-primary/10 shadow-sm hover:shadow-lg transition-shadow text-left"
-                >
-                  <div className="relative h-64 overflow-hidden">
-                    <ImageWithFallback
-                      src={optimizeImageUrl(lookbook.image, 800)}
-                      alt={lookbook.title || 'Lookbook'}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                      referrerPolicy="no-referrer"
-                      loading="lazy"
-                      width={800}
-                      height={640}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-                  </div>
-                  <div className="p-6">
-                    <p className="text-xs uppercase tracking-[0.3em] text-accent font-bold mb-2">Lookbook</p>
-                    <h3 className="text-xl font-serif text-primary mb-2">{lookbook.title}</h3>
-                    {lookbook.description && <p className="text-sm text-primary/70 line-clamp-3">{lookbook.description}</p>}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </section>
-        ) : null
       )}
 
       {/* Wool Calculator Teaser (PC Uniquement) */}

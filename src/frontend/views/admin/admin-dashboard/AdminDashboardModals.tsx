@@ -20,7 +20,6 @@ import { CatalogPriceRuleEditor } from '../../../components/dashboard/CatalogPri
 import { cn } from '../../../utils/utils';
 
 import { AdminFlashSales } from '../AdminFlashSales';
-import { AdminLookbooks } from '../AdminLookbooks';
 import { AdminPortfolios } from '../AdminPortfolios';
 
 import { Modal } from '../../../components/Modal';
@@ -38,12 +37,10 @@ import { AdminCustomerModalFields } from './AdminCustomerModalFields';
 import { AdminCategoryModalFields } from './AdminCategoryModalFields';
 import { AdminEventModalFields } from './AdminEventModalFields';
 import { AdminExpenseModalFields } from './AdminExpenseModalFields';
-import { AdminLookbookModalFields } from './AdminLookbookModalFields';
 import { AdminBlogModalFields } from './AdminBlogModalFields';
 import { AdminBlogCategoryModalFields } from './AdminBlogCategoryModalFields';
 import { AdminCustomerGroupModalFields } from './AdminCustomerGroupModalFields';
 import { AdminBadgeModalFields } from './AdminBadgeModalFields';
-import { AdminLoyaltyConfigModalFields } from './AdminLoyaltyConfigModalFields';
 import { AdminTaxModalFields } from './AdminTaxModalFields';
 import { AdminShippingModalFields } from './AdminShippingModalFields';
 import { AdminCatalogRuleModalFields } from './AdminCatalogRuleModalFields';
@@ -62,12 +59,10 @@ export function AdminDashboardModals({ ctx }: { ctx: any }) {
             modalType === 'category' ? 'Nouvelle Catégorie' :
             modalType === 'shipping' ? 'Nouvelle Règle de Livraison' :
             modalType === 'badge' ? 'Modifier le Badge' :
-            modalType === 'loyalty-config' ? 'Configuration Fidélité' :
             modalType === 'event' ? 'Créer un Évènement' :
             modalType === 'pack' ? 'Ajouter un Pack' :
             modalType === 'currency' ? 'Ajouter une Devise' :
             modalType === 'notification' ? 'Nouvelle Notification' :
-            modalType === 'lookbook' ? 'Ajouter au Lookbook' :
             modalType === 'blog' ? 'Nouvel Article' :
             modalType === 'blog-category' ? 'Nouvelle catégorie blog' :
             modalType === 'role' ? 'Nouveau Rôle' :
@@ -91,14 +86,11 @@ export function AdminDashboardModals({ ctx }: { ctx: any }) {
 
             <AdminExpenseModalFields ctx={ctx} />
 
-            <AdminLookbookModalFields ctx={ctx} />
-
             <AdminBlogModalFields ctx={ctx} />
             <AdminBlogCategoryModalFields ctx={ctx} />
 
             <AdminCustomerGroupModalFields ctx={ctx} />
             <AdminBadgeModalFields ctx={ctx} />
-            <AdminLoyaltyConfigModalFields ctx={ctx} />
             <AdminTaxModalFields ctx={ctx} />
             <AdminShippingModalFields ctx={ctx} />
             <AdminCatalogRuleModalFields ctx={ctx} />

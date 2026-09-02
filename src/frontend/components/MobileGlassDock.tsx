@@ -70,8 +70,6 @@ export const MobileGlassDock: React.FC<MobileGlassDockProps> = ({
   // Tool views list (PC-only features like calculators are excluded on mobile)
   const toolViews = [
     'workshops',
-    'knitting-companion',
-    'pattern-generator',
     'custom-order',
     'lookbook',
     'blog',
@@ -89,22 +87,6 @@ export const MobileGlassDock: React.FC<MobileGlassDockProps> = ({
       view: 'workshops',
       badge: 'Nouveau',
     }] : []),
-    {
-      id: 'companion',
-      label: 'Compagnon Tricot',
-      description: 'Compteur de rangs et suivi de projet',
-      icon: Scissors,
-      view: 'knitting-companion',
-      badge: 'Populaire',
-    },
-    {
-      id: 'generator',
-      label: 'Générateur IA de Patrons',
-      description: 'Créez des modèles uniques par IA',
-      icon: Wand2,
-      view: 'pattern-generator',
-      badge: 'IA',
-    },
     {
       id: 'lookbook',
       label: 'Lookbook & Inspirations',

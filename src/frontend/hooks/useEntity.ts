@@ -64,7 +64,8 @@ const CACHEABLE_ENTITIES = [
   'site_color',
   'city',
   'shipping_rule',
-  'tax_rule'
+  'tax_rule',
+  'member_portfolio'
 ];
 
 const resolveEntityType = (entityType: string) => ENTITY_TYPE_ALIASES[entityType] ?? entityType;
