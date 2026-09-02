@@ -1,4 +1,4 @@
-const FIRESTORE_SAFE_IMAGE_BYTES = 900 * 1024;
+const FIRESTORE_SAFE_IMAGE_BYTES = 80 * 1024; // Lowered to 80 KB to safely support multiple images in Firestore documents
 const IMAGE_DATA_URL_PREFIX = /^data:image\/(png|jpe?g|webp);base64,/i;
 const LIKELY_IMAGE_KEYS = new Set([
   'image',
@@ -85,6 +85,13 @@ export async function compressImageDataUrl(value: string, maxBytes = FIRESTORE_S
 }
 
 export async function compressImagesInPayload<T>(payload: T): Promise<T> {
+  if (typeof payload === 'string') {
+    if (isImageDataUrl(payload)) {
+      return (await compressImageDataUrl(payload)) as unknown as T;
+    }
+    return payload;
+  }
+
   if (!payload || typeof payload !== 'object') return payload;
 
   if (Array.isArray(payload)) {
