@@ -1,1 +1,5 @@
-export { AdminDashboardController as AdminDashboard } from './admin/admin-dashboard/AdminDashboardController';
+import { AdminDashboardController } from './admin/admin-dashboard/AdminDashboardController';
+
+export { AdminDashboardController as AdminDashboard };
+export default AdminDashboardController;
+

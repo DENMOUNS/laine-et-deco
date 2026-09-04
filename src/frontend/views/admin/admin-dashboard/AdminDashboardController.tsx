@@ -32,3 +32,6 @@ export const AdminDashboardController: React.FC<AdminDashboardProps> = (props) =
   const dashboardContext = useAdminDashboardContext(props);
   return <AdminDashboardShell ctx={dashboardContext} />;
 };
+
+export default AdminDashboardController;
+

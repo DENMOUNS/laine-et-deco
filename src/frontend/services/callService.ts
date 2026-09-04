@@ -123,47 +123,59 @@ export const callService = {
     const pendingCalleeCandidates: RTCIceCandidate[] = [];
 
     // Écouter les candidats de l'admin
-    const unsubscribeCalleeCandidates = onSnapshot(calleeCandidatesCollection, (snapshot) => {
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === 'added') {
-          const candidate = new RTCIceCandidate(change.doc.data());
-          if (peerConnection.remoteDescription) {
-            peerConnection.addIceCandidate(candidate).catch((err) =>
-              console.warn('Erreur ajout candidat ICE distant:', err)
-            );
-          } else {
-            pendingCalleeCandidates.push(candidate);
+    const unsubscribeCalleeCandidates = onSnapshot(
+      calleeCandidatesCollection,
+      (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'added') {
+            const candidate = new RTCIceCandidate(change.doc.data());
+            if (peerConnection.remoteDescription) {
+              peerConnection.addIceCandidate(candidate).catch((err) =>
+                console.warn('Erreur ajout candidat ICE distant:', err)
+              );
+            } else {
+              pendingCalleeCandidates.push(candidate);
+            }
           }
-        }
-      });
-    });
+        });
+      },
+      (err) => {
+        console.warn('[callService] Callee candidates listener note:', err);
+      }
+    );
 
     // Écouter le document d'appel pour la réponse de l'admin
-    const unsubscribeCall = onSnapshot(callRef, async (snapshot) => {
-      const data = snapshot.data();
-      if (!data) return;
+    const unsubscribeCall = onSnapshot(
+      callRef,
+      async (snapshot) => {
+        const data = snapshot.data();
+        if (!data) return;
 
-      if (data.status === 'rejected') {
-        onStateChange('rejected');
-        cleanup();
-      } else if (data.status === 'ended') {
-        onStateChange('ended');
-        cleanup();
-      } else if (data.status === 'connected' && data.answer && !peerConnection.currentRemoteDescription) {
-        const answerDescription = new RTCSessionDescription(data.answer);
-        await peerConnection.setRemoteDescription(answerDescription);
+        if (data.status === 'rejected') {
+          onStateChange('rejected');
+          cleanup();
+        } else if (data.status === 'ended') {
+          onStateChange('ended');
+          cleanup();
+        } else if (data.status === 'connected' && data.answer && !peerConnection.currentRemoteDescription) {
+          const answerDescription = new RTCSessionDescription(data.answer);
+          await peerConnection.setRemoteDescription(answerDescription);
 
-        // Appliquer les candidats en attente
-        pendingCalleeCandidates.forEach((cand) => {
-          peerConnection.addIceCandidate(cand).catch((err) =>
-            console.warn('Erreur ajout candidat ICE différé:', err)
-          );
-        });
-        pendingCalleeCandidates.length = 0;
+          // Appliquer les candidats en attente
+          pendingCalleeCandidates.forEach((cand) => {
+            peerConnection.addIceCandidate(cand).catch((err) =>
+              console.warn('Erreur ajout candidat ICE différé:', err)
+            );
+          });
+          pendingCalleeCandidates.length = 0;
 
-        onStateChange('connected');
+          onStateChange('connected');
+        }
+      },
+      (err) => {
+        console.warn('[callService] Call document listener note:', err);
       }
-    });
+    );
 
     const cleanup = () => {
       unsubscribeCall();
@@ -316,20 +328,26 @@ export const callService = {
 
     const pendingCallerCandidates: RTCIceCandidate[] = [];
 
-    const unsubscribeCallerCandidates = onSnapshot(callerCandidatesCollection, (snapshot) => {
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === 'added') {
-          const candidate = new RTCIceCandidate(change.doc.data());
-          if (peerConnection.remoteDescription) {
-            peerConnection.addIceCandidate(candidate).catch((err) =>
-              console.warn('Erreur ajout candidat ICE distant:', err)
-            );
-          } else {
-            pendingCallerCandidates.push(candidate);
+    const unsubscribeCallerCandidates = onSnapshot(
+      callerCandidatesCollection,
+      (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'added') {
+            const candidate = new RTCIceCandidate(change.doc.data());
+            if (peerConnection.remoteDescription) {
+              peerConnection.addIceCandidate(candidate).catch((err) =>
+                console.warn('Erreur ajout candidat ICE distant:', err)
+              );
+            } else {
+              pendingCallerCandidates.push(candidate);
+            }
           }
-        }
-      });
-    });
+        });
+      },
+      (err) => {
+        console.warn('[callService] Caller candidates listener note:', err);
+      }
+    );
 
     // Définir l'offre distante
     await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
@@ -363,13 +381,19 @@ export const callService = {
 
     onStateChange('connected');
 
-    const unsubscribeCall = onSnapshot(callRef, (snapshot) => {
-      const data = snapshot.data();
-      if (!data || data.status === 'ended' || data.status === 'rejected') {
-        onStateChange('ended');
-        cleanup();
+    const unsubscribeCall = onSnapshot(
+      callRef,
+      (snapshot) => {
+        const data = snapshot.data();
+        if (!data || data.status === 'ended' || data.status === 'rejected') {
+          onStateChange('ended');
+          cleanup();
+        }
+      },
+      (err) => {
+        console.warn('[callService] Incoming call document listener note:', err);
       }
-    });
+    );
 
     const cleanup = () => {
       unsubscribeCall();

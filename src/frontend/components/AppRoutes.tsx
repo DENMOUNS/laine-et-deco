@@ -38,18 +38,35 @@ function lazyRetry<P = any>(
         return { default: (module as any).default };
       }
       return module;
-    } catch (error) {
-      console.warn('Dynamic import failed, retrying once...', error);
-      // Wait 300ms and retry once
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      const module = await componentImport();
-      if (exportName && (module as any)[exportName]) {
-        return { default: (module as any)[exportName] };
+    } catch (error: any) {
+      console.warn('Dynamic import failed, retrying...', error);
+      // Wait 350ms and retry
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      try {
+        const module = await componentImport();
+        if (exportName && (module as any)[exportName]) {
+          return { default: (module as any)[exportName] };
+        }
+        if ((module as any).default) {
+          return { default: (module as any).default };
+        }
+        return module;
+      } catch (retryError: any) {
+        const isFetchError =
+          error?.message?.includes('dynamically imported module') ||
+          error?.message?.includes('Failed to fetch') ||
+          retryError?.message?.includes('dynamically imported module') ||
+          retryError?.message?.includes('Failed to fetch');
+
+        const sessionKey = 'lazy_reload_' + (exportName || 'chunk');
+        const hasAlreadyReloaded = window.sessionStorage.getItem(sessionKey);
+        if (isFetchError && !hasAlreadyReloaded) {
+          window.sessionStorage.setItem(sessionKey, '1');
+          window.location.reload();
+          return new Promise(() => {});
+        }
+        throw retryError;
       }
-      if ((module as any).default) {
-        return { default: (module as any).default };
-      }
-      return module;
     }
   }) as any;
 }

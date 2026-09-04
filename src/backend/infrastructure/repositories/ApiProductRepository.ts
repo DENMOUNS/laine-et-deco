@@ -23,7 +23,7 @@ export class ApiProductRepository implements ProductRepository {
         return success(products);
       }
 
-      return success([]);
+      return failure(new Error('Failed to fetch products'));
     } catch (error) {
       return failure(error instanceof Error ? error : new Error('Failed to fetch products'));
     }

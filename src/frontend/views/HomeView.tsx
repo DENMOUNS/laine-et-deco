@@ -22,72 +22,10 @@ import { CategorySkeleton, ContentCardSkeleton, ProductSkeleton, Skeleton } from
 import { toast } from 'sonner';
 import { isFeatureEnabled, isFeatureDisabled } from '../utils/featureFlags';
 import { useTranslation } from '../../i18n';
-
-const CountdownTimer: React.FC<{ endDate: string; compact?: boolean }> = ({ endDate, compact }) => {
-  const [timeLeft, setTimeLeft] = useState({
-    hours: 0,
-    minutes: 0,
-    seconds: 0
-  });
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const now = new Date().getTime();
-      const distance = new Date(endDate).getTime() - now;
-
-      if (distance < 0) {
-        clearInterval(timer);
-        return;
-      }
-
-      setTimeLeft({
-        hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-        minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
-        seconds: Math.floor((distance % (1000 * 60)) / 1000)
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [endDate]);
-
-  if (compact) {
-    return (
-      <div className="inline-flex items-center gap-1.5 font-mono text-xs text-white">
-        <div className="bg-black/30 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10 flex items-center gap-0.5">
-          <span className="text-xs font-bold text-amber-300">{timeLeft.hours.toString().padStart(2, '0')}</span>
-          <span className="text-[9px] text-white/70 font-sans">h</span>
-        </div>
-        <span className="text-white/50 text-[10px]">:</span>
-        <div className="bg-black/30 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10 flex items-center gap-0.5">
-          <span className="text-xs font-bold text-amber-300">{timeLeft.minutes.toString().padStart(2, '0')}</span>
-          <span className="text-[9px] text-white/70 font-sans">m</span>
-        </div>
-        <span className="text-white/50 text-[10px]">:</span>
-        <div className="bg-black/30 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10 flex items-center gap-0.5">
-          <span className="text-xs font-bold text-amber-300">{timeLeft.seconds.toString().padStart(2, '0')}</span>
-          <span className="text-[9px] text-white/70 font-sans">s</span>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex gap-4">
-      {[
-        { label: 'Heures', value: timeLeft.hours },
-        { label: 'Min', value: timeLeft.minutes },
-        { label: 'Sec', value: timeLeft.seconds },
-      ].map((item, i) => (
-        <div key={i} className="flex flex-col items-center">
-          <div className="w-14 h-14 bg-card rounded-2xl flex items-center justify-center text-xl font-bold text-accent shadow-sm border border-primary/10">
-            {item.value.toString().padStart(2, '0')}
-          </div>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-primary/70 mt-2">{item.label}</span>
-        </div>
-      ))}
-    </div>
-  );
-};
+import { CountdownTimer } from '../components/home/CountdownTimer';
+import { HomeStoryHighlights } from '../components/home/HomeStoryHighlights';
+import { HomeCalculatorTeaser } from '../components/home/HomeCalculatorTeaser';
+import { HomeNewsletterSection } from '../components/home/HomeNewsletterSection';
 
 // Helper function for deterministic daily product rotation changing at midnight
 const getDailyRotationIndex = (itemCount: number, salt: number = 0): number => {
@@ -858,43 +796,11 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
       </section>
 
       {/* ── Mobile Story Highlights (Découverte Express Mobile) ── */}
-      <section className={`md:hidden px-3 transition-all duration-300 ${
-        isMobileLandscape ? '-mt-2 mb-2 flex justify-center w-full' : '-mt-4 sm:-mt-8'
-      }`}>
-        <div className={`flex items-center overflow-x-auto no-scrollbar snap-x snap-mandatory transition-all duration-300 ${
-          isMobileLandscape ? 'gap-2 pb-1 pt-0.5 justify-center w-full max-w-full' : 'gap-3 pb-2 pt-1 w-full'
-        }`}>
-          {[
-            { label: 'Laines', icon: '🧶', view: 'shop', query: 'Laine', bg: 'from-amber-400 to-orange-500', feature: 'shop' },
-            { label: 'Déco', icon: '🏺', view: 'shop', query: 'Décoration', bg: 'from-rose-400 to-pink-600', feature: 'shop' },
-            { label: 'Packs', icon: '🎁', view: 'packs', bg: 'from-emerald-400 to-teal-600', feature: 'packs' },
-            { label: 'Flash', icon: '⚡', view: 'flash-sales', bg: 'from-amber-500 to-red-500', feature: 'flashSales' },
-            { label: 'Sur Mesure', icon: '🎨', view: 'custom-order', bg: 'from-fuchsia-400 to-pink-500', feature: 'customOrder' },
-          ].filter(item => isFeatureEnabled(siteConfig, item.feature)).map((item, idx) => (
-            <motion.button
-              key={idx}
-              whileTap={{ scale: 0.92 }}
-              onClick={() => onNavigate(item.view, undefined, item.query)}
-              className="flex flex-col items-center gap-1 snap-start shrink-0 focus:outline-none group"
-            >
-              <div className={`rounded-full p-[1.5px] bg-gradient-to-tr ${item.bg} shadow-sm group-hover:shadow-md transition-all duration-300 ${
-                isMobileLandscape ? 'w-11 h-11' : 'w-14 h-14'
-              }`}>
-                <div className={`w-full h-full rounded-full bg-white dark:bg-slate-900 flex items-center justify-center backdrop-blur-sm group-hover:scale-105 transition-transform duration-300 ${
-                  isMobileLandscape ? 'text-base' : 'text-xl'
-                }`}>
-                  <span>{item.icon}</span>
-                </div>
-              </div>
-              <span className={`font-semibold tracking-tight text-primary/85 dark:text-white/90 truncate transition-all duration-300 ${
-                isMobileLandscape ? 'text-[9px] max-w-[50px]' : 'text-[11px] max-w-[62px]'
-              }`}>
-                {item.label}
-              </span>
-            </motion.button>
-          ))}
-        </div>
-      </section>
+      <HomeStoryHighlights
+        siteConfig={siteConfig}
+        isMobileLandscape={isMobileLandscape}
+        onNavigate={onNavigate}
+      />
 
       {/* Flash Sale Section */}
       {isFlashSalesEnabled && flashSaleProduct && (
@@ -1038,54 +944,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
       )}
 
       {/* Wool Calculator Teaser (PC Uniquement) */}
-      {isCalculatorEnabled && (
-      <section className="hidden md:block max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-8 md:p-10 border border-primary/10 flex flex-col md:flex-row items-center gap-6 md:gap-10 relative overflow-hidden">
-          <div className="w-full md:w-1/2 space-y-4 relative z-10">
-            <span className="text-xs font-bold uppercase tracking-widest text-accent">Nouveau Outil</span>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif text-primary">Calculateur de Pelotes</h2>
-            <p className="text-primary/70 text-xs sm:text-sm md:text-base leading-relaxed">
-              Vous ne savez pas combien de pelotes acheter pour votre prochain projet ? 
-              Utilisez notre calculateur intelligent pour estimer la quantité exacte de laine nécessaire pour votre pull, écharpe ou bonnet.
-            </p>
-            <Button 
-              onClick={() => onNavigate('calculator')}
-              className="px-6 py-3 flex items-center gap-2 text-xs sm:text-sm animate-shine"
-            >
-              <Package size={18} />
-              Calculer maintenant
-            </Button>
-          </div>
-          <div className="w-full md:w-1/2 relative flex justify-center items-center h-[220px] sm:h-[280px]">
-            <div className="relative w-44 h-44 sm:w-52 sm:h-52 bg-white rounded-full flex items-center justify-center shadow-xl border-4 border-white/20">
-              <span className="text-7xl sm:text-8xl font-serif text-accent">?</span>
-              
-              <motion.div 
-                animate={{ y: [0, -10, 0] }}
-                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute -top-6 -right-6 bg-white p-3 rounded-2xl shadow-lg rotate-12"
-              >
-                <div className="w-9 h-9 bg-primary/10 rounded-full flex items-center justify-center">
-                  <Package size={18} className="text-accent" />
-                </div>
-              </motion.div>
-
-              <motion.div 
-                animate={{ y: [0, 10, 0] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-                className="absolute -bottom-3 -left-6 bg-white p-3 rounded-2xl shadow-lg -rotate-6"
-              >
-                <div className="w-9 h-9 bg-primary/10 rounded-full flex items-center justify-center">
-                  <div className="w-6 h-0.5 bg-primary rounded-full rotate-45" />
-                  <div className="w-6 h-0.5 bg-primary rounded-full -rotate-45 absolute" />
-                </div>
-              </motion.div>
-            </div>
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-56 bg-primary/10 rounded-full blur-2xl -z-10" />
-          </div>
-        </div>
-      </section>
-      )}
+      {isCalculatorEnabled && <HomeCalculatorTeaser onNavigate={onNavigate} />}
 
       {/* Featured Slider / Création d'Exception */}
       {(() => {
@@ -1732,64 +1591,11 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onAddToCart, onA
         </section>
       ))}
 
-      {/* Newsletter / CTA Rejoignez la communauté (Masqué si l'utilisateur est déjà abonné) */}
-      {!isNewsletterSubscribed && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-r from-[#2C3E35] via-[#3E4A3D] to-[#2C3E35] dark:from-[#1C1F1C] dark:via-[#141614] dark:to-[#0D0F0D] rounded-3xl sm:rounded-[2.5rem] p-6 sm:p-8 md:p-10 text-white relative overflow-hidden border border-amber-500/20 dark:border-white/10 shadow-xl">
-            <div className="absolute top-0 right-0 w-72 h-72 bg-accent/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary/20 rounded-full blur-2xl pointer-events-none" />
-            
-            <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-6 lg:gap-10">
-              <div className="text-center lg:text-left space-y-2 max-w-xl">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/20 text-amber-300 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
-                  <span>Club Privilège Laine & Déco</span>
-                </div>
-                <h2 className="text-xl sm:text-2xl md:text-3xl font-serif text-white leading-tight">Rejoignez la communauté</h2>
-                <p className="text-xs sm:text-sm text-stone-300/90 leading-relaxed">
-                  Profitez de <span className="text-amber-300 font-bold">-10% sur votre première commande</span> et recevez nos tutoriels créatifs & ventes privées en avant-première.
-                </p>
-              </div>
-
-              <div className="w-full lg:w-auto shrink-0 max-w-md">
-                <form 
-                  onSubmit={(e) => { 
-                    e.preventDefault(); 
-                    const form = e.currentTarget;
-                    const emailInput = form.querySelector('input[type="email"]') as HTMLInputElement;
-                    const emailVal = emailInput?.value?.trim();
-                    if (emailVal) {
-                      localStorage.setItem('newsletter_decision', 'accepted');
-                      localStorage.setItem('newsletter_subscribed', 'true');
-                      localStorage.setItem(`newsletter_decision_${emailVal.toLowerCase()}`, 'accepted');
-                      setIsNewsletterSubscribed(true);
-                      window.dispatchEvent(new Event('newsletter_subscribed'));
-                    }
-                    toast.success("Merci ! Votre inscription à la communauté est confirmée. Vérifiez vos emails pour votre code promo de -10%."); 
-                  }} 
-                  className="relative flex items-center group w-full"
-                >
-                  <input
-                    type="email"
-                    required
-                    placeholder="Votre adresse email..."
-                    className="w-full bg-white/10 dark:bg-black/40 border border-white/20 rounded-full py-3 sm:py-3.5 pl-4 sm:pl-5 pr-28 sm:pr-32 text-xs sm:text-sm text-white placeholder:text-white/60 focus:outline-none focus:border-amber-400 focus:bg-black/30 transition-all shadow-inner"
-                  />
-                  <button
-                    type="submit"
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-accent hover:bg-amber-400 text-primary font-bold text-xs sm:text-sm px-4 sm:px-5 py-2 rounded-full transition-all shadow-md active:scale-95 flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
-                  >
-                    <span>S'abonner</span>
-                    <ArrowRight size={13} />
-                  </button>
-                </form>
-                <p className="text-[10px] text-stone-400/70 mt-2 text-center lg:text-left">
-                  Pas de spam. Désinscription possible à tout moment.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
+      {/* Newsletter / CTA Rejoignez la communauté */}
+      <HomeNewsletterSection
+        isSubscribed={isNewsletterSubscribed}
+        onSubscribed={() => setIsNewsletterSubscribed(true)}
+      />
     </motion.div>
   );
 };

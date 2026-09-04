@@ -23,6 +23,14 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught error:', error, errorInfo);
+    const isFetchError =
+      error?.message?.includes('dynamically imported module') ||
+      error?.message?.includes('Failed to fetch') ||
+      error?.message?.includes('Importing a module script failed');
+    if (isFetchError && !window.sessionStorage.getItem('error_boundary_reloaded')) {
+      window.sessionStorage.setItem('error_boundary_reloaded', '1');
+      window.location.reload();
+    }
   }
 
   public render() {

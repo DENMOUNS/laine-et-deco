@@ -514,7 +514,6 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
     enabled: isActiveTab(['lookbook'])
   });
   const localLookbook = LOOKBOOK_POSTS;
-  const setLocalLookbook2 = setLocalLookbook;
   // Fusionné : BLOG_POSTS + localBlogPosts lisaient toutes les deux 'blog_post'
   // avec exactement la même condition enabled(['blog']).
   const {
@@ -527,7 +526,6 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
     enabled: isActiveTab(['blog'])
   });
   const localBlogPosts = BLOG_POSTS;
-  const setLocalBlogPosts2 = setLocalBlogPosts;
   const {
     data: BLOG_CATEGORIES,
     setData: setLocalBlogCategories,
@@ -539,7 +537,6 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
     enabled: isActiveTab(['blog'])
   });
   const localBlogCategories = BLOG_CATEGORIES;
-  const setLocalBlogCategories2 = setLocalBlogCategories;
   // Fusionné : REVIEWS + localReviews lisaient toutes les deux 'review'
   // avec exactement la même condition enabled(['reviews']).
   const {
@@ -553,7 +550,6 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
     enabled: isActiveTab(['reviews'])
   });
   const localReviews = REVIEWS;
-  const setLocalReviews2 = setLocalReviews;
   // Fusionné : ABANDONED_CARTS + localAbandonedCarts lisaient toutes les deux
   // 'abandoned_cart' avec exactement la même condition enabled(['abandoned-carts']).
   const {
@@ -565,7 +561,6 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
     enabled: isActiveTab(['abandoned-carts'])
   });
   const localAbandonedCarts = ABANDONED_CARTS;
-  const setLocalAbandonedCarts2 = setLocalAbandonedCarts;
   // Fusionné : CUSTOMER_GROUPS + localCustomerGroups lisaient toutes les deux
   // 'customer_group' avec exactement la même condition enabled.
   const {
@@ -579,7 +574,6 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
     enabled: isActiveTab(['customer-groups', 'customer-group-detail'])
   });
   const localCustomerGroups = CUSTOMER_GROUPS;
-  const setLocalCustomerGroups2 = setLocalCustomerGroups;
   // Fusionné : TAX_RULES + localTaxRules lisaient toutes les deux 'tax_rule'
   // avec exactement la même condition enabled(['taxes']).
   const {
@@ -593,7 +587,6 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
     enabled: isActiveTab(['taxes'])
   });
   const localTaxRules = TAX_RULES;
-  const setLocalTaxRules2 = setLocalTaxRules;
   // Fusionné : SHIPPING_RULES + localShippingRules lisaient toutes les deux
   // 'shipping_rule' avec exactement la même condition enabled(['shipping']).
   const {
@@ -607,7 +600,6 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
     enabled: isActiveTab(['shipping'])
   });
   const localShippingRules = SHIPPING_RULES;
-  const setLocalShippingRules2 = setLocalShippingRules;
   const localNavItems = NAV_ITEMS; // Use the one from useEntity
   // const { data: CATALOG_PRICE_RULES, isLoading: isLoadingCatalog } = useEntity<any>('catalog_price_rule', INITIAL_CATALOG_PRICE_RULES); // REMOVED DUPLICATE
   const { data: SUBSCRIBERS, setData: setLocalSubscribers, deleteEntity: deleteSubscriber, isLoading: isLoadingSubscribers } = useEntity<NewsletterSubscriber>('subscriber', [], {
@@ -1282,33 +1274,33 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
     setIsSaving,
     setIsSidebarOpen,
     setLocalAbandonedCarts,
-    setLocalAbandonedCarts2,
+    setLocalAbandonedCarts2: setLocalAbandonedCarts,
     setLocalBlogPosts,
-    setLocalBlogPosts2,
+    setLocalBlogPosts2: setLocalBlogPosts,
     setLocalBlogCategories,
-    setLocalBlogCategories2,
+    setLocalBlogCategories2: setLocalBlogCategories,
     setLocalCategories,
     setLocalCurrencies,
     setLocalCustomerGroups,
-    setLocalCustomerGroups2,
+    setLocalCustomerGroups2: setLocalCustomerGroups,
     setLocalEmails,
     setLocalExpenses,
     setLocalLookbook,
-    setLocalLookbook2,
+    setLocalLookbook2: setLocalLookbook,
     setLocalOrders,
     setLocalPacks,
     setLocalProducts,
     setLocalPushNotifications,
     setLocalReviews,
-    setLocalReviews2,
+    setLocalReviews2: setLocalReviews,
     setLocalRole,
     setLocalRoles,
     setLocalShippingRules,
-    setLocalShippingRules2,
+    setLocalShippingRules2: setLocalShippingRules,
     setLocalSubscribers,
     setLocalSystemNotifications,
     setLocalTaxRules,
-    setLocalTaxRules2,
+    setLocalTaxRules2: setLocalTaxRules,
     setLocalUser,
     setLocalUsers,
     setLogFilter,

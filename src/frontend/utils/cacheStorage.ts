@@ -15,6 +15,7 @@ import { get, set, del } from 'idb-keyval';
 import type { QueryConstraint } from 'firebase/firestore';
 
 export async function readCache<T>(key: string): Promise<T | null> {
+  if (typeof indexedDB === 'undefined') return null;
   try {
     const raw = await get<string>(key);
     if (!raw) return null;
@@ -73,6 +74,7 @@ export async function writeEntityCache<T>(entityType: string, value: T, ttlMs = 
 }
 
 export async function readCacheCreatedAt(key: string): Promise<number | null> {
+  if (typeof indexedDB === 'undefined') return null;
   try {
     const raw = await get<string>(key);
     if (!raw) return null;
@@ -141,6 +143,7 @@ export function getTTLForEntity(entityType: string): number {
 }
 
 export async function writeCache<T>(key: string, value: T, ttlMs = MONTH_MS): Promise<void> {
+  if (typeof indexedDB === 'undefined') return;
   try {
     await set(
       key,
@@ -156,6 +159,7 @@ export async function writeCache<T>(key: string, value: T, ttlMs = MONTH_MS): Pr
 }
 
 export async function removeCache(key: string): Promise<void> {
+  if (typeof indexedDB === 'undefined') return;
   try {
     await del(key);
   } catch {

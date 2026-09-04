@@ -253,22 +253,56 @@ async function startServer() {
     }
   });
 
+  // --- Static Uploads Directory ---
+  const uploadsPath = path.join(process.cwd(), 'public', 'uploads');
+  if (!fs.existsSync(uploadsPath)) {
+    fs.mkdirSync(uploadsPath, { recursive: true });
+  }
+  app.use('/uploads', express.static(uploadsPath, { maxAge: '7d' }));
+
   const translateSchema = z.object({
     texts: z.record(z.string(), z.string().max(20000)),
     targetLang: z.enum(['en', 'fr']).default('en'),
     context: z.string().max(500).optional(),
   });
 
+  // In-memory translation cache (LRU-like)
+  const translationCache = new Map<string, string>();
+  const MAX_TRANSLATION_CACHE_SIZE = 5000;
+
   app.post("/api/translate", async (req, res) => {
     try {
-      if (!ai) return res.status(500).json({ error: "Gemini API key is missing on the server." });
-
       const parsedData = translateSchema.parse(req.body);
       const targetLanguageName = parsedData.targetLang === 'en' ? 'English (fluent and natural for e-commerce)' : 'Français';
+      const targetLang = parsedData.targetLang;
+      const context = parsedData.context || '';
+
+      const finalTranslations: Record<string, string> = {};
+      const textsToTranslate: Record<string, string> = {};
+
+      for (const [key, text] of Object.entries(parsedData.texts)) {
+        if (!text || !text.trim()) {
+          finalTranslations[key] = text;
+          continue;
+        }
+        const cacheKey = `${targetLang}::${context}::${text.trim()}`;
+        if (translationCache.has(cacheKey)) {
+          finalTranslations[key] = translationCache.get(cacheKey)!;
+        } else {
+          textsToTranslate[key] = text;
+        }
+      }
+
+      // If all translations were satisfied by cache, return instantly!
+      if (Object.keys(textsToTranslate).length === 0) {
+        return res.json({ translations: finalTranslations, cached: true });
+      }
+
+      if (!ai) return res.status(500).json({ error: "Gemini API key is missing on the server." });
       
       const prompt = `You are a professional luxury translator specializing in knitting, yarns, crochet, haberdashery, and artisan home decor for "Laine & Déco".
-Translate the given JSON key-value map from ${parsedData.targetLang === 'en' ? 'French' : 'English'} into ${targetLanguageName}.
-Context: ${parsedData.context || 'E-commerce products, categories, blog posts, craft descriptions, and user interface'}.
+Translate the given JSON key-value map from ${targetLang === 'en' ? 'French' : 'English'} into ${targetLanguageName}.
+Context: ${context || 'E-commerce products, categories, blog posts, craft descriptions, and user interface'}.
 
 Rules:
 1. Return ONLY a valid JSON object with the exact same keys as the input.
@@ -276,13 +310,13 @@ Rules:
 3. Translate accurately with idiomatic, elegant tone suitable for luxury knitting & decoration.
 
 Input JSON:
-${JSON.stringify(parsedData.texts, null, 2)}`;
+${JSON.stringify(textsToTranslate, null, 2)}`;
 
       const { response } = await generateWithModelFallback(prompt, {
         responseMimeType: "application/json",
       });
 
-      let parsedTranslations = {};
+      let parsedTranslations: Record<string, string> = {};
       try {
         parsedTranslations = JSON.parse(response.text || '{}');
       } catch {
@@ -291,7 +325,21 @@ ${JSON.stringify(parsedData.texts, null, 2)}`;
         parsedTranslations = JSON.parse(cleanJson);
       }
 
-      res.json({ translations: parsedTranslations });
+      for (const [key, translated] of Object.entries(parsedTranslations)) {
+        if (typeof translated === 'string') {
+          finalTranslations[key] = translated;
+          const originalText = textsToTranslate[key];
+          if (originalText && originalText.trim()) {
+            if (translationCache.size >= MAX_TRANSLATION_CACHE_SIZE) {
+              const firstKey = translationCache.keys().next().value;
+              if (firstKey) translationCache.delete(firstKey);
+            }
+            translationCache.set(`${targetLang}::${context}::${originalText.trim()}`, translated);
+          }
+        }
+      }
+
+      res.json({ translations: finalTranslations });
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Invalid input data", details: error.issues });

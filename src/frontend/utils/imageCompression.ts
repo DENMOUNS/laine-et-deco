@@ -84,6 +84,54 @@ export async function compressImageDataUrl(value: string, maxBytes = FIRESTORE_S
   return output;
 }
 
+export async function uploadImageToServer(dataUrl: string, folder = 'products'): Promise<string> {
+  if (!isImageDataUrl(dataUrl)) return dataUrl;
+  try {
+    const res = await fetch('/api/storage/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: dataUrl, folder }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.url) return data.url;
+    }
+  } catch (err) {
+    console.warn('[uploadImageToServer] Server upload failed, falling back to local compression:', err);
+  }
+  return compressImageDataUrl(dataUrl);
+}
+
+export async function compressAndUploadImagesInPayload<T>(payload: T, folder = 'products'): Promise<T> {
+  if (typeof payload === 'string') {
+    if (isImageDataUrl(payload)) {
+      return (await uploadImageToServer(payload, folder)) as unknown as T;
+    }
+    return payload;
+  }
+
+  if (!payload || typeof payload !== 'object') return payload;
+
+  if (Array.isArray(payload)) {
+    const items = await Promise.all(payload.map((item) => compressAndUploadImagesInPayload(item, folder)));
+    return items as T;
+  }
+
+  const entries = await Promise.all(
+    Object.entries(payload as Record<string, unknown>).map(async ([key, value]) => {
+      if (isImageDataUrl(value)) {
+        return [key, await uploadImageToServer(value, folder)];
+      }
+      if (value && typeof value === 'object') {
+        return [key, await compressAndUploadImagesInPayload(value, folder)];
+      }
+      return [key, value];
+    })
+  );
+
+  return Object.fromEntries(entries) as T;
+}
+
 export async function compressImagesInPayload<T>(payload: T): Promise<T> {
   if (typeof payload === 'string') {
     if (isImageDataUrl(payload)) {

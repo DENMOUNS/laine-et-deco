@@ -92,10 +92,83 @@ const parseDataUrl = (dataUrl: string) => {
   return { contentType: match[1], base64: match[2] };
 };
 
-// Debug endpoint disabled - Storage no longer used
+import crypto from 'node:crypto';
 
-// Storage routes disabled - using Firestore with 1 MB limit instead
-// File upload and image storage via Firebase Storage has been removed
-// Images are now stored directly as base64 in Firestore documents (max 1 MB per document)
+const sanitizeFolder = (folder?: string) => {
+  if (!folder) return 'images';
+  return folder.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 30) || 'images';
+};
+
+const getExtensionFromMime = (mime: string): string => {
+  switch (mime.toLowerCase()) {
+    case 'image/jpeg':
+    case 'image/jpg':
+      return 'jpg';
+    case 'image/png':
+      return 'png';
+    case 'image/webp':
+      return 'webp';
+    case 'image/gif':
+      return 'gif';
+    case 'image/svg+xml':
+      return 'svg';
+    default:
+      return 'webp';
+  }
+};
+
+const saveBase64ToFile = (dataUrl: string, folder = 'images'): string | null => {
+  const parsed = parseDataUrl(dataUrl);
+  if (!parsed) return null;
+
+  const uploadsDir = path.resolve(process.cwd(), 'public', 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+
+  const ext = getExtensionFromMime(parsed.contentType);
+  const safeFolder = sanitizeFolder(folder);
+  const filename = `${safeFolder}_${Date.now()}_${crypto.randomBytes(6).toString('hex')}.${ext}`;
+  const filePath = path.join(uploadsDir, filename);
+
+  const buffer = Buffer.from(parsed.base64, 'base64');
+  fs.writeFileSync(filePath, buffer);
+
+  return `/uploads/${filename}`;
+};
+
+// POST /api/storage/upload
+router.post('/upload', (req: Request, res: Response) => {
+  try {
+    const { image, images, folder } = req.body;
+
+    if (image && typeof image === 'string') {
+      if (!image.startsWith('data:image/')) {
+        // Already a URL
+        return res.json({ url: image, success: true });
+      }
+      const savedUrl = saveBase64ToFile(image, folder);
+      if (!savedUrl) {
+        return res.status(400).json({ error: 'Invalid image format' });
+      }
+      return res.json({ url: savedUrl, success: true });
+    }
+
+    if (Array.isArray(images)) {
+      const urls = images.map((img: string) => {
+        if (typeof img === 'string' && img.startsWith('data:image/')) {
+          return saveBase64ToFile(img, folder) || img;
+        }
+        return img;
+      });
+      return res.json({ urls, success: true });
+    }
+
+    return res.status(400).json({ error: 'No image provided' });
+  } catch (err: any) {
+    console.error('[storageRoutes] Upload error:', err);
+    return res.status(500).json({ error: err.message || 'Failed to save image' });
+  }
+});
 
 export default router;

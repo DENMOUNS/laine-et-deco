@@ -3,7 +3,7 @@ import { initializeApp } from 'firebase/app';
 import type { Auth } from 'firebase/auth';
 import { getAuth, setPersistence, browserSessionPersistence } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
-import { initializeFirestore, memoryLocalCache, setLogLevel } from 'firebase/firestore';
+import { getFirestore, setLogLevel } from 'firebase/firestore';
 import config from '../../firebase-applet-config.json' with { type: 'json' };
 
 type FirebaseOptionsWithFirestoreDb = FirebaseOptions & { firestoreDatabaseId?: string };
@@ -88,18 +88,10 @@ function ensureFirebaseInitialized() {
     const envDatabaseId = normalizeDatabaseId(import.meta.env.VITE_FIRESTORE_DATABASE_ID);
     const databaseId =
       envDatabaseId ||
-      normalizeDatabaseId(firebaseConfig.firestoreDatabaseId) ||
-      '(default)';
+      normalizeDatabaseId(firebaseConfig.firestoreDatabaseId);
 
-    // Force robust long polling for resilient connectivity in sandboxed container and iframe environments
-    db = initializeFirestore(
-      app,
-      {
-        localCache: memoryLocalCache(),
-        experimentalForceLongPolling: true,
-      },
-      databaseId
-    );
+    // Initialisation standard de Firestore avec le databaseId assigné
+    db = databaseId ? getFirestore(app, databaseId) : getFirestore(app);
 
     auth = getAuth(app);
     void setPersistence(auth, browserSessionPersistence).catch((error) => {
