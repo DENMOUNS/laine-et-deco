@@ -9,6 +9,7 @@ import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import DOMPurify from "./server/utils/sanitizer.js";
 import { auth, db } from './server/firebaseAdmin.js';
+import { resolveUserRole, isStaff, isAdminLevel } from './server/utils/authRoles.js';
 import entityRoutes from './server/routes/entityRoutes.js';
 import dashboardRoutes from './server/routes/dashboardRoutes.js';
 import storageRoutes from './server/routes/storageRoutes.js';
@@ -19,41 +20,10 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  const isAdminRole = (role: string | undefined | null) => {
-    return ['super-admin', 'admin', 'editor', 'stock-manager', 'support-client'].includes(role ?? '');
-  };
-
   const resolveUserRoleFromToken = async (token: string) => {
     try {
       const decoded = await auth.verifyIdToken(token);
-      const uid = decoded.uid;
-      const email = decoded.email;
-      let role: string | null = null;
-      const firestoreDb = db;
-      if (!firestoreDb) {
-        return null;
-      }
-
-      const userSnap = await firestoreDb.collection('user').doc(uid).get();
-      if (userSnap.exists) {
-        role = userSnap.data()?.role;
-      }
-
-      if (!role && email) {
-        const emailQuery = await firestoreDb.collection('user').where('email', '==', email).limit(1).get();
-        if (!emailQuery.empty) {
-          role = emailQuery.docs[0].data()?.role;
-        }
-      }
-
-      if (!role) {
-        const uidQuery = await firestoreDb.collection('user').where('uid', '==', uid).limit(1).get();
-        if (!uidQuery.empty) {
-          role = uidQuery.docs[0].data()?.role;
-        }
-      }
-
-      return role;
+      return await resolveUserRole(decoded.uid, decoded.email, decoded.role as string, decoded);
     } catch {
       return null;
     }
@@ -80,7 +50,7 @@ async function startServer() {
     standardHeaders: true,
     legacyHeaders: false,
     skip: (req) => {
-      return req.method === 'GET' || isAdminRole((req as any).authRole);
+      return req.method === 'GET' || isStaff((req as any).authRole);
     },
   });
 
@@ -144,14 +114,6 @@ async function startServer() {
   // Test route to verify API routing works
   app.get('/api/test', (_req, res) => {
     return res.json({ ok: true, message: 'API routing works' });
-  });
-
-  app.use((err: any, _req: any, res: any, next: any) => {
-    console.error('Unhandled server error:', err);
-    if (res.headersSent) {
-      return next(err);
-    }
-    res.status(500).json({ error: err?.message || 'Internal Server Error' });
   });
 
   // Initialize AI safely on backend
@@ -346,6 +308,15 @@ ${JSON.stringify(textsToTranslate, null, 2)}`;
       }
       res.status(500).json({ error: error.message || 'Translation failed' });
     }
+  });
+
+  // Global API error handler
+  app.use('/api', (err: any, _req: any, res: any, next: any) => {
+    console.error('[API Error]:', err);
+    if (res.headersSent) {
+      return next(err);
+    }
+    return res.status(500).json({ error: 'Une erreur interne est survenue sur le serveur' });
   });
 
   // --- Vite Middleware (Development) or Static Serve (Production) ---

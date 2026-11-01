@@ -2,6 +2,17 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { firebaseAdmin, db, auth, ensureFirestoreConnection } from '../firebaseAdmin.js';
 import * as constants from '../../src/constants.js';
 import { migrateCreatedAt, seedDashboardData } from '../dashboardSeed.js';
+import {
+  resolveUserRole,
+  isSuperAdmin,
+  isAdmin,
+  isEditor,
+  isStockManager,
+  isSupport,
+  isAdminLevel,
+  isStaff,
+  type UserRole,
+} from '../utils/authRoles.js';
 
 const router = Router();
 
@@ -13,14 +24,6 @@ const isQuotaError = (err: any): boolean => {
   return msg.includes('quota') || msg.includes('resource_exhausted') || msg.includes('limit exceeded');
 };
 
-type UserRole =
-  | 'super-admin'
-  | 'admin'
-  | 'editor'
-  | 'stock-manager'
-  | 'support-client'
-  | 'customer';
-
 interface AuthenticatedRequest extends Request {
   user?: {
     uid: string;
@@ -28,11 +31,6 @@ interface AuthenticatedRequest extends Request {
     role?: UserRole | null;
   };
 }
-
-const isSuperAdmin = (role: UserRole | null) => role === 'super-admin';
-const isAdmin = (role: UserRole | null) => role === 'admin';
-const isStockManager = (role: UserRole | null) => role === 'stock-manager';
-const isAdminLevel = (role: UserRole | null) => isSuperAdmin(role) || isAdmin(role);
 
 const SYSTEM_CONFIG_COLLECTIONS = new Set([
   'invoice_config',
@@ -210,41 +208,8 @@ function buildSystemConfigDocs(siteConfig: any) {
   return docs;
 }
 
-async function getUserRole(uid: string, email?: string, existingRole?: string): Promise<UserRole | null> {
-  if (!db) return null;
-
-  const validRoles: UserRole[] = ['super-admin', 'admin', 'editor', 'stock-manager', 'support-client', 'customer'];
-
-  if (existingRole && validRoles.includes(existingRole as UserRole)) {
-    return existingRole as UserRole;
-  }
-
-  let role: string | undefined | null = null;
-
-  const userSnap = await db.collection('user').doc(uid).get();
-  if (userSnap.exists) {
-    role = userSnap.data()?.role;
-  }
-
-  if (!role && email) {
-    const emailQuery = await db.collection('user').where('email', '==', email).limit(1).get();
-    if (!emailQuery.empty) {
-      role = emailQuery.docs[0].data()?.role;
-    }
-  }
-
-  if (!role) {
-    const uidQuery = await db.collection('user').where('uid', '==', uid).limit(1).get();
-    if (!uidQuery.empty) {
-      role = uidQuery.docs[0].data()?.role;
-    }
-  }
-
-  if (role && validRoles.includes(role as UserRole)) {
-    return role as UserRole;
-  }
-
-  return null;
+async function getUserRole(uid: string, email?: string, existingRole?: string): Promise<UserRole> {
+  return resolveUserRole(uid, email, existingRole);
 }
 
 const verifyToken = async (

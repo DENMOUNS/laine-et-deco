@@ -80,6 +80,7 @@ import { onSnapshot } from 'firebase/firestore';
 import { db } from '../../../../backend/firebase';
 import { useEntity } from '../../../hooks/useEntity';
 import { useAdminStore } from '../../../../stores/adminStore';
+import { useAuthStore } from '../../../../stores/authStore';
 import {
   formatFirestoreDate as formatDate,
   sortByDate,
@@ -942,7 +943,7 @@ export function useAdminDashboardContext({ onNavigate, siteConfig: propSiteConfi
   // (tab-gated) si celle-ci est déjà chargée et que le listener dédié n'a pas encore
   // répondu, pour éviter un flash "customer" pendant le tout premier rendu.
   const currentUserDoc = ownUserDoc ?? localUsers.find((u: UserType) => u.id === user?.uid);
-  const userRoleSlug = (user?.email === 'landrymoutongo97@gmail.com') ? 'super-admin' : (currentUserDoc?.role || 'customer');
+  const userRoleSlug = currentUserDoc?.role || useAuthStore.getState().userRole || 'customer';
   
   const roleData = localRoles.find((r: any) => 
     (r.slug || r.id) === userRoleSlug

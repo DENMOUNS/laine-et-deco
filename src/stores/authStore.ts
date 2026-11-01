@@ -24,8 +24,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   get userRole() {
     const user = get().user;
-    if (user?.email === 'landrymoutongo97@gmail.com') return 'super-admin';
-    return get().currentUserDoc?.role || 'customer';
+    const docRole = get().currentUserDoc?.role;
+    if (docRole) return docRole;
+
+    const envSuperAdmins = (
+      import.meta.env.VITE_SUPER_ADMIN_EMAILS ||
+      'landrymoutongo97@gmail.com,doloreskenne6@gmail.com,landrymouns@gmail.com'
+    )
+      .split(',')
+      .map((e: string) => e.trim().toLowerCase())
+      .filter(Boolean);
+
+    if (user?.email && envSuperAdmins.includes(user.email.toLowerCase())) {
+      return 'super-admin';
+    }
+
+    return 'customer';
   },
 
   _setUser: (user) => set({ user }),

@@ -18,8 +18,7 @@ export const CallManager: React.FC = () => {
   const isStaff = Boolean(
     user && (
       staffRoles.includes(userRole) ||
-      staffRoles.includes(currentUserDoc?.role) ||
-      user.email === 'landrymoutongo97@gmail.com'
+      staffRoles.includes(currentUserDoc?.role)
     )
   );
 

@@ -7,16 +7,21 @@ import {
   setCachedResponse,
   clearEntityCache,
 } from '../utils/firestoreCache.js';
+import {
+  resolveUserRole,
+  isSuperAdmin,
+  isAdmin,
+  isEditor,
+  isStockManager,
+  isSupport,
+  isAdminLevel,
+  isStaff,
+  isResourceOwner,
+  isSuperAdminEmail,
+  type UserRole,
+} from '../utils/authRoles.js';
 
 const router = Router();
-
-type UserRole =
-  | 'super-admin'
-  | 'admin'
-  | 'editor'
-  | 'stock-manager'
-  | 'support-client'
-  | 'customer';
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -446,80 +451,9 @@ const OWNER_COLLECTIONS = new Set([
 // ROLE
 // ==========================
 
-async function getUserRole(uid: string, email?: string, existingRole?: string): Promise<UserRole | null> {
-  if (!db) return null;
-
-  const validRoles: UserRole[] = ['super-admin', 'admin', 'editor', 'stock-manager', 'support-client', 'customer'];
-
-  if (existingRole && validRoles.includes(existingRole as UserRole)) {
-    return existingRole as UserRole;
-  }
-
-  // If we already know the quota is exhausted, perform a local email check fallback immediately
-  if (checkQuotaStatus()) {
-    if (email && (email.includes('admin') || email.includes('landry') || email.includes('super'))) {
-      return 'super-admin';
-    }
-    return 'customer';
-  }
-
-  try {
-    let role: string | undefined | null = null;
-
-    const userSnap = await db.collection('user').doc(uid).get();
-    if (userSnap.exists) {
-      role = userSnap.data()?.role;
-
-      if (role === 'customer' && email) {
-        const emailQuery = await db.collection('user').where('email', '==', email).limit(1).get();
-        if (!emailQuery.empty) {
-          const emailRole = emailQuery.docs[0].data()?.role;
-          if (emailRole && validRoles.includes(emailRole as UserRole) && emailRole !== 'customer' && emailQuery.docs[0].id !== uid) {
-            role = emailRole;
-          }
-        }
-      }
-    }
-
-    if (!role && email) {
-      const emailQuery = await db.collection('user').where('email', '==', email).limit(1).get();
-      if (!emailQuery.empty) {
-        role = emailQuery.docs[0].data()?.role;
-      }
-    }
-
-    if (!role) {
-      const uidQuery = await db.collection('user').where('uid', '==', uid).limit(1).get();
-      if (!uidQuery.empty) {
-        role = uidQuery.docs[0].data()?.role;
-      }
-    }
-
-    if (role && validRoles.includes(role as UserRole)) {
-      return role as UserRole;
-    }
-  } catch (err: any) {
-    if (isQuotaError(err)) {
-      markQuotaExhausted();
-      if (email && (email.includes('admin') || email.includes('landry') || email.includes('super'))) {
-        return 'super-admin';
-      }
-      return 'customer';
-    }
-    throw err;
-  }
-
-  return null;
+async function getUserRole(uid: string, email?: string, existingRole?: string): Promise<UserRole> {
+  return resolveUserRole(uid, email, existingRole);
 }
-
-const isSuperAdmin = (r: UserRole | null) => r === 'super-admin';
-const isAdmin = (r: UserRole | null) => r === 'admin';
-const isEditor = (r: UserRole | null) => r === 'editor';
-const isStockManager = (r: UserRole | null) => r === 'stock-manager';
-const isSupport = (r: UserRole | null) => r === 'support-client';
-
-const isAdminLevel = (r: UserRole | null) =>
-  isSuperAdmin(r) || isAdmin(r) || isEditor(r);
 
 // ==========================
 // AUTH
@@ -796,13 +730,17 @@ const updateEntityHandler = async (req: any, res: Response) => {
     }
 
     const data = snap.data()!;
-    const isOwner =
-      data.userId === uid || data.customerId === uid;
+    const isOwner = isResourceOwner(data, uid);
 
     // super admin + admin
     if (isAdminLevel(role)) {
       // If user status/blocked changed, record notification
-      if (entity === 'user' && ('blocked' in req.body || 'status' in req.body)) {
+      if (entity === 'user') {
+        // Only super-admin can modify roles
+        if ('role' in req.body && req.body.role !== data.role && !isSuperAdmin(role)) {
+          return res.status(403).json({ error: 'Seul un Super-Administrateur peut modifier les rôles' });
+        }
+
         const oldBlocked = data.blocked;
         const oldStatus = data.status;
         const newBlocked = req.body.blocked;
@@ -892,7 +830,6 @@ const updateEntityHandler = async (req: any, res: Response) => {
 
     // stock manager
     if (isStockManager(role)) {
-
       // produit -> pas prix
       if (entity === 'product') {
         if ('price' in req.body || 'salePrice' in req.body) {
@@ -930,8 +867,30 @@ const updateEntityHandler = async (req: any, res: Response) => {
       }
     }
 
-    // owner
+    // User editing their own profile
+    if (entity === 'user' && uid === id) {
+      // Protect sensitive fields from client-side privilege escalation
+      const forbiddenKeys = ['role', 'blocked', 'status', 'permissions'];
+      const updates = { ...req.body };
+      for (const key of forbiddenKeys) {
+        delete updates[key];
+      }
+
+      await ref.update({
+        ...updates,
+        updatedAt: new Date(),
+      });
+      await clearEntityCache(entity, id);
+      return res.json({ message: 'Profil mis à jour' });
+    }
+
+    // owner editing their own resource
     if (OWNER_COLLECTIONS.has(entity) && isOwner) {
+      // Prevent customer from directly modifying order status or totals
+      if (entity === 'order') {
+        return res.status(403).json({ error: 'Les commandes ne peuvent pas être modifiées directement' });
+      }
+
       await ref.update({
         ...req.body,
         updatedAt: new Date(),
@@ -941,19 +900,18 @@ const updateEntityHandler = async (req: any, res: Response) => {
       return res.json({ message: 'Updated' });
     }
 
-    return res.status(403).json({ error: 'Forbidden' });
+    return res.status(403).json({ error: 'Accès refusé' });
   } catch (e: any) {
     console.error('[entityRoutes] updateEntityHandler catch', {
       requestId: req.requestId,
       entity,
       id,
       role,
-      errorName: e?.name,
       errorMessage: e?.message,
-      errorStack: e?.stack,
     });
-    return res.status(400).json({ error: e.message });
+    return res.status(500).json({ error: 'Une erreur est survenue lors de la mise à jour' });
   }
+
 };
 
 router.put('/:entity/:id', verifyToken, resolveRole, updateEntityHandler);
@@ -1081,9 +1039,9 @@ const getMockOrdersList = (uid: string | null) => {
     },
     {
       id: 'ord-103',
-      userId: uid || 'landry-uid',
-      userName: 'Landry',
-      userEmail: 'landrymoutongo97@gmail.com',
+      userId: uid || 'user-admin',
+      userName: 'Administrateur',
+      userEmail: 'admin@lainedeco.local',
       status: 'completed',
       total: 45000,
       subtotal: 42500,
@@ -1096,7 +1054,7 @@ const getMockOrdersList = (uid: string | null) => {
         { id: 'prod-1', name: 'Laine Mérinos Superfine - Écru', quantity: 2, price: 6500 },
         { id: 'prod-5', name: 'Aiguilles Bambou 5mm', quantity: 1, price: 4500 }
       ],
-      shippingAddress: { fullName: 'Landry', address: 'Bonapriso, Douala', city: 'Douala', phone: '+237 655443322' }
+      shippingAddress: { fullName: 'Administrateur', address: 'Bonapriso, Douala', city: 'Douala', phone: '+237 655443322' }
     },
     {
       id: 'ord-104',
@@ -1156,10 +1114,10 @@ const getMockOrdersList = (uid: string | null) => {
 const getMockUsersList = (uid: string | null) => {
   return [
     {
-      id: uid || 'landry-uid',
-      email: 'landrymoutongo97@gmail.com',
+      id: uid || 'user-admin',
+      email: 'admin@lainedeco.local',
       role: 'super-admin',
-      name: 'Landry',
+      name: 'Administrateur',
       phone: '+237 655443322',
       createdAt: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString()
     },
@@ -1441,10 +1399,65 @@ const readEntity = async (req: any, res: any) => {
 
     // 2. Si non connecté pour une ressource privée
     if (!uid) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return res.status(401).json({ error: 'Authentification requise pour cette ressource' });
     }
 
-    // 3. Admin Level
+    // 3. User collection IDOR protection
+    if (entity === 'user') {
+      if (id) {
+        // Can only read user profile if staff or reading own user doc
+        if (isAdminLevel(role) || isSupport(role) || uid === id) {
+          const snap = await retryFirestoreOperation<any>(() => db!.collection('user').doc(id).get());
+          if (!snap.exists) {
+            return res.status(404).json({ error: 'Utilisateur introuvable' });
+          }
+          const userData = { id: snap.id, ...snap.data() };
+          // If non-admin user reading own doc, sanitize sensitive internal admin fields if any
+          if (!isAdminLevel(role) && !isSupport(role)) {
+            delete userData.stripeCustomerId;
+          }
+          return res.json(userData);
+        }
+        return res.status(403).json({ error: 'Accès non autorisé à ce profil utilisateur' });
+      }
+
+      // Listing all users requires staff role
+      if (isAdminLevel(role) || isSupport(role)) {
+        const snap = await retryFirestoreOperation<any>(() => db!.collection('user').get());
+        const docs = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+        return res.json(docs);
+      }
+      return res.status(403).json({ error: 'Accès non autorisé' });
+    }
+
+    // 4. Order collection IDOR protection
+    if (entity === 'order') {
+      if (id) {
+        const snap = await retryFirestoreOperation<any>(() => db!.collection('order').doc(id).get());
+        if (!snap.exists) {
+          return res.status(404).json({ error: 'Commande introuvable' });
+        }
+        const orderData = snap.data();
+        if (isAdminLevel(role) || isStockManager(role) || isSupport(role) || isResourceOwner(orderData, uid)) {
+          return res.json({ id: snap.id, ...orderData });
+        }
+        return res.status(403).json({ error: 'Accès non autorisé à cette commande' });
+      }
+
+      if (isAdminLevel(role) || isStockManager(role) || isSupport(role)) {
+        const snap = await retryFirestoreOperation<any>(() => db!.collection('order').get());
+        const docs = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+        return res.json(docs);
+      }
+
+      // Customer only gets their own orders
+      const snap = await retryFirestoreOperation<any>(() =>
+        db!.collection('order').where('userId', '==', uid).get()
+      );
+      return res.json(snap.docs.map((d: any) => ({ id: d.id, ...d.data() })));
+    }
+
+    // 5. Admin Level - access to all remaining entities
     if (isAdminLevel(role)) {
       const adminCacheKey = `admin-firestore:${entity}:${id || 'list'}`;
       const freshAdminCache = await getFreshCachedResponse(adminCacheKey, PUBLIC_FIRESTORE_CACHE_TTL_MS);
@@ -1468,7 +1481,7 @@ const readEntity = async (req: any, res: any) => {
       return res.json(docs);
     }
 
-    // 4. Stock Manager
+    // 6. Stock Manager access to staff collections
     if (isStockManager(role) && STAFF_READ_COLLECTIONS.has(entity)) {
       if (id) {
         const snap = await retryFirestoreOperation<any>(() => (db as any).collection(entity).doc(id).get());
@@ -1482,9 +1495,28 @@ const readEntity = async (req: any, res: any) => {
       })));
     }
 
-    // 5. Propriétaire de la ressource (Commande, avis, etc.)
+    // 7. Owner collections (review, wishlist, chat, ticket, conversation, rma, etc.)
     if (OWNER_COLLECTIONS.has(entity)) {
-      const snap = await retryFirestoreOperation<any>(() => (db as any).collection(entity).where('userId', '==', uid).get());
+      if (id) {
+        const snap = await retryFirestoreOperation<any>(() => (db as any).collection(entity).doc(id).get());
+        if (!snap.exists) {
+          return res.status(404).json({ error: 'Élément introuvable' });
+        }
+        const itemData = snap.data();
+        if (isStaff(role) || isResourceOwner(itemData, uid)) {
+          return res.json({ id: snap.id, ...itemData });
+        }
+        return res.status(403).json({ error: 'Accès refusé' });
+      }
+
+      if (isStaff(role)) {
+        const snap = await retryFirestoreOperation<any>(() => (db as any).collection(entity).get());
+        return res.json(snap.docs.map((d: any) => ({ id: d.id, ...d.data() })));
+      }
+
+      const snap = await retryFirestoreOperation<any>(() =>
+        (db as any).collection(entity).where('userId', '==', uid).get()
+      );
 
       return res.json(
         snap.docs.map((d: any) => ({
@@ -1494,7 +1526,8 @@ const readEntity = async (req: any, res: any) => {
       );
     }
 
-    return res.status(403).json({ error: 'Forbidden' });
+    // 8. Block unauthorized access to financial or internal collections
+    return res.status(403).json({ error: 'Accès refusé' });
   } catch (e: any) {
     if (isQuotaError(e)) {
       markQuotaExhausted();
@@ -1509,12 +1542,11 @@ const readEntity = async (req: any, res: any) => {
       id,
       role,
       uid,
-      errorName: e?.name,
       errorMessage: e?.message,
-      errorStack: e?.stack,
     });
-    return res.status(400).json({ error: e.message });
+    return res.status(500).json({ error: 'Une erreur interne est survenue' });
   }
+
 };
 
 router.get('/:entity', optionalAuth, readEntity);
