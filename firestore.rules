@@ -276,7 +276,7 @@ service cloud.firestore {
     // ==========================================
     match /review/{docId} {
       allow read: if true;
-      allow create: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if isSuperAdmin() || isAdmin() || isEditor();
     }
 
@@ -296,7 +296,7 @@ service cloud.firestore {
     // USERS
     // super-admin : tout
     // admin : read + update SAUF create/delete
-    // user : ses propres données SAUF changer son role
+    // user : ses propres données de profil (champs non-critiques uniquement)
     // ==========================================
     match /user/{userId} {
       allow read: if isSuperAdmin() || isAdmin() || isSupportClient() ||
@@ -309,9 +309,12 @@ service cloud.firestore {
 
       allow update: if isSuperAdmin() ||
         (isAdmin() && request.resource.data.get('role', '') == resource.data.get('role', '')) ||
-        // Le user peut se mettre à jour mais ne peut PAS changer son role
+        // Le user peut uniquement mettre à jour ses coordonnées personnelles et préférences
         (isAuthenticated() && request.auth.uid == userId &&
-          request.resource.data.get('role', '') == resource.data.get('role', ''));
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'name', 'firstName', 'lastName', 'phone', 'whatsapp', 'address', 'city', 'country',
+            'avatar', 'preferences', 'updatedAt', 'lastLoginAt'
+          ]));
 
       allow delete: if isSuperAdmin();
     }
@@ -343,24 +346,24 @@ service cloud.firestore {
     }
 
     // ==========================================
-    // LOGS (lecture staff, écriture système libre)
+    // LOGS (lecture staff, écriture authentifiée uniquement)
     // ==========================================
     match /log/{docId} {
       allow read: if isSuperAdmin() || isAdmin();
-      allow create: if true; // système/frontend peut logger
+      allow create: if isAuthenticated();
       allow update, delete: if isSuperAdmin();
     }
 
     match /login_log/{docId} {
       allow read: if isSuperAdmin() || isAdmin() ||
         (isAuthenticated() && resource.data.userId == request.auth.uid);
-      allow create: if true;
+      allow create: if isAuthenticated();
       allow update, delete: if isSuperAdmin();
     }
 
     match /request_log/{docId} {
       allow read: if isSuperAdmin() || isAdmin();
-      allow create: if true;
+      allow create: if isAuthenticated();
       allow update, delete: if isSuperAdmin();
     }
 
@@ -449,10 +452,6 @@ service cloud.firestore {
       allow update: if isSuperAdmin() || isAdmin() ||
         (isAuthenticated() && resource.data.userId == request.auth.uid);
       allow delete: if isSuperAdmin();
-    }
-
-    match /log/{docId} {
-      allow create: if true;
     }
 
     // ==========================================

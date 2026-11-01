@@ -10,6 +10,7 @@ import { getEffectivePrice, cleanText } from '../utils/siteUtils';
 import { triggerHaptic } from '../utils/haptics';
 import { useComparisonStore } from '../../stores/comparisonStore';
 import { SEO } from '../components/SEO';
+import DOMPurify from 'isomorphic-dompurify';
 
 interface FlyingDot {
   id: number;
@@ -138,7 +139,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
             <div 
               className="text-primary/80 leading-relaxed prose prose-sm max-w-none space-y-2" 
               dangerouslySetInnerHTML={{ 
-                __html: product.description ? product.description.replace(/\n/g, '<br />') : '' 
+                __html: DOMPurify.sanitize(product.description ? product.description.replace(/\n/g, '<br />') : '') 
               }} 
             />
             

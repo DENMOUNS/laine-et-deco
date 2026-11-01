@@ -4,6 +4,7 @@ import { ArrowLeft, Share2, Tag, Clock, User, ExternalLink } from 'lucide-react'
 import { Button } from '../components/ui/Button';
 import { useEntityLazy } from '../hooks/useEntityLazy';
 import { useEntity } from '../hooks/useEntity';
+import DOMPurify from 'isomorphic-dompurify';
 import type { BlogPost } from '../../types';
 
 interface BlogPostViewProps {
@@ -110,7 +111,7 @@ export const BlogPostView: React.FC<BlogPostViewProps> = ({ postId, onNavigate }
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-6">
         <main className="lg:col-span-2">
           <motion.div ref={contentRef} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="prose prose-lg max-w-none text-primary/90 bg-transparent leading-relaxed">
-            <div dangerouslySetInnerHTML={{ __html: post.content }} />
+            <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content || '') }} />
           </motion.div>
 
           <div className="mt-12 flex items-center gap-4">

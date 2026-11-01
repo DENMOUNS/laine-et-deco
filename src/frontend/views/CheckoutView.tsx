@@ -284,6 +284,10 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
           customer: `${formData.firstName} ${formData.lastName}`,
           customerName: `${formData.firstName} ${formData.lastName}`,
           address: `${formData.address}, ${formData.city}`,
+          couponCode: appliedCoupon?.code,
+          couponId: appliedCoupon?.id,
+          city: formData.city,
+          referralCode: sessionStorage.getItem('referralCode') || undefined,
           phone: formData.phone,
           coordinates: formData.coordinates,
           paymentMethod: formData.paymentMethod,
@@ -296,45 +300,11 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ cart, user, onNaviga
       const checkoutBody = await checkoutResponse.json().catch(() => null);
       if (!checkoutResponse.ok) throw new Error(checkoutBody?.error || 'Impossible de réserver le stock');
       
-      // Update coupon usage
-      if (appliedCoupon) {
-        const couponRef = doc(db, 'coupon', appliedCoupon.id);
-        await updateDoc(couponRef, {
-          usageCount: increment(1)
-        });
+      // Clear used referral code from session
+      if (sessionStorage.getItem('referralCode')) {
+        sessionStorage.removeItem('referralCode');
       }
-
-      // Points awarding (1% of total)
       const pointsEarned = Math.floor(total * 0.01);
-      
-      // Update current user points - Using direct doc reference with UID
-      try {
-        const userDocRef = doc(db, 'user', user.uid);
-        const userSnap = await getDoc(userDocRef);
-        
-        if (userSnap.exists()) {
-          await updateDoc(userDocRef, {
-            points: increment(pointsEarned),
-            orders: increment(1)
-          });
-        } else {
-          // If the profile doesn't exist yet, create it
-          await setDoc(userDocRef, {
-            uid: user.uid,
-            name: `${formData.firstName} ${formData.lastName}`.trim() || user.displayName || 'Utilisateur',
-            email: user.email,
-            role: 'customer',
-            points: pointsEarned,
-            orders: 1,
-            joinDate: new Date().toISOString().split('T')[0],
-            status: 'active',
-            createdAt: serverTimestamp()
-          });
-        }
-      } catch (userErr) {
-        console.warn("Failed to update user profile points:", userErr);
-      }
-      
       toast.success(`Commande validée ! Vous avez gagné ${pointsEarned} points.`);
       onComplete();
       onNavigate('order-success');

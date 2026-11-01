@@ -437,7 +437,6 @@ const STAFF_READ_COLLECTIONS = new Set([
 ]);
 
 const OWNER_COLLECTIONS = new Set([
-  'order',
   'review',
   'community_post',
   'conversation',
@@ -551,6 +550,11 @@ router.post('/:entity', verifyToken, resolveRole, async (req: any, res) => {
 
   if (!uid) {
     return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  if (entity === 'order') {
+    logEntity(req.requestId, 'create:blocked-order-entity', { uid: shortUid(uid) });
+    return res.status(403).json({ error: 'Les commandes ne peuvent pas être créées directement via cette API. Veuillez utiliser le point de terminaison sécurisé /api/checkout.' });
   }
 
   try {

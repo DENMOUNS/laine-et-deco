@@ -54,6 +54,15 @@ async function startServer() {
     },
   });
 
+  // Dedicated strict rate limiter for AI generation endpoints
+  const aiLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute window
+    max: 20, // Limit each IP to 20 AI generation requests per minute
+    message: { error: "Limite d'appels IA atteinte. Veuillez patienter une minute avant de réessayer." },
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: (req) => isStaff((req as any).authRole),
+  });
 
   /** Vite middleware (dev) sauf si NODE_ENV=production (npm run start après build). */
   const useViteDevServer =
@@ -99,7 +108,74 @@ async function startServer() {
   if (!fs.existsSync(invoiceDir)) {
     fs.mkdirSync(invoiceDir, { recursive: true });
   }
-  app.use('/invoices', express.static(invoiceDir, { maxAge: '1h' }));
+
+  // Secure Invoices Route with Authentication and Access Control Check
+  app.get('/invoices/:filename', async (req, res) => {
+    try {
+      const rawFilename = req.params.filename;
+      const safeFilename = path.basename(rawFilename);
+      if (!safeFilename || safeFilename.includes('..') || safeFilename.includes('/') || safeFilename.includes('\\')) {
+        return res.status(400).json({ error: 'Nom de fichier invalide' });
+      }
+
+      const filePath = path.join(invoiceDir, safeFilename);
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: 'Facture introuvable' });
+      }
+
+      // Check auth header or query token (for direct browser downloads)
+      const bearer = req.headers.authorization;
+      const queryToken = typeof req.query.token === 'string' ? req.query.token : null;
+      const token = bearer?.startsWith('Bearer ') ? bearer.slice(7) : queryToken;
+
+      if (!token) {
+        return res.status(401).json({ error: 'Authentification requise pour accéder aux factures' });
+      }
+
+      if (!auth) {
+        return res.status(503).json({ error: 'Service d\'authentification indisponible' });
+      }
+
+      const decoded = await auth.verifyIdToken(token);
+      const userRole = await resolveUserRole(decoded.uid, decoded.email, decoded.role as string, decoded);
+
+      if (isStaff(userRole)) {
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename="${safeFilename}"`);
+        return res.sendFile(filePath);
+      }
+
+      // Customer authorization check: ensure the invoice belongs to an order owned by this user
+      let isAuthorized = false;
+      if (db) {
+        const orderIdGuess = safeFilename.replace(/^invoice-/, '').replace(/\.pdf$/, '');
+        const directOrder = await db.collection('order').doc(orderIdGuess).get();
+        if (directOrder.exists && directOrder.data()?.userId === decoded.uid) {
+          isAuthorized = true;
+        } else {
+          const userOrders = await db.collection('order').where('userId', '==', decoded.uid).limit(50).get();
+          for (const doc of userOrders.docs) {
+            if (safeFilename.includes(doc.id) || (doc.data().parentOrderId && safeFilename.includes(doc.data().parentOrderId))) {
+              isAuthorized = true;
+              break;
+            }
+          }
+        }
+      }
+
+      if (!isAuthorized) {
+        return res.status(403).json({ error: 'Accès non autorisé à cette facture' });
+      }
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="${safeFilename}"`);
+      return res.sendFile(filePath);
+    } catch (err: any) {
+      console.error('[invoice-access-error]', err);
+      return res.status(401).json({ error: 'Session invalide ou expirée' });
+    }
+  });
+
   app.use('/api/entity', entityRoutes);
   app.use('/api/dashboard', dashboardRoutes);
   app.use('/api/storage', storageRoutes);
@@ -158,7 +234,7 @@ async function startServer() {
     imagePart: z.object({ mimeType: z.string().max(100), data: z.string().max(12000000) }).optional(),
   });
 
-  app.post("/api/chat", async (req, res) => {
+  app.post("/api/chat", aiLimiter, async (req, res) => {
     try {
       if (!ai) {
         return res.status(500).json({ error: "Gemini API key is missing on the server." });
@@ -195,7 +271,7 @@ async function startServer() {
     imagePart: z.any(), 
   });
 
-  app.post("/api/analyze-image", async (req, res) => {
+  app.post("/api/analyze-image", aiLimiter, async (req, res) => {
     try {
       if (!ai) return res.status(500).json({ error: "Gemini API key is missing on the server." });
 
@@ -232,7 +308,7 @@ async function startServer() {
   const translationCache = new Map<string, string>();
   const MAX_TRANSLATION_CACHE_SIZE = 5000;
 
-  app.post("/api/translate", async (req, res) => {
+  app.post("/api/translate", aiLimiter, async (req, res) => {
     try {
       const parsedData = translateSchema.parse(req.body);
       const targetLanguageName = parsedData.targetLang === 'en' ? 'English (fluent and natural for e-commerce)' : 'Français';

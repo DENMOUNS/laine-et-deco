@@ -117,7 +117,7 @@
   }
 
   .animate-marquee {
-    animation: marquee-scroll 35s linear infinite;
+    animation: marquee-scroll 70s linear infinite;
   }
 
   @keyframes hero-fade-in {
