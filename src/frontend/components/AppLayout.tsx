@@ -61,6 +61,8 @@ export const AppLayout: React.FC = () => {
 
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
   const isAdmin = location.pathname.startsWith('/admin');
+  const isQrLanding = location.pathname.startsWith('/qr-landing');
+  const isCleanView = isAdmin || isQrLanding;
 
   // Derive currentView from pathname for Navbar active state
   const currentView = React.useMemo(() => {
@@ -192,14 +194,14 @@ export const AppLayout: React.FC = () => {
         </Suspense>
       )}
       
-      {!isAdmin && <TopMarquee siteConfig={siteConfig} />}
-      {!isAdmin && (
+      {!isCleanView && <TopMarquee siteConfig={siteConfig} />}
+      {!isCleanView && (
         <MobileGlassHeader
           onNavigate={handleNavigate}
           user={user}
         />
       )}
-      {!isAdmin && (
+      {!isCleanView && (
         <Navbar 
           onNavigate={handleNavigate}
           currentView={currentView}
@@ -211,7 +213,7 @@ export const AppLayout: React.FC = () => {
         />
       )}
 
-      {isAdmin ? (
+      {isCleanView ? (
         <ErrorBoundary onNavigate={handleNavigate}>
           <Outlet />
         </ErrorBoundary>
@@ -223,7 +225,7 @@ export const AppLayout: React.FC = () => {
         </main>
       )}
 
-      {!isAdmin && (
+      {!isCleanView && (
         <MobileGlassDock
           currentView={currentView}
           onNavigate={handleNavigate}
@@ -233,8 +235,8 @@ export const AppLayout: React.FC = () => {
         />
       )}
 
-      {!isAdmin && <Footer onNavigate={handleNavigate} user={user} />}
-      {!isAdmin && !!user && <ChatBubble />}
+      {!isCleanView && <Footer onNavigate={handleNavigate} user={user} />}
+      {!isCleanView && !!user && <ChatBubble />}
 
       {/* Floating comparison tool (PC Only) */}
       {currentView !== 'comparison' && comparisonList.length > 0 && deferredWidgets && (

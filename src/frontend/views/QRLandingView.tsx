@@ -52,42 +52,39 @@ export const QRLandingView: React.FC<QRLandingViewProps> = ({ onNavigate }) => {
 
     const fetchConfig = async () => {
       const defaultQrConfig = {
-        whatsappNumber: '',
-        whatsappMessage: '',
-        welcomeMessage: ''
+        whatsappNumber: '+237699999999',
+        whatsappMessage: 'Bonjour Laine et Déco, je vous contacte depuis le QR Code !',
+        welcomeMessage: 'Bienvenue chez Laine et Déco ! Découvrez notre univers artisanal et contactez-nous directement.'
       };
 
       try {
-        // Fetch public QR config from server
         const resp = await fetch('/api/dashboard/public/config/qr_config/global', { 
           credentials: 'same-origin' 
         });
         
         if (!isMounted) return;
         
-        // Vérifier le Content-Type AVANT de parser
         const contentType = resp.headers.get('content-type') || '';
-        
         if (resp.ok && contentType.includes('application/json')) {
           const data = await resp.json();
-          setQrConfig({ ...defaultQrConfig, ...data });
-        } else {
-          // Pas du JSON (probablement du HTML) → fallback silencieux
+          if (isMounted) {
+            setQrConfig({
+              whatsappNumber: data.whatsappNumber || defaultQrConfig.whatsappNumber,
+              whatsappMessage: data.whatsappMessage || defaultQrConfig.whatsappMessage,
+              welcomeMessage: data.welcomeMessage || defaultQrConfig.welcomeMessage,
+            });
+          }
+        } else if (isMounted) {
           setQrConfig(defaultQrConfig);
         }
-        
-        setIsLoading(false);
-
       } catch (err) {
         if (isMounted) {
           setQrConfig(defaultQrConfig);
+        }
+      } finally {
+        if (isMounted) {
           setIsLoading(false);
         }
-      }
-
-      if (isMounted) {
-        setQrConfig(defaultQrConfig);
-        setIsLoading(false);
       }
     };
     fetchConfig();
@@ -106,9 +103,9 @@ export const QRLandingView: React.FC<QRLandingViewProps> = ({ onNavigate }) => {
   }
 
   const handleWhatsAppClick = () => {
-    let number = qrConfig.whatsappNumber.replace(/[^\d+]/g, '');
-    const message = encodeURIComponent(qrConfig.whatsappMessage);
-    const url = `https://wa.me/${number}?text=${message}`;
+    let number = (qrConfig.whatsappNumber || '').replace(/[^\d+]/g, '');
+    const message = encodeURIComponent(qrConfig.whatsappMessage || 'Bonjour Laine et Déco !');
+    const url = number ? `https://wa.me/${number}?text=${message}` : `https://wa.me/?text=${message}`;
     window.open(url, '_blank');
   };
 
@@ -228,7 +225,7 @@ export const QRLandingView: React.FC<QRLandingViewProps> = ({ onNavigate }) => {
           </motion.h1>
           
           <motion.p variants={itemVariants} className="text-primary/70 mb-10 leading-relaxed min-h-[3rem]">
-            {qrConfig.welcomeMessage.split(' ').map((word, i) => (
+            {(qrConfig.welcomeMessage || 'Bienvenue chez Laine et Déco !').split(' ').map((word, i) => (
               <motion.span
                 key={i}
                 initial={{ opacity: 0, y: 10 }}

@@ -457,27 +457,6 @@ function AdminUserDetailPage() {
 
 function QRLandingViewPage() {
   const onNavigate = useNavigateAdapter();
-  const user = useAuthStore((s) => s.user);
-  const userRole = useAuthStore((s) => s.currentUserDoc?.role || 'customer');
-  const isAuthLoading = useAuthStore((s) => s.isAuthLoading);
-
-  React.useEffect(() => {
-    const backofficeRoles = ['super-admin', 'admin', 'editor', 'stock-manager', 'support-client'];
-    if (!isAuthLoading) {
-      if (!user) {
-        toast.error("Veuillez vous connecter en tant qu'administrateur.");
-        onNavigate('auth');
-      } else if (!backofficeRoles.includes(userRole)) {
-        toast.error("Accès refusé. Cette page est réservée uniquement aux administrateurs.");
-        onNavigate('home');
-      }
-    }
-  }, [isAuthLoading, user, userRole, onNavigate]);
-
-  if (isAuthLoading) return <Loader fullScreen text="Vérification des accès admin..." />;
-  const backofficeRoles = ['super-admin', 'admin', 'editor', 'stock-manager', 'support-client'];
-  if (!user || !backofficeRoles.includes(userRole)) return null;
-
   return <QRLandingView onNavigate={onNavigate} />;
 }
 

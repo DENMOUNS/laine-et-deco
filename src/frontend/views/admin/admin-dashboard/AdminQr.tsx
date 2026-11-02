@@ -153,13 +153,13 @@ export function AdminQr({ ctx }: { ctx: any }) {
               <div className="bg-white p-4 rounded-2xl shadow-sm">
                 <QRCodeSVG
                   id="qr-code-svg"
-                  value={`${window.location.origin}/?view=qr-landing`}
+                  value={`${window.location.origin}/qr-landing`}
                   size={200}
                   fgColor="#2c3e35"
                 />
               </div>
               <div className="text-xs text-primary/40 font-mono bg-white/80 px-4 py-2 rounded-xl break-all">
-                {window.location.origin}/?view=qr-landing
+                {window.location.origin}/qr-landing
               </div>
               <button
                 onClick={handleDownload}

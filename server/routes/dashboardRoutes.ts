@@ -985,9 +985,17 @@ router.get('/public/config/qr_config/global', async (_req, res) => {
         snap = query.docs[0];
       }
     }
+
+    // If still not found, try getting any first document in 'qr_config'
+    if (!snap.exists) {
+      const firstDoc = await db.collection('qr_config').limit(1).get();
+      if (!firstDoc.empty) {
+        snap = firstDoc.docs[0];
+      }
+    }
     
     if (!snap.exists) {
-      return res.status(404).json({ error: 'Configuration QR introuvable.' });
+      return res.json({});
     }
     return res.json({ id: snap.id, ...snap.data() });
   } catch (e: any) {
